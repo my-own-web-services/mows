@@ -5,6 +5,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use tracing::{debug, info};
 
+use crate::utils::yaml_to_4_space_indent;
+
 /// Environment variable to override the config file path
 pub const MPM_CONFIG_PATH_ENV: &str = "MPM_CONFIG_PATH";
 
@@ -102,8 +104,9 @@ impl MpmConfig {
         fs::create_dir_all(parent)
             .map_err(|e| format!("Failed to create config directory: {}", e))?;
 
-        let content = serde_yaml::to_string(self)
+        let yaml = serde_yaml::to_string(self)
             .map_err(|e| format!("Failed to serialize config: {}", e))?;
+        let content = yaml_to_4_space_indent(&yaml);
 
         // Write to temporary file first (atomic write pattern)
         let temp_path = path.with_extension("yaml.tmp");

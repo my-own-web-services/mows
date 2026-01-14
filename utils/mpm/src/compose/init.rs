@@ -136,33 +136,33 @@ fn generate_docker_compose(dockerfiles: &[DockerfileInfo]) -> String {
 
     if dockerfiles.is_empty() {
         // Add a placeholder service
-        content.push_str("  # Add your services here\n");
-        content.push_str("  # example:\n");
-        content.push_str("  #   image: nginx:alpine\n");
-        content.push_str("  #   restart: unless-stopped\n");
+        content.push_str("    # Add your services here\n");
+        content.push_str("    # example:\n");
+        content.push_str("    #     image: nginx:alpine\n");
+        content.push_str("    #     restart: unless-stopped\n");
     } else {
         for dockerfile in dockerfiles {
-            content.push_str(&format!("  {}:\n", dockerfile.service_name));
+            content.push_str(&format!("    {}:\n", dockerfile.service_name));
             content.push_str(&format!(
-                "    {{{{- if eq .services.{}.build.enabled true }}}}\n",
+                "        {{{{- if eq .services.{}.build.enabled true }}}}\n",
                 dockerfile.service_name
             ));
-            content.push_str("    build:\n");
+            content.push_str("        build:\n");
             content.push_str(&format!(
-                "      context: \"{{{{ .services.{}.build.context }}}}\"\n",
+                "            context: \"{{{{ .services.{}.build.context }}}}\"\n",
                 dockerfile.service_name
             ));
             content.push_str(&format!(
-                "      dockerfile: \"{{{{ .services.{}.build.dockerfile }}}}\"\n",
+                "            dockerfile: \"{{{{ .services.{}.build.dockerfile }}}}\"\n",
                 dockerfile.service_name
             ));
-            content.push_str("    {{- else }}\n");
+            content.push_str("        {{- else }}\n");
             content.push_str(&format!(
-                "    image: \"{{{{ .services.{}.image }}}}\"\n",
+                "        image: \"{{{{ .services.{}.image }}}}\"\n",
                 dockerfile.service_name
             ));
-            content.push_str("    {{- end }}\n");
-            content.push_str("    restart: unless-stopped\n");
+            content.push_str("        {{- end }}\n");
+            content.push_str("        restart: unless-stopped\n");
             content.push_str("\n");
         }
     }
@@ -182,13 +182,13 @@ fn generate_values(dockerfiles: &[DockerfileInfo]) -> String {
     } else {
         content.push_str("services:\n");
         for dockerfile in dockerfiles {
-            content.push_str(&format!("  {}:\n", dockerfile.service_name));
-            content.push_str("    build:\n");
-            content.push_str("      enabled: true\n");
-            content.push_str(&format!("      context: {}\n", dockerfile.context_path));
-            content.push_str("      dockerfile: Dockerfile\n");
+            content.push_str(&format!("    {}:\n", dockerfile.service_name));
+            content.push_str("        build:\n");
+            content.push_str("            enabled: true\n");
+            content.push_str(&format!("            context: {}\n", dockerfile.context_path));
+            content.push_str("            dockerfile: Dockerfile\n");
             content.push_str(&format!(
-                "    # image: your-registry/{}\n",
+                "        # image: your-registry/{}\n",
                 dockerfile.service_name
             ));
         }
@@ -202,9 +202,9 @@ fn generate_manifest(project_name: &str) -> String {
     format!(
         r#"manifestVersion: "0.1"
 metadata:
-  name: {}
-  description: ""
-  version: "0.1"
+    name: {}
+    description: ""
+    version: "0.1"
 spec: {{}}
 "#,
         project_name

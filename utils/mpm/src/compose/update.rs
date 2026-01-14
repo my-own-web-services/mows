@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, info, warn};
 
+use crate::utils::{detect_yaml_indent, yaml_with_indent};
 use super::config::MpmConfig;
 use super::find_manifest_dir;
 use super::find_manifest_in_repo;
@@ -279,6 +280,9 @@ fn git_pull(repo_root: &Path) -> Result<(), String> {
 
 /// Merge values: keep existing keys, add new ones, comment out removed ones
 fn merge_values(old_content: &str, new_content: &str) -> Result<String, String> {
+    // Detect indentation from the existing file, default to 4 spaces
+    let indent = detect_yaml_indent(old_content).unwrap_or(4);
+
     let old_value: serde_yaml::Value = serde_yaml::from_str(old_content)
         .map_err(|e| format!("Failed to parse old values: {}", e))?;
     let new_value: serde_yaml::Value = serde_yaml::from_str(new_content)
@@ -294,9 +298,10 @@ fn merge_values(old_content: &str, new_content: &str) -> Result<String, String> 
     // Merge: new as base, override with old values
     let merged = merge_yaml_values(new_value, old_value.clone());
 
-    // Serialize
-    let mut output = serde_yaml::to_string(&merged)
+    // Serialize with proper indentation
+    let yaml = serde_yaml::to_string(&merged)
         .map_err(|e| format!("Failed to serialize merged values: {}", e))?;
+    let mut output = yaml_with_indent(&yaml, indent);
 
     // Add deprecated keys as comments at the end
     if !deprecated_keys.is_empty() {

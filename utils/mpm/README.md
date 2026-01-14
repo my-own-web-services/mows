@@ -17,18 +17,17 @@ mpm is a deployment tool that brings Helm-like templating to Docker Compose. Man
 
 Pre-built binaries are available for **x86_64 (amd64)** and **aarch64 (arm64)** architectures.
 
-Download and install the latest release with checksum verification:
+```bash
+curl -fsSL https://raw.githubusercontent.com/my-own-web-services/mows/main/utils/mpm/scripts/install.sh | bash
+```
+
+Options via environment variables:
+- `MPM_VERSION` - Install a specific version (default: latest)
+- `MPM_INSTALL_DIR` - Custom install directory (default: /usr/local/bin or ~/.local/bin)
 
 ```bash
-ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
-VERSION=$(curl -fsSL https://api.github.com/repos/my-own-web-services/mows/releases/latest | grep -oP '"tag_name":\s*"mpm-v\K[0-9]+\.[0-9]+\.[0-9]+') && \
-BINARY="mpm-${VERSION}-linux-${ARCH}" && \
-curl -fsSL "https://github.com/my-own-web-services/mows/releases/latest/download/${BINARY}" -o /tmp/mpm && \
-curl -fsSL "https://github.com/my-own-web-services/mows/releases/latest/download/${BINARY}-checksum-sha256.txt" -o /tmp/mpm-checksum.txt && \
-cd /tmp && sha256sum -c mpm-checksum.txt && \
-chmod +x /tmp/mpm && sudo mv /tmp/mpm /usr/local/bin/mpm && \
-rm /tmp/mpm-checksum.txt && \
-echo "mpm ${VERSION} installed successfully"
+# Example: install specific version to custom directory
+MPM_VERSION=0.3.0 MPM_INSTALL_DIR=~/bin curl -fsSL ... | bash
 ```
 
 ### From Source

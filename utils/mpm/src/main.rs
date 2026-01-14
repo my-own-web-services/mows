@@ -9,6 +9,7 @@ mod self_update;
 mod template;
 mod tools;
 mod utils;
+pub mod yaml_indent;
 
 use clap::Parser;
 use tracing_subscriber::EnvFilter;

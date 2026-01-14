@@ -5,6 +5,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, trace};
 
+// Re-export YAML indentation utilities from dedicated module
+pub use crate::yaml_indent::{detect_yaml_indent, yaml_to_4_space_indent, yaml_with_indent};
+
 pub fn find_git_root() -> Result<PathBuf, String> {
     debug!("Finding git repository root");
     let output = Command::new("git")

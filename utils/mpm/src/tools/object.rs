@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use tracing::debug;
 
-use crate::utils::{parse_yaml, read_input, write_output};
+use crate::utils::{detect_yaml_indent, parse_yaml, read_input, write_output, yaml_with_indent};
 
 use super::selector::{find_matching_paths, get_value_at_path_mut, is_docker_compose};
 
@@ -55,6 +55,7 @@ pub fn expand_object_command(
 ) -> Result<(), String> {
     debug!("Expanding dot-notation keys to nested object");
     let content = read_input(input)?;
+    let indent = detect_yaml_indent(&content).unwrap_or(4);
     let mut value: serde_yaml::Value = parse_yaml(&content, input.as_deref())?;
 
     // Determine the selector to use
@@ -77,7 +78,7 @@ pub fn expand_object_command(
             .map_err(|e| format!("Failed to expand: {}", e))?;
         let yaml = serde_yaml::to_string(&tree)
             .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
-        write_output(output, &yaml)
+        write_output(output, &yaml_with_indent(&yaml, indent))
     } else {
         // Transform only matching paths
         let pattern: Vec<&str> = effective_selector.split('.').collect();
@@ -99,7 +100,7 @@ pub fn expand_object_command(
 
         let yaml = serde_yaml::to_string(&value)
             .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
-        write_output(output, &yaml)
+        write_output(output, &yaml_with_indent(&yaml, indent))
     }
 }
 
@@ -110,6 +111,7 @@ pub fn flatten_object_command(
 ) -> Result<(), String> {
     debug!("Flattening nested object to dot-notation keys");
     let content = read_input(input)?;
+    let indent = detect_yaml_indent(&content).unwrap_or(4);
     let mut value: serde_yaml::Value = parse_yaml(&content, input.as_deref())?;
 
     // Determine the selector to use
@@ -132,7 +134,7 @@ pub fn flatten_object_command(
             .map_err(|e| format!("Failed to flatten: {}", e))?;
         let yaml = serde_yaml::to_string(&labels)
             .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
-        write_output(output, &yaml)
+        write_output(output, &yaml_with_indent(&yaml, indent))
     } else {
         // Transform only matching paths
         let pattern: Vec<&str> = effective_selector.split('.').collect();
@@ -154,7 +156,7 @@ pub fn flatten_object_command(
 
         let yaml = serde_yaml::to_string(&value)
             .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
-        write_output(output, &yaml)
+        write_output(output, &yaml_with_indent(&yaml, indent))
     }
 }
 

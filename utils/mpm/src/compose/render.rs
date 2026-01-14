@@ -11,7 +11,7 @@ use super::secrets::{load_secrets_as_map, merge_generated_secrets};
 use crate::template::error::format_template_error;
 use crate::template::variables::load_variable_file;
 use crate::tools::{flatten_labels_in_compose, FlattenLabelsError};
-use crate::utils::parse_yaml;
+use crate::utils::{detect_yaml_indent, parse_yaml, yaml_with_indent};
 
 /// Write a file with restricted permissions (600 - owner read/write only)
 /// Used for secrets files to prevent world-readable credentials
@@ -129,45 +129,6 @@ fn load_values(dir: &Path) -> Result<gtmpl::Value, String> {
     Ok(gtmpl::Value::Object(HashMap::new()))
 }
 
-/// Clear the results directory, but preserve generated-secrets.env
-pub fn clear_results_directory(results_dir: &Path) -> Result<(), String> {
-    if !results_dir.exists() {
-        debug!("Results directory does not exist, nothing to clear");
-        return Ok(());
-    }
-
-    let generated_secrets_path = results_dir.join("generated-secrets.env");
-    let generated_secrets_backup = if generated_secrets_path.exists() {
-        debug!("Backing up generated-secrets.env");
-        Some(fs::read_to_string(&generated_secrets_path).map_err(|e| {
-            format!(
-                "Failed to read generated-secrets.env for backup: {}",
-                e
-            )
-        })?)
-    } else {
-        None
-    };
-
-    // Remove the results directory
-    debug!("Removing results directory: {}", results_dir.display());
-    fs::remove_dir_all(results_dir)
-        .map_err(|e| format!("Failed to remove results directory: {}", e))?;
-
-    // Recreate the directory
-    fs::create_dir_all(results_dir)
-        .map_err(|e| format!("Failed to create results directory: {}", e))?;
-
-    // Restore generated-secrets.env if it existed
-    if let Some(content) = generated_secrets_backup {
-        debug!("Restoring generated-secrets.env");
-        fs::write(&generated_secrets_path, content)
-            .map_err(|e| format!("Failed to restore generated-secrets.env: {}", e))?;
-    }
-
-    Ok(())
-}
-
 /// Render a single template file
 fn render_template_file(
     input: &Path,
@@ -189,28 +150,43 @@ fn render_template_file(
     }
 
     // Generate variable definitions preamble
-    let full_template = if let gtmpl::Value::Object(map) = variables {
+    let (full_template, preamble_lines) = if let gtmpl::Value::Object(map) = variables {
         if map.is_empty() {
-            template_content.clone()
+            (template_content.clone(), 0)
         } else {
             let preamble: String = map
                 .keys()
                 .map(|k| format!("{{{{- ${k} := .{k} }}}}\n"))
                 .collect();
-            format!("{}{}", preamble, template_content)
+            let preamble_line_count = preamble.lines().count();
+            (format!("{}{}", preamble, template_content), preamble_line_count)
         }
     } else {
-        template_content.clone()
+        (template_content.clone(), 0)
     };
 
-    template
-        .parse(&full_template)
-        .map_err(|e| format!("Failed to parse template '{}': {}", input.display(), e))?;
+    template.parse(&full_template).map_err(|e| {
+        format_template_error(
+            input,
+            &template_content,
+            &gtmpl::TemplateError::ParseError(e),
+            preamble_lines,
+            5,
+            Some(variables),
+        )
+    })?;
 
     let context = gtmpl::Context::from(variables.clone());
-    let rendered = template
-        .render(&context)
-        .map_err(|e| format!("Failed to render template '{}': {}", input.display(), e))?;
+    let rendered = template.render(&context).map_err(|e| {
+        format_template_error(
+            input,
+            &template_content,
+            &gtmpl::TemplateError::ExecError(e),
+            preamble_lines,
+            5,
+            Some(variables),
+        )
+    })?;
 
     // Create parent directories
     if let Some(parent) = output.parent() {
@@ -487,8 +463,11 @@ pub fn render_docker_compose(ctx: &RenderContext) -> Result<(), String> {
         debug!("Flattening labels in docker-compose file");
         match flatten_labels_in_compose(yaml_value) {
             Ok(flattened) => {
-                let output = serde_yaml::to_string(&flattened)
+                // Detect indentation from rendered template, default to 4 spaces
+                let indent = detect_yaml_indent(&content).unwrap_or(4);
+                let yaml = serde_yaml::to_string(&flattened)
                     .map_err(|e| format!("Failed to serialize docker-compose: {}", e))?;
+                let output = yaml_with_indent(&yaml, indent);
                 fs::write(&output_path, output)
                     .map_err(|e| format!("Failed to write docker-compose: {}", e))?;
             }
@@ -596,62 +575,85 @@ pub fn render_admin_infos(ctx: &RenderContext) -> Result<(), String> {
 
 /// Backup state for rollback on pipeline failure
 struct PipelineBackup {
-    /// Backup of generated-secrets.env content
-    generated_secrets_backup: Option<String>,
-    /// Whether we had a results directory before
-    had_results_dir: bool,
+    /// Path to backup directory (if results existed)
+    backup_dir: Option<PathBuf>,
     /// Path to results directory
     results_dir: PathBuf,
 }
 
 impl PipelineBackup {
-    /// Create a backup of the current state
-    fn create(results_dir: &Path) -> Self {
-        let generated_secrets_path = results_dir.join("generated-secrets.env");
-        let generated_secrets_backup = if generated_secrets_path.exists() {
-            fs::read_to_string(&generated_secrets_path).ok()
+    /// Create a backup of the current state by renaming results to a backup location
+    fn create(results_dir: &Path) -> Result<Self, String> {
+        let backup_dir = if results_dir.exists() {
+            let backup_path = results_dir.with_file_name(".results.backup");
+            // Remove any existing backup
+            if backup_path.exists() {
+                fs::remove_dir_all(&backup_path).map_err(|e| {
+                    format!("Failed to remove old backup directory: {}", e)
+                })?;
+            }
+            // Rename results to backup
+            debug!("Backing up results directory to {}", backup_path.display());
+            fs::rename(results_dir, &backup_path).map_err(|e| {
+                format!("Failed to backup results directory: {}", e)
+            })?;
+
+            // Create fresh results directory
+            fs::create_dir_all(results_dir).map_err(|e| {
+                format!("Failed to create fresh results directory: {}", e)
+            })?;
+
+            // Copy generated-secrets.env back for merge logic
+            let backup_secrets = backup_path.join("generated-secrets.env");
+            if backup_secrets.exists() {
+                let new_secrets = results_dir.join("generated-secrets.env");
+                fs::copy(&backup_secrets, &new_secrets).map_err(|e| {
+                    format!("Failed to copy generated-secrets.env for merge: {}", e)
+                })?;
+            }
+
+            Some(backup_path)
         } else {
             None
         };
 
-        PipelineBackup {
-            generated_secrets_backup,
-            had_results_dir: results_dir.exists(),
+        Ok(PipelineBackup {
+            backup_dir,
             results_dir: results_dir.to_path_buf(),
-        }
+        })
     }
 
     /// Restore from backup on failure
     fn restore(self) -> Result<(), String> {
         warn!("Pipeline failed, attempting to restore previous state");
 
-        // If we didn't have a results directory before, remove it entirely
-        if !self.had_results_dir {
-            if self.results_dir.exists() {
-                debug!("Removing results directory created during failed pipeline");
-                fs::remove_dir_all(&self.results_dir).map_err(|e| {
-                    format!(
-                        "Failed to cleanup results directory after pipeline failure: {}",
-                        e
-                    )
-                })?;
-            }
-            return Ok(());
+        // Remove the partially-created results directory
+        if self.results_dir.exists() {
+            debug!("Removing partial results directory");
+            fs::remove_dir_all(&self.results_dir).map_err(|e| {
+                format!("Failed to remove partial results directory: {}", e)
+            })?;
         }
 
-        // If we had results directory, restore generated-secrets.env if we had a backup
-        if let Some(content) = self.generated_secrets_backup {
-            let secrets_path = self.results_dir.join("generated-secrets.env");
-            debug!("Restoring generated-secrets.env from backup");
-            // Ensure results directory exists for restoration
-            if !self.results_dir.exists() {
-                fs::create_dir_all(&self.results_dir).map_err(|e| {
-                    format!("Failed to recreate results directory for restoration: {}", e)
-                })?;
-            }
-            write_secret_file(&secrets_path, &content)?;
+        // Restore from backup if we had one
+        if let Some(backup_path) = self.backup_dir {
+            debug!("Restoring results from backup");
+            fs::rename(&backup_path, &self.results_dir).map_err(|e| {
+                format!("Failed to restore results from backup: {}", e)
+            })?;
         }
 
+        Ok(())
+    }
+
+    /// Commit the changes by removing the backup (called on success)
+    fn commit(self) -> Result<(), String> {
+        if let Some(backup_path) = self.backup_dir {
+            debug!("Removing backup directory after successful pipeline");
+            fs::remove_dir_all(&backup_path).map_err(|e| {
+                format!("Failed to remove backup directory: {}", e)
+            })?;
+        }
         Ok(())
     }
 }
@@ -666,12 +668,14 @@ pub fn run_render_pipeline(ctx: &RenderContext) -> Result<(), String> {
     );
 
     // Create backup for potential rollback
-    let backup = PipelineBackup::create(&results_dir);
+    let backup = PipelineBackup::create(&results_dir)?;
 
     // Run the pipeline, rolling back on failure
     match run_render_pipeline_inner(ctx, &results_dir) {
         Ok(()) => {
             info!("Render pipeline completed successfully");
+            // Remove backup on success
+            backup.commit()?;
             Ok(())
         }
         Err(e) => {
@@ -690,25 +694,29 @@ pub fn run_render_pipeline(ctx: &RenderContext) -> Result<(), String> {
 
 /// Inner pipeline implementation
 fn run_render_pipeline_inner(ctx: &RenderContext, results_dir: &Path) -> Result<(), String> {
-    // Step 1: Clear results directory (preserving generated-secrets.env)
-    clear_results_directory(results_dir)?;
+    // Ensure results directory exists (backup creates it if results existed before,
+    // but we need to create it if this is a fresh project)
+    if !results_dir.exists() {
+        fs::create_dir_all(results_dir)
+            .map_err(|e| format!("Failed to create results directory: {}", e))?;
+    }
 
-    // Step 2: Render generated-secrets.env with merge logic
+    // Step 1: Render generated-secrets.env with merge logic
     render_generated_secrets(ctx)?;
 
-    // Step 3: Copy provided-secrets.env
+    // Step 2: Copy provided-secrets.env
     copy_provided_secrets(ctx)?;
 
-    // Step 4: Render templates/config directory
+    // Step 3: Render templates/config directory
     render_config_templates(ctx)?;
 
-    // Step 5: Render docker-compose.yaml with label flattening
+    // Step 4: Render docker-compose.yaml with label flattening
     render_docker_compose(ctx)?;
 
-    // Step 6: Setup data directory symlink
+    // Step 5: Setup data directory symlink
     setup_data_directory(ctx)?;
 
-    // Step 7: Render admin-infos.yaml
+    // Step 6: Render admin-infos.yaml
     render_admin_infos(ctx)?;
 
     Ok(())
@@ -764,54 +772,37 @@ spec: {}
     }
 
     #[test]
-    fn test_clear_results_preserves_generated_secrets() {
+    fn test_pipeline_backup_restore_with_existing_results() {
         let dir = tempdir().unwrap();
         let results_dir = dir.path().join("results");
         fs::create_dir_all(&results_dir).unwrap();
 
-        // Create generated-secrets.env
-        fs::write(
-            results_dir.join("generated-secrets.env"),
-            "SECRET=preserved",
-        )
-        .unwrap();
-
-        // Create another file that should be deleted
-        fs::write(results_dir.join("other.txt"), "delete me").unwrap();
-
-        clear_results_directory(&results_dir).unwrap();
-
-        // Verify generated-secrets.env is preserved
-        assert!(results_dir.join("generated-secrets.env").exists());
-        let content = fs::read_to_string(results_dir.join("generated-secrets.env")).unwrap();
-        assert_eq!(content, "SECRET=preserved");
-
-        // Verify other files are deleted
-        assert!(!results_dir.join("other.txt").exists());
-    }
-
-    #[test]
-    fn test_pipeline_backup_restore_with_existing_secrets() {
-        let dir = tempdir().unwrap();
-        let results_dir = dir.path().join("results");
-        fs::create_dir_all(&results_dir).unwrap();
-
-        // Create generated-secrets.env
+        // Create files in results
         let secrets_path = results_dir.join("generated-secrets.env");
+        let compose_path = results_dir.join("docker-compose.yaml");
         fs::write(&secrets_path, "SECRET=original_value").unwrap();
+        fs::write(&compose_path, "services: {}").unwrap();
 
-        // Create backup
-        let backup = PipelineBackup::create(&results_dir);
+        // Create backup (moves results to .results.backup, creates fresh results with secrets)
+        let backup = PipelineBackup::create(&results_dir).unwrap();
 
-        // Simulate pipeline modifying the secrets
+        // Results directory should exist with only generated-secrets.env copied back
+        assert!(results_dir.exists());
+        assert!(secrets_path.exists());
+        assert!(!compose_path.exists()); // compose was not copied back
+
+        // Simulate pipeline creating new results
         fs::write(&secrets_path, "SECRET=modified_value").unwrap();
+        fs::write(&compose_path, "services: {new: true}").unwrap();
 
         // Restore backup
         backup.restore().unwrap();
 
-        // Verify original value is restored
-        let content = fs::read_to_string(&secrets_path).unwrap();
-        assert_eq!(content, "SECRET=original_value");
+        // Verify original values are restored
+        let secrets_content = fs::read_to_string(&secrets_path).unwrap();
+        assert_eq!(secrets_content, "SECRET=original_value");
+        let compose_content = fs::read_to_string(&compose_path).unwrap();
+        assert_eq!(compose_content, "services: {}");
     }
 
     #[test]
@@ -823,7 +814,7 @@ spec: {}
         assert!(!results_dir.exists());
 
         // Create backup (notes that results didn't exist)
-        let backup = PipelineBackup::create(&results_dir);
+        let backup = PipelineBackup::create(&results_dir).unwrap();
 
         // Simulate pipeline creating results
         fs::create_dir_all(&results_dir).unwrap();
@@ -834,6 +825,35 @@ spec: {}
 
         // Verify results directory is removed
         assert!(!results_dir.exists());
+    }
+
+    #[test]
+    fn test_pipeline_backup_commit_removes_backup() {
+        let dir = tempdir().unwrap();
+        let results_dir = dir.path().join("results");
+        let backup_dir = dir.path().join(".results.backup");
+        fs::create_dir_all(&results_dir).unwrap();
+        fs::write(results_dir.join("test.txt"), "original").unwrap();
+
+        // Create backup
+        let backup = PipelineBackup::create(&results_dir).unwrap();
+
+        // Backup directory should exist
+        assert!(backup_dir.exists());
+        // Results directory should exist (created fresh by backup)
+        assert!(results_dir.exists());
+
+        // Simulate successful pipeline writing new content
+        fs::write(results_dir.join("test.txt"), "new").unwrap();
+
+        // Commit (removes backup)
+        backup.commit().unwrap();
+
+        // Backup should be gone, new results should remain
+        assert!(!backup_dir.exists());
+        assert!(results_dir.exists());
+        let content = fs::read_to_string(results_dir.join("test.txt")).unwrap();
+        assert_eq!(content, "new");
     }
 
 }

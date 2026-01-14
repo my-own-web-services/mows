@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use tracing::debug;
 
-use crate::utils::{parse_yaml, read_input, write_output};
+use crate::utils::{parse_yaml, read_input, write_output, yaml_to_4_space_indent};
 
 pub fn jq_command(
     query: &str,
@@ -59,8 +59,9 @@ pub fn jq_command(
         let result_json: serde_json::Value = results[0].clone().into();
 
         if yaml_output {
-            serde_yaml::to_string(&result_json)
-                .map_err(|e| format!("Failed to convert to YAML: {}", e))?
+            let yaml = serde_yaml::to_string(&result_json)
+                .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
+            yaml_to_4_space_indent(&yaml)
         } else {
             serde_json::to_string_pretty(&result_json)
                 .map_err(|e| format!("Failed to convert to JSON: {}", e))?
@@ -70,8 +71,9 @@ pub fn jq_command(
             results.iter().map(|v| v.clone().into()).collect();
 
         if yaml_output {
-            serde_yaml::to_string(&results_json)
-                .map_err(|e| format!("Failed to convert to YAML: {}", e))?
+            let yaml = serde_yaml::to_string(&results_json)
+                .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
+            yaml_to_4_space_indent(&yaml)
         } else {
             results_json
                 .iter()
