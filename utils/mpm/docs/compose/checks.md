@@ -51,46 +51,69 @@ When using Ofelia (cron) or Watchtower (auto-update):
 
 ## Post-Deployment Checks
 
-These checks run after `docker compose up` completes:
+These checks run after `docker compose up` completes. mpm polls for up to 30 seconds waiting for containers to be ready before displaying health status.
 
 ### Container Health
 
+Each container is checked for:
+
 | Check | Description |
 |-------|-------------|
-| Container running | Are all containers in running state? |
-| Health status | Do containers with healthchecks report healthy? |
-| Exit codes | Did any containers exit unexpectedly? |
+| Running status | Is the container in "Up" state? |
+| Health status | Does the healthcheck report healthy/unhealthy/starting? |
+| Recent logs | Are there error patterns in the last 30 seconds of logs? |
+| Port connectivity | Do exposed ports respond to TCP connections? |
+| Traefik URLs | If configured via labels, is the URL reachable? |
 
 **Example output:**
 ```
-[INFO] Health Check Results
-       web: running (healthy)
-       db: running (healthy)
-       worker: running
+Health Checks
+-------------
+✅ 📦 myproject-web
+    5 minutes
+    ✅ healthy
+    ✅ logs clean
+    ✅ port 8080 responding
 
-[WARN] Container 'cache' is not running
-       Status: exited (1)
-       Hint: Check logs with 'mpm compose logs cache'
+✅ 📦 myproject-db
+    5 minutes
+    ✅ healthy
+    ✅ logs clean
+
+❌ 📦 myproject-cache
+    Exited (1)
+    ⚠ no healthcheck configured
+    ⚠ 2 error(s) in logs:
+       connection refused to redis
+       ... and 1 more
+
+0 error(s), ⚠ 3 warning(s)
 ```
 
-### Service Connectivity
+### Traefik URL Checks
 
-If services expose ports, mpm can verify they're reachable:
+If a container has Traefik labels with `Host()` rules but no exposed ports, mpm will check if the Traefik URL is reachable:
 
-| Check | Description |
-|-------|-------------|
-| Port listening | Is the service accepting connections? |
-| HTTP response | Does HTTP endpoint return success status? |
+```
+✅ 📦 myproject-api
+    2 minutes
+    ⚠ no healthcheck configured
+    ✅ logs clean
+    ✅ http://api.localhost reachable
+```
+
+mpm tries HTTP first, then HTTPS if HTTP fails.
 
 ## Check Output
 
-Checks are displayed with severity levels:
+Checks use emoji indicators:
 
-| Level | Symbol | Meaning |
-|-------|--------|---------|
-| Info | `[INFO]` | Informational, no action needed |
-| Warning | `[WARN]` | Potential issue, deployment continues |
-| Error | `[ERROR]` | Critical issue, may cause failures |
+| Symbol | Meaning |
+|--------|---------|
+| ✅ | Success - check passed |
+| ⚠ | Warning - potential issue, deployment continues |
+| ❌ | Error - critical issue |
+| 📦 | Container indicator |
 
 ## Disabling Checks
 

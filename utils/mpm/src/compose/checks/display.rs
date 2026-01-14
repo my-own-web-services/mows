@@ -1,0 +1,267 @@
+//! Display and formatting for deployment check results.
+//!
+//! Provides formatted output with colors and emojis for both
+//! pre-deployment checks and post-deployment health checks.
+
+use mows_common_rust::error_display::should_use_colors;
+
+use super::health::{check_traefik_host, collect_container_health, ContainerHealth};
+use super::preflight::{CheckResult, Severity};
+
+/// Print check results to the console (pre-flight checks)
+pub fn print_check_results(results: &[CheckResult]) {
+    if results.is_empty() {
+        return;
+    }
+
+    let colors = should_use_colors();
+
+    // ANSI color codes
+    let reset = if colors { "\x1b[0m" } else { "" };
+    let bold = if colors { "\x1b[1m" } else { "" };
+    let dim = if colors { "\x1b[2m" } else { "" };
+    let yellow = if colors { "\x1b[33m" } else { "" };
+    let cyan = if colors { "\x1b[36m" } else { "" };
+
+    // Header
+    println!();
+    println!("{}{}Pre-flight Checks{}", bold, cyan, reset);
+    println!("{}─────────────────{}", dim, reset);
+
+    let mut errors = 0;
+    let mut warnings = 0;
+
+    for result in results {
+        let status_icon = if result.passed {
+            "✅".to_string()
+        } else {
+            match result.severity {
+                Severity::Error => {
+                    errors += 1;
+                    "❌".to_string()
+                }
+                Severity::Warning => {
+                    warnings += 1;
+                    format!("{}⚠{}", yellow, reset)
+                }
+                Severity::Info => format!("{}ℹ{}", cyan, reset),
+            }
+        };
+
+        // Handle multiline messages
+        let message_lines: Vec<&str> = result.message.lines().collect();
+        if message_lines.len() > 1 {
+            println!(
+                "{} {}{}{} {}",
+                status_icon, bold, result.name, reset, message_lines[0]
+            );
+            for line in &message_lines[1..] {
+                println!("    {}{}{}", dim, line, reset);
+            }
+        } else {
+            println!(
+                "{} {}{}{} {}",
+                status_icon, bold, result.name, reset, result.message
+            );
+        }
+    }
+
+    // Summary
+    println!();
+    if errors > 0 || warnings > 0 {
+        let error_text = if errors > 0 {
+            format!("❌ {} error(s)", errors)
+        } else {
+            format!("{} error(s)", errors)
+        };
+        let warning_text = if warnings > 0 {
+            format!("{}{}⚠ {} warning(s){}", bold, yellow, warnings, reset)
+        } else {
+            format!("{} warning(s)", warnings)
+        };
+        println!("{}, {}", error_text, warning_text);
+    } else {
+        println!("{}✅ All checks passed!{}", bold, reset);
+    }
+}
+
+/// Run health checks on all containers in a Docker Compose project and print results.
+///
+/// Collects health information for all containers including:
+/// - Container running status and uptime
+/// - Docker health check status (only shown if unhealthy/starting)
+/// - Recent error patterns in logs (last 30 seconds)
+/// - Port connectivity (TCP connection test with retries)
+/// - Traefik URL reachability (if configured via labels)
+///
+/// Output is formatted with colors and emojis when terminal supports it:
+/// ```text
+/// Health Checks
+/// ─────────────
+/// 📦 my-container 5 minutes
+///     ✅ logs clean
+///     ✅ port 8080 responding
+///
+/// ✅ All checks passed!
+/// ```
+///
+/// When issues are detected:
+/// ```text
+/// 📦 my-container 5 minutes
+///     ⚠  starting
+///     ⚠  2 error(s) in logs:
+///        connection refused
+///     ⚠  port 8080 not responding
+///
+/// 0 error(s), ⚠  3 warning(s)
+/// ```
+///
+/// # Arguments
+/// - `project_name`: Docker Compose project name (used with `docker compose -p`)
+/// - `compose`: Optional parsed compose file for extracting Traefik labels
+///
+/// # Side Effects
+/// - Prints directly to stdout
+/// - Returns early without output if no containers found
+pub fn run_and_print_health_checks(project_name: &str, compose: Option<&serde_yaml::Value>) {
+    let containers = collect_container_health(project_name, compose);
+
+    if containers.is_empty() {
+        return;
+    }
+
+    print_health_checks(&containers);
+}
+
+/// Print health check results for containers
+fn print_health_checks(containers: &[ContainerHealth]) {
+    let colors = should_use_colors();
+
+    // ANSI color codes
+    let reset = if colors { "\x1b[0m" } else { "" };
+    let bold = if colors { "\x1b[1m" } else { "" };
+    let dim = if colors { "\x1b[2m" } else { "" };
+    let yellow = if colors { "\x1b[33m" } else { "" };
+    let cyan = if colors { "\x1b[36m" } else { "" };
+
+    // Header
+    println!();
+    println!("{}{}Health Checks{}", bold, cyan, reset);
+    println!("{}─────────────{}", dim, reset);
+
+    let mut total_errors = 0;
+    let mut total_warnings = 0;
+
+    for container in containers {
+        // Container header line: 📦 name (bold) uptime (dimmed) - all on same line
+        let uptime = container
+            .status
+            .strip_prefix("Up ")
+            .unwrap_or(&container.status);
+
+        if !container.running {
+            total_errors += 1;
+            println!(
+                "📦 {}{}{} {}{}{}",
+                bold, container.name, reset, dim, uptime, reset
+            );
+        } else {
+            println!(
+                "📦 {}{}{} {}{}{}",
+                bold, container.name, reset, dim, uptime, reset
+            );
+        }
+
+        // Health status - only show if unhealthy (skip healthy and no-healthcheck cases)
+        if container.has_healthcheck {
+            if let Some(ref health) = container.health {
+                if health.contains("unhealthy") || health.contains("starting") {
+                    // Extra space after warning emoji
+                    println!("    {}⚠{}  {}", yellow, reset, health);
+                    total_warnings += 1;
+                }
+            }
+        }
+
+        // Logs
+        if container.log_errors.is_empty() {
+            println!("    ✅ logs clean");
+        } else {
+            // Extra space after warning emoji
+            println!(
+                "    {}⚠{}  {} error(s) in logs:",
+                yellow,
+                reset,
+                container.log_errors.len()
+            );
+            total_warnings += 1;
+            for line in container.log_errors.iter().take(3) {
+                // Extract just the log message part after the container name
+                let msg = if let Some(pos) = line.find(" | ") {
+                    &line[pos + 3..]
+                } else {
+                    line
+                };
+                println!("       {}{}{}", dim, msg.trim(), reset);
+            }
+            if container.log_errors.len() > 3 {
+                println!(
+                    "       {}... and {} more{}",
+                    dim,
+                    container.log_errors.len() - 3,
+                    reset
+                );
+            }
+        }
+
+        // Endpoints
+        if !container.ports.is_empty() {
+            for port in &container.ports {
+                if port.responding {
+                    println!("    ✅ port {} responding", port.port);
+                } else {
+                    // Extra space after warning emoji
+                    println!(
+                        "    {}⚠{}  port {} not responding",
+                        yellow, reset, port.port
+                    );
+                    total_warnings += 1;
+                }
+            }
+        } else if let Some(ref host) = container.traefik_url {
+            // Check traefik URL if no ports but traefik is configured
+            // Try HTTP first (more common for local dev), then HTTPS
+            if let Some(result) = check_traefik_host(host) {
+                println!(
+                    "    ✅ {} {} {}",
+                    result.url, result.status_code, result.status_text
+                );
+            } else {
+                // Extra space after warning emoji
+                println!("    {}⚠{}  {} not reachable", yellow, reset, host);
+                total_warnings += 1;
+            }
+        }
+
+        println!(); // Blank line between containers
+    }
+
+    // Summary
+    if total_errors > 0 || total_warnings > 0 {
+        let error_text = if total_errors > 0 {
+            format!("❌ {} error(s)", total_errors)
+        } else {
+            format!("{} error(s)", total_errors)
+        };
+        let warning_text = if total_warnings > 0 {
+            // Extra space after warning emoji
+            format!("{}{}⚠{}  {} warning(s)", bold, yellow, reset, total_warnings)
+        } else {
+            format!("{} warning(s)", total_warnings)
+        };
+        println!("{}, {}", error_text, warning_text);
+    } else {
+        println!("{}✅ All checks passed!{}", bold, reset);
+    }
+}
+

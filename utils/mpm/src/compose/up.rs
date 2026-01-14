@@ -2,7 +2,9 @@ use std::fs;
 use std::process::Command;
 use tracing::{debug, info};
 
-use super::checks::{print_check_results, run_debug_checks, run_health_checks};
+use super::checks::{
+    check_containers_ready, print_check_results, run_and_print_health_checks, run_debug_checks,
+};
 use super::find_manifest_dir;
 use super::render::{run_render_pipeline, RenderContext};
 use crate::utils::parse_yaml;
@@ -116,18 +118,110 @@ fn run_pre_deployment_checks(ctx: &RenderContext) {
     }
 }
 
-/// Run post-deployment health checks
+/// Run post-deployment health checks with polling for container readiness.
+///
+/// Polls every 2 seconds for up to 30 seconds waiting for:
+/// - All containers to be in "Up" state
+/// - No containers with "starting" health status
+///
+/// Shows progress feedback while waiting, then runs full health checks.
+/// Handles Ctrl+C gracefully by clearing the progress line before exit.
 fn run_post_deployment_checks(ctx: &RenderContext) {
+    use std::io::{self, Write};
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+
     let project_name = ctx.manifest.project_name();
+    let results_dir = ctx.base_dir.join("results");
 
-    // Wait a moment for containers to start
-    std::thread::sleep(std::time::Duration::from_secs(2));
+    let timeout = Duration::from_secs(30);
+    let poll_interval = Duration::from_secs(2);
+    let start = Instant::now();
 
-    let results = run_health_checks(&project_name);
+    // Track whether we're showing a progress line that needs clearing
+    let showing_progress = Arc::new(AtomicBool::new(false));
+    let showing_progress_handler = Arc::clone(&showing_progress);
 
-    if !results.is_empty() {
-        print_check_results(&results);
+    // Set up Ctrl+C handler to clear progress line before exit
+    let _ = ctrlc::set_handler(move || {
+        if showing_progress_handler.load(Ordering::SeqCst) {
+            print!("\r\x1b[K");
+            let _ = io::stdout().flush();
+        }
+        std::process::exit(130); // Standard exit code for SIGINT
+    });
+
+    // Initial short wait for containers to appear
+    std::thread::sleep(Duration::from_secs(1));
+
+    // Poll until ready or timeout
+    let interrupted = loop {
+        let readiness = check_containers_ready(&project_name);
+
+        if readiness.all_ready {
+            break false;
+        }
+
+        if start.elapsed() >= timeout {
+            debug!(
+                "Container readiness timeout: {}/{} running, {} starting",
+                readiness.running, readiness.total, readiness.starting
+            );
+            break false;
+        }
+
+        // Show progress
+        let status = if readiness.starting > 0 {
+            format!(
+                "Waiting for containers... ({}/{} running, {} starting)",
+                readiness.running, readiness.total, readiness.starting
+            )
+        } else if readiness.running < readiness.total {
+            format!(
+                "Waiting for containers... ({}/{} running)",
+                readiness.running, readiness.total
+            )
+        } else {
+            "Waiting for containers...".to_string()
+        };
+        print!("\r{}", status);
+        let _ = io::stdout().flush();
+        showing_progress.store(true, Ordering::SeqCst);
+
+        std::thread::sleep(poll_interval);
+    };
+
+    // Clear progress line before continuing
+    if showing_progress.load(Ordering::SeqCst) {
+        print!("\r\x1b[K");
+        let _ = io::stdout().flush();
+        showing_progress.store(false, Ordering::SeqCst);
     }
+
+    if interrupted {
+        return;
+    }
+
+    // Load compose content for traefik URL detection
+    let compose = get_compose_content(&results_dir);
+
+    run_and_print_health_checks(&project_name, compose.as_ref());
+}
+
+/// Load docker-compose content from results directory
+fn get_compose_content(results_dir: &std::path::Path) -> Option<serde_yaml::Value> {
+    let compose_path = if results_dir.join("docker-compose.yaml").exists() {
+        results_dir.join("docker-compose.yaml")
+    } else if results_dir.join("docker-compose.yml").exists() {
+        results_dir.join("docker-compose.yml")
+    } else {
+        return None;
+    };
+
+    fs::read_to_string(&compose_path)
+        .ok()
+        .and_then(|content| serde_yaml::from_str(&content).ok())
 }
 
 /// Execute docker compose up with the project configuration

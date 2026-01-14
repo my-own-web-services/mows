@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use tracing::debug;
 
-use crate::utils::{parse_yaml, read_input, write_output};
+use crate::utils::{parse_yaml, read_input, write_output, yaml_to_4_space_indent};
 
 pub fn json_to_yaml(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<(), String> {
     debug!("Converting JSON to YAML");
@@ -10,7 +10,7 @@ pub fn json_to_yaml(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result
         serde_json::from_str(&content).map_err(|e| format!("Failed to parse JSON: {}", e))?;
     let yaml =
         serde_yaml::to_string(&value).map_err(|e| format!("Failed to convert to YAML: {}", e))?;
-    write_output(output, &yaml)
+    write_output(output, &yaml_to_4_space_indent(&yaml))
 }
 
 pub fn yaml_to_json(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<(), String> {

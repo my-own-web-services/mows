@@ -2,7 +2,7 @@
 
 use gtmpl_ng::all_functions::all_functions;
 use gtmpl_ng::{ExecError, TemplateError, Value};
-use mows_common_rust::error_display::format_file_error;
+use mows_common_rust::error_display::{format_file_error, should_use_colors};
 use std::path::Path;
 
 /// Calculate Levenshtein distance between two strings
@@ -111,6 +111,15 @@ fn get_available_functions() -> Vec<String> {
         .collect()
 }
 
+/// Format a "did you mean" suggestion with optional green color
+fn format_suggestion(message: &str, suggestion: &str) -> String {
+    if should_use_colors() {
+        format!("{}, \x1b[32mdid you mean `{}`?\x1b[0m", message, suggestion)
+    } else {
+        format!("{}, did you mean `{}`?", message, suggestion)
+    }
+}
+
 /// Find the best matching function name for a missing function
 fn find_similar_function(missing: &str, available: &[String]) -> Option<String> {
     let missing_lower = missing.to_lowercase();
@@ -141,24 +150,40 @@ pub fn format_template_error(
     context_lines: usize,
     variables: Option<&Value>,
 ) -> String {
-    let (mut message, line, col, len) = extract_error_info(error, preamble_lines);
+    let (mut message, line, mut col, mut len) = extract_error_info(error, preamble_lines);
 
-    // Try to add "did you mean" suggestion for missing field errors
+    // Try to find "did you mean" suggestion for missing field errors
     if let Some(missing_field) = extract_missing_field(&message) {
+        // Try to adjust col/len to point to the actual missing field in the line
+        if let Some(line_content) = content.lines().nth(line.saturating_sub(1)) {
+            if let Some(field_pos) = line_content.find(missing_field) {
+                col = field_pos + 1; // 1-based
+                len = missing_field.len();
+            }
+        }
+
         if let Some(vars) = variables {
             let mut available_fields = Vec::new();
             collect_field_names(vars, "", &mut available_fields);
-            if let Some(suggestion) = find_similar_field(missing_field, &available_fields) {
-                message = format!("{}, did you mean `{}`?", message, suggestion);
+            if let Some(similar) = find_similar_field(missing_field, &available_fields) {
+                message = format_suggestion(&message, &similar);
             }
         }
     }
 
-    // Try to add "did you mean" suggestion for missing function errors
+    // Try to find "did you mean" suggestion for missing function errors
     if let Some(missing_func) = extract_missing_function(&message) {
+        // Try to adjust col/len to point to the actual missing function in the line
+        if let Some(line_content) = content.lines().nth(line.saturating_sub(1)) {
+            if let Some(func_pos) = line_content.find(missing_func) {
+                col = func_pos + 1; // 1-based
+                len = missing_func.len();
+            }
+        }
+
         let available_funcs = get_available_functions();
-        if let Some(suggestion) = find_similar_function(missing_func, &available_funcs) {
-            message = format!("{}, did you mean `{}`?", message, suggestion);
+        if let Some(similar) = find_similar_function(missing_func, &available_funcs) {
+            message = format_suggestion(&message, &similar);
         }
     }
 
