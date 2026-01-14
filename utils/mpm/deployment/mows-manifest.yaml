@@ -1,0 +1,6 @@
+manifestVersion: "0.1"
+metadata:
+    name: test-project
+    description: ""
+    version: "0.1"
+spec: {}
