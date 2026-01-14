@@ -76,13 +76,6 @@ pub fn yaml_with_indent(yaml: &str, target_indent: usize) -> String {
             // This is a list item
             let new_indent = if let Some(base_indent) = pending_block_indent {
                 // First item after a block key - use the pending indent
-                // Also register this list context for subsequent items
-                list_contexts.push((
-                    leading_spaces,     // original list item indent
-                    base_indent,        // new list item indent
-                    leading_spaces + 2, // original continuation indent
-                    base_indent + 2,    // new continuation indent
-                ));
                 pending_block_indent = None;
                 base_indent
             } else if let Some((_, new_list, _, _)) = list_contexts
@@ -95,6 +88,16 @@ pub fn yaml_with_indent(yaml: &str, target_indent: usize) -> String {
                 // List item without context - convert normally
                 (leading_spaces / 2) * target_indent
             };
+
+            // Always register/update list context for continuation lines
+            // Remove any existing context at this indent level first
+            list_contexts.retain(|(orig_list, _, _, _)| *orig_list != leading_spaces);
+            list_contexts.push((
+                leading_spaces,     // original list item indent
+                new_indent,         // new list item indent
+                leading_spaces + 2, // original continuation indent
+                new_indent + 2,     // new continuation indent
+            ));
 
             let new_line = format!("{}{}", " ".repeat(new_indent), trimmed);
             result.push(new_line);
