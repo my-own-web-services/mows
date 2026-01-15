@@ -213,7 +213,12 @@ spec: {{}}
 
 /// Generate the .gitignore content
 fn generate_gitignore() -> &'static str {
-    "admin-infos.yaml\nresults\nprovided-secrets.env\n"
+    "\
+admin-infos.yaml
+results
+data
+provided-secrets.env
+"
 }
 
 /// Generate the provided-secrets.env content
@@ -404,6 +409,7 @@ mod tests {
         let gitignore = generate_gitignore();
         assert!(gitignore.contains("admin-infos.yaml"));
         assert!(gitignore.contains("results"));
+        assert!(gitignore.contains("data"));
         assert!(gitignore.contains("provided-secrets.env"));
     }
 
