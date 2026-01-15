@@ -213,32 +213,33 @@ spec: {{}}
 
 /// Generate the .gitignore content
 fn generate_gitignore() -> &'static str {
-    "\
-admin-infos.yaml
+    r#"admin-infos.yaml
 results
 data
 provided-secrets.env
-"
+"#
 }
 
 /// Generate the provided-secrets.env content
 fn generate_provided_secrets() -> &'static str {
-    "# User-provided secrets\n\
-     # Add secrets here that should not be auto-generated\n\
-     # Example:\n\
-     # API_KEY=\n"
+    r#"# User-provided secrets
+# Add secrets here that should not be auto-generated
+# Example:
+# API_KEY=
+"#
 }
 
 /// Generate the generated-secrets.env template content
 fn generate_generated_secrets_template() -> &'static str {
-    "# Auto-generated secrets template\n\
-     # Use template functions to generate secrets:\n\
-     #   {{ randAlphaNum 32 }} - random alphanumeric string\n\
-     #   {{ uuidv4 }} - random UUID\n\
-     #\n\
-     # Example:\n\
-     # DB_USERNAME={{ randAlphaNum 16 }}\n\
-     # DB_PASSWORD={{ randAlphaNum 24 }}\n"
+    r#"# Auto-generated secrets template
+# Use template functions to generate secrets:
+#   {{ randAlphaNum 32 }} - random alphanumeric string
+#   {{ uuidv4 }} - random UUID
+#
+# Example:
+# DB_USERNAME={{ randAlphaNum 16 }}
+# DB_PASSWORD={{ randAlphaNum 24 }}
+"#
 }
 
 /// Initialize a new mpm compose project

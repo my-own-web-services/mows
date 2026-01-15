@@ -178,7 +178,9 @@ fn verify_checksum(binary_path: &Path, checksum_url: &str) -> Result<(), String>
 
     if actual_checksum != expected_checksum {
         return Err(format!(
-            "Checksum verification failed!\nExpected: {}\nActual:   {}",
+            r#"Checksum verification failed!
+Expected: {}
+Actual:   {}"#,
             expected_checksum, actual_checksum
         ));
     }
@@ -527,7 +529,9 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
             ));
         }
         return Err(format!(
-            "Signature verification failed:\n{}\n{}",
+            r#"Signature verification failed:
+{}
+{}"#,
             stdout, stderr
         ));
     }
@@ -536,7 +540,9 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
     // Git outputs "Good signature" when verification succeeds
     if !stderr.contains("Good signature") && !stdout.contains("Good signature") {
         return Err(format!(
-            "Signature verification did not confirm a good signature:\n{}\n{}",
+            r#"Signature verification did not confirm a good signature:
+{}
+{}"#,
             stdout, stderr
         ));
     }

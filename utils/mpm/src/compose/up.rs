@@ -37,10 +37,10 @@ fn check_docker_available() -> Result<(), String> {
         let stderr = String::from_utf8_lossy(&output.stderr);
         if stderr.contains("Cannot connect") || stderr.contains("permission denied") {
             return Err(format!(
-                "Cannot connect to Docker daemon. Is Docker running?\n\
-                 Try: sudo systemctl start docker\n\
-                 Or add your user to the docker group: sudo usermod -aG docker $USER\n\
-                 Error: {}",
+                r#"Cannot connect to Docker daemon. Is Docker running?
+Try: sudo systemctl start docker
+Or add your user to the docker group: sudo usermod -aG docker $USER
+Error: {}"#,
                 stderr.trim()
             ));
         }

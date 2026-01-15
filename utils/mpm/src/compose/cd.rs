@@ -9,8 +9,8 @@ pub fn compose_cd(project: &str, instance: Option<&str>) -> Result<(), String> {
 
     if projects.is_empty() {
         return Err(format!(
-            "No project found with name '{}'\n\
-             Use 'mpm compose install' to add a project.",
+            r#"No project found with name '{}'
+Use 'mpm compose install' to add a project."#,
             project
         ));
     }
@@ -19,8 +19,8 @@ pub fn compose_cd(project: &str, instance: Option<&str>) -> Result<(), String> {
     if let Some(instance_name) = instance {
         let project_entry = config.find_project(project, Some(instance_name)).ok_or_else(|| {
             format!(
-                "No instance '{}' found for project '{}'\n\
-                 Available instances: {}",
+                r#"No instance '{}' found for project '{}'
+Available instances: {}"#,
                 instance_name,
                 project,
                 projects
@@ -35,8 +35,8 @@ pub fn compose_cd(project: &str, instance: Option<&str>) -> Result<(), String> {
         let manifest_dir = project_entry.manifest_dir();
         if !manifest_dir.exists() {
             return Err(format!(
-                "Project directory no longer exists: {}\n\
-                 The project may have been moved or deleted.",
+                r#"Project directory no longer exists: {}
+The project may have been moved or deleted."#,
                 manifest_dir.display()
             ));
         }
@@ -52,8 +52,8 @@ pub fn compose_cd(project: &str, instance: Option<&str>) -> Result<(), String> {
 
         if !manifest_dir.exists() {
             return Err(format!(
-                "Project directory no longer exists: {}\n\
-                 The project may have been moved or deleted.",
+                r#"Project directory no longer exists: {}
+The project may have been moved or deleted."#,
                 manifest_dir.display()
             ));
         }
@@ -79,8 +79,11 @@ pub fn compose_cd(project: &str, instance: Option<&str>) -> Result<(), String> {
     }
 
     Err(format!(
-        "Multiple instances of '{}' found. Please specify an instance with --instance:\n\n{}\n\n\
-         Example: mpm compose cd {} --instance <name>",
+        r#"Multiple instances of '{}' found. Please specify an instance with --instance:
+
+{}
+
+Example: mpm compose cd {} --instance <name>"#,
         project,
         options.join("\n"),
         project
