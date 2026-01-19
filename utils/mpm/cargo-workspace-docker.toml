@@ -11,6 +11,21 @@ exclude = ["target"]
 members = ["app"]
 resolver = "2"
 
+[workspace.lints.clippy]
+cast_lossless = "deny"
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_sign_loss = "deny"
+enum_glob_use = "deny"
+indexing_slicing = "deny"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.package]
+edition = "2021"
+version = "0.5.0"
+
 [workspace.dependencies.anyhow]
 default-features = false
 features = ["default"]
@@ -138,18 +153,3 @@ version = "1.17.0"
 default-features = false
 features = ["rustls"]
 version = "0.7.4"
-
-[workspace.lints.clippy]
-cast_lossless = "deny"
-cast_possible_truncation = "deny"
-cast_possible_wrap = "deny"
-cast_sign_loss = "deny"
-enum_glob_use = "deny"
-indexing_slicing = "deny"
-
-[workspace.lints.rust]
-unsafe_code = "forbid"
-
-[workspace.package]
-edition = "2021"
-version = "0.5.0"
