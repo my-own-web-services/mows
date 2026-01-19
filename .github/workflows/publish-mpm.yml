@@ -68,48 +68,35 @@ jobs:
       matrix:
         include:
           - arch: amd64
-            target: x86_64-unknown-linux-musl
             os_name: linux
           - arch: arm64
-            target: aarch64-unknown-linux-musl
             os_name: linux
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU for arm64
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
         with:
-          targets: ${{ matrix.target }}
+          platforms: arm64
 
-      - name: Install Zig
-        uses: goto-bus-stop/setup-zig@v2
-        with:
-          version: 0.13.0
-
-      - name: Install cargo-zigbuild
-        run: cargo install cargo-zigbuild
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            utils/mpm/target
-          key: ${{ runner.os }}-cargo-${{ matrix.arch }}-${{ hashFiles('utils/mpm/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-${{ matrix.arch }}-
-
-      - name: Build static binary
-        env:
-          GIT_HASH: ${{ github.sha }}
-          GIT_DATE: ${{ github.event.head_commit.timestamp }}
-          # Disable LTO for cross-compilation (causes SIGILL)
-          CARGO_PROFILE_RELEASE_LTO: "false"
+      - name: Get git info
+        id: git_info
         run: |
-          cargo zigbuild --release --target ${{ matrix.target }} -p mpm --manifest-path utils/mpm/Cargo.toml
-          mkdir -p utils/mpm/dist
-          cp target/${{ matrix.target }}/release/mpm utils/mpm/dist/
+          echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "date=$(git log -1 --format=%cs)" >> $GITHUB_OUTPUT
+
+      - name: Build static binary using Docker
+        env:
+          GIT_HASH: ${{ steps.git_info.outputs.hash }}
+          GIT_DATE: ${{ steps.git_info.outputs.date }}
+          TARGETARCH: ${{ matrix.arch }}
+        run: |
+          cd utils/mpm
+          bash build.sh
 
       - name: Get version from tag
         id: get_version

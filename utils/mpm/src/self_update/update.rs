@@ -290,7 +290,7 @@ pub fn update_from_binary(version: Option<&str>) -> Result<(), String> {
 
     if version.is_none() {
         if new_version == current_version {
-            println!("Already up to date!");
+            println!("{}", "Already up to date!".green().bold());
             return Ok(());
         }
         if !is_newer_version(&new_version, current_version) {
@@ -624,30 +624,119 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Compute SHA256 hash of the currently running binary
+fn get_self_hash() -> Result<String, String> {
+    let binary_path = get_current_binary_path()?;
+    let mut file = File::open(&binary_path)
+        .map_err(|e| format!("Failed to open binary: {}", e))?;
+
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; 8192];
+    loop {
+        let bytes_read = file.read(&mut buffer)
+            .map_err(|e| format!("Failed to read binary: {}", e))?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+
+    let hash = hasher.finalize();
+    Ok(format!("{:x}", hash))
+}
+
+/// Fetch expected checksum from GitHub releases for verification
+fn fetch_expected_checksum(version: &str) -> Result<String, String> {
+    let arch = get_arch()?;
+    let os = get_os()?;
+    let checksum_url = format!(
+        "{}/mpm-v{}/mpm-{}-{}-{}-checksum-sha256.txt",
+        GITHUB_RELEASES_URL, version, version, os, arch
+    );
+
+    let client = create_version_check_client()?;
+    let response = client
+        .get(&checksum_url)
+        .send()
+        .map_err(|e| format!("Failed to fetch checksum: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Checksum not found for v{}", version));
+    }
+
+    let content = response
+        .text()
+        .map_err(|e| format!("Failed to read checksum: {}", e))?;
+
+    // Format: "hash  filename" - extract just the hash
+    content
+        .split_whitespace()
+        .next()
+        .map(String::from)
+        .ok_or_else(|| "Invalid checksum format".to_string())
+}
+
 /// Show version information and check for updates
 pub fn show_version() -> Result<(), String> {
     let current_version = env!("CARGO_PKG_VERSION");
     let git_hash = env!("GIT_HASH");
     let git_date = env!("GIT_DATE");
 
-    println!("mpm {} ({} {})", current_version, git_hash, git_date);
+    // Compute self-hash for verification
+    let self_hash = get_self_hash().unwrap_or_else(|_| "unknown".to_string());
+    let short_hash = &self_hash[..12.min(self_hash.len())];
+
+    println!("mpm {} ({} {}) [{}]", current_version, git_hash, git_date, short_hash);
+    println!();
+
+    // Verify binary integrity against expected checksum
+    match fetch_expected_checksum(current_version) {
+        Ok(expected_hash) => {
+            if self_hash == expected_hash {
+                println!("Binary integrity: {}", "verified".green());
+            } else {
+                eprintln!("{}", "WARNING: Binary hash mismatch!".red().bold());
+                eprintln!("This binary may have been tampered with or built outside the standard process.");
+            }
+            println!("Expected Hash:      {}", expected_hash);
+            println!("Local Binary Hash:  {}", self_hash);
+        }
+        Err(_) => {
+            // Checksum not available (dev build, pre-release, or network issue)
+            println!(
+                "Binary integrity: {}",
+                "not verified (no release checksum available)".yellow()
+            );
+            println!("Local Binary Hash:  {}", self_hash);
+        }
+    }
+    println!(
+        "{}",
+        "(This check is for debugging only - a binary cannot securely verify itself)".dimmed()
+    );
+
+    println!();
 
     // Check for latest version
     print!("Checking for updates... ");
     match fetch_latest_version() {
         Ok(latest_version) => {
             if latest_version == current_version {
-                println!("up to date");
+                println!("{}", "up to date".green().bold());
             } else if is_newer_version(&latest_version, current_version) {
-                println!("v{} available", latest_version);
+                println!("{}", format!("v{} available", latest_version).yellow());
                 println!("\nRun 'mpm self-update' to update.");
             } else {
                 // Current version is newer (dev build or downgrade scenario)
-                println!("up to date (latest release: v{})", latest_version);
+                println!(
+                    "{} (latest release: v{})",
+                    "up to date".green().bold(),
+                    latest_version
+                );
             }
         }
         Err(e) => {
-            println!("failed");
+            println!("{}", "failed".red());
             eprintln!("  Could not check for updates: {}", e);
         }
     }
