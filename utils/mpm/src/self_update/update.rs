@@ -288,9 +288,19 @@ pub fn update_from_binary(version: Option<&str>) -> Result<(), String> {
     println!("Current version: {}", current_version);
     println!("Latest version:  {}", new_version);
 
-    if version.is_none() && new_version == current_version {
-        println!("Already up to date!");
-        return Ok(());
+    if version.is_none() {
+        if new_version == current_version {
+            println!("Already up to date!");
+            return Ok(());
+        }
+        if !is_newer_version(&new_version, current_version) {
+            println!(
+                "Current version ({}) is newer than latest release ({}).",
+                current_version, new_version
+            );
+            println!("No update available. Use --version to install a specific version.");
+            return Ok(());
+        }
     }
 
     let arch = get_arch()?;
