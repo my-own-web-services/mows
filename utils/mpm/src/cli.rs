@@ -71,6 +71,10 @@ pub enum Commands {
         #[arg(long)]
         install: bool,
     },
+    /// Show version information
+    ///
+    /// Displays the current mpm version and checks for available updates.
+    Version,
     /// Update mpm to the latest version
     ///
     /// By default, downloads the latest pre-built binary from GitHub releases

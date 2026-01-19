@@ -7,7 +7,24 @@ use tracing::{debug, info};
 
 use crate::utils::yaml_to_4_space_indent;
 
-/// Environment variable to override the config file path
+/// Environment variable to override the config file path.
+///
+/// # Testing
+///
+/// **IMPORTANT**: All tests that interact with `MpmConfig` MUST set this environment
+/// variable to a temporary file path to avoid modifying the user's actual config file
+/// at `~/.config/mows.cloud/mpm.yaml`.
+///
+/// Example:
+/// ```ignore
+/// use tempfile::NamedTempFile;
+/// use std::env;
+///
+/// let temp_config = NamedTempFile::new().unwrap();
+/// env::set_var("MPM_CONFIG_PATH", temp_config.path());
+/// // ... run test ...
+/// env::remove_var("MPM_CONFIG_PATH");
+/// ```
 pub const MPM_CONFIG_PATH_ENV: &str = "MPM_CONFIG_PATH";
 
 /// Global mpm configuration stored at ~/.config/mows.cloud/mpm.yaml
@@ -216,6 +233,13 @@ impl MpmConfig {
 
 #[cfg(test)]
 mod tests {
+    //! # Test Guidelines
+    //!
+    //! These tests operate on in-memory config structs only and do NOT touch the filesystem.
+    //! If you add tests that call `MpmConfig::load()` or `MpmConfig::save()`, you MUST set
+    //! the `MPM_CONFIG_PATH` environment variable to a temporary file path first.
+    //! See the documentation on `MPM_CONFIG_PATH_ENV` for details.
+
     use super::*;
 
     #[test]
