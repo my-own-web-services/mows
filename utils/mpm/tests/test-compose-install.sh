@@ -229,18 +229,24 @@ else
     cd - > /dev/null
 fi
 
-log_test "compose install: removes .git directory (shallow clone)"
+log_test "compose install: keeps .git directory (for updates) with hooks disabled"
 if ! ping -c 1 github.com &>/dev/null; then
     skip_test "No network connectivity"
 else
-    TEST_DIR=$(create_test_dir "install-no-git")
+    TEST_DIR=$(create_test_dir "install-git")
     cd "$TEST_DIR"
     $MPM_BIN compose install "https://github.com/octocat/Hello-World.git" 2>&1 || true
     if [[ -d "Hello-World" ]]; then
-        if [[ ! -d "Hello-World/.git" ]]; then
-            pass_test "Removes .git directory after clone"
+        if [[ -d "Hello-World/.git" ]]; then
+            # Verify git hooks are disabled
+            HOOKS_PATH=$(git -C Hello-World config --get core.hooksPath 2>/dev/null || echo "")
+            if [[ "$HOOKS_PATH" == "/dev/null" ]]; then
+                pass_test "Keeps .git directory with hooks disabled"
+            else
+                fail_test ".git hooks should be disabled (core.hooksPath=/dev/null)"
+            fi
         else
-            fail_test ".git directory should be removed"
+            fail_test ".git directory should be present for updates"
         fi
     else
         skip_test "Clone did not succeed"

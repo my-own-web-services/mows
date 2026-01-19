@@ -7,6 +7,7 @@ edition = { workspace = true }
 mows-common-rust = { workspace = true }
 
 clap = { version = "4.5", features = ["derive"] }
+clap_complete = "4.5"
 
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["default"] }

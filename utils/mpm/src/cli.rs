@@ -56,6 +56,21 @@ pub enum Commands {
         #[arg(short, long)]
         output: PathBuf,
     },
+    /// Install shell completions
+    ///
+    /// Outputs shell completion script to stdout, or installs to
+    /// the standard completion directory with --install.
+    ///
+    /// Standard locations:
+    ///   Bash: ~/.local/share/bash-completion/completions/mpm
+    ///   Zsh:  ~/.zsh/completions/_mpm (or ~/.oh-my-zsh/completions/_mpm)
+    ///   Fish: ~/.config/fish/completions/mpm.fish
+    #[command(name = "shell-init")]
+    ShellInit {
+        /// Install completions to standard directory
+        #[arg(long)]
+        install: bool,
+    },
     /// Update mpm to the latest version
     ///
     /// By default, downloads the latest pre-built binary from GitHub releases
@@ -101,7 +116,9 @@ pub enum ComposeCommands {
     },
     /// Update the repository and merge values
     Update,
-    /// Navigate to a project directory (prints the path)
+    /// Print the path to a project directory
+    ///
+    /// Use with cd: cd $(mpm compose cd myproject)
     Cd {
         /// Project name to navigate to
         project: String,

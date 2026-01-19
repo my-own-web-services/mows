@@ -13,7 +13,7 @@ use tracing::{debug, warn};
 /// Health information for a Docker container.
 ///
 /// Contains the container's running state, health check status, recent log errors,
-/// exposed ports with their connectivity status, and any configured Traefik URL.
+/// exposed ports with their connectivity status, and any configured Traefik URLs.
 ///
 /// # Fields
 /// - `name`: Full container name as reported by Docker (includes project prefix)
@@ -23,7 +23,7 @@ use tracing::{debug, warn};
 /// - `has_healthcheck`: True if the container has a healthcheck configured (even if still starting)
 /// - `log_errors`: Recent log lines containing error patterns (last 30 seconds)
 /// - `ports`: Host ports exposed by the container with TCP connectivity status
-/// - `traefik_url`: Hostname extracted from Traefik labels (e.g., "example.com")
+/// - `traefik_urls`: Hostnames extracted from Traefik labels (e.g., ["example.com", "www.example.com"])
 #[derive(Debug)]
 pub struct ContainerHealth {
     pub name: String,
@@ -33,7 +33,7 @@ pub struct ContainerHealth {
     pub has_healthcheck: bool,
     pub log_errors: Vec<String>,
     pub ports: Vec<PortStatus>,
-    pub traefik_url: Option<String>,
+    pub traefik_urls: Vec<String>,
 }
 
 /// Status of an exposed port on a container.
@@ -141,7 +141,7 @@ pub(super) fn collect_container_health(
                         has_healthcheck,
                         log_errors: Vec::new(),
                         ports: Vec::new(),
-                        traefik_url: None,
+                        traefik_urls: Vec::new(),
                     });
                 }
             }
@@ -315,12 +315,22 @@ fn collect_traefik_urls(compose: &serde_yaml::Value, containers: &mut [Container
 
             for (key, value) in labels {
                 if key.contains("traefik") && key.contains(".rule") {
-                    // Extract host from Host(`example.com`) pattern
-                    if let Some(start) = value.find("Host(`") {
-                        let rest = &value[start + 6..];
-                        if let Some(end) = rest.find("`)") {
-                            let host = &rest[..end];
-                            container.traefik_url = Some(host.to_string());
+                    // Extract all hosts from Host(`example.com`) patterns.
+                    // Note: Using manual string parsing instead of regex to avoid adding
+                    // the regex crate as a dependency. The pattern is simple (Host(`...`))
+                    // and this approach handles all practical cases including multiple
+                    // hosts and complex rules like `Host(`a.com`) || Host(`b.com`)`.
+                    let mut search_pos = 0;
+                    while let Some(start) = value[search_pos..].find("Host(`") {
+                        let abs_start = search_pos + start + 6;
+                        if let Some(end) = value[abs_start..].find("`)") {
+                            let host_str = value[abs_start..abs_start + end].to_string();
+                            if !container.traefik_urls.contains(&host_str) {
+                                container.traefik_urls.push(host_str);
+                            }
+                            search_pos = abs_start + end;
+                        } else {
+                            break;
                         }
                     }
                 }
@@ -879,12 +889,12 @@ services:
             has_healthcheck: false,
             log_errors: vec![],
             ports: vec![],
-            traefik_url: None,
+            traefik_urls: vec![],
         }];
 
         collect_traefik_urls(&compose, &mut containers);
 
-        assert_eq!(containers[0].traefik_url, Some("example.com".to_string()));
+        assert_eq!(containers[0].traefik_urls, vec!["example.com".to_string()]);
     }
 
     #[test]
@@ -908,14 +918,14 @@ services:
             has_healthcheck: false,
             log_errors: vec![],
             ports: vec![],
-            traefik_url: None,
+            traefik_urls: vec![],
         }];
 
         collect_traefik_urls(&compose, &mut containers);
 
         assert_eq!(
-            containers[0].traefik_url,
-            Some("api.example.com".to_string())
+            containers[0].traefik_urls,
+            vec!["api.example.com".to_string()]
         );
     }
 
@@ -940,13 +950,13 @@ services:
             has_healthcheck: false,
             log_errors: vec![],
             ports: vec![],
-            traefik_url: None,
+            traefik_urls: vec![],
         }];
 
         collect_traefik_urls(&compose, &mut containers);
 
         // Should extract the host even with complex rule
-        assert_eq!(containers[0].traefik_url, Some("example.com".to_string()));
+        assert_eq!(containers[0].traefik_urls, vec!["example.com".to_string()]);
     }
 
     #[test]
@@ -968,12 +978,55 @@ services:
             has_healthcheck: false,
             log_errors: vec![],
             ports: vec![],
-            traefik_url: None,
+            traefik_urls: vec![],
         }];
 
         collect_traefik_urls(&compose, &mut containers);
 
-        assert_eq!(containers[0].traefik_url, None);
+        assert!(containers[0].traefik_urls.is_empty());
+    }
+
+    #[test]
+    fn test_collect_traefik_urls_multiple_routers() {
+        let compose: serde_yaml::Value = serde_yaml::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    labels:
+      traefik.enable: true
+      traefik.http.routers.web.rule: "Host(`localhost`)"
+      traefik.http.routers.web.entrypoints: web
+      traefik.http.routers.web-www.rule: "Host(`www.example.com`)"
+      traefik.http.routers.web-www.entrypoints: web
+      traefik.http.routers.web-prod.rule: "Host(`example.com`)"
+      traefik.http.routers.web-prod.entrypoints: websecure
+"#,
+        )
+        .unwrap();
+
+        let mut containers = vec![ContainerHealth {
+            name: "project-web".to_string(),
+            running: true,
+            status: "Up".to_string(),
+            health: None,
+            has_healthcheck: false,
+            log_errors: vec![],
+            ports: vec![],
+            traefik_urls: vec![],
+        }];
+
+        collect_traefik_urls(&compose, &mut containers);
+
+        // Should collect all three hosts
+        assert_eq!(containers[0].traefik_urls.len(), 3);
+        assert!(containers[0].traefik_urls.contains(&"localhost".to_string()));
+        assert!(containers[0]
+            .traefik_urls
+            .contains(&"www.example.com".to_string()));
+        assert!(containers[0]
+            .traefik_urls
+            .contains(&"example.com".to_string()));
     }
 
     // Tests for parse_socket_addr

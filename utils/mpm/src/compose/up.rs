@@ -303,7 +303,8 @@ mod tests {
             r#"manifestVersion: "0.1"
 metadata:
   name: test-project
-spec: {}
+spec:
+  compose: {}
 "#,
         )
         .unwrap();

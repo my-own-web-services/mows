@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, info};
@@ -97,8 +96,8 @@ pub fn compose_install(url: &str, target: Option<&Path>) -> Result<(), String> {
         ));
     }
 
-    // Clone without history (shallow clone, then remove .git)
-    clone_without_history(url, &clone_dir)?;
+    // Clone repository (keeps .git for updates via git pull)
+    clone_repo(url, &clone_dir)?;
 
     // Find the manifest file
     let manifest_path = find_manifest_in_repo(&clone_dir)?;
@@ -133,10 +132,11 @@ pub fn compose_install(url: &str, target: Option<&Path>) -> Result<(), String> {
     config.save()?;
 
     info!("Installed project '{}' successfully", project_name);
-    info!("Manifest directory: {}", manifest_dir.display());
 
-    // Print cd instruction
-    println!("cd {}", manifest_dir.display());
+    // Print instructions for entering the project directory
+    println!();
+    println!("To enter the project directory, run:");
+    println!("  cd {}", manifest_dir.display());
 
     Ok(())
 }
@@ -159,13 +159,12 @@ fn extract_repo_name(url: &str) -> Result<String, String> {
         .ok_or_else(|| format!("Could not extract repository name from URL: {}", url))
 }
 
-/// Clone a repository without git history
-fn clone_without_history(url: &str, target: &Path) -> Result<(), String> {
+/// Clone a repository (keeps .git for updates via git pull)
+fn clone_repo(url: &str, target: &Path) -> Result<(), String> {
     debug!("Cloning {} to {}", url, target.display());
 
-    // Use shallow clone with depth 1
     let output = Command::new("git")
-        .args(["clone", "--depth", "1", url])
+        .args(["clone", url])
         .arg(target)
         .output()
         .map_err(|e| format!("Failed to run git clone: {}", e))?;
@@ -175,12 +174,14 @@ fn clone_without_history(url: &str, target: &Path) -> Result<(), String> {
         return Err(format!("git clone failed: {}", stderr.trim()));
     }
 
-    // Remove .git directory to remove history
-    let git_dir = target.join(".git");
-    if git_dir.exists() {
-        debug!("Removing .git directory");
-        fs::remove_dir_all(&git_dir)
-            .map_err(|e| format!("Failed to remove .git directory: {}", e))?;
+    // Disable git hooks to prevent arbitrary code execution from cloned repos
+    let hook_result = Command::new("git")
+        .args(["config", "core.hooksPath", "/dev/null"])
+        .current_dir(target)
+        .output();
+
+    if let Err(e) = hook_result {
+        debug!("Warning: Failed to disable git hooks: {}", e);
     }
 
     Ok(())
