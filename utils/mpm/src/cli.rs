@@ -75,6 +75,15 @@ pub enum Commands {
     ///
     /// Displays the current mpm version and checks for available updates.
     Version,
+    /// Generate man pages
+    ///
+    /// Outputs the man page to stdout, or installs all man pages
+    /// to ~/.local/share/man/man1/ with --install.
+    Manpage {
+        /// Install man pages to ~/.local/share/man/man1/
+        #[arg(long)]
+        install: bool,
+    },
     /// Update mpm to the latest version
     ///
     /// By default, downloads the latest pre-built binary from GitHub releases
