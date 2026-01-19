@@ -152,4 +152,4 @@ unsafe_code = "forbid"
 
 [workspace.package]
 edition = "2021"
-version = "0.2.2"
+version = "0.5.0"

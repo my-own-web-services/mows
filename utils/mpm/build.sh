@@ -19,6 +19,15 @@ GIT_DATE="${GIT_DATE:-$(git log -1 --format=%cs 2>/dev/null || echo 'unknown')}"
 # Create dist directory
 mkdir -p dist
 
+# Regenerate cargo-workspace-docker.toml to ensure correct version and dependencies
+echo "Regenerating cargo-workspace-docker.toml..."
+if command -v mpm >/dev/null 2>&1; then
+    mpm tools cargo-workspace-docker
+else
+    # Fallback: use cargo to run mpm from source (slower but works without mpm installed)
+    cargo run --quiet --release -- tools cargo-workspace-docker
+fi
+
 # Build and export the static binary directly to dist/
 echo "Building mpm static binary (profile: ${PROFILE}, arch: ${TARGETARCH}, git: ${GIT_HASH})..."
 

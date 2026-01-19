@@ -56,6 +56,8 @@ RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"
 
 # build
 COPY --from=sources / /build/
+COPY Cargo.toml Cargo.toml
+COPY build.rs build.rs
 COPY src src
 
 # Disable LTO for arm64 builds (QEMU can't handle it)
