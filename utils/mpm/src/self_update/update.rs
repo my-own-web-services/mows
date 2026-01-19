@@ -549,8 +549,11 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
     }
 
     // Verify the signature was actually validated with our trusted key
-    // Git outputs "Good signature" when verification succeeds
-    if !stderr.contains("Good signature") && !stdout.contains("Good signature") {
+    // Git outputs "Good signature" (GPG) or "Good "git" signature" (SSH) when verification succeeds
+    let combined_output = format!("{}{}", stdout, stderr);
+    let has_good_signature = combined_output.contains("Good signature")
+        || (combined_output.contains("Good") && combined_output.contains("signature"));
+    if !has_good_signature {
         return Err(format!(
             r#"Signature verification did not confirm a good signature:
 {}
