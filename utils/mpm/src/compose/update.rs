@@ -62,8 +62,11 @@ pub fn compose_update() -> Result<(), String> {
     let current_manifest_dir = current_manifest_path.parent().unwrap();
     debug!("Current manifest: {}", current_manifest_path.display());
 
+    // Load current manifest to check for custom values path
+    let current_manifest = MowsManifest::load(current_manifest_dir)?;
+
     // Create backup for potential rollback
-    let values_path = find_values_file(current_manifest_dir)
+    let values_path = find_values_file(current_manifest_dir, &current_manifest)
         .unwrap_or_else(|_| current_manifest_dir.join("values.yaml"));
     let values_backup = backup_file(current_manifest_dir, "values.yaml")
         .or_else(|_| backup_file(current_manifest_dir, "values.yml"))?;
@@ -129,7 +132,7 @@ fn do_update(
     let manifest = MowsManifest::load(new_manifest_dir)?;
 
     // Merge values.yaml
-    let new_values_path = find_values_file(new_manifest_dir)?;
+    let new_values_path = find_values_file(new_manifest_dir, &manifest)?;
     let new_values_content = fs::read_to_string(&new_values_path)
         .map_err(|e| format!("Failed to read new values file: {}", e))?;
 
@@ -213,7 +216,13 @@ fn find_repo_root(start: &Path) -> Result<PathBuf, String> {
     }
 }
 
-/// Find the manifest file in the current or parent directories
+/// Find the manifest file by walking UP parent directories from start.
+///
+/// Note: This is intentionally separate from `mod.rs::find_manifest_in_repo()` which
+/// walks DOWN into a repo with max depth. This function walks UP to find manifests
+/// in parent directories, which is needed for update operations where we start from
+/// a subdirectory and need to find the manifest above us. It also returns the file
+/// path (not directory) which is required for tracking manifest moves during updates.
 fn find_manifest(start: &Path) -> Result<PathBuf, String> {
     let mut current = start.to_path_buf();
 
@@ -237,7 +246,22 @@ fn find_manifest(start: &Path) -> Result<PathBuf, String> {
 }
 
 /// Find the values file in a directory
-fn find_values_file(dir: &Path) -> Result<PathBuf, String> {
+fn find_values_file(dir: &Path, manifest: &MowsManifest) -> Result<PathBuf, String> {
+    // Check if custom values file path is specified in manifest
+    if let Some(compose_config) = &manifest.spec.compose {
+        if let Some(custom_path) = &compose_config.values_file_path {
+            let path = dir.join(custom_path);
+            if path.exists() {
+                return Ok(path);
+            }
+            return Err(format!(
+                "Custom values file not found: {}",
+                path.display()
+            ));
+        }
+    }
+
+    // Default behavior: search for standard values files
     for name in &["values.yaml", "values.yml", "values.json"] {
         let path = dir.join(name);
         if path.exists() {

@@ -65,10 +65,14 @@ fn has_manifest(dir: &Path) -> bool {
 
 /// Find the manifest directory for compose commands
 ///
-/// 1. If current directory contains a manifest, use it
-/// 2. Otherwise, find the git root and search for manifests
-/// 3. If exactly one manifest is found in the repo, use its directory
-/// 4. If zero or more than one, return an error
+/// Search order:
+/// 1. Current directory (if it contains a manifest)
+/// 2. Walk up parent directories looking for a manifest
+/// 3. If in a git repo, search within the repo for manifests
+///
+/// This supports both:
+/// - Installed projects (no .git directory) - uses parent directory search
+/// - Development repos - uses git root search
 pub(crate) fn find_manifest_dir() -> Result<PathBuf, String> {
     let current_dir = std::env::current_dir()
         .map_err(|e| format!("Failed to get current directory: {}", e))?;
@@ -78,28 +82,42 @@ pub(crate) fn find_manifest_dir() -> Result<PathBuf, String> {
         return Ok(current_dir);
     }
 
-    // Try to find git root and search for manifests
-    let git_root = find_git_root()?;
-    let manifests = find_all_manifests_in_repo(&git_root);
-
-    match manifests.len() {
-        0 => Err("No mows-manifest.yaml found in repository".to_string()),
-        1 => {
-            let manifest_dir = manifests[0]
-                .parent()
-                .ok_or("Invalid manifest path")?
-                .to_path_buf();
-            Ok(manifest_dir)
+    // Walk up parent directories looking for a manifest
+    let mut search_dir = current_dir.as_path();
+    while let Some(parent) = search_dir.parent() {
+        if has_manifest(parent) {
+            return Ok(parent.to_path_buf());
         }
-        n => Err(format!(
-            "Found {} mows-manifest.yaml files in repository. \
-             Please run from the directory containing the manifest you want to use:\n{}",
-            n,
-            manifests
-                .iter()
-                .map(|p| format!("  - {}", p.display()))
-                .collect::<Vec<_>>()
-                .join("\n")
-        )),
+        search_dir = parent;
     }
+
+    // Try git root as fallback (for monorepos with multiple manifests)
+    if let Ok(git_root) = find_git_root() {
+        let manifests = find_all_manifests_in_repo(&git_root);
+
+        match manifests.len() {
+            0 => {}
+            1 => {
+                let manifest_dir = manifests[0]
+                    .parent()
+                    .ok_or("Invalid manifest path")?
+                    .to_path_buf();
+                return Ok(manifest_dir);
+            }
+            n => {
+                return Err(format!(
+                    "Found {} mows-manifest.yaml files in repository. \
+                     Please run from the directory containing the manifest you want to use:\n{}",
+                    n,
+                    manifests
+                        .iter()
+                        .map(|p| format!("  - {}", p.display()))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                ));
+            }
+        }
+    }
+
+    Err("No mows-manifest.yaml found. Run from a project directory or use 'mpm compose install' to add a project.".to_string())
 }

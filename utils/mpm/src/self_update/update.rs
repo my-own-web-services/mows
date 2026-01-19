@@ -305,6 +305,12 @@ pub fn update_from_binary(version: Option<&str>) -> Result<(), String> {
         current_version, new_version
     );
 
+    // Update shell completions
+    println!("Updating shell completions...");
+    if let Err(e) = crate::shell_init::shell_init(true) {
+        eprintln!("Warning: Failed to update shell completions: {}", e);
+    }
+
     Ok(())
 }
 
@@ -443,6 +449,12 @@ pub fn update_from_source(version: Option<&str>) -> Result<(), String> {
         "Successfully built and installed mpm v{} from source",
         new_version
     );
+
+    // Update shell completions
+    println!("Updating shell completions...");
+    if let Err(e) = crate::shell_init::shell_init(true) {
+        eprintln!("Warning: Failed to update shell completions: {}", e);
+    }
 
     Ok(())
 }

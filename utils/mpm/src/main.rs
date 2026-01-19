@@ -6,6 +6,7 @@ compile_error!("mpm only supports Unix-like operating systems (Linux, macOS)");
 mod cli;
 mod compose;
 mod self_update;
+mod shell_init;
 mod template;
 mod tools;
 mod utils;
@@ -17,6 +18,7 @@ use tracing_subscriber::EnvFilter;
 use cli::{Cli, Commands, ComposeCommands, SecretsCommands, ToolCommands};
 use compose::{compose_cd, compose_init, compose_install, compose_passthrough, compose_up, compose_update, secrets_regenerate};
 use self_update::{check_for_updates_background, notify_if_update_available, self_update};
+use shell_init::shell_init;
 use template::render_template_command;
 use tools::{expand_object_command, flatten_object_command, jq_command, json_to_yaml, prettify_json, workspace_docker_command, yaml_to_json};
 use utils::find_git_root;
@@ -101,6 +103,9 @@ fn main() {
         } => render_template_command(&input, &variables, &output),
         Commands::SelfUpdate { build, version } => {
             self_update(build, version.as_deref())
+        }
+        Commands::ShellInit { install } => {
+            shell_init(install)
         }
     };
 

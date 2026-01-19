@@ -228,18 +228,23 @@ fn print_health_checks(containers: &[ContainerHealth]) {
                     total_warnings += 1;
                 }
             }
-        } else if let Some(ref host) = container.traefik_url {
-            // Check traefik URL if no ports but traefik is configured
-            // Try HTTP first (more common for local dev), then HTTPS
-            if let Some(result) = check_traefik_host(host) {
-                println!(
-                    "    ✅ {} {} {}",
-                    result.url, result.status_code, result.status_text
-                );
-            } else {
-                // Extra space after warning emoji
-                println!("    {}⚠{}  {} not reachable", yellow, reset, host);
-                total_warnings += 1;
+        } else if !container.traefik_urls.is_empty() {
+            // Check traefik URLs if no ports but traefik is configured
+            for host in &container.traefik_urls {
+                // Try HTTP first (more common for local dev), then HTTPS
+                if let Some(result) = check_traefik_host(host) {
+                    println!(
+                        "    ✅ {} {} {}",
+                        result.url, result.status_code, result.status_text
+                    );
+                } else {
+                    // Extra space after warning emoji, include http:// prefix for clickable link
+                    println!(
+                        "    {}⚠{}  http://{} not reachable",
+                        yellow, reset, host
+                    );
+                    total_warnings += 1;
+                }
             }
         }
 

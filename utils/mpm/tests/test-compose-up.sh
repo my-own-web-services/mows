@@ -37,7 +37,8 @@ metadata:
   name: $name
   description: "Test project"
   version: "0.1"
-spec: {}
+spec:
+  compose: {}
 EOF
 
     # Create values.yaml

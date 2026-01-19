@@ -45,8 +45,8 @@ impl RenderContext {
     pub fn new(dir: &Path) -> Result<Self, String> {
         let manifest = MowsManifest::load(dir)?;
 
-        // Load values.yaml
-        let values = load_values(dir)?;
+        // Load values.yaml (or custom path from manifest)
+        let values = load_values(dir, &manifest)?;
 
         Ok(RenderContext {
             manifest,
@@ -114,7 +114,34 @@ impl RenderContext {
 }
 
 /// Load values.yaml from a directory
-fn load_values(dir: &Path) -> Result<gtmpl::Value, String> {
+fn load_values(dir: &Path, manifest: &MowsManifest) -> Result<gtmpl::Value, String> {
+    // Check if custom values file path is specified in manifest
+    if let Some(compose_config) = &manifest.spec.compose {
+        if let Some(custom_path) = &compose_config.values_file_path {
+            // Validate path doesn't escape the manifest directory (prevent path traversal)
+            if custom_path.contains("..") {
+                return Err(format!(
+                    "Invalid valuesFilePath '{}': path traversal not allowed",
+                    custom_path
+                ));
+            }
+            if Path::new(custom_path).is_absolute() {
+                return Err(format!(
+                    "Invalid valuesFilePath '{}': absolute paths not allowed",
+                    custom_path
+                ));
+            }
+
+            let path = dir.join(custom_path);
+            debug!(
+                "Loading values from custom path (manifest): {}",
+                path.display()
+            );
+            return load_variable_file(&path);
+        }
+    }
+
+    // Default behavior: search for standard values files
     let candidates = ["values.yaml", "values.yml", "values.json"];
 
     for name in candidates {
@@ -734,7 +761,8 @@ metadata:
   name: test-project
   description: "Test project"
   version: "1.0.0"
-spec: {}
+spec:
+  compose: {}
 "#;
         fs::write(dir.join("mows-manifest.yaml"), manifest_content).unwrap();
 

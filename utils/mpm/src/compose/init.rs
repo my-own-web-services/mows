@@ -17,6 +17,24 @@ struct DockerfileInfo {
     context_path: String,
 }
 
+/// Get the git remote URL (returns None if not available or not HTTPS)
+fn get_git_remote_url() -> Option<String> {
+    let output = Command::new("git")
+        .args(["remote", "get-url", "origin"])
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        // Only return HTTPS URLs
+        if url.starts_with("https://") {
+            return Some(url);
+        }
+    }
+
+    None
+}
+
 /// Get the git repository name from the current directory
 fn get_git_repo_name() -> Result<String, String> {
     // Try to get the remote URL first
@@ -198,16 +216,27 @@ fn generate_values(dockerfiles: &[DockerfileInfo]) -> String {
 }
 
 /// Generate the mows-manifest.yaml content
-fn generate_manifest(project_name: &str) -> String {
+fn generate_manifest(project_name: &str, repository_url: Option<&str>) -> String {
+    let compose_section = if let Some(url) = repository_url {
+        format!(
+            r#"    compose:
+        repositoryUrl: {}"#,
+            url
+        )
+    } else {
+        "    compose: {}".to_string()
+    };
+
     format!(
         r#"manifestVersion: "0.1"
 metadata:
     name: {}
     description: ""
     version: "0.1"
-spec: {{}}
+spec:
+{}
 "#,
-        project_name
+        project_name, compose_section
     )
 }
 
@@ -252,6 +281,12 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
 
     info!("Initializing mpm compose project: {}", project_name);
 
+    // Get git remote URL if available (HTTPS only)
+    let repository_url = get_git_remote_url();
+    if let Some(ref url) = repository_url {
+        debug!("Git remote URL: {}", url);
+    }
+
     // Get git root to find Dockerfiles
     let git_root = find_git_root()?;
     debug!("Git root: {}", git_root.display());
@@ -290,8 +325,11 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
     // Generate and write mows-manifest.yaml
     let manifest_path = deployment_dir.join("mows-manifest.yaml");
     if !manifest_path.exists() {
-        fs::write(&manifest_path, generate_manifest(&project_name))
-            .map_err(|e| format!("Failed to write mows-manifest.yaml: {}", e))?;
+        fs::write(
+            &manifest_path,
+            generate_manifest(&project_name, repository_url.as_deref()),
+        )
+        .map_err(|e| format!("Failed to write mows-manifest.yaml: {}", e))?;
         info!("Created: {}", manifest_path.display());
     } else {
         debug!("Skipping existing: {}", manifest_path.display());
@@ -305,6 +343,20 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
         info!("Created: {}", values_path.display());
     } else {
         debug!("Skipping existing: {}", values_path.display());
+    }
+
+    // Create values directory and development.yaml
+    let values_dir = deployment_dir.join("values");
+    fs::create_dir_all(&values_dir)
+        .map_err(|e| format!("Failed to create deployment/values: {}", e))?;
+
+    let dev_values_path = values_dir.join("development.yaml");
+    if !dev_values_path.exists() {
+        fs::write(&dev_values_path, generate_values(&dockerfiles))
+            .map_err(|e| format!("Failed to write values/development.yaml: {}", e))?;
+        info!("Created: {}", dev_values_path.display());
+    } else {
+        debug!("Skipping existing: {}", dev_values_path.display());
     }
 
     // Generate and write templates/docker-compose.yaml
@@ -400,9 +452,21 @@ mod tests {
 
     #[test]
     fn test_generate_manifest() {
-        let manifest = generate_manifest("test-project");
+        let manifest = generate_manifest("test-project", None);
         assert!(manifest.contains("name: test-project"));
         assert!(manifest.contains("manifestVersion: \"0.1\""));
+        assert!(manifest.contains("compose: {}"));
+    }
+
+    #[test]
+    fn test_generate_manifest_with_repository_url() {
+        let manifest =
+            generate_manifest("test-project", Some("https://github.com/user/repo.git"));
+        assert!(manifest.contains("name: test-project"));
+        assert!(manifest.contains("manifestVersion: \"0.1\""));
+        assert!(manifest.contains("repositoryUrl: https://github.com/user/repo.git"));
+        assert!(manifest.contains("compose:"));
+        assert!(!manifest.contains("compose: {}"));
     }
 
     #[test]

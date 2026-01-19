@@ -30,6 +30,17 @@ success() { echo -e "${GREEN}==>${NC} $*"; }
 warn() { echo -e "${YELLOW}==>${NC} $*"; }
 error() { echo -e "${RED}error:${NC} $*" >&2; exit 1; }
 
+# Setup shell completions
+setup_completions() {
+    info "Installing shell completions..."
+    if mpm shell-init --install 2>&1; then
+        success "Shell completions installed"
+    else
+        warn "Failed to install shell completions automatically"
+        echo "  Run manually: mpm shell-init --install"
+    fi
+}
+
 # Detect architecture
 detect_arch() {
     local arch
@@ -152,22 +163,27 @@ main() {
 
     success "Installed mpm ${version} to ${install_dir}/mpm"
 
-    # Verify installation
-    if has_cmd mpm; then
-        echo
-        mpm --version
-    else
+    # Check if install dir is in PATH
+    if ! has_cmd mpm; then
         warn "${install_dir} is not in your PATH"
         echo
         echo "Add it to your shell profile:"
         echo "  echo 'export PATH=\"${install_dir}:\$PATH\"' >> ~/.bashrc"
         echo
-        echo "Then reload your shell or run:"
-        echo "  export PATH=\"${install_dir}:\$PATH\""
+        # Export for current session so shell-init works
+        export PATH="${install_dir}:$PATH"
     fi
 
+    # Setup shell completions
+    setup_completions
+
     echo
-    success "Installation complete! Run 'mpm --help' to get started."
+    success "Installation complete!"
+    echo
+    mpm --version
+    echo
+    info "Restart your shell or run: exec \$SHELL"
+    info "Then run 'mpm --help' to get started."
 }
 
 main "$@"
