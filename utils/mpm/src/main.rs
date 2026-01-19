@@ -14,6 +14,7 @@ mod utils;
 pub mod yaml_indent;
 
 use clap::Parser;
+use colored::Colorize;
 use tracing_subscriber::EnvFilter;
 
 use cli::{Cli, Commands, ComposeCommands, SecretsCommands, ToolCommands};
@@ -116,7 +117,13 @@ fn main() {
     check_for_updates_background();
 
     if let Err(e) = result {
-        eprintln!("{}", e);
+        // format_file_error output starts with newline and includes "error:" prefix
+        // so don't duplicate it for those errors
+        if e.starts_with('\n') {
+            eprintln!("{}", e);
+        } else {
+            eprintln!("{}: {}", "error".red().bold(), e);
+        }
         std::process::exit(1);
     }
 }

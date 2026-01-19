@@ -198,7 +198,7 @@ fn render_template_file(
             &template_content,
             &gtmpl::TemplateError::ParseError(e),
             preamble_lines,
-            5,
+            6,
             Some(variables),
         )
     })?;
@@ -210,7 +210,7 @@ fn render_template_file(
             &template_content,
             &gtmpl::TemplateError::ExecError(e),
             preamble_lines,
-            5,
+            6,
             Some(variables),
         )
     })?;
@@ -380,7 +380,7 @@ pub fn render_generated_secrets(ctx: &RenderContext) -> Result<(), String> {
             &template_content,
             &gtmpl::TemplateError::ParseError(e),
             preamble_lines,
-            5,
+            6,
             Some(&variables),
         )
     })?;
@@ -392,7 +392,7 @@ pub fn render_generated_secrets(ctx: &RenderContext) -> Result<(), String> {
             &template_content,
             &gtmpl::TemplateError::ExecError(e),
             preamble_lines,
-            5,
+            6,
             Some(&variables),
         )
     })?;

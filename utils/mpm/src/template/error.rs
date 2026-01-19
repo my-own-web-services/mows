@@ -2,7 +2,8 @@
 
 use gtmpl_ng::all_functions::all_functions;
 use gtmpl_ng::{ExecError, TemplateError, Value};
-use mows_common_rust::error_display::{format_file_error, should_use_colors};
+use colored::Colorize;
+use mows_common_rust::error_display::format_file_error;
 use std::path::Path;
 
 /// Calculate Levenshtein distance between two strings
@@ -111,13 +112,9 @@ fn get_available_functions() -> Vec<String> {
         .collect()
 }
 
-/// Format a "did you mean" suggestion with optional green color
+/// Format a "did you mean" suggestion with green color
 fn format_suggestion(message: &str, suggestion: &str) -> String {
-    if should_use_colors() {
-        format!("{}, \x1b[32mdid you mean `{}`?\x1b[0m", message, suggestion)
-    } else {
-        format!("{}, did you mean `{}`?", message, suggestion)
-    }
+    format!("{}, {}", message, format!("did you mean `{}`?", suggestion).green())
 }
 
 /// Find the best matching function name for a missing function

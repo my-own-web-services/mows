@@ -143,7 +143,7 @@ pub fn format_yaml_error(content: &str, path: Option<&Path>, err: &serde_yaml::E
             display_line,
             display_col,
             error_len,
-            15,
+            6,
             None,
             None,
         )
