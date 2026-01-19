@@ -16,8 +16,27 @@ const REPO_URL: &str = "https://github.com/my-own-web-services/mows.git";
 /// Trusted SSH signing key for verifying release tags
 const TRUSTED_SSH_KEY: &str = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ80+F8Xr3QAvxy/asB5QbB17m2vl+Aj+PzUZeatindf";
 
-/// HTTP request timeout in seconds
+/// HTTP request timeout in seconds for downloads
 const HTTP_TIMEOUT_SECS: u64 = 30;
+
+/// Short timeout for version check (should not delay CLI noticeably)
+const VERSION_CHECK_TIMEOUT_SECS: u64 = 1;
+
+/// Move a file, falling back to copy+delete if rename fails with cross-device error.
+/// This handles the case where source and destination are on different filesystems
+/// (e.g., /tmp is tmpfs while target is on a real disk).
+fn move_file(src: &Path, dst: &Path) -> Result<(), String> {
+    match fs::rename(src, dst) {
+        Ok(()) => Ok(()),
+        Err(e) if e.raw_os_error() == Some(libc::EXDEV) => {
+            // Cross-device link error - fall back to copy + delete
+            fs::copy(src, dst).map_err(|e| format!("Failed to copy file: {}", e))?;
+            fs::remove_file(src).map_err(|e| format!("Failed to remove source file: {}", e))?;
+            Ok(())
+        }
+        Err(e) => Err(format!("Failed to move file: {}", e)),
+    }
+}
 
 /// GitHub release API response
 #[derive(Debug, Deserialize)]
@@ -25,11 +44,21 @@ struct GithubRelease {
     tag_name: String,
 }
 
-/// Create an HTTP client with appropriate timeouts and headers
+/// Create an HTTP client with appropriate timeouts and headers for downloads
 fn create_http_client() -> Result<Client, String> {
     Client::builder()
         .timeout(Duration::from_secs(HTTP_TIMEOUT_SECS))
         .connect_timeout(Duration::from_secs(10))
+        .user_agent(format!("mpm/{}", env!("CARGO_PKG_VERSION")))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))
+}
+
+/// Create an HTTP client with short timeout for background version checking
+fn create_version_check_client() -> Result<Client, String> {
+    Client::builder()
+        .timeout(Duration::from_secs(VERSION_CHECK_TIMEOUT_SECS))
+        .connect_timeout(Duration::from_secs(VERSION_CHECK_TIMEOUT_SECS))
         .user_agent(format!("mpm/{}", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))
@@ -55,7 +84,16 @@ fn get_os() -> Result<&'static str, String> {
 
 /// Fetch the latest mpm release version from GitHub API
 fn fetch_latest_version() -> Result<String, String> {
-    let client = create_http_client()?;
+    fetch_latest_version_with_client(create_http_client()?)
+}
+
+/// Fetch the latest version using a short timeout (for background checks)
+fn fetch_latest_version_fast() -> Result<String, String> {
+    fetch_latest_version_with_client(create_version_check_client()?)
+}
+
+/// Fetch the latest mpm release version using the provided HTTP client
+fn fetch_latest_version_with_client(client: Client) -> Result<String, String> {
     let url = format!("{}/latest", GITHUB_API_URL);
 
     let response = client
@@ -208,9 +246,8 @@ fn replace_binary(new_binary: &Path, current_binary: &Path) -> Result<(), String
         fs::remove_file(current_binary)
             .map_err(|e| format!("Failed to remove current binary: {}", e))?;
 
-        // Move new binary into place
-        fs::rename(new_binary, current_binary)
-            .map_err(|e| format!("Failed to install new binary: {}", e))?;
+        // Move new binary into place (handles cross-device link errors)
+        move_file(new_binary, current_binary)?;
 
         // Set executable permissions
         let mut perms = fs::metadata(current_binary)
@@ -226,14 +263,12 @@ fn replace_binary(new_binary: &Path, current_binary: &Path) -> Result<(), String
     // If replacement failed, try to restore backup
     if let Err(e) = &result {
         eprintln!("Update failed, attempting to restore backup...");
-        if let Err(restore_err) = fs::rename(&backup_path, current_binary) {
+        if let Err(restore_err) = move_file(&backup_path, current_binary) {
             eprintln!(
                 "WARNING: Failed to restore backup: {}. Backup is at: {}",
                 restore_err,
                 backup_path.display()
             );
-        } else {
-            let _ = fs::remove_file(&backup_path);
         }
         return Err(e.clone());
     }
@@ -548,11 +583,13 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
         ));
     }
 
-    // Verify the signature was actually validated with our trusted key
-    // Git outputs "Good signature" (GPG) or "Good "git" signature" (SSH) when verification succeeds
+    // Verify the signature was actually validated with our trusted key.
+    // Git outputs specific formats that we check for to prevent spoofing via tag names/messages:
+    // - SSH: 'Good "git" signature for'
+    // - GPG: 'Good signature from'
     let combined_output = format!("{}{}", stdout, stderr);
-    let has_good_signature = combined_output.contains("Good signature")
-        || (combined_output.contains("Good") && combined_output.contains("signature"));
+    let has_good_signature = combined_output.contains(r#"Good "git" signature for"#)
+        || combined_output.contains("Good signature from");
     if !has_good_signature {
         return Err(format!(
             r#"Signature verification did not confirm a good signature:
@@ -585,7 +622,9 @@ pub fn self_update(build: bool, version: Option<&str>) -> Result<(), String> {
     result
 }
 
-/// Spawn a background thread to check for updates without blocking
+/// Check for updates synchronously with a short timeout (called after command completes)
+/// This runs after the main command output so users see results immediately,
+/// then we check for updates with a 1-second timeout to avoid delaying exit noticeably.
 pub fn check_for_updates_background() {
     use crate::compose::config::MpmConfig;
 
@@ -599,21 +638,21 @@ pub fn check_for_updates_background() {
         return;
     }
 
-    std::thread::spawn(|| {
-        check_and_save_update_info();
-    });
+    // Run synchronously with short timeout - this ensures the check completes
+    // before process exit (unlike a detached thread which gets killed)
+    check_and_save_update_info();
 }
 
-/// Check for updates and save to config (runs in background thread)
+/// Check for updates and save to config
 fn check_and_save_update_info() {
     use crate::compose::config::MpmConfig;
 
     let current_version = env!("CARGO_PKG_VERSION");
 
-    // Fetch latest version
-    let latest_version = match fetch_latest_version() {
+    // Fetch latest version with short timeout
+    let latest_version = match fetch_latest_version_fast() {
         Ok(v) => v,
-        Err(_) => return, // Silently fail in background
+        Err(_) => return, // Silently fail if network is slow/unavailable
     };
 
     // Load config, update, and save
