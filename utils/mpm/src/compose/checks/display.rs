@@ -3,7 +3,7 @@
 //! Provides formatted output with colors and emojis for both
 //! pre-deployment checks and post-deployment health checks.
 
-use mows_common_rust::error_display::should_use_colors;
+use colored::Colorize;
 
 use super::health::{check_traefik_host, collect_container_health, ContainerHealth};
 use super::preflight::{CheckResult, Severity};
@@ -14,19 +14,10 @@ pub fn print_check_results(results: &[CheckResult]) {
         return;
     }
 
-    let colors = should_use_colors();
-
-    // ANSI color codes
-    let reset = if colors { "\x1b[0m" } else { "" };
-    let bold = if colors { "\x1b[1m" } else { "" };
-    let dim = if colors { "\x1b[2m" } else { "" };
-    let yellow = if colors { "\x1b[33m" } else { "" };
-    let cyan = if colors { "\x1b[36m" } else { "" };
-
     // Header
     println!();
-    println!("{}{}Pre-flight Checks{}", bold, cyan, reset);
-    println!("{}─────────────────{}", dim, reset);
+    println!("{}", "Pre-flight Checks".cyan().bold());
+    println!("{}", "─────────────────".dimmed());
 
     let mut errors = 0;
     let mut warnings = 0;
@@ -42,27 +33,21 @@ pub fn print_check_results(results: &[CheckResult]) {
                 }
                 Severity::Warning => {
                     warnings += 1;
-                    format!("{}⚠{}", yellow, reset)
+                    "⚠".yellow().to_string()
                 }
-                Severity::Info => format!("{}ℹ{}", cyan, reset),
+                Severity::Info => "ℹ".cyan().to_string(),
             }
         };
 
         // Handle multiline messages
         let message_lines: Vec<&str> = result.message.lines().collect();
         if message_lines.len() > 1 {
-            println!(
-                "{} {}{}{} {}",
-                status_icon, bold, result.name, reset, message_lines[0]
-            );
+            println!("{} {} {}", status_icon, result.name.bold(), message_lines[0]);
             for line in &message_lines[1..] {
-                println!("    {}{}{}", dim, line, reset);
+                println!("    {}", line.dimmed());
             }
         } else {
-            println!(
-                "{} {}{}{} {}",
-                status_icon, bold, result.name, reset, result.message
-            );
+            println!("{} {} {}", status_icon, result.name.bold(), result.message);
         }
     }
 
@@ -75,13 +60,13 @@ pub fn print_check_results(results: &[CheckResult]) {
             format!("{} error(s)", errors)
         };
         let warning_text = if warnings > 0 {
-            format!("{}{}⚠ {} warning(s){}", bold, yellow, warnings, reset)
+            format!("⚠ {} warning(s)", warnings).yellow().bold().to_string()
         } else {
             format!("{} warning(s)", warnings)
         };
         println!("{}, {}", error_text, warning_text);
     } else {
-        println!("{}✅ All checks passed!{}", bold, reset);
+        println!("{}", "✅ All checks passed!".bold());
     }
 }
 
@@ -135,19 +120,10 @@ pub fn run_and_print_health_checks(project_name: &str, compose: Option<&serde_ya
 
 /// Print health check results for containers
 fn print_health_checks(containers: &[ContainerHealth]) {
-    let colors = should_use_colors();
-
-    // ANSI color codes
-    let reset = if colors { "\x1b[0m" } else { "" };
-    let bold = if colors { "\x1b[1m" } else { "" };
-    let dim = if colors { "\x1b[2m" } else { "" };
-    let yellow = if colors { "\x1b[33m" } else { "" };
-    let cyan = if colors { "\x1b[36m" } else { "" };
-
     // Header
     println!();
-    println!("{}{}Health Checks{}", bold, cyan, reset);
-    println!("{}─────────────{}", dim, reset);
+    println!("{}", "Health Checks".cyan().bold());
+    println!("{}", "─────────────".dimmed());
 
     let mut total_errors = 0;
     let mut total_warnings = 0;
@@ -161,23 +137,15 @@ fn print_health_checks(containers: &[ContainerHealth]) {
 
         if !container.running {
             total_errors += 1;
-            println!(
-                "📦 {}{}{} {}{}{}",
-                bold, container.name, reset, dim, uptime, reset
-            );
-        } else {
-            println!(
-                "📦 {}{}{} {}{}{}",
-                bold, container.name, reset, dim, uptime, reset
-            );
         }
+        println!("📦 {} {}", container.name.bold(), uptime.dimmed());
 
         // Health status - only show if unhealthy (skip healthy and no-healthcheck cases)
         if container.has_healthcheck {
             if let Some(ref health) = container.health {
                 if health.contains("unhealthy") || health.contains("starting") {
                     // Extra space after warning emoji
-                    println!("    {}⚠{}  {}", yellow, reset, health);
+                    println!("    {}  {}", "⚠".yellow(), health);
                     total_warnings += 1;
                 }
             }
@@ -189,9 +157,8 @@ fn print_health_checks(containers: &[ContainerHealth]) {
         } else {
             // Extra space after warning emoji
             println!(
-                "    {}⚠{}  {} error(s) in logs:",
-                yellow,
-                reset,
+                "    {}  {} error(s) in logs:",
+                "⚠".yellow(),
                 container.log_errors.len()
             );
             total_warnings += 1;
@@ -202,14 +169,12 @@ fn print_health_checks(containers: &[ContainerHealth]) {
                 } else {
                     line
                 };
-                println!("       {}{}{}", dim, msg.trim(), reset);
+                println!("       {}", msg.trim().dimmed());
             }
             if container.log_errors.len() > 3 {
                 println!(
-                    "       {}... and {} more{}",
-                    dim,
-                    container.log_errors.len() - 3,
-                    reset
+                    "       {}",
+                    format!("... and {} more", container.log_errors.len() - 3).dimmed()
                 );
             }
         }
@@ -221,10 +186,7 @@ fn print_health_checks(containers: &[ContainerHealth]) {
                     println!("    ✅ port {} responding", port.port);
                 } else {
                     // Extra space after warning emoji
-                    println!(
-                        "    {}⚠{}  port {} not responding",
-                        yellow, reset, port.port
-                    );
+                    println!("    {}  port {} not responding", "⚠".yellow(), port.port);
                     total_warnings += 1;
                 }
             }
@@ -239,10 +201,7 @@ fn print_health_checks(containers: &[ContainerHealth]) {
                     );
                 } else {
                     // Extra space after warning emoji, include http:// prefix for clickable link
-                    println!(
-                        "    {}⚠{}  http://{} not reachable",
-                        yellow, reset, host
-                    );
+                    println!("    {}  http://{} not reachable", "⚠".yellow(), host);
                     total_warnings += 1;
                 }
             }
@@ -260,13 +219,13 @@ fn print_health_checks(containers: &[ContainerHealth]) {
         };
         let warning_text = if total_warnings > 0 {
             // Extra space after warning emoji
-            format!("{}{}⚠{}  {} warning(s)", bold, yellow, reset, total_warnings)
+            format!("⚠  {} warning(s)", total_warnings).yellow().bold().to_string()
         } else {
             format!("{} warning(s)", total_warnings)
         };
         println!("{}, {}", error_text, warning_text);
     } else {
-        println!("{}✅ All checks passed!{}", bold, reset);
+        println!("{}", "✅ All checks passed!".bold());
     }
 }
 

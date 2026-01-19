@@ -1,3 +1,4 @@
+use colored::Colorize;
 use reqwest::blocking::Client;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -751,10 +752,14 @@ pub fn notify_if_update_available() {
             && is_newer_version(&update.available_version, current_version)
         {
             eprintln!(
-                "\x1b[33mA new version of mpm is available: {} (current: {})\x1b[0m",
-                update.available_version, current_version
+                "{}",
+                format!(
+                    "A new version of mpm is available: {} (current: {})",
+                    update.available_version, current_version
+                )
+                .yellow()
             );
-            eprintln!("\x1b[33mRun 'mpm self-update' to update.\x1b[0m\n");
+            eprintln!("{}\n", "Run 'mpm self-update' to update.".yellow());
         }
     }
 }

@@ -9,6 +9,7 @@ mows-common-rust = { workspace = true }
 clap = { version = "4.5", features = ["derive"] }
 clap_complete = "4.5"
 clap_mangen = "0.2"
+colored = "2"
 comfy-table = "7"
 
 serde = { workspace = true, features = ["derive"] }

@@ -73,7 +73,7 @@ fn render_single_file(input: &Path, output: &Path, values: &gtmpl::Value) -> Res
         .map_err(|e| format!("Failed to read template file '{}': {}", input.display(), e))?;
 
     let result = render_template(&template_content, values).map_err(|(error, preamble_lines)| {
-        format_template_error(input, &template_content, &error, preamble_lines, 15, Some(values))
+        format_template_error(input, &template_content, &error, preamble_lines, 6, Some(values))
     })?;
 
     // Create parent directories if they don't exist

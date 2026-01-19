@@ -1,6 +1,7 @@
 use std::io::{self, IsTerminal};
 use std::process::Command;
 
+use colored::Colorize;
 use comfy_table::{presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ContentArrangement, Table};
 use serde::Deserialize;
 use tracing::debug;
@@ -332,17 +333,9 @@ pub fn drives_command() -> Result<(), String> {
 
     // Print notes
     if needs_smartctl {
-        if use_colors {
-            println!("\n\x1b[33mNote: Install smartmontools and run with sudo for health status\x1b[0m");
-        } else {
-            println!("\nNote: Install smartmontools and run with sudo for health status");
-        }
+        println!("\n{}", "Note: Install smartmontools and run with sudo for health status".yellow());
     } else if needs_sudo {
-        if use_colors {
-            println!("\n\x1b[33mNote: Run with sudo for health status\x1b[0m");
-        } else {
-            println!("\nNote: Run with sudo for health status");
-        }
+        println!("\n{}", "Note: Run with sudo for health status".yellow());
     }
 
     Ok(())

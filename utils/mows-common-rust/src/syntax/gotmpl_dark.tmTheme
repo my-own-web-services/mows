@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>name</key>
-	<string>Go Template Dark (One Dark)</string>
+	<string>Go Template Dark (One Dark NX)</string>
 	<key>settings</key>
 	<array>
 		<!-- Global settings -->
@@ -13,24 +13,24 @@
 				<key>background</key>
 				<string>#282c34</string>
 				<key>foreground</key>
-				<string>#abb2bf</string>
+				<string>#d7dae0</string>
 				<key>caret</key>
-				<string>#528bff</string>
+				<string>#4d78cc</string>
 				<key>selection</key>
-				<string>#3e4451</string>
+				<string>#67769660</string>
 				<key>lineHighlight</key>
 				<string>#2c323c</string>
 			</dict>
 		</dict>
 
-		<!-- Go Template: Delimiters {{ }} {{- -}} - Yellow -->
+		<!-- Go Template: Delimiters {{ }} {{- -}} - Bright Gold (VSCode bracket style) -->
 		<dict>
 			<key>scope</key>
 			<string>punctuation.section.interpolation.begin.gotmpl, punctuation.section.interpolation.end.gotmpl, keyword.operator.template.gotmpl</string>
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#e5c07b</string>
+				<string>#FFD700</string>
 			</dict>
 		</dict>
 
@@ -41,18 +41,18 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#c678dd</string>
+				<string>#D55FDE</string>
 			</dict>
 		</dict>
 
-		<!-- Go Template: Assignment := and Pipe | - Purple/Magenta -->
+		<!-- Go Template: Assignment := and Pipe | - Cyan -->
 		<dict>
 			<key>scope</key>
 			<string>keyword.operator.assignment.gotmpl, keyword.operator.pipe.gotmpl</string>
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#c678dd</string>
+				<string>#2BBAC5</string>
 			</dict>
 		</dict>
 
@@ -63,7 +63,7 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#e06c75</string>
+				<string>#EF596F</string>
 			</dict>
 		</dict>
 
@@ -74,18 +74,18 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#d19a66</string>
+				<string>#D8985F</string>
 			</dict>
 		</dict>
 
-		<!-- Go Template: Functions (eq, ternary, etc) - Cyan -->
+		<!-- Go Template: Functions (eq, ternary, etc) - Blue -->
 		<dict>
 			<key>scope</key>
 			<string>support.function.builtin.gotmpl, entity.name.function.gotmpl</string>
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#56b6c2</string>
+				<string>#52ADF2</string>
 			</dict>
 		</dict>
 
@@ -96,7 +96,7 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#98c379</string>
+				<string>#89CA78</string>
 			</dict>
 		</dict>
 
@@ -107,18 +107,20 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#d19a66</string>
+				<string>#D8985F</string>
 			</dict>
 		</dict>
 
-		<!-- Go Template: Comments - Gray -->
+		<!-- Go Template: Comments - Gray (italic) -->
 		<dict>
 			<key>scope</key>
 			<string>comment.block.gotmpl</string>
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#5c6370</string>
+				<string>#5C6370</string>
+				<key>fontStyle</key>
+				<string>italic</string>
 			</dict>
 		</dict>
 
@@ -129,7 +131,7 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#e06c75</string>
+				<string>#EF596F</string>
 			</dict>
 		</dict>
 
@@ -140,7 +142,7 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#98c379</string>
+				<string>#89CA78</string>
 			</dict>
 		</dict>
 
@@ -151,18 +153,20 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#d19a66</string>
+				<string>#D8985F</string>
 			</dict>
 		</dict>
 
-		<!-- YAML: Comments - Gray -->
+		<!-- YAML: Comments - Gray (italic) -->
 		<dict>
 			<key>scope</key>
 			<string>comment.line.number-sign.yaml</string>
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#5c6370</string>
+				<string>#5C6370</string>
+				<key>fontStyle</key>
+				<string>italic</string>
 			</dict>
 		</dict>
 
@@ -173,7 +177,7 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#abb2bf</string>
+				<string>#d7dae0</string>
 			</dict>
 		</dict>
 
@@ -184,7 +188,7 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#c678dd</string>
+				<string>#D55FDE</string>
 			</dict>
 		</dict>
 
@@ -195,7 +199,18 @@
 			<key>settings</key>
 			<dict>
 				<key>foreground</key>
-				<string>#5c6370</string>
+				<string>#5C6370</string>
+			</dict>
+		</dict>
+
+		<!-- Types and Classes - Yellow -->
+		<dict>
+			<key>scope</key>
+			<string>entity.name.type, entity.name.class, support.type</string>
+			<key>settings</key>
+			<dict>
+				<key>foreground</key>
+				<string>#E5C07B</string>
 			</dict>
 		</dict>
 	</array>

@@ -3,33 +3,41 @@
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use colored::control::SHOULD_COLORIZE;
+use colored::Colorize;
+
 static NO_COLOR: AtomicBool = AtomicBool::new(false);
 
 pub fn set_no_color(no_color: bool) {
     NO_COLOR.store(no_color, Ordering::Relaxed);
+    // Also update colored's internal state
+    if no_color {
+        colored::control::set_override(false);
+    } else {
+        colored::control::unset_override();
+    }
 }
 
 pub fn should_use_colors() -> bool {
     if NO_COLOR.load(Ordering::Relaxed) {
         return false;
     }
-    atty::is(atty::Stream::Stderr)
+    SHOULD_COLORIZE.should_colorize()
 }
 
+/// ANSI codes for complex string building that mixes with syntect output.
+/// These use RGB true colors for subtle visual effects in whitespace visualization.
+/// Raw codes are needed here because we build strings character-by-character
+/// and interleave with syntect's ANSI sequences.
 mod codes {
     pub const RESET: &str = "\x1b[0m";
-    pub const BOLD: &str = "\x1b[1m";
-    pub const DIM: &str = "\x1b[2m";
-    pub const RED: &str = "\x1b[31m";
-    pub const CYAN: &str = "\x1b[36m";
-    pub const GREEN: &str = "\x1b[32m";
-    // Dark gray for whitespace dots (very subtle)
+    /// Dark gray RGB(70,70,75) for whitespace dots
     pub const DARK_GRAY: &str = "\x1b[38;2;70;70;75m";
-    // Dim red background (dark red, not bright)
+    /// Dim red background RGB(80,30,30) for error highlighting
     pub const BG_DIM_RED: &str = "\x1b[48;2;80;30;30m";
-    // Subtle gray background for indent guides
+    /// Subtle gray background RGB(50,50,55) for indent guides
     pub const BG_INDENT: &str = "\x1b[48;2;50;50;55m";
-    // Reset background only (not foreground)
+    /// Reset background only (not foreground)
     pub const BG_RESET: &str = "\x1b[49m";
 }
 
@@ -409,30 +417,11 @@ pub fn format_file_error(
 
     // Header
     output.push('\n');
-    if should_use_colors() {
-        output.push_str(codes::BOLD);
-        output.push_str(codes::RED);
-        output.push_str("error: ");
-        output.push_str(codes::RESET);
-        output.push_str(codes::BOLD);
-        output.push_str(message);
-        output.push_str(codes::RESET);
-    } else {
-        output.push_str("error: ");
-        output.push_str(message);
-    }
-    output.push('\n');
+    output.push_str(&format!("{} {}\n", "error:".red().bold(), message.bold()));
 
     // Location link
     let loc_str = format!("  --> {}:{}:{}", file_path.display(), line, col);
-    if should_use_colors() {
-        output.push_str(codes::DIM);
-        output.push_str(&loc_str);
-        output.push_str(codes::RESET);
-    } else {
-        output.push_str(&loc_str);
-    }
-    output.push('\n');
+    output.push_str(&format!("{}\n", loc_str.dimmed()));
 
     // Code frame
     output.push('\n');
@@ -440,32 +429,12 @@ pub fn format_file_error(
 
     // Note
     if let Some(note_text) = note {
-        if should_use_colors() {
-            output.push_str(codes::BOLD);
-            output.push_str(codes::CYAN);
-            output.push_str("  note: ");
-            output.push_str(codes::RESET);
-            output.push_str(note_text);
-        } else {
-            output.push_str("  note: ");
-            output.push_str(note_text);
-        }
-        output.push('\n');
+        output.push_str(&format!("{} {}\n", "  note:".cyan().bold(), note_text));
     }
 
     // Suggestion
     if let Some(suggestion_text) = suggestion {
-        if should_use_colors() {
-            output.push_str(codes::BOLD);
-            output.push_str(codes::GREEN);
-            output.push_str("  help: ");
-            output.push_str(codes::RESET);
-            output.push_str(suggestion_text);
-        } else {
-            output.push_str("  help: ");
-            output.push_str(suggestion_text);
-        }
-        output.push('\n');
+        output.push_str(&format!("{} {}\n", "  help:".green().bold(), suggestion_text));
     }
 
     output
@@ -540,14 +509,10 @@ fn render_error_line(
     error_message: &str,
 ) -> String {
     let mut output = String::new();
-    let use_colors = should_use_colors();
 
-    if use_colors {
+    if should_use_colors() {
         let line_num_str = format!("{:>width$}", line_num, width = width);
-        output.push_str(codes::BOLD);
-        output.push_str(codes::RED);
-        output.push_str(&line_num_str);
-        output.push_str(codes::RESET);
+        output.push_str(&format!("{}", line_num_str.red().bold()));
         output.push_str(" │ ");
 
         let col_idx = col.saturating_sub(1);
@@ -559,11 +524,7 @@ fn render_error_line(
         ));
 
         // Add error message at end of line
-        output.push_str("  ");
-        output.push_str(codes::BOLD);
-        output.push_str(codes::RED);
-        output.push_str(error_message);
-        output.push_str(codes::RESET);
+        output.push_str(&format!("  {}", error_message.red().bold()));
     } else {
         output.push_str(&format!(
             "{:>width$} │ {}  {}",
@@ -726,9 +687,7 @@ fn render_context_line(line_num: usize, highlighted: &str, width: usize, tab_wid
 
     if should_use_colors() {
         let line_num_str = format!("{:>width$}", line_num, width = width);
-        output.push_str(codes::DIM);
-        output.push_str(&line_num_str);
-        output.push_str(codes::RESET);
+        output.push_str(&format!("{}", line_num_str.dimmed()));
         output.push_str(" │ ");
         // Visualize whitespace while preserving syntax highlighting
         output.push_str(&visualize_whitespace_highlighted(highlighted, tab_width));
