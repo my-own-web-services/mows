@@ -41,6 +41,17 @@ setup_completions() {
     fi
 }
 
+# Setup man pages
+setup_manpages() {
+    info "Installing man pages..."
+    if mpm manpage --install 2>&1; then
+        success "Man pages installed"
+    else
+        warn "Failed to install man pages automatically"
+        echo "  Run manually: mpm manpage --install"
+    fi
+}
+
 # Detect architecture
 detect_arch() {
     local arch
@@ -174,8 +185,9 @@ main() {
         export PATH="${install_dir}:$PATH"
     fi
 
-    # Setup shell completions
+    # Setup shell completions and man pages
     setup_completions
+    setup_manpages
 
     echo
     success "Installation complete!"

@@ -340,10 +340,15 @@ pub fn update_from_binary(version: Option<&str>) -> Result<(), String> {
         current_version, new_version
     );
 
-    // Update shell completions
+    // Update shell completions and man pages
     println!("Updating shell completions...");
     if let Err(e) = crate::shell_init::shell_init(true) {
         eprintln!("Warning: Failed to update shell completions: {}", e);
+    }
+
+    println!("Updating man pages...");
+    if let Err(e) = crate::manpage::manpage(true) {
+        eprintln!("Warning: Failed to update man pages: {}", e);
     }
 
     Ok(())
@@ -485,10 +490,15 @@ pub fn update_from_source(version: Option<&str>) -> Result<(), String> {
         new_version
     );
 
-    // Update shell completions
+    // Update shell completions and man pages
     println!("Updating shell completions...");
     if let Err(e) = crate::shell_init::shell_init(true) {
         eprintln!("Warning: Failed to update shell completions: {}", e);
+    }
+
+    println!("Updating man pages...");
+    if let Err(e) = crate::manpage::manpage(true) {
+        eprintln!("Warning: Failed to update man pages: {}", e);
     }
 
     Ok(())
