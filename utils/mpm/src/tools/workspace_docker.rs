@@ -409,19 +409,12 @@ fn generate_toml_content(
     output.push_str("members = [\"app\"]\n");
     output.push_str("resolver = \"2\"\n");
 
-    // Workspace dependencies (already sorted by BTreeMap)
-    for (dep_name, pkg_dep_info) in deps {
-        if let Some(ws_dep) = workspace_config.dependencies.get(dep_name.as_str()) {
-            output.push_str(&format_workspace_dep(dep_name, ws_dep, pkg_dep_info)?);
-        }
-    }
-
-    // Lints section
+    // Lints section (before dependencies)
     if let Some(lints) = &workspace_config.lints {
         output.push_str(&format_toml_section("workspace.lints", lints)?);
     }
 
-    // Workspace package section
+    // Workspace package section (before dependencies)
     output.push_str("\n[workspace.package]\n");
     if let Some(ws_pkg) = &workspace_config.package {
         if let Some(edition) = &ws_pkg.edition {
@@ -434,6 +427,13 @@ fn generate_toml_content(
     } else if let Some(ws_pkg) = &workspace_config.package {
         if let Some(version) = &ws_pkg.version {
             output.push_str(&format!("version = \"{}\"\n", version));
+        }
+    }
+
+    // Workspace dependencies last (already sorted by BTreeMap)
+    for (dep_name, pkg_dep_info) in deps {
+        if let Some(ws_dep) = workspace_config.dependencies.get(dep_name.as_str()) {
+            output.push_str(&format_workspace_dep(dep_name, ws_dep, pkg_dep_info)?);
         }
     }
 
