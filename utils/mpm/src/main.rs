@@ -46,11 +46,8 @@ fn main() {
 
     init_tracing(cli.verbose);
 
-    // Check for update notification from previous check
+    // Show update notification from previous check (first line of output)
     notify_if_update_available();
-
-    // Spawn background update check (won't delay execution)
-    check_for_updates_background();
 
     let result = match cli.command {
         Commands::Build => {
@@ -108,6 +105,10 @@ fn main() {
             shell_init(install)
         }
     };
+
+    // Check for updates after command completes (with 1s timeout, won't delay noticeably)
+    // This ensures the check completes before process exit
+    check_for_updates_background();
 
     if let Err(e) = result {
         eprintln!("{}", e);

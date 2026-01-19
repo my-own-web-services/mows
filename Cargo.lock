@@ -4677,6 +4677,7 @@ dependencies = [
  "jaq-interpret",
  "jaq-parse",
  "jaq-std",
+ "libc",
  "mows-common-rust",
  "reqwest 0.12.24",
  "serde",

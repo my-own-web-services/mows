@@ -29,6 +29,7 @@ walkdir = "2.5"
 sha2 = { workspace = true }
 tempfile = "3.8"
 reqwest = { workspace = true, features = ["blocking", "rustls-tls"] }
+libc = "0.2"
 aho-corasick = "1.1"
 ctrlc = "3.4"
 
