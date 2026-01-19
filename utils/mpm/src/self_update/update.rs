@@ -603,6 +603,37 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Show version information and check for updates
+pub fn show_version() -> Result<(), String> {
+    let current_version = env!("CARGO_PKG_VERSION");
+    let git_hash = env!("GIT_HASH");
+    let git_date = env!("GIT_DATE");
+
+    println!("mpm {} ({} {})", current_version, git_hash, git_date);
+
+    // Check for latest version
+    print!("Checking for updates... ");
+    match fetch_latest_version() {
+        Ok(latest_version) => {
+            if latest_version == current_version {
+                println!("up to date");
+            } else if is_newer_version(&latest_version, current_version) {
+                println!("v{} available", latest_version);
+                println!("\nRun 'mpm self-update' to update.");
+            } else {
+                // Current version is newer (dev build or downgrade scenario)
+                println!("up to date (latest release: v{})", latest_version);
+            }
+        }
+        Err(e) => {
+            println!("failed");
+            eprintln!("  Could not check for updates: {}", e);
+        }
+    }
+
+    Ok(())
+}
+
 /// Main self-update entry point
 pub fn self_update(build: bool, version: Option<&str>) -> Result<(), String> {
     let result = if build {

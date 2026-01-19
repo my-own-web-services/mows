@@ -22,6 +22,19 @@ mkdir -p dist
 # Build and export the static binary directly to dist/
 echo "Building mpm static binary (profile: ${PROFILE}, arch: ${TARGETARCH}, git: ${GIT_HASH})..."
 
+# Check if docker buildx is available (required for multi-context builds)
+if ! docker buildx version >/dev/null 2>&1; then
+    echo "Error: docker buildx is required but not available." >&2
+    echo "" >&2
+    echo "To install buildx:" >&2
+    echo "  - Docker Desktop: buildx is included by default" >&2
+    echo "  - Linux: Install docker-buildx-plugin or use 'docker buildx install'" >&2
+    echo "  - NixOS: Add 'docker-buildx' to environment.systemPackages" >&2
+    echo "" >&2
+    echo "Alternatively, use 'mpm self-update' (without --build) to download pre-built binaries." >&2
+    exit 1
+fi
+
 # Cache options for CI (set BUILDX_CACHE_DIR to enable)
 CACHE_ARGS=""
 if [ -n "${BUILDX_CACHE_DIR:-}" ]; then
