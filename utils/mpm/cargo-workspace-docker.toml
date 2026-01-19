@@ -24,7 +24,7 @@ unsafe_code = "forbid"
 
 [workspace.package]
 edition = "2021"
-version = "0.5.0"
+version = "0.5.1"
 
 [workspace.dependencies.anyhow]
 default-features = false
