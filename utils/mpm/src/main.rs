@@ -22,7 +22,7 @@ use manpage::manpage;
 use self_update::{check_for_updates_background, notify_if_update_available, self_update, show_version};
 use shell_init::shell_init;
 use template::render_template_command;
-use tools::{expand_object_command, flatten_object_command, jq_command, json_to_yaml, prettify_json, workspace_docker_command, yaml_to_json};
+use tools::{drives_command, expand_object_command, flatten_object_command, jq_command, json_to_yaml, prettify_json, workspace_docker_command, yaml_to_json};
 use utils::find_git_root;
 
 fn init_tracing(verbose: bool) {
@@ -94,6 +94,7 @@ fn main() {
                 yaml,
             } => jq_command(&query, &input, &output, yaml),
             ToolCommands::CargoWorkspaceDocker { all, path } => workspace_docker_command(all, &path),
+            ToolCommands::Drives => drives_command(),
         },
         Commands::Template {
             input,

@@ -227,6 +227,11 @@ pub enum ToolCommands {
         #[arg(long)]
         yaml: bool,
     },
+    /// Check health and size of all drives
+    ///
+    /// Lists all block devices with their size and model information.
+    /// Shows SMART health status if smartctl is available (may require sudo).
+    Drives,
     /// Generate cargo-workspace-docker.toml for Docker builds
     ///
     /// Creates minimal workspace configuration files for Dockerized Rust builds.
