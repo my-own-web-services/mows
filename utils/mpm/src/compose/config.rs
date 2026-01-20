@@ -236,11 +236,62 @@ mod tests {
     //! # Test Guidelines
     //!
     //! These tests operate on in-memory config structs only and do NOT touch the filesystem.
-    //! If you add tests that call `MpmConfig::load()` or `MpmConfig::save()`, you MUST set
-    //! the `MPM_CONFIG_PATH` environment variable to a temporary file path first.
+    //! If you add tests that call `MpmConfig::load()` or `MpmConfig::save()`, you MUST use
+    //! the `TestConfigGuard` helper to ensure proper isolation.
     //! See the documentation on `MPM_CONFIG_PATH_ENV` for details.
 
     use super::*;
+    use std::sync::Mutex;
+    use tempfile::NamedTempFile;
+
+    /// Global mutex to prevent concurrent config tests from interfering with each other.
+    /// This is necessary because environment variables are process-global.
+    static CONFIG_TEST_MUTEX: Mutex<()> = Mutex::new(());
+
+    /// RAII guard that sets up an isolated config environment for testing.
+    ///
+    /// This guard:
+    /// 1. Acquires a mutex to prevent concurrent config tests
+    /// 2. Creates a temporary file for the config
+    /// 3. Sets `MPM_CONFIG_PATH` to the temp file path
+    /// 4. Automatically cleans up when dropped
+    ///
+    /// # Example
+    /// ```ignore
+    /// #[test]
+    /// fn test_config_persistence() {
+    ///     let _guard = TestConfigGuard::new();
+    ///
+    ///     let mut config = MpmConfig::default();
+    ///     config.set_update_available("1.0.0".to_string());
+    ///     config.save().unwrap();
+    ///
+    ///     let loaded = MpmConfig::load().unwrap();
+    ///     assert_eq!(loaded.update.unwrap().available_version, "1.0.0");
+    /// }
+    /// ```
+    struct TestConfigGuard {
+        _temp_file: NamedTempFile,
+        _lock: std::sync::MutexGuard<'static, ()>,
+    }
+
+    impl TestConfigGuard {
+        fn new() -> Self {
+            let lock = CONFIG_TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
+            let temp_file = NamedTempFile::new().expect("Failed to create temp config file");
+            std::env::set_var(MPM_CONFIG_PATH_ENV, temp_file.path());
+            Self {
+                _temp_file: temp_file,
+                _lock: lock,
+            }
+        }
+    }
+
+    impl Drop for TestConfigGuard {
+        fn drop(&mut self) {
+            std::env::remove_var(MPM_CONFIG_PATH_ENV);
+        }
+    }
 
     #[test]
     fn test_config_serialization() {
@@ -446,5 +497,112 @@ mod tests {
 
         // Should check now
         assert!(config.should_check_for_updates());
+    }
+
+    // =========================================================================
+    // Tests that exercise load() and save() with proper isolation
+    // =========================================================================
+
+    #[test]
+    fn test_config_save_and_load_roundtrip() {
+        let _guard = TestConfigGuard::new();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "test-project".to_string(),
+            instance_name: Some("production".to_string()),
+            repo_path: PathBuf::from("/home/user/projects/test"),
+            manifest_path: PathBuf::from("./deployment"),
+        });
+        config.set_update_available("2.0.0".to_string());
+
+        config.save().expect("Failed to save config");
+
+        let loaded = MpmConfig::load().expect("Failed to load config");
+
+        assert_eq!(loaded.compose.projects.len(), 1);
+        assert_eq!(loaded.compose.projects[0].project_name, "test-project");
+        assert_eq!(
+            loaded.compose.projects[0].instance_name,
+            Some("production".to_string())
+        );
+        assert!(loaded.update.is_some());
+        assert_eq!(loaded.update.unwrap().available_version, "2.0.0");
+    }
+
+    #[test]
+    fn test_config_load_returns_default_when_not_exists() {
+        let _guard = TestConfigGuard::new();
+
+        // The temp file exists but is empty, so load should return default
+        let config = MpmConfig::load().expect("Failed to load config");
+
+        assert!(config.compose.projects.is_empty());
+        assert!(config.update.is_none());
+    }
+
+    #[test]
+    fn test_config_file_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let _guard = TestConfigGuard::new();
+
+        let config = MpmConfig::default();
+        config.save().expect("Failed to save config");
+
+        let path = MpmConfig::config_path().expect("Failed to get config path");
+        let metadata = std::fs::metadata(&path).expect("Failed to get file metadata");
+        let mode = metadata.permissions().mode() & 0o777;
+
+        // Should be 600 (owner read/write only)
+        assert_eq!(mode, 0o600, "Config file should have 600 permissions");
+    }
+
+    #[test]
+    fn test_config_path_uses_env_var() {
+        let _guard = TestConfigGuard::new();
+
+        let path = MpmConfig::config_path().expect("Failed to get config path");
+        let env_path = std::env::var(MPM_CONFIG_PATH_ENV).expect("Env var not set");
+
+        assert_eq!(path.to_str().unwrap(), env_path);
+    }
+
+    #[test]
+    fn test_config_multiple_projects_roundtrip() {
+        let _guard = TestConfigGuard::new();
+
+        let mut config = MpmConfig::default();
+
+        // Add multiple projects with various configurations
+        config.upsert_project(ProjectEntry {
+            project_name: "project-a".to_string(),
+            instance_name: None,
+            repo_path: PathBuf::from("/home/user/a"),
+            manifest_path: PathBuf::from("."),
+        });
+        config.upsert_project(ProjectEntry {
+            project_name: "project-a".to_string(),
+            instance_name: Some("staging".to_string()),
+            repo_path: PathBuf::from("/home/user/a-staging"),
+            manifest_path: PathBuf::from("./deploy"),
+        });
+        config.upsert_project(ProjectEntry {
+            project_name: "project-b".to_string(),
+            instance_name: None,
+            repo_path: PathBuf::from("/home/user/b"),
+            manifest_path: PathBuf::from("./infra"),
+        });
+
+        config.save().expect("Failed to save config");
+
+        let loaded = MpmConfig::load().expect("Failed to load config");
+
+        assert_eq!(loaded.compose.projects.len(), 3);
+
+        // Verify we can find all projects
+        assert_eq!(loaded.find_projects("project-a").len(), 2);
+        assert_eq!(loaded.find_projects("project-b").len(), 1);
+        assert!(loaded.find_project("project-a", Some("staging")).is_some());
     }
 }
