@@ -1,11 +1,11 @@
 use std::fs;
 use std::io::{self, Read};
-use std::path::PathBuf;
+use std::path::Path;
 use tracing::trace;
 
 use crate::error::{IoResultExt, Result};
 
-pub fn read_input(input: &Option<PathBuf>) -> Result<String> {
+pub fn read_input(input: Option<&Path>) -> Result<String> {
     match input {
         Some(path) => {
             trace!("Reading input from file: {}", path.display());
@@ -23,7 +23,7 @@ pub fn read_input(input: &Option<PathBuf>) -> Result<String> {
     }
 }
 
-pub fn write_output(output: &Option<PathBuf>, content: &str) -> Result<()> {
+pub fn write_output(output: Option<&Path>, content: &str) -> Result<()> {
     match output {
         Some(path) => {
             trace!("Writing output to file: {}", path.display());
@@ -50,17 +50,15 @@ mod tests {
         write!(temp_file, "test content").unwrap();
         temp_file.flush().unwrap();
 
-        let path = Some(temp_file.path().to_path_buf());
-        let result = read_input(&path).unwrap();
+        let result = read_input(Some(temp_file.path())).unwrap();
         assert_eq!(result, "test content");
     }
 
     #[test]
     fn test_write_output_to_file() {
         let temp_file = NamedTempFile::new().unwrap();
-        let path = Some(temp_file.path().to_path_buf());
 
-        write_output(&path, "test output").unwrap();
+        write_output(Some(temp_file.path()), "test output").unwrap();
 
         let content = fs::read_to_string(temp_file.path()).unwrap();
         assert_eq!(content, "test output");

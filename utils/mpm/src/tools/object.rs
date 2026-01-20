@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 use tracing::debug;
 
 use crate::error::{MpmError, Result};
@@ -50,14 +50,14 @@ pub fn flatten_labels_in_compose(mut value: serde_yaml_neo::Value) -> std::resul
 }
 
 pub fn expand_object_command(
-    input: &Option<PathBuf>,
-    output: &Option<PathBuf>,
+    input: Option<&Path>,
+    output: Option<&Path>,
     selector: &Option<String>,
 ) -> Result<()> {
     debug!("Expanding dot-notation keys to nested object");
     let content = read_input(input)?;
     let indent = detect_yaml_indent(&content).unwrap_or(4);
-    let mut value: serde_yaml_neo::Value = parse_yaml(&content, input.as_deref())?;
+    let mut value: serde_yaml_neo::Value = parse_yaml(&content, input)?;
 
     // Determine the selector to use
     let effective_selector = match selector {
@@ -104,14 +104,14 @@ pub fn expand_object_command(
 }
 
 pub fn flatten_object_command(
-    input: &Option<PathBuf>,
-    output: &Option<PathBuf>,
+    input: Option<&Path>,
+    output: Option<&Path>,
     selector: &Option<String>,
 ) -> Result<()> {
     debug!("Flattening nested object to dot-notation keys");
     let content = read_input(input)?;
     let indent = detect_yaml_indent(&content).unwrap_or(4);
-    let mut value: serde_yaml_neo::Value = parse_yaml(&content, input.as_deref())?;
+    let mut value: serde_yaml_neo::Value = parse_yaml(&content, input)?;
 
     // Determine the selector to use
     let effective_selector = match selector {
@@ -177,8 +177,8 @@ mod tests {
         let output_file = NamedTempFile::new().unwrap();
 
         expand_object_command(
-            &Some(input_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
+            Some(input_file.path()),
+            Some(output_file.path()),
             &None,
         )
         .unwrap();
@@ -205,8 +205,8 @@ mod tests {
         let output_file = NamedTempFile::new().unwrap();
 
         flatten_object_command(
-            &Some(input_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
+            Some(input_file.path()),
+            Some(output_file.path()),
             &None,
         )
         .unwrap();
@@ -234,8 +234,8 @@ mod tests {
         let output_file = NamedTempFile::new().unwrap();
 
         expand_object_command(
-            &Some(input_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
+            Some(input_file.path()),
+            Some(output_file.path()),
             &None,
         )
         .unwrap();
@@ -265,16 +265,16 @@ mod tests {
 
         // Expand to nested object
         expand_object_command(
-            &Some(input_file.path().to_path_buf()),
-            &Some(tree_file.path().to_path_buf()),
+            Some(input_file.path()),
+            Some(tree_file.path()),
             &None,
         )
         .unwrap();
 
         // Flatten back to dot-notation
         flatten_object_command(
-            &Some(tree_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
+            Some(tree_file.path()),
+            Some(output_file.path()),
             &None,
         )
         .unwrap();
