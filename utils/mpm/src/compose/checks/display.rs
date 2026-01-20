@@ -108,7 +108,7 @@ pub fn print_check_results(results: &[CheckResult]) {
 /// # Side Effects
 /// - Prints directly to stdout
 /// - Returns early without output if no containers found
-pub fn run_and_print_health_checks(project_name: &str, compose: Option<&serde_yaml::Value>) {
+pub fn run_and_print_health_checks(project_name: &str, compose: Option<&serde_yaml_neo::Value>) {
     let containers = collect_container_health(project_name, compose);
 
     if containers.is_empty() {

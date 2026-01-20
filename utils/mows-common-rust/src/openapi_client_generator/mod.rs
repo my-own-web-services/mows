@@ -11,7 +11,7 @@ pub async fn generate_openapi_client(
     let openapi_spec_string = tokio::fs::read_to_string(openapi_path).await?;
     let openapi_spec: OpenApi = match openapi_path.extension().and_then(|s| s.to_str()) {
         Some("json") => serde_json::from_str(&openapi_spec_string)?,
-        Some("yaml") | Some("yml") => serde_yaml::from_str(&openapi_spec_string)?,
+        Some("yaml") | Some("yml") => serde_yaml_neo::from_str(&openapi_spec_string)?,
         _ => {
             return Err(ClientGeneratorError::UnsupportedFileFormat(
                 openapi_path
@@ -37,7 +37,7 @@ pub enum ClientGeneratorError {
     ParseError(#[from] serde_json::Error),
 
     #[error("Failed to parse OpenAPI specification: {0}")]
-    ParseYamlError(#[from] serde_yaml::Error),
+    ParseYamlError(#[from] serde_yaml_neo::Error),
 
     #[error("Failed to generate client: {0}")]
     GenerationError(String),

@@ -25,7 +25,7 @@ use url::Url;
 pub async fn parse_manifest(input: &str) -> anyhow::Result<Manifest> {
     // this workaround is needed because serde_yaml does not support nested enums
 
-    let yaml_value: serde_yaml_ng::Value = serde_yaml_ng::from_str(input)?;
+    let yaml_value: serde_yaml_neo::Value = serde_yaml_neo::from_str(input)?;
     let json_string = serde_json::to_string(&yaml_value)?;
     let manifest: Manifest = serde_json::from_str(&json_string)?;
 
@@ -360,7 +360,7 @@ pub fn parse_resources_from_file_extension(
         }
     } else if extension == "yaml" || extension == "yml" {
         for document in file_content.split("---\n") {
-            let resource = serde_yaml_ng::from_str(document)?;
+            let resource = serde_yaml_neo::from_str(document)?;
             resources.push(resource);
         }
     } else {

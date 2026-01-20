@@ -28,7 +28,7 @@ rcgen = { version = "0.9.3", features = ["x509-parser", "pem", "default"] }
 p256 = { workspace = true, features = ["std", "ecdsa"] }
 rand = { workspace = true, features = ["default"] }
 serde_json = { workspace = true, features = ["default"] }
-serde_yaml = { workspace = true }
+serde_yaml_neo = { workspace = true }
 anyhow = { workspace = true, features = ["default"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 data-encoding = { workspace = true, features = ["default"] }

@@ -34,7 +34,7 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 k8s-openapi = { workspace = true, features = ["latest"] }
 schemars = { workspace = true, features = ["chrono"] }
 serde = { workspace = true, features = ["derive"] }
-serde_yaml = { workspace = true }
+serde_yaml_neo = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 
 tracing = { workspace = true, features = ["default"] }

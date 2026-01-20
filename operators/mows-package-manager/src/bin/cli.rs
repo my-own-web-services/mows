@@ -130,12 +130,12 @@ pub async fn handle_output(
     let mut output_text = String::new();
     if debug {
         for result in &results {
-            output_text.push_str(&serde_yaml_ng::to_string(&result)?);
+            output_text.push_str(&serde_yaml_neo::to_string(&result)?);
             output_text.push_str("\n---\n");
         }
     } else {
         for result in &results {
-            output_text.push_str(&serde_yaml_ng::to_string(&result.resource)?);
+            output_text.push_str(&serde_yaml_neo::to_string(&result.resource)?);
             output_text.push_str("\n---\n");
         }
     }

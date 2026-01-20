@@ -570,7 +570,7 @@ impl Cluster {
             let mut all_files = String::new();
 
             for file in rendered_files {
-                if let Ok(file) = serde_yaml::to_string(&file.object) {
+                if let Ok(file) = serde_yaml_neo::to_string(&file.object) {
                     all_files.push_str(&file);
                     all_files.push_str("\n---\n");
                 }

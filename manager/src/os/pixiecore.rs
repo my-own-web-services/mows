@@ -188,7 +188,7 @@ impl PixiecoreBootConfig {
         )
         .context("Failed to create cloud init")?;
 
-        let cloud_init_str = "#cloud-config\n".to_string() + &serde_yaml::to_string(&cloud_init)?;
+        let cloud_init_str = "#cloud-config\n".to_string() + &serde_yaml_neo::to_string(&cloud_init)?;
 
         tokio::fs::write(cloud_init_path, cloud_init_str).await?;
 

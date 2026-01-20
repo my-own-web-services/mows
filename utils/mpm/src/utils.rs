@@ -68,7 +68,7 @@ pub fn parse_yaml<T: serde::de::DeserializeOwned>(
     content: &str,
     path: Option<&Path>,
 ) -> Result<T> {
-    serde_yaml::from_str(content).map_err(|e| MpmError::Message(format_yaml_error(content, path, &e)))
+    serde_yaml_neo::from_str(content).map_err(|e| MpmError::Message(format_yaml_error(content, path, &e)))
 }
 
 /// Extract "while parsing... at line X column Y" from YAML error messages.
@@ -104,7 +104,7 @@ fn find_first_indentation_error(content: &str) -> Option<(String, usize, usize)>
 }
 
 /// Format a YAML parse error with indentation checking and optional code frame.
-pub fn format_yaml_error(content: &str, path: Option<&Path>, err: &serde_yaml::Error) -> String {
+pub fn format_yaml_error(content: &str, path: Option<&Path>, err: &serde_yaml_neo::Error) -> String {
     let raw_message = format!("{}", err);
 
     // Get both the error location and the context location

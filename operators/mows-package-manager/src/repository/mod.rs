@@ -203,7 +203,7 @@ impl Repository {
                 serde_json::from_value(rendered_document.resource.clone())
                     .map_err(|e| {
                         let error_msg = e.to_string();
-                        let resource_yaml = serde_yaml_ng::to_string(&rendered_document.resource)
+                        let resource_yaml = serde_yaml_neo::to_string(&rendered_document.resource)
                             .unwrap_or_else(|_| format!("{:?}", rendered_document.resource));
 
                         // Try to extract line number from error and highlight it
@@ -248,7 +248,7 @@ Resource content:\n\
             let group_version_kind = match &resource.types {
                 Some(type_meta) => GroupVersionKind::try_from(type_meta)
                     .with_context(|| {
-                        let resource_yaml = serde_yaml_ng::to_string(&rendered_document.resource)
+                        let resource_yaml = serde_yaml_neo::to_string(&rendered_document.resource)
                             .unwrap_or_else(|_| format!("{:?}", rendered_document.resource));
                         let highlighted_content = format_yaml_highlighted(&resource_yaml, true);
 
@@ -276,7 +276,7 @@ Resource content:\n\
                         )
                     })?,
                 None => {
-                    let resource_yaml = serde_yaml_ng::to_string(&rendered_document.resource)
+                    let resource_yaml = serde_yaml_neo::to_string(&rendered_document.resource)
                         .unwrap_or_else(|_| format!("{:?}", rendered_document.resource));
                     let highlighted_content = format_yaml_highlighted(&resource_yaml, true);
 
@@ -346,7 +346,7 @@ Resource content:\n\
                     .await
                     .map_err(|e| {
                         let kube_error = e.to_string();
-                        let resource_yaml = serde_yaml_ng::to_string(&rendered_document.resource)
+                        let resource_yaml = serde_yaml_neo::to_string(&rendered_document.resource)
                             .unwrap_or_else(|_| format!("{:?}", rendered_document.resource));
 
                         // Try to extract line number from Kubernetes validation error
@@ -451,7 +451,7 @@ pub enum RenderError {
     #[error(transparent)]
     IoError(#[from] tokio::io::Error),
     #[error(transparent)]
-    ParseError(#[from] serde_yaml_ng::Error),
+    ParseError(#[from] serde_yaml_neo::Error),
     #[error(transparent)]
     AnyhowError(#[from] anyhow::Error),
 }
@@ -459,7 +459,7 @@ pub enum RenderError {
 #[derive(Debug, thiserror::Error)]
 pub enum ManifestError {
     #[error("Failed to parse manifest")]
-    ParsingError(#[from] serde_yaml_ng::Error),
+    ParsingError(#[from] serde_yaml_neo::Error),
     #[error("Failed to read manifest")]
     IoError(#[from] tokio::io::Error),
     #[error(transparent)]
@@ -485,7 +485,7 @@ pub enum InstallError {
     #[error(transparent)]
     KubeError(#[from] kube::Error),
     #[error(transparent)]
-    SerdeYamlError(#[from] serde_yaml_ng::Error),
+    SerdeYamlError(#[from] serde_yaml_neo::Error),
     #[error(transparent)]
     SerdeJsonError(#[from] serde_json::Error),
     #[error(transparent)]

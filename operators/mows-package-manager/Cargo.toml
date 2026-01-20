@@ -24,7 +24,7 @@ default = []
 serde = { workspace = true, features = ["derive", "std"] }
 
 
-serde_yaml_ng = { git = "https://github.com/firstdorsal/serde-yaml-ng" }
+serde_yaml_neo = { workspace = true }
 
 serde_json = { workspace = true, features = ["default"] }
 

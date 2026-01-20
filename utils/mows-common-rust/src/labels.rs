@@ -5,7 +5,7 @@
 /// tree structures (e.g., `traefik: { http: { routers: { myapp: { rule: "Host(`example.com`)" } } } }`).
 
 use anyhow::{anyhow, Context, Result};
-use serde_yaml::{Mapping, Value};
+use serde_yaml_neo::{Mapping, Value};
 
 /// Convert flat dot-notation labels to nested tree structure
 ///
@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn test_simple_dot_notation() {
-        let labels = serde_yaml::from_str::<Value>(
+        let labels = serde_yaml_neo::from_str::<Value>(
             r#"
 traefik.http.routers.myapp.rule: "Host(`example.com`)"
 traefik.http.routers.myapp.entrypoints: web
@@ -172,7 +172,7 @@ traefik.http.routers.myapp.entrypoints: web
 
     #[test]
     fn test_array_notation() {
-        let labels = serde_yaml::from_str::<Value>(
+        let labels = serde_yaml_neo::from_str::<Value>(
             r#"
 "items[0].name": "first"
 "items[0].value": "1"
@@ -201,7 +201,7 @@ traefik.http.routers.myapp.entrypoints: web
 
     #[test]
     fn test_sequence_labels() {
-        let labels = serde_yaml::from_str::<Value>(
+        let labels = serde_yaml_neo::from_str::<Value>(
             r#"
 - "foo.bar=value1"
 - "foo.baz=value2"
@@ -216,7 +216,7 @@ traefik.http.routers.myapp.entrypoints: web
 
     #[test]
     fn test_roundtrip() {
-        let original = serde_yaml::from_str::<Value>(
+        let original = serde_yaml_neo::from_str::<Value>(
             r#"
 traefik.http.routers.myapp.rule: "Host(`example.com`)"
 traefik.http.routers.myapp.priority: "100"

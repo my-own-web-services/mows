@@ -1,6 +1,6 @@
 use crate::{config::routing_config::RoutingConfig, some_or_bail};
 use anyhow::{bail, Context, Result};
-use serde_yaml::{Mapping, Value};
+use serde_yaml_neo::{Mapping, Value};
 use std::collections::HashMap;
 use tracing::debug;
 
@@ -17,7 +17,7 @@ pub fn convert_traefik_labels_to_config(
         None => bail!("traefik not found"),
     };
 
-    let config: RoutingConfig = serde_yaml::from_value(traefik_inner.clone())?;
+    let config: RoutingConfig = serde_yaml_neo::from_value(traefik_inner.clone())?;
     Ok(config)
 }
 

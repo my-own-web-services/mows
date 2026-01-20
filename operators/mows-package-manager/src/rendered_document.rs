@@ -139,5 +139,5 @@ impl RenderedDocument {
 #[derive(Debug, thiserror::Error)]
 pub enum KubernetesResourceError {
     #[error("Error parsing KubernetesResource as DynamicObject: {0}")]
-    SerdeError(#[from] serde_yaml_ng::Error),
+    SerdeError(#[from] serde_yaml_neo::Error),
 }

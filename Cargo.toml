@@ -69,7 +69,7 @@ anyhow = { version = "1.0.98", default-features = false }
 tracing = { version = "0.1.40", default-features = false }
 serde = { version = "1.0.219", default-features = false }
 serde_json = { version = "1.0.141", default-features = false }
-serde_yaml = { version = "0.9.34", default-features = false }
+serde_yaml_neo = { version = "0.10.0", default-features = false }
 mime_guess = { version = "2.0.5", default-features = false }
 url = { version = "2.5.4", default-features = false }
 

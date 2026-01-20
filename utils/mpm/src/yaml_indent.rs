@@ -1,7 +1,7 @@
 //! YAML indentation utilities.
 //!
 //! Provides functions to detect and convert YAML indentation levels.
-//! serde_yaml always outputs 2-space indentation, so these utilities
+//! serde_yaml_neo always outputs 2-space indentation, so these utilities
 //! allow converting to other indentation styles (e.g., 4-space).
 
 /// Detect indentation size from YAML content.
@@ -29,9 +29,9 @@ pub fn detect_yaml_indent(content: &str) -> Option<usize> {
     None
 }
 
-/// Convert serde_yaml's 2-space indentation to a target indentation.
+/// Convert serde_yaml_neo's 2-space indentation to a target indentation.
 ///
-/// serde_yaml always outputs 2-space indentation, so we post-process the output.
+/// serde_yaml_neo always outputs 2-space indentation, so we post-process the output.
 /// Handles YAML arrays correctly by preserving relative indentation of list item properties.
 ///
 /// # Arguments
@@ -133,7 +133,7 @@ pub fn yaml_with_indent(yaml: &str, target_indent: usize) -> String {
     result.join("\n")
 }
 
-/// Convert serde_yaml's 2-space indentation to 4-space indentation.
+/// Convert serde_yaml_neo's 2-space indentation to 4-space indentation.
 ///
 /// Convenience wrapper for [`yaml_with_indent`] with default 4 spaces.
 ///

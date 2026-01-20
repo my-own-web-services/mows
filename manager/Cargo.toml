@@ -15,7 +15,7 @@ serde = { workspace = true, features = [
     "derive",
     "std",
 ] }
-serde_yaml = { workspace = true }
+serde_yaml_neo = { workspace = true }
 serde_json = { workspace = true, features=["default"] }
 tempfile = "3.14.0"
 anyhow = { workspace = true, features=["default"] }

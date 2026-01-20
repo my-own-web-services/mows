@@ -108,7 +108,7 @@ impl MpmConfig {
         let content = fs::read_to_string(&path)
             .io_context(format!("Failed to read config file '{}'", path.display()))?;
 
-        serde_yaml::from_str(&content)
+        serde_yaml_neo::from_str(&content)
             .map_err(|e| MpmError::Config(format!("Failed to parse config file '{}': {}", path.display(), e)))
     }
 
@@ -122,7 +122,7 @@ impl MpmConfig {
         fs::create_dir_all(parent)
             .io_context("Failed to create config directory")?;
 
-        let yaml = serde_yaml::to_string(self)?;
+        let yaml = serde_yaml_neo::to_string(self)?;
         let content = yaml_to_4_space_indent(&yaml);
 
         // Write to temporary file first (atomic write pattern)
@@ -315,8 +315,8 @@ mod tests {
             update: None,
         };
 
-        let yaml = serde_yaml::to_string(&config).unwrap();
-        let parsed: MpmConfig = serde_yaml::from_str(&yaml).unwrap();
+        let yaml = serde_yaml_neo::to_string(&config).unwrap();
+        let parsed: MpmConfig = serde_yaml_neo::from_str(&yaml).unwrap();
 
         assert_eq!(parsed.compose.projects.len(), 2);
         assert_eq!(parsed.compose.projects[0].project_name, "test-project");

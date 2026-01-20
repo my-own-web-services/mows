@@ -50,7 +50,7 @@ rand = { workspace = true, features = ["default"] }
 gtmpl-ng = { workspace = true, features = ["all-functions"] }
 gtmpl_value = { workspace = true }
 gtmpl_derive = { workspace = true }
-serde_yaml = { workspace = true }
+serde_yaml_neo = { workspace = true }
 
 kube = { workspace = true, features = ["runtime", "derive", "default"] }
 k8s-openapi = { workspace = true, features = ["latest"] }

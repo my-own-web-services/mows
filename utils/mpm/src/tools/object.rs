@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use tracing::debug;
 
 use crate::error::{MpmError, Result};
-use crate::utils::{detect_yaml_indent, parse_yaml, read_input, write_output, yaml_with_indent};
+use crate::utils::{detect_yaml_indent, parse_yaml, read_input, write_output};
 
 use super::selector::{find_matching_paths, get_value_at_path_mut, is_docker_compose};
 
@@ -26,7 +26,7 @@ impl std::fmt::Display for FlattenLabelsError {
 
 /// Flatten labels in a docker-compose YAML value
 /// This transforms nested label structures to flat dot-notation
-pub fn flatten_labels_in_compose(mut value: serde_yaml::Value) -> std::result::Result<serde_yaml::Value, FlattenLabelsError> {
+pub fn flatten_labels_in_compose(mut value: serde_yaml_neo::Value) -> std::result::Result<serde_yaml_neo::Value, FlattenLabelsError> {
     if !is_docker_compose(&value) {
         return Err(FlattenLabelsError::NotDockerCompose);
     }
@@ -57,7 +57,7 @@ pub fn expand_object_command(
     debug!("Expanding dot-notation keys to nested object");
     let content = read_input(input)?;
     let indent = detect_yaml_indent(&content).unwrap_or(4);
-    let mut value: serde_yaml::Value = parse_yaml(&content, input.as_deref())?;
+    let mut value: serde_yaml_neo::Value = parse_yaml(&content, input.as_deref())?;
 
     // Determine the selector to use
     let effective_selector = match selector {
@@ -77,8 +77,8 @@ pub fn expand_object_command(
         // Transform the entire document
         let tree = mows_common_rust::labels::labels_to_tree(value)
             .map_err(|e| MpmError::Message(format!("Failed to expand: {}", e)))?;
-        let yaml = serde_yaml::to_string(&tree)?;
-        write_output(output, &yaml_with_indent(&yaml, indent))
+        let yaml = serde_yaml_neo::to_string_with_indent(&tree, indent)?;
+        write_output(output, &yaml)
     } else {
         // Transform only matching paths
         let pattern: Vec<&str> = effective_selector.split('.').collect();
@@ -98,8 +98,8 @@ pub fn expand_object_command(
             }
         }
 
-        let yaml = serde_yaml::to_string(&value)?;
-        write_output(output, &yaml_with_indent(&yaml, indent))
+        let yaml = serde_yaml_neo::to_string_with_indent(&value, indent)?;
+        write_output(output, &yaml)
     }
 }
 
@@ -111,7 +111,7 @@ pub fn flatten_object_command(
     debug!("Flattening nested object to dot-notation keys");
     let content = read_input(input)?;
     let indent = detect_yaml_indent(&content).unwrap_or(4);
-    let mut value: serde_yaml::Value = parse_yaml(&content, input.as_deref())?;
+    let mut value: serde_yaml_neo::Value = parse_yaml(&content, input.as_deref())?;
 
     // Determine the selector to use
     let effective_selector = match selector {
@@ -131,8 +131,8 @@ pub fn flatten_object_command(
         // Transform the entire document
         let labels = mows_common_rust::labels::tree_to_labels(value)
             .map_err(|e| MpmError::Message(format!("Failed to flatten: {}", e)))?;
-        let yaml = serde_yaml::to_string(&labels)?;
-        write_output(output, &yaml_with_indent(&yaml, indent))
+        let yaml = serde_yaml_neo::to_string_with_indent(&labels, indent)?;
+        write_output(output, &yaml)
     } else {
         // Transform only matching paths
         let pattern: Vec<&str> = effective_selector.split('.').collect();
@@ -152,8 +152,8 @@ pub fn flatten_object_command(
             }
         }
 
-        let yaml = serde_yaml::to_string(&value)?;
-        write_output(output, &yaml_with_indent(&yaml, indent))
+        let yaml = serde_yaml_neo::to_string_with_indent(&value, indent)?;
+        write_output(output, &yaml)
     }
 }
 
@@ -184,7 +184,7 @@ mod tests {
         .unwrap();
 
         let content = fs::read_to_string(output_file.path()).unwrap();
-        let tree: serde_yaml::Value = serde_yaml::from_str(&content).unwrap();
+        let tree: serde_yaml_neo::Value = serde_yaml_neo::from_str(&content).unwrap();
 
         // Verify nested structure
         assert!(tree.get("traefik").is_some());
@@ -212,7 +212,7 @@ mod tests {
         .unwrap();
 
         let content = fs::read_to_string(output_file.path()).unwrap();
-        let labels: serde_yaml::Value = serde_yaml::from_str(&content).unwrap();
+        let labels: serde_yaml_neo::Value = serde_yaml_neo::from_str(&content).unwrap();
 
         // Verify flat structure
         assert!(labels.get("traefik.http.routers.myapp.rule").is_some());
@@ -241,7 +241,7 @@ mod tests {
         .unwrap();
 
         let content = fs::read_to_string(output_file.path()).unwrap();
-        let tree: serde_yaml::Value = serde_yaml::from_str(&content).unwrap();
+        let tree: serde_yaml_neo::Value = serde_yaml_neo::from_str(&content).unwrap();
 
         // Verify array structure
         assert!(tree.get("items").is_some());
@@ -280,7 +280,7 @@ mod tests {
         .unwrap();
 
         let content = fs::read_to_string(output_file.path()).unwrap();
-        let labels: serde_yaml::Value = serde_yaml::from_str(&content).unwrap();
+        let labels: serde_yaml_neo::Value = serde_yaml_neo::from_str(&content).unwrap();
 
         // Verify all keys are present
         assert!(labels.get("traefik.http.routers.myapp.rule").is_some());

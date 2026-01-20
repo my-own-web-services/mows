@@ -19,7 +19,7 @@ pub fn jq_command(
     let input_value: serde_json::Value = if let Ok(json) = serde_json::from_str(&content) {
         json
     } else {
-        let yaml: serde_yaml::Value = parse_yaml(&content, input.as_deref())?;
+        let yaml: serde_yaml_neo::Value = parse_yaml(&content, input.as_deref())?;
         serde_json::to_value(&yaml).map_err(MpmError::JsonSerialize)?
     };
 
@@ -60,7 +60,7 @@ pub fn jq_command(
         let result_json: serde_json::Value = results[0].clone().into();
 
         if yaml_output {
-            let yaml = serde_yaml::to_string(&result_json)?;
+            let yaml = serde_yaml_neo::to_string(&result_json)?;
             yaml_to_4_space_indent(&yaml)
         } else {
             serde_json::to_string_pretty(&result_json).map_err(MpmError::JsonSerialize)?
@@ -70,7 +70,7 @@ pub fn jq_command(
             results.iter().map(|v| v.clone().into()).collect();
 
         if yaml_output {
-            let yaml = serde_yaml::to_string(&results_json)?;
+            let yaml = serde_yaml_neo::to_string(&results_json)?;
             yaml_to_4_space_indent(&yaml)
         } else {
             results_json

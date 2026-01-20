@@ -5,7 +5,7 @@ use std::process::Command;
 use tracing::{debug, info, warn};
 
 use crate::error::{IoResultExt, MpmError, Result};
-use crate::utils::{detect_yaml_indent, yaml_with_indent};
+use crate::utils::detect_yaml_indent;
 use super::config::MpmConfig;
 use super::find_manifest_dir;
 use super::find_manifest_in_repo;
@@ -305,9 +305,9 @@ fn merge_values(old_content: &str, new_content: &str) -> Result<String> {
     // Detect indentation from the existing file, default to 4 spaces
     let indent = detect_yaml_indent(old_content).unwrap_or(4);
 
-    let old_value: serde_yaml::Value = serde_yaml::from_str(old_content)
+    let old_value: serde_yaml_neo::Value = serde_yaml_neo::from_str(old_content)
         .map_err(|e| MpmError::yaml_parse("old values", e))?;
-    let new_value: serde_yaml::Value = serde_yaml::from_str(new_content)
+    let new_value: serde_yaml_neo::Value = serde_yaml_neo::from_str(new_content)
         .map_err(|e| MpmError::yaml_parse("new values", e))?;
 
     // Collect all keys from both files
@@ -320,16 +320,15 @@ fn merge_values(old_content: &str, new_content: &str) -> Result<String> {
     // Merge: new as base, override with old values
     let merged = merge_yaml_values(new_value, old_value.clone());
 
-    // Serialize with proper indentation
-    let yaml = serde_yaml::to_string(&merged)?;
-    let mut output = yaml_with_indent(&yaml, indent);
+    // Serialize with proper indentation (native support in serde-yaml-neo)
+    let mut output = serde_yaml_neo::to_string_with_indent(&merged, indent)?;
 
     // Add deprecated keys as comments at the end
     if !deprecated_keys.is_empty() {
         output.push_str("\n# The following keys are no longer used in the new version:\n");
         for key in deprecated_keys {
             if let Some(value) = get_value_at_path(&old_value, key) {
-                let value_str = serde_yaml::to_string(&value).unwrap_or_default();
+                let value_str = serde_yaml_neo::to_string(&value).unwrap_or_default();
                 for line in value_str.lines() {
                     output.push_str(&format!("# {}: {}\n", key, line.trim()));
                 }
@@ -341,11 +340,11 @@ fn merge_values(old_content: &str, new_content: &str) -> Result<String> {
 }
 
 /// Collect all leaf keys from a YAML value with dot notation
-fn collect_keys(value: &serde_yaml::Value, prefix: &str) -> HashSet<String> {
+fn collect_keys(value: &serde_yaml_neo::Value, prefix: &str) -> HashSet<String> {
     let mut keys = HashSet::new();
 
     match value {
-        serde_yaml::Value::Mapping(map) => {
+        serde_yaml_neo::Value::Mapping(map) => {
             for (k, v) in map {
                 let key_str = k.as_str().unwrap_or("");
                 let full_key = if prefix.is_empty() {
@@ -372,7 +371,7 @@ fn collect_keys(value: &serde_yaml::Value, prefix: &str) -> HashSet<String> {
 }
 
 /// Get value at a dot-notation path
-fn get_value_at_path<'a>(value: &'a serde_yaml::Value, path: &str) -> Option<&'a serde_yaml::Value> {
+fn get_value_at_path<'a>(value: &'a serde_yaml_neo::Value, path: &str) -> Option<&'a serde_yaml_neo::Value> {
     let mut current = value;
 
     for part in path.split('.') {
@@ -384,11 +383,11 @@ fn get_value_at_path<'a>(value: &'a serde_yaml::Value, path: &str) -> Option<&'a
 
 /// Deep merge YAML values: new_base with old_override taking precedence
 fn merge_yaml_values(
-    new_base: serde_yaml::Value,
-    old_override: serde_yaml::Value,
-) -> serde_yaml::Value {
+    new_base: serde_yaml_neo::Value,
+    old_override: serde_yaml_neo::Value,
+) -> serde_yaml_neo::Value {
     match (new_base, old_override) {
-        (serde_yaml::Value::Mapping(mut new_map), serde_yaml::Value::Mapping(old_map)) => {
+        (serde_yaml_neo::Value::Mapping(mut new_map), serde_yaml_neo::Value::Mapping(old_map)) => {
             for (k, old_v) in old_map {
                 if let Some(new_v) = new_map.remove(&k) {
                     // Key exists in both - merge recursively
@@ -398,7 +397,7 @@ fn merge_yaml_values(
                     // Don't include it in the merged output
                 }
             }
-            serde_yaml::Value::Mapping(new_map)
+            serde_yaml_neo::Value::Mapping(new_map)
         }
         // For non-mappings, prefer old value
         (_, old) => old,
@@ -461,7 +460,7 @@ services:
 
     #[test]
     fn test_collect_keys() {
-        let value: serde_yaml::Value = serde_yaml::from_str(
+        let value: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
 a: 1
 b:

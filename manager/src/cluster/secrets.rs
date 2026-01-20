@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::{bail, Context};
 use mows_common_rust::s;
-use serde_yaml::Value;
+use serde_yaml_neo::Value;
 use std::string::String;
 use tracing::debug;
 use vaultrs::{
@@ -162,7 +162,7 @@ impl ClusterSecrets {
         let kube_api_addr = "https://kubernetes.default.svc";
 
         let kubeconfig_yaml: Value =
-            serde_yaml::from_str(some_or_bail!(&cluster.kubeconfig, "Missing kubeconfig"))?;
+            serde_yaml_neo::from_str(some_or_bail!(&cluster.kubeconfig, "Missing kubeconfig"))?;
 
         let kubernetes_ca_cert_base64 = some_or_bail!(
             kubeconfig_yaml["clusters"][0]["cluster"]["certificate-authority-data"].as_str(),

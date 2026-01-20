@@ -39,7 +39,7 @@ thiserror = { workspace = true, features = ["default"] }
 tokio = { workspace = true, features = ["full"] }
 
 vaultrs = { workspace = true, features = ["rustls"] }
-serde_yaml = { workspace = true }
+serde_yaml_neo = { workspace = true }
 
 
 tracing = { workspace = true, features = ["default"] }

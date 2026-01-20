@@ -9,14 +9,14 @@ pub fn json_to_yaml(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result
     let content = read_input(input)?;
     let value: serde_json::Value =
         serde_json::from_str(&content).map_err(MpmError::JsonParse)?;
-    let yaml = serde_yaml::to_string(&value)?;
+    let yaml = serde_yaml_neo::to_string(&value)?;
     write_output(output, &yaml_to_4_space_indent(&yaml))
 }
 
 pub fn yaml_to_json(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<()> {
     debug!("Converting YAML to JSON");
     let content = read_input(input)?;
-    let value: serde_yaml::Value = parse_yaml(&content, input.as_deref())?;
+    let value: serde_yaml_neo::Value = parse_yaml(&content, input.as_deref())?;
     let json = serde_json::to_string_pretty(&value).map_err(MpmError::JsonSerialize)?;
     write_output(output, &json)
 }
