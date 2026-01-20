@@ -18,10 +18,10 @@ RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
 RUN cargo install cargo-zigbuild
 RUN rustup target add aarch64-unknown-linux-musl
 
-# Install zig for cross-compilation
+# Install zig for cross-compilation (0.15.2 has improved arm64 cross-compilation support)
 RUN apt-get update && apt-get install -y xz-utils && rm -rf /var/lib/apt/lists/*
-RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz | tar -xJ -C /usr/local && \
-    ln -s /usr/local/zig-linux-x86_64-0.13.0/zig /usr/local/bin/zig
+RUN curl -L https://ziglang.org/download/0.15.2/zig-x86_64-linux-0.15.2.tar.xz | tar -xJ -C /usr/local && \
+    ln -s /usr/local/zig-x86_64-linux-0.15.2/zig /usr/local/bin/zig
 
 FROM chef-builder AS planner
 COPY --from=sources / /build/
@@ -70,10 +70,10 @@ COPY build.rs build.rs
 COPY src src
 
 # Use cargo-zigbuild for cross-compilation (arm64), regular cargo for native (amd64)
-# Disable LTO for arm64 cross-compilation (causes SIGILL in LLVM)
+# Use thin LTO for arm64 cross-compilation (full LTO caused SIGILL in older Zig/LLVM)
 RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"; else echo "$RUST_TARGET_AMD64"; fi) && \
     CARGO_CMD=$(if [ "$TARGETARCH" = "arm64" ]; then echo "cargo zigbuild"; else echo "cargo build"; fi) && \
-    if [ "$TARGETARCH" = "arm64" ]; then export CARGO_PROFILE_RELEASE_LTO=false; fi && \
+    if [ "$TARGETARCH" = "arm64" ]; then export CARGO_PROFILE_RELEASE_LTO=thin; fi && \
     ${CARGO_CMD} --bin ${BINARY_NAME} --profile=${PROFILE} --target=${RUST_TARGET}
 RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"; else echo "$RUST_TARGET_AMD64"; fi) && \
     if [ "${PROFILE}" = "dev" ]; then \
