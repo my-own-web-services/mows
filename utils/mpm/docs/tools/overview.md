@@ -251,11 +251,36 @@ server:
 
 Generate minimal `cargo-workspace-docker.toml` files for Dockerized Rust builds. This creates workspace configuration files containing only the dependencies needed for a specific package, enabling efficient Docker layer caching.
 
+### Why This Tool Exists
+
+When building Rust projects in Docker, cargo-chef is used to cache dependency compilation. However, in a monorepo with many packages, each Docker image only needs a subset of the workspace. The standard `Cargo.toml` workspace file includes all packages and their dependencies, which means:
+
+1. **Cache invalidation**: Any dependency change anywhere in the monorepo invalidates the Docker cache for all images
+2. **Build bloat**: Docker images contain dependency metadata for packages they don't use
+3. **Path dependency issues**: Path dependencies like `{ path = "../common" }` don't work in Docker's isolated build context
+
+This tool solves these problems by generating a minimal `cargo-workspace-docker.toml` that:
+- Contains only the dependencies needed for the specific package being built
+- Converts path dependencies to versioned crate references
+- Enables independent Docker layer caching per package
+
+### When to Regenerate
+
+Regenerate `cargo-workspace-docker.toml` when:
+- Adding or removing dependencies in `Cargo.toml`
+- Updating dependency versions
+- Adding new workspace members that your package depends on
+- Before Docker builds (recommended to add to `build.sh`)
+
+The file is deterministic, so regenerating when nothing changed produces identical output.
+
+### Usage
+
 ```bash
 # Generate for current package (finds nearest Cargo.toml with docker-compose)
 mpm tools cargo-workspace-docker
 
-# Generate for all packages with docker-compose in the workspace
+# Generate for all packages with docker-compose files in the workspace
 mpm tools cargo-workspace-docker --all
 
 # Generate for a specific path
@@ -275,7 +300,7 @@ mpm tools cargo-workspace-docker --path /path/to/package
 - Uses crate names for path dependencies (Docker-compatible)
 - Deterministic output (sorted dependencies)
 
-**Use Case:**
+### Example Output
 
 In Docker builds using cargo-chef, each package needs a minimal workspace with only its required dependencies. Running `mpm tools cargo-workspace-docker` generates this file automatically:
 

@@ -9,12 +9,12 @@ Comprehensive code review conducted 2026-01-20 across 8 perspectives.
 | Perspective   | Critical | Major | Minor |
 | ------------- | -------- | ----- | ----- |
 | Security      | 0        | 2     | 5     |
-| Rust/Tech     | 3        | 6     | 11    |
+| Rust/Tech     | 3        | 6     | 9     |
 | DevOps        | 3        | 7     | 12    |
 | Architecture  | 2        | 4     | 6     |
 | QA            | 2        | 4     | 8     |
 | Fine Taste    | 0        | 3     | 5     |
-| Documentation | 1        | 4     | 6     |
+| Documentation | 1        | 4     | 4     |
 | Repository    | 0        | 3     | 6     |
 
 ---
@@ -522,21 +522,30 @@ Compiler won't warn if result is accidentally ignored.
 
 ---
 
-#### 42. Magic Numbers Without Constants
+#### 42. ~~Magic Numbers Without Constants~~ RESOLVED
 
 **File:** `src/compose/render.rs`, `src/compose/config.rs`, `src/compose/up.rs`
 
-File permissions `0o600`, `0o755`, timeouts like `30`, `2`, `1` used inline.
+**Status:** RESOLVED - Extracted all magic numbers to documented constants:
 
-**Recommendation:** Create named constants with documentation.
+- `up.rs`: `CONTAINER_READY_TIMEOUT`, `CONTAINER_POLL_INTERVAL`, `CONTAINER_STARTUP_DELAY`
+- `render.rs`: `SECRET_FILE_MODE` (0o600), `DIRECTORY_MODE` (0o755)
+- `config.rs`: `CONFIG_FILE_MODE` (0o600)
+- `health.rs`: `HTTP_REQUEST_TIMEOUT`, `TCP_CONNECT_TIMEOUT`
+
+~~File permissions `0o600`, `0o755`, timeouts like `30`, `2`, `1` used inline.~~
+
+~~**Recommendation:** Create named constants with documentation.~~
 
 ---
 
-#### 43. Inefficient Levenshtein Implementation
+#### 43. ~~Inefficient Levenshtein Implementation~~ RESOLVED
 
 **File:** `src/template/error.rs:9-38`
 
-Allocates new Vec on every call. Consider `strsim` crate.
+**Status:** RESOLVED - Replaced 30-line custom implementation with `strsim` crate.
+
+~~Allocates new Vec on every call. Consider `strsim` crate.~~
 
 ---
 
@@ -714,7 +723,7 @@ Missing: conflicting keys, circular references, very large files.
 
 ### Fine Taste
 
-#### 64. Abbreviated Variable Names
+#### 64. Abbreviated Variable Names - RESOLVED
 
 **File:** `src/tools/workspace_docker.rs`
 
@@ -722,22 +731,28 @@ Uses: `ws_dep`, `dep`, `pkg`, `deps`, `rel_path`, `dep_path`, `td_name`
 
 Should be: `workspace_dependency`, `dependency`, `package`, `dependencies`, `relative_path`, `dependency_path`, `transitive_dependency_name`
 
+**Resolution:** Renamed all abbreviated variable names to their full descriptive forms.
+
 ---
 
-#### 65. Abbreviated Names in template/error.rs
+#### 65. Abbreviated Names in template/error.rs - RESOLVED
 
 **File:** `src/template/error.rs:10`
 
 Parameters `a`, `b` should be `first_string`, `second_string` or similar.
 
+**Resolution:** No longer applicable - the levenshtein function is now imported from the `strsim` crate rather than being implemented locally.
+
 ---
 
-#### 66. Comments That Restate Code
+#### 66. Comments That Restate Code - RESOLVED
 
 **File:** `src/compose/init.rs`
 
 Line 57: "// Determine project name" - states WHAT not WHY.
 Lines 290, 294, 308, 325: similar issues.
+
+**Resolution:** Removed redundant comments that merely restated what the code does (e.g., "// Find Dockerfiles", "// Generate and write X"). Kept comments that explain WHY something is done.
 
 ---
 
@@ -769,19 +784,26 @@ Examples use `0.2.0`, `0.3.0` but current version is `0.5.3`.
 
 ---
 
-#### 70. Missing "drives" Command in README
+#### 70. ~~Missing "drives" Command in README~~ RESOLVED
 
 **File:** README.md:123
 
-`mpm tools drives` implemented but not in README tools section.
+**Status:** RESOLVED - Added `mpm tools drives` to the README tools section.
+
+~~`mpm tools drives` implemented but not in README tools section.~~
 
 ---
 
-#### 71. cargo-workspace-docker Tool Under-Explained
+#### 71. ~~cargo-workspace-docker Tool Under-Explained~~ RESOLVED
 
 **File:** `docs/tools/overview.md:250-308`
 
-Missing: why tool exists, connection to build.sh, when to regenerate.
+**Status:** RESOLVED - Added comprehensive documentation including:
+- "Why This Tool Exists" section explaining the problem it solves
+- "When to Regenerate" section with clear guidance
+- Improved structure with proper headings
+
+~~Missing: why tool exists, connection to build.sh, when to regenerate.~~
 
 ---
 
