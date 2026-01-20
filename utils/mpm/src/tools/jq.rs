@@ -73,11 +73,11 @@ pub fn jq_command(
             let yaml = serde_yaml_neo::to_string(&results_json)?;
             yaml_to_4_space_indent(&yaml)
         } else {
-            results_json
+            let formatted: std::result::Result<Vec<_>, _> = results_json
                 .iter()
-                .map(|v| serde_json::to_string(v).unwrap())
-                .collect::<Vec<_>>()
-                .join("\n")
+                .map(|v| serde_json::to_string(v))
+                .collect();
+            formatted.map_err(MpmError::JsonSerialize)?.join("\n")
         }
     };
 
