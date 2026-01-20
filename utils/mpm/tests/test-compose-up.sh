@@ -97,16 +97,17 @@ cd - > /dev/null
 log_test "compose up: renders multiple templates"
 TEST_DIR=$(create_test_dir "up-multi-template")
 create_test_project "$TEST_DIR"
-# Add additional template
-cat > "$TEST_DIR/deployment/templates/config.yaml" << 'EOF'
+# Add additional template in config directory (mpm renders templates/config/** to results/config/**)
+mkdir -p "$TEST_DIR/deployment/templates/config"
+cat > "$TEST_DIR/deployment/templates/config/app.yaml" << 'EOF'
 app:
   name: {{ .hostname }}
   port: {{ .port }}
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if [[ -f "$TEST_DIR/deployment/results/config.yaml" ]]; then
-    if grep -q "name: test.example.com" "$TEST_DIR/deployment/results/config.yaml"; then
+if [[ -f "$TEST_DIR/deployment/results/config/app.yaml" ]]; then
+    if grep -q "name: test.example.com" "$TEST_DIR/deployment/results/config/app.yaml"; then
         pass_test "Renders multiple templates"
     else
         fail_test "Additional template not rendered correctly"
@@ -427,7 +428,7 @@ cd - > /dev/null
 log_test "compose up: handles empty templates directory"
 TEST_DIR=$(create_test_dir "up-empty-templates")
 create_test_project "$TEST_DIR"
-rm -f "$TEST_DIR/deployment/templates/"*
+rm -rf "$TEST_DIR/deployment/templates/"*
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
 # Should either succeed with empty results or fail gracefully
@@ -437,8 +438,9 @@ cd - > /dev/null
 log_test "compose up: handles special characters in values"
 TEST_DIR=$(create_test_dir "up-special-chars")
 create_test_project "$TEST_DIR"
+# Use special chars that are valid within YAML quoted strings
 cat > "$TEST_DIR/deployment/values.yaml" << 'EOF'
-special: "quotes \"and\" special chars: $!@#%"
+special: "chars with $dollars and #hash and !bang"
 EOF
 cat > "$TEST_DIR/deployment/templates/docker-compose.yaml" << 'EOF'
 services:

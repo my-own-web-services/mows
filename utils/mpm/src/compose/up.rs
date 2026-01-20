@@ -1,12 +1,12 @@
 use std::fs;
-use std::process::Command;
 use std::time::Duration;
 use tracing::{debug, info};
 
-use crate::error::{MpmError, Result};
+use crate::error::Result;
 use super::checks::{
     check_containers_ready, print_check_results, run_and_print_health_checks, run_debug_checks,
 };
+use super::docker::{default_client, ComposeUpOptions, DockerClient};
 use super::find_manifest_dir;
 use super::render::{run_render_pipeline, RenderContext};
 use crate::utils::parse_yaml;
@@ -21,58 +21,14 @@ const CONTAINER_POLL_INTERVAL: Duration = Duration::from_secs(2);
 /// Allows containers time to appear in `docker ps`.
 const CONTAINER_STARTUP_DELAY: Duration = Duration::from_secs(1);
 
-/// Check if Docker daemon is available and running
-fn check_docker_available() -> Result<()> {
-    // First check if docker command exists
-    let output = Command::new("docker")
-        .arg("--version")
-        .output()
-        .map_err(|e| {
-            if e.kind() == std::io::ErrorKind::NotFound {
-                MpmError::Docker("Docker is not installed or not in PATH. Please install Docker first.".to_string())
-            } else {
-                MpmError::command("docker --version", e.to_string())
-            }
-        })?;
-
-    if !output.status.success() {
-        return Err(MpmError::Docker("Docker command failed. Is Docker installed correctly?".to_string()));
-    }
-
-    // Check if Docker daemon is running by pinging it
-    let output = Command::new("docker")
-        .args(["info", "--format", "{{.ServerVersion}}"])
-        .output()
-        .map_err(|e| MpmError::command("docker info", e.to_string()))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        if stderr.contains("Cannot connect") || stderr.contains("permission denied") {
-            return Err(MpmError::Docker(format!(
-                r#"Cannot connect to Docker daemon. Is Docker running?
-Try: sudo systemctl start docker
-Or add your user to the docker group: sudo usermod -aG docker $USER
-Error: {}"#,
-                stderr.trim()
-            )));
-        }
-        return Err(MpmError::Docker(format!("Docker daemon check failed: {}", stderr.trim())));
-    }
-
-    let version = String::from_utf8_lossy(&output.stdout);
-    debug!("Docker daemon version: {}", version.trim());
-
-    Ok(())
-}
-
 /// Run compose up: render templates and run docker compose up
 pub fn compose_up() -> Result<()> {
     let base_dir = find_manifest_dir()?;
 
     info!("Running compose up in: {}", base_dir.display());
 
-    // Check Docker is available before doing anything
-    check_docker_available()?;
+    // Create Docker client (also checks Docker is available)
+    let client = default_client()?;
 
     // Create render context
     let ctx = RenderContext::new(&base_dir)?;
@@ -81,19 +37,19 @@ pub fn compose_up() -> Result<()> {
     run_render_pipeline(&ctx)?;
 
     // Run pre-deployment debug checks
-    run_pre_deployment_checks(&ctx);
+    run_pre_deployment_checks(client.as_ref(), &ctx);
 
     // Run docker compose up
-    run_docker_compose_up(&ctx)?;
+    run_docker_compose_up(client.as_ref(), &ctx)?;
 
     // Run post-deployment health checks
-    run_post_deployment_checks(&ctx);
+    run_post_deployment_checks(client.as_ref(), &ctx);
 
     Ok(())
 }
 
 /// Run pre-deployment debug checks
-fn run_pre_deployment_checks(ctx: &RenderContext) {
+fn run_pre_deployment_checks(client: &dyn DockerClient, ctx: &RenderContext) {
     let results_dir = ctx.base_dir.join("results");
 
     // Find and parse the docker-compose file
@@ -123,7 +79,7 @@ fn run_pre_deployment_checks(ctx: &RenderContext) {
     };
 
     let project_name = ctx.manifest.project_name();
-    let results = run_debug_checks(&compose_value, &ctx.base_dir, &project_name);
+    let results = run_debug_checks(client, &compose_value, &ctx.base_dir, &project_name);
 
     if !results.is_empty() {
         print_check_results(&results);
@@ -138,7 +94,7 @@ fn run_pre_deployment_checks(ctx: &RenderContext) {
 ///
 /// Shows progress feedback while waiting, then runs full health checks.
 /// Handles Ctrl+C gracefully by clearing the progress line before exit.
-fn run_post_deployment_checks(ctx: &RenderContext) {
+fn run_post_deployment_checks(client: &dyn DockerClient, ctx: &RenderContext) {
     use std::io::{self, Write};
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
@@ -167,7 +123,7 @@ fn run_post_deployment_checks(ctx: &RenderContext) {
 
     // Poll until ready or timeout
     let interrupted = loop {
-        let readiness = check_containers_ready(&project_name);
+        let readiness = check_containers_ready(client, &project_name);
 
         if readiness.all_ready {
             break false;
@@ -216,7 +172,7 @@ fn run_post_deployment_checks(ctx: &RenderContext) {
     // Load compose content for traefik URL detection
     let compose = get_compose_content(&results_dir);
 
-    run_and_print_health_checks(&project_name, compose.as_ref());
+    run_and_print_health_checks(client, &project_name, compose.as_ref());
 }
 
 /// Load docker-compose content from results directory
@@ -235,15 +191,17 @@ fn get_compose_content(results_dir: &std::path::Path) -> Option<serde_yaml_neo::
 }
 
 /// Execute docker compose up with the project configuration
-fn run_docker_compose_up(ctx: &RenderContext) -> Result<()> {
+fn run_docker_compose_up(client: &dyn DockerClient, ctx: &RenderContext) -> Result<()> {
+    use crate::error::MpmError;
+
     let project_name = ctx.manifest.project_name();
     let results_dir = ctx.base_dir.join("results");
 
     // Find the docker-compose file
     let compose_file = if results_dir.join("docker-compose.yaml").exists() {
-        "docker-compose.yaml"
+        results_dir.join("docker-compose.yaml")
     } else if results_dir.join("docker-compose.yml").exists() {
-        "docker-compose.yml"
+        results_dir.join("docker-compose.yml")
     } else {
         return Err(MpmError::Docker("No docker-compose.yaml or docker-compose.yml found in results directory".to_string()));
     };
@@ -253,48 +211,30 @@ fn run_docker_compose_up(ctx: &RenderContext) -> Result<()> {
         project_name
     );
 
-    // Build the command
-    // docker compose -p PROJECT_NAME --project-directory results/ up --build -d --remove-orphans
-    let mut cmd = Command::new("docker");
-    cmd.arg("compose")
-        .arg("-p")
-        .arg(project_name)
-        .arg("--project-directory")
-        .arg(&results_dir)
-        .arg("-f")
-        .arg(results_dir.join(compose_file));
-
-    // Add env files if they exist
+    // Collect env files
+    let mut env_files = Vec::new();
     let generated_secrets = results_dir.join("generated-secrets.env");
     let provided_secrets = results_dir.join("provided-secrets.env");
 
     if generated_secrets.exists() {
-        cmd.arg("--env-file").arg(&generated_secrets);
+        env_files.push(generated_secrets);
     }
     if provided_secrets.exists() {
-        cmd.arg("--env-file").arg(&provided_secrets);
+        env_files.push(provided_secrets);
     }
 
-    cmd.arg("up")
-        .arg("--build")
-        .arg("-d")
-        .arg("--remove-orphans");
+    let options = ComposeUpOptions {
+        project: &project_name,
+        compose_file: &compose_file,
+        project_dir: &results_dir,
+        env_files: env_files.iter().map(|p| p.as_path()).collect(),
+        working_dir: &ctx.base_dir,
+        build: true,
+        detach: true,
+        remove_orphans: true,
+    };
 
-    debug!("Executing: {:?}", cmd);
-
-    // Set current directory to base_dir for relative paths in docker-compose
-    cmd.current_dir(&ctx.base_dir);
-
-    let status = cmd
-        .status()
-        .map_err(|e| MpmError::command("docker compose up", e.to_string()))?;
-
-    if !status.success() {
-        return Err(MpmError::Docker(format!(
-            "docker compose up failed with exit code: {}",
-            status.code().unwrap_or(-1)
-        )));
-    }
+    client.compose_up(&options)?;
 
     info!("Docker compose up completed successfully");
     Ok(())

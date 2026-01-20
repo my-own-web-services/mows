@@ -1,13 +1,16 @@
-use std::process::Command;
-use tracing::{debug, info};
+use tracing::info;
 
 use crate::error::{MpmError, Result};
+use super::docker::{default_client, ComposePassthroughOptions};
 use super::find_manifest_dir;
 use super::manifest::MowsManifest;
 
 /// Pass through commands to docker compose with project context
 pub fn compose_passthrough(args: &[String]) -> Result<()> {
     let base_dir = find_manifest_dir()?;
+
+    // Create Docker client (also checks Docker is available)
+    let client = default_client()?;
 
     // Load manifest to get project name
     let manifest = MowsManifest::load(&base_dir)?;
@@ -31,46 +34,28 @@ pub fn compose_passthrough(args: &[String]) -> Result<()> {
         project_name
     );
 
-    // Build the command with our context
-    let mut cmd = Command::new("docker");
-    cmd.arg("compose")
-        .arg("-p")
-        .arg(&project_name)
-        .arg("--project-directory")
-        .arg(&results_dir)
-        .arg("-f")
-        .arg(&compose_file);
-
-    // Add env files if they exist
+    // Collect env files
+    let mut env_files = Vec::new();
     let generated_secrets = results_dir.join("generated-secrets.env");
     let provided_secrets = results_dir.join("provided-secrets.env");
 
     if generated_secrets.exists() {
-        cmd.arg("--env-file").arg(&generated_secrets);
+        env_files.push(generated_secrets);
     }
     if provided_secrets.exists() {
-        cmd.arg("--env-file").arg(&provided_secrets);
+        env_files.push(provided_secrets);
     }
 
-    // Add the passthrough arguments
-    for arg in args {
-        cmd.arg(arg);
-    }
+    let options = ComposePassthroughOptions {
+        project: &project_name,
+        compose_file: &compose_file,
+        project_dir: &results_dir,
+        env_files: env_files.iter().map(|p| p.as_path()).collect(),
+        working_dir: &base_dir,
+        args,
+    };
 
-    debug!("Executing: {:?}", cmd);
-    cmd.current_dir(&base_dir);
-
-    // Execute with inherited stdio for interactive commands
-    let status = cmd
-        .status()
-        .map_err(|e| MpmError::command("docker compose", e.to_string()))?;
-
-    if !status.success() {
-        return Err(MpmError::Docker(format!(
-            "docker compose failed with exit code: {}",
-            status.code().unwrap_or(-1)
-        )));
-    }
+    client.compose_passthrough(&options)?;
 
     Ok(())
 }

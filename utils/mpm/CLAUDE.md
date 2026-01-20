@@ -81,14 +81,30 @@ cd tests
 VERBOSE=1 ./run-all.sh        # Verbose output
 ```
 
-### Tests Skipped in CI
+### Mock Docker Client for CI
 
-These tests are skipped in CI due to environment limitations and should be run locally:
+Tests that require Docker can run in CI using the mock Docker client:
+
+```bash
+export MPM_MOCK_DOCKER=1
+./run-all.sh  # Docker operations use mock client
+```
+
+The mock client (`MPM_MOCK_DOCKER=1`) simulates Docker operations:
+- `compose up` succeeds immediately
+- `compose ps` returns containers as running and healthy
+- `compose logs` returns empty logs
+- Container inspections return minimal mock data
+
+This allows testing the full mpm workflow without a Docker daemon.
+
+### Tests Skipped in CI
 
 | Test | Reason |
 |------|--------|
-| `test-compose-up` | Requires Docker daemon with port binding |
 | `test-self-update` | Network-dependent, requires GitHub API |
+
+Note: `test-compose-up` now runs in CI using `MPM_MOCK_DOCKER=1`.
 
 ## Building
 
