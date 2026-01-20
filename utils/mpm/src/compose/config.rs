@@ -132,37 +132,6 @@ impl MpmConfig {
         Ok(lock_file)
     }
 
-    /// Execute a closure that modifies the config atomically with file locking.
-    ///
-    /// This prevents race conditions when multiple mpm processes access the config
-    /// simultaneously. The lock is held for the entire read-modify-write operation.
-    ///
-    /// # Example
-    /// ```ignore
-    /// MpmConfig::with_locked(|config| {
-    ///     config.upsert_project(entry);
-    /// })?;
-    /// ```
-    pub fn with_locked<F>(f: F) -> Result<()>
-    where
-        F: FnOnce(&mut MpmConfig),
-    {
-        // Acquire exclusive lock (released when _lock_file is dropped)
-        let _lock_file = Self::acquire_lock()?;
-
-        // Load current config (or default if not exists)
-        let mut config = Self::load()?;
-
-        // Apply modifications
-        f(&mut config);
-
-        // Save with the lock still held
-        config.save_without_lock()?;
-
-        debug!("Released config file lock");
-        Ok(())
-    }
-
     /// Load the config from disk, or return default if not found
     pub fn load() -> Result<Self> {
         let path = Self::config_path()?;
