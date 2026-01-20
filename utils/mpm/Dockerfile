@@ -11,9 +11,17 @@ COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml
 
 # Using stable version of muslrust for reproducible builds
-FROM clux/muslrust:1.92.0-stable AS chef-builder
+FROM --platform=linux/amd64 clux/muslrust:1.92.0-stable AS chef-builder
 
+# Install cargo-chef and cargo-zigbuild for fast cross-compilation
 RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
+RUN cargo install cargo-zigbuild
+RUN rustup target add aarch64-unknown-linux-musl
+
+# Install zig for cross-compilation
+RUN apt-get update && apt-get install -y xz-utils && rm -rf /var/lib/apt/lists/*
+RUN curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz | tar -xJ -C /usr/local && \
+    ln -s /usr/local/zig-linux-x86_64-0.13.0/zig /usr/local/bin/zig
 
 FROM chef-builder AS planner
 COPY --from=sources / /build/
@@ -36,7 +44,7 @@ ENV GIT_HASH=${GIT_HASH}
 ENV GIT_DATE=${GIT_DATE}
 USER root
 WORKDIR /build
-RUN apt-get update && apt-get install upx -y
+RUN apt-get update && apt-get install -y upx && rm -rf /var/lib/apt/lists/*
 COPY --from=sources / /build/
 
 # Determine Rust target based on architecture
@@ -48,10 +56,11 @@ ENV RUST_TARGET_ARM64=aarch64-unknown-linux-musl
 WORKDIR /build/app/
 COPY --from=planner /build/app/recipe.json recipe.json
 RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"; else echo "$RUST_TARGET_AMD64"; fi) && \
+    ZIGBUILD_FLAG=$(if [ "$TARGETARCH" = "arm64" ]; then echo "--zigbuild"; else echo ""; fi) && \
     if [ "${PROFILE}" = "release" ]; then \
-      cargo chef cook --release --recipe-path recipe.json --target=${RUST_TARGET}; \
+      cargo chef cook --release --recipe-path recipe.json --target=${RUST_TARGET} ${ZIGBUILD_FLAG}; \
     else \
-      cargo chef cook --recipe-path recipe.json --target=${RUST_TARGET}; \
+      cargo chef cook --recipe-path recipe.json --target=${RUST_TARGET} ${ZIGBUILD_FLAG}; \
     fi
 
 # build
@@ -60,18 +69,20 @@ COPY Cargo.toml Cargo.toml
 COPY build.rs build.rs
 COPY src src
 
-# Disable LTO for arm64 builds (QEMU can't handle it)
+# Use cargo-zigbuild for cross-compilation (arm64), regular cargo for native (amd64)
+# Disable LTO for arm64 cross-compilation (causes SIGILL in LLVM)
 RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"; else echo "$RUST_TARGET_AMD64"; fi) && \
+    CARGO_CMD=$(if [ "$TARGETARCH" = "arm64" ]; then echo "cargo zigbuild"; else echo "cargo build"; fi) && \
     if [ "$TARGETARCH" = "arm64" ]; then export CARGO_PROFILE_RELEASE_LTO=false; fi && \
-    cargo build --bin ${BINARY_NAME} --profile=${PROFILE} --target=${RUST_TARGET}
+    ${CARGO_CMD} --bin ${BINARY_NAME} --profile=${PROFILE} --target=${RUST_TARGET}
 RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"; else echo "$RUST_TARGET_AMD64"; fi) && \
     if [ "${PROFILE}" = "dev" ]; then \
       mv /build/target/${RUST_TARGET}/debug/${BINARY_NAME} /${BINARY_NAME}; \
     else \
       mv /build/target/${RUST_TARGET}/${PROFILE}/${BINARY_NAME} /${BINARY_NAME}; \
     fi
-RUN if [ "${PROFILE}" = "release" ];  then strip /${BINARY_NAME}; fi
-RUN if [ "${PROFILE}" = "release" ];  then upx --best --lzma /${BINARY_NAME}; fi
+# Compress with UPX (strip is handled by Rust via profile.release.strip = "symbols")
+RUN if [ "${PROFILE}" = "release" ]; then upx --best --lzma /${BINARY_NAME}; fi
 
 # Export binary stage for extraction
 FROM scratch AS binary

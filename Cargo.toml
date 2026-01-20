@@ -42,6 +42,7 @@ debug-assertions = false
 lto = true
 #opt-level = 3
 rpath = false
+strip = "symbols"
 
 
 [workspace.dependencies]
