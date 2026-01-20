@@ -5,6 +5,7 @@
 
 use colored::Colorize;
 
+use crate::compose::DockerClient;
 use super::health::{check_traefik_host, collect_container_health, ContainerHealth};
 use super::preflight::{CheckResult, Severity};
 
@@ -102,14 +103,15 @@ pub fn print_check_results(results: &[CheckResult]) {
 /// ```
 ///
 /// # Arguments
+/// - `client`: Docker client for executing commands
 /// - `project_name`: Docker Compose project name (used with `docker compose -p`)
 /// - `compose`: Optional parsed compose file for extracting Traefik labels
 ///
 /// # Side Effects
 /// - Prints directly to stdout
 /// - Returns early without output if no containers found
-pub fn run_and_print_health_checks(project_name: &str, compose: Option<&serde_yaml_neo::Value>) {
-    let containers = collect_container_health(project_name, compose);
+pub fn run_and_print_health_checks(client: &dyn DockerClient, project_name: &str, compose: Option<&serde_yaml_neo::Value>) {
+    let containers = collect_container_health(client, project_name, compose);
 
     if containers.is_empty() {
         return;

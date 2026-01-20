@@ -6,9 +6,10 @@
 //! - Port connectivity
 //! - Traefik URL extraction from labels
 
-use std::process::Command;
 use std::time::Duration;
 use tracing::{debug, warn};
+
+use crate::compose::DockerClient;
 
 /// Timeout for HTTP health check requests.
 /// Short timeout to avoid blocking on unresponsive services.
@@ -74,60 +75,35 @@ pub struct ContainerReadiness {
 /// logs or checking ports (which can be slow).
 ///
 /// # Arguments
+/// - `client`: Docker client for executing commands
 /// - `project_name`: Docker Compose project name
 ///
 /// # Returns
 /// `ContainerReadiness` with counts and overall readiness status
-pub fn check_containers_ready(project_name: &str) -> ContainerReadiness {
-    let output = Command::new("docker")
-        .args([
-            "compose",
-            "-p",
-            project_name,
-            "ps",
-            "--format",
-            "{{.Status}}\t{{.Health}}",
-        ])
-        .output();
-
-    if let Ok(out) = output {
-        if out.status.success() {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            return parse_readiness_output(&stdout);
-        }
-    }
-
-    ContainerReadiness {
-        total: 0,
-        running: 0,
-        starting: 0,
-        all_ready: false,
+pub fn check_containers_ready(client: &dyn DockerClient, project_name: &str) -> ContainerReadiness {
+    match client.compose_ps(project_name, "{{.Status}}\t{{.Health}}") {
+        Ok(output) if output.success => parse_readiness_output(&output.stdout),
+        _ => ContainerReadiness {
+            total: 0,
+            running: 0,
+            starting: 0,
+            all_ready: false,
+        },
     }
 }
 
 /// Collect container health information
 pub(super) fn collect_container_health(
+    client: &dyn DockerClient,
     project_name: &str,
     compose: Option<&serde_yaml_neo::Value>,
 ) -> Vec<ContainerHealth> {
     let mut containers: Vec<ContainerHealth> = Vec::new();
 
     // Get container status
-    let output = Command::new("docker")
-        .args([
-            "compose",
-            "-p",
-            project_name,
-            "ps",
-            "--format",
-            "{{.Name}}\t{{.Status}}\t{{.Health}}",
-        ])
-        .output();
-
-    match output {
-        Ok(out) if out.status.success() => {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            for line in stdout.lines() {
+    match client.compose_ps(project_name, "{{.Name}}\t{{.Status}}\t{{.Health}}") {
+        Ok(output) if output.success => {
+            for line in output.stdout.lines() {
                 let parts: Vec<&str> = line.split('\t').collect();
                 if parts.len() >= 2 {
                     let name = parts[0].to_string();
@@ -153,9 +129,8 @@ pub(super) fn collect_container_health(
                 }
             }
         }
-        Ok(out) => {
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            warn!("Failed to get container status: {}", stderr.trim());
+        Ok(output) => {
+            warn!("Failed to get container status: {}", output.stderr.trim());
         }
         Err(e) => {
             warn!("Failed to run docker compose ps: {}", e);
@@ -163,10 +138,10 @@ pub(super) fn collect_container_health(
     }
 
     // Collect log errors for each container
-    collect_container_logs(project_name, &mut containers);
+    collect_container_logs(client, project_name, &mut containers);
 
     // Collect port status
-    collect_port_status(project_name, &mut containers);
+    collect_port_status(client, project_name, &mut containers);
 
     // Collect traefik URLs if compose is provided
     if let Some(compose) = compose {
@@ -177,24 +152,10 @@ pub(super) fn collect_container_health(
 }
 
 /// Collect recent log errors for containers (last 30 seconds).
-fn collect_container_logs(project_name: &str, containers: &mut [ContainerHealth]) {
-    let output = Command::new("docker")
-        .args([
-            "compose",
-            "-p",
-            project_name,
-            "logs",
-            "--since",
-            "30s",
-            "--no-color",
-        ])
-        .output();
-
-    match output {
-        Ok(out) if out.status.success() => {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            let combined = format!("{}{}", stdout, stderr);
+fn collect_container_logs(client: &dyn DockerClient, project_name: &str, containers: &mut [ContainerHealth]) {
+    match client.compose_logs(project_name, Some("30s")) {
+        Ok(output) if output.success => {
+            let combined = format!("{}{}", output.stdout, output.stderr);
 
             let error_patterns = ["error", "fatal", "panic", "exception", "failed"];
 
@@ -223,29 +184,16 @@ fn collect_container_logs(project_name: &str, containers: &mut [ContainerHealth]
 }
 
 /// Collect port status for containers
-fn collect_port_status(project_name: &str, containers: &mut [ContainerHealth]) {
+fn collect_port_status(client: &dyn DockerClient, project_name: &str, containers: &mut [ContainerHealth]) {
     use rayon::prelude::*;
     use std::collections::{HashMap, HashSet};
 
-    let output = Command::new("docker")
-        .args([
-            "compose",
-            "-p",
-            project_name,
-            "ps",
-            "--format",
-            "{{.Name}}\t{{.Ports}}",
-        ])
-        .output();
-
-    match output {
-        Ok(out) if out.status.success() => {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-
+    match client.compose_ps(project_name, "{{.Name}}\t{{.Ports}}") {
+        Ok(output) if output.success => {
             // First pass: collect all ports to check (container_name, url, port)
             let mut port_checks: Vec<(String, String, u16)> = Vec::new();
 
-            for line in stdout.lines() {
+            for line in output.stdout.lines() {
                 let parts: Vec<&str> = line.split('\t').collect();
                 if parts.len() >= 2 {
                     let name = parts[0];
@@ -297,9 +245,8 @@ fn collect_port_status(project_name: &str, containers: &mut [ContainerHealth]) {
                 }
             }
         }
-        Ok(out) => {
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            warn!("Failed to get port status: {}", stderr.trim());
+        Ok(output) => {
+            warn!("Failed to get port status: {}", output.stderr.trim());
         }
         Err(e) => {
             warn!("Failed to run docker compose ps for ports: {}", e);

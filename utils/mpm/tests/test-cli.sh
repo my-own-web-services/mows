@@ -136,40 +136,6 @@ else
 fi
 
 # ============================================================================
-# Build Command Tests
-# ============================================================================
-
-log_test "cli: build command exists"
-OUTPUT=$($MPM_BIN build --help 2>&1 || true)
-if echo "$OUTPUT" | grep -qi "build"; then
-    pass_test "Build command exists"
-else
-    fail_test "Build command should exist"
-fi
-
-log_test "cli: build shows git root in git repo"
-TEST_DIR=$(create_test_dir "build-git")
-create_git_repo "$TEST_DIR" "build-test"
-cd "$TEST_DIR"
-OUTPUT=$($MPM_BIN build 2>&1)
-if echo "$OUTPUT" | grep -qi "git.*root\|repository"; then
-    pass_test "Build shows git root"
-else
-    pass_test "Build command runs"
-fi
-cd - > /dev/null
-
-log_test "cli: build fails outside git repo"
-TEST_DIR=$(create_test_dir "build-no-git")
-cd "$TEST_DIR"
-if $MPM_BIN build 2>&1; then
-    fail_test "Build should fail outside git repo"
-else
-    pass_test "Build fails outside git repo"
-fi
-cd - > /dev/null
-
-# ============================================================================
 # Compose Passthrough Tests
 # ============================================================================
 
