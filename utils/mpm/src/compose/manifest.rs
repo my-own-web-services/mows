@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use tracing::debug;
@@ -16,12 +17,25 @@ pub struct ManifestMetadata {
     pub version: Option<String>,
 }
 
+/// Definition of a user-provided secret in the manifest
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProvidedSecretDef {
+    /// Default value (null means no default, user must provide)
+    pub default: Option<serde_yaml_neo::Value>,
+    /// Whether this secret is optional (default: false, meaning required)
+    #[serde(default)]
+    pub optional: bool,
+}
+
 /// Configuration specific to compose deployments
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ComposeConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub values_file_path: Option<String>,
+    /// User-provided secrets definitions (key = secret name)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provided_secrets: Option<HashMap<String, ProvidedSecretDef>>,
     // Flatten additional fields for forward compatibility
     #[serde(flatten)]
     pub extra: serde_yaml_neo::Value,
@@ -151,6 +165,7 @@ spec:
         let spec = ManifestSpec {
             compose: Some(ComposeConfig {
                 values_file_path: Some("values/development.yaml".to_string()),
+                provided_secrets: None,
                 extra: serde_yaml_neo::Value::default(),
             }),
         };
@@ -168,6 +183,61 @@ spec:
         assert_eq!(
             compose.values_file_path,
             Some("values/development.yaml".to_string())
+        );
+    }
+
+    #[test]
+    fn test_manifest_with_provided_secrets() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+metadata:
+  name: test-project
+spec:
+  compose:
+    providedSecrets:
+      API_KEY:
+        default: null
+        optional: false
+      SMTP_PORT:
+        default: 465
+        optional: false
+      OPTIONAL_SECRET:
+        default: "default-value"
+        optional: true
+"#,
+        )
+        .unwrap();
+
+        let manifest = MowsManifest::load(dir.path()).unwrap();
+        assert_eq!(manifest.project_name(), "test-project");
+
+        let compose = manifest.spec.compose.unwrap();
+        let secrets = compose.provided_secrets.unwrap();
+
+        assert_eq!(secrets.len(), 3);
+
+        // Check API_KEY (required, no default)
+        let api_key = secrets.get("API_KEY").unwrap();
+        assert!(!api_key.optional);
+        assert!(api_key.default.as_ref().map(|v| v.is_null()).unwrap_or(true));
+
+        // Check SMTP_PORT (required, has default)
+        let smtp_port = secrets.get("SMTP_PORT").unwrap();
+        assert!(!smtp_port.optional);
+        assert_eq!(
+            smtp_port.default.as_ref().and_then(|v| v.as_u64()),
+            Some(465)
+        );
+
+        // Check OPTIONAL_SECRET (optional, has default)
+        let optional = secrets.get("OPTIONAL_SECRET").unwrap();
+        assert!(optional.optional);
+        assert_eq!(
+            optional.default.as_ref().and_then(|v| v.as_str()),
+            Some("default-value")
         );
     }
 

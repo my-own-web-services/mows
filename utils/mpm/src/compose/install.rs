@@ -108,6 +108,19 @@ pub fn compose_install(url: &str, target: Option<&Path>) -> Result<()> {
     let manifest = MowsManifest::load(manifest_dir)?;
     let project_name = manifest.project_name();
 
+    // Generate provided-secrets.env if manifest defines providedSecrets
+    if let Some(compose) = &manifest.spec.compose {
+        if let Some(secrets) = &compose.provided_secrets {
+            if !secrets.is_empty() {
+                let secrets_path = manifest_dir.join("provided-secrets.env");
+                if !secrets_path.exists() {
+                    super::secrets::generate_provided_secrets_file(secrets, &secrets_path)?;
+                    info!("Created: {}", secrets_path.display());
+                }
+            }
+        }
+    }
+
     // Calculate relative manifest path from repo root
     let relative_manifest_path = manifest_dir
         .strip_prefix(&clone_dir)
