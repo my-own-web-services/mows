@@ -970,11 +970,13 @@ No documentation about test organization or how to run different suites.
 
 ---
 
-#### 80. FlattenLabelsError Underutilized
+#### 80. ~~FlattenLabelsError Underutilized~~ RESOLVED
 
 **File:** `src/tools/object.rs`
 
-Custom error type defined but immediately converted to String. Good pattern - extend to other modules.
+**Status:** RESOLVED - The error type is actually used correctly. In `compose/render.rs`, `FlattenLabelsError` is pattern-matched (`Err(FlattenLabelsError::NoLabels)` handled separately from other errors), not converted to String. The description was outdated.
+
+~~Custom error type defined but immediately converted to String. Good pattern - extend to other modules.~~
 
 ---
 
