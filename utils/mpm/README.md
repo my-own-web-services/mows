@@ -100,6 +100,7 @@ mpm compose up
 - [Tools Reference](docs/tools/overview.md) - JSON/YAML conversion, jq queries
 - [Self-Update](docs/self-update.md) - Updating mpm
 - [Configuration](docs/configuration.md) - Config file and environment variables
+- [Development Guide](docs/development.md) - Building, testing, and contributing
 
 ## Command Overview
 
