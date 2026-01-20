@@ -59,9 +59,32 @@ fn find_all_manifests_in_repo(repo_dir: &Path) -> Vec<PathBuf> {
     manifests
 }
 
-/// Check if a directory contains a mows-manifest.yaml/yml
-fn has_manifest(dir: &Path) -> bool {
-    dir.join("mows-manifest.yaml").exists() || dir.join("mows-manifest.yml").exists()
+/// Get manifest file path if directory contains one
+fn get_manifest_in_dir(dir: &Path) -> Option<PathBuf> {
+    let yaml = dir.join("mows-manifest.yaml");
+    if yaml.exists() {
+        return Some(yaml);
+    }
+    let yml = dir.join("mows-manifest.yml");
+    if yml.exists() {
+        return Some(yml);
+    }
+    None
+}
+
+/// Find manifest file by walking UP parent directories from start.
+/// Returns the manifest file path (not directory).
+pub(crate) fn find_manifest_file_from(start: &Path) -> Option<PathBuf> {
+    let mut current = start.to_path_buf();
+    loop {
+        if let Some(manifest) = get_manifest_in_dir(&current) {
+            return Some(manifest);
+        }
+        if !current.pop() {
+            break;
+        }
+    }
+    None
 }
 
 /// Find the manifest directory for compose commands
@@ -78,18 +101,13 @@ pub(crate) fn find_manifest_dir() -> Result<PathBuf> {
     let current_dir = std::env::current_dir()
         .io_context("Failed to get current directory")?;
 
-    // Check if current directory has a manifest
-    if has_manifest(&current_dir) {
-        return Ok(current_dir);
-    }
-
     // Walk up parent directories looking for a manifest
-    let mut search_dir = current_dir.as_path();
-    while let Some(parent) = search_dir.parent() {
-        if has_manifest(parent) {
-            return Ok(parent.to_path_buf());
-        }
-        search_dir = parent;
+    if let Some(manifest_path) = find_manifest_file_from(&current_dir) {
+        let manifest_dir = manifest_path
+            .parent()
+            .ok_or_else(|| MpmError::path(&manifest_path, "Invalid manifest path"))?
+            .to_path_buf();
+        return Ok(manifest_dir);
     }
 
     // Try git root as fallback (for monorepos with multiple manifests)

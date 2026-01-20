@@ -7,8 +7,7 @@ use tracing::{debug, info, warn};
 use crate::error::{IoResultExt, MpmError, Result};
 use crate::utils::detect_yaml_indent;
 use super::config::MpmConfig;
-use super::find_manifest_dir;
-use super::find_manifest_in_repo;
+use super::{find_manifest_dir, find_manifest_file_from, find_manifest_in_repo};
 use super::manifest::MowsManifest;
 
 /// Backup state for rollback on update failure
@@ -59,7 +58,8 @@ pub fn compose_update() -> Result<()> {
     debug!("Repository root: {}", repo_root.display());
 
     // Get current manifest location
-    let current_manifest_path = find_manifest(&base_dir)?;
+    let current_manifest_path = find_manifest_file_from(&base_dir)
+        .ok_or_else(|| MpmError::Manifest("No mows-manifest.yaml found".to_string()))?;
     let current_manifest_dir = current_manifest_path
         .parent()
         .ok_or_else(|| format!("Invalid manifest path: {}", current_manifest_path.display()))?;
@@ -112,14 +112,14 @@ fn do_update(
     git_pull(repo_root)?;
 
     // Find the new manifest location (might have moved)
-    let new_manifest_path = match find_manifest(&base_dir) {
-        Ok(p) => p,
-        Err(_) => {
-            // Manifest moved, search for it
-            info!("Manifest not found at previous location, searching...");
-            find_manifest_in_repo(&repo_root)?
-        }
-    };
+    let new_manifest_path = find_manifest_file_from(base_dir).unwrap_or_else(|| {
+        // Manifest moved, search for it
+        info!("Manifest not found at previous location, searching...");
+        find_manifest_in_repo(repo_root).unwrap_or_default()
+    });
+    if !new_manifest_path.exists() {
+        return Err(MpmError::Manifest("Manifest not found after update".to_string()));
+    }
     let new_manifest_dir = new_manifest_path
         .parent()
         .ok_or_else(|| format!("Invalid manifest path: {}", new_manifest_path.display()))?;
@@ -219,35 +219,6 @@ fn find_repo_root(start: &Path) -> Result<PathBuf> {
             return Err(MpmError::Git("Not in a git repository".to_string()));
         }
     }
-}
-
-/// Find the manifest file by walking UP parent directories from start.
-///
-/// Note: This is intentionally separate from `mod.rs::find_manifest_in_repo()` which
-/// walks DOWN into a repo with max depth. This function walks UP to find manifests
-/// in parent directories, which is needed for update operations where we start from
-/// a subdirectory and need to find the manifest above us. It also returns the file
-/// path (not directory) which is required for tracking manifest moves during updates.
-fn find_manifest(start: &Path) -> Result<PathBuf> {
-    let mut current = start.to_path_buf();
-
-    loop {
-        let yaml = current.join("mows-manifest.yaml");
-        let yml = current.join("mows-manifest.yml");
-
-        if yaml.exists() {
-            return Ok(yaml);
-        }
-        if yml.exists() {
-            return Ok(yml);
-        }
-
-        if !current.pop() {
-            break;
-        }
-    }
-
-    Err(MpmError::Manifest("No mows-manifest.yaml found".to_string()))
 }
 
 /// Find the values file in a directory
