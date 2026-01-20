@@ -14,14 +14,22 @@ use crate::template::variables::load_variable_file;
 use crate::tools::{flatten_labels_in_compose, FlattenLabelsError};
 use crate::utils::{detect_yaml_indent, parse_yaml};
 
+/// File permission mode for secrets files: owner read/write only (rw-------).
+/// Prevents world-readable credentials.
+const SECRET_FILE_MODE: u32 = 0o600;
+
+/// Directory permission mode: owner full, group/others read+execute (rwxr-xr-x).
+/// Standard permission for directories that need to be traversable.
+const DIRECTORY_MODE: u32 = 0o755;
+
 /// Write a file with restricted permissions (600 - owner read/write only)
 /// Used for secrets files to prevent world-readable credentials
 pub fn write_secret_file(path: &Path, content: &str) -> Result<()> {
     let mut file = File::create(path)
         .io_context(format!("Failed to create file '{}'", path.display()))?;
 
-    // Set permissions to 600 (rw-------) before writing content
-    let permissions = fs::Permissions::from_mode(0o600);
+    // Set permissions before writing content
+    let permissions = fs::Permissions::from_mode(SECRET_FILE_MODE);
     fs::set_permissions(path, permissions)
         .io_context(format!("Failed to set permissions on '{}'", path.display()))?;
 
@@ -524,10 +532,9 @@ pub fn setup_data_directory(ctx: &RenderContext) -> Result<()> {
             .io_context("Failed to create data directory")?;
     }
 
-    // Set permissions to 755 (rwxr-xr-x) - standard directory permissions
     // Directories need execute bit for users to enter them
-    debug!("Setting data directory permissions to 755");
-    let permissions = fs::Permissions::from_mode(0o755);
+    debug!("Setting data directory permissions");
+    let permissions = fs::Permissions::from_mode(DIRECTORY_MODE);
     fs::set_permissions(&data_dir, permissions)
         .io_context("Failed to set data directory permissions")?;
 
