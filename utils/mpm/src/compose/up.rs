@@ -33,6 +33,10 @@ pub fn compose_up() -> Result<()> {
     // Create render context
     let ctx = RenderContext::new(&base_dir)?;
 
+    // Validate that required provided secrets have values
+    let secrets_path = base_dir.join("provided-secrets.env");
+    super::secrets::validate_provided_secrets(&ctx.manifest, &secrets_path)?;
+
     // Run the render pipeline
     run_render_pipeline(&ctx)?;
 

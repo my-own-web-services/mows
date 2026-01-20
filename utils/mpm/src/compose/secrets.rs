@@ -216,6 +216,106 @@ pub fn load_secrets_as_map(path: &Path) -> Result<HashMap<String, String>> {
     Ok(map)
 }
 
+/// Validate that required provided secrets have values set
+/// Returns an error listing missing required secrets
+pub fn validate_provided_secrets(
+    manifest: &super::manifest::MowsManifest,
+    secrets_path: &Path,
+) -> Result<()> {
+    use crate::error::MpmError;
+
+    let defs = match &manifest.spec.compose {
+        Some(c) => c.provided_secrets.as_ref(),
+        None => return Ok(()),
+    };
+
+    let Some(defs) = defs else { return Ok(()) };
+
+    let existing = load_secrets_as_map(secrets_path)?;
+    let mut missing: Vec<&String> = Vec::new();
+
+    for (name, def) in defs {
+        if !def.optional {
+            let has_value = existing
+                .get(name)
+                .map(|v| !v.trim().is_empty())
+                .unwrap_or(false);
+            let has_default = def
+                .default
+                .as_ref()
+                .map(|d| !d.is_null())
+                .unwrap_or(false);
+
+            if !has_value && !has_default {
+                missing.push(name);
+            }
+        }
+    }
+
+    if !missing.is_empty() {
+        missing.sort();
+        let missing_str: Vec<&str> = missing.iter().map(|s| s.as_str()).collect();
+        return Err(MpmError::Validation(format!(
+            "Missing required secrets: {}.\n\
+             Edit provided-secrets.env at: {}\n\
+             Then run 'mpm compose up' again.",
+            missing_str.join(", "),
+            secrets_path.display()
+        )));
+    }
+
+    Ok(())
+}
+
+/// Format a YAML value for use in an env file
+fn format_yaml_value_for_env(value: &serde_yaml_neo::Value) -> String {
+    match value {
+        serde_yaml_neo::Value::Bool(b) => b.to_string(),
+        serde_yaml_neo::Value::Number(n) => n.to_string(),
+        serde_yaml_neo::Value::String(s) => s.clone(),
+        _ => String::new(),
+    }
+}
+
+/// Generate a provided-secrets.env file from manifest definitions
+pub fn generate_provided_secrets_file(
+    defs: &HashMap<String, super::manifest::ProvidedSecretDef>,
+    output_path: &Path,
+) -> Result<()> {
+    use crate::error::IoResultExt;
+
+    let mut content = String::from("# User-provided secrets\n");
+    content.push_str("# Fill in the required values before running 'mpm compose up'\n\n");
+
+    // Sort keys for deterministic output
+    let mut keys: Vec<&String> = defs.keys().collect();
+    keys.sort();
+
+    for name in keys {
+        let def = &defs[name];
+
+        // Build comment with required/optional status and default value
+        let required_str = if def.optional { "optional" } else { "required" };
+        let default_str = match &def.default {
+            Some(v) if !v.is_null() => format!(", default: {}", format_yaml_value_for_env(v)),
+            _ => String::new(),
+        };
+        content.push_str(&format!("# ({}{})\n", required_str, default_str));
+
+        // Add key with default value if present and not null
+        let value = match &def.default {
+            Some(v) if !v.is_null() => format_yaml_value_for_env(v),
+            _ => String::new(),
+        };
+        content.push_str(&format!("{}={}\n\n", name, value));
+    }
+
+    fs::write(output_path, &content)
+        .io_context(format!("Failed to write {}", output_path.display()))?;
+
+    Ok(())
+}
+
 /// Regenerate secrets (all or specific key)
 /// This works by clearing the value(s) in generated-secrets.env,
 /// then re-running the render pipeline which will regenerate empty values
@@ -686,5 +786,442 @@ COMPLEX="with \"escape\""
         assert_eq!(is_properly_quoted("\"hel\"lo\""), None);
         // But escaped internal quote should be fine
         assert_eq!(is_properly_quoted(r#""hel\"lo""#), Some('"'));
+    }
+
+    // =========================================================================
+    // Provided Secrets Tests - validate_provided_secrets, generate_provided_secrets_file
+    // =========================================================================
+
+    #[test]
+    fn test_generate_provided_secrets_file() {
+        use super::super::manifest::ProvidedSecretDef;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let output_path = dir.path().join("provided-secrets.env");
+
+        let mut defs = HashMap::new();
+        defs.insert(
+            "API_KEY".to_string(),
+            ProvidedSecretDef {
+                default: None,
+                optional: false,
+            },
+        );
+        defs.insert(
+            "SMTP_PORT".to_string(),
+            ProvidedSecretDef {
+                default: Some(serde_yaml_neo::Value::Number(465.into())),
+                optional: false,
+            },
+        );
+        defs.insert(
+            "OPTIONAL_SECRET".to_string(),
+            ProvidedSecretDef {
+                default: Some(serde_yaml_neo::Value::String("default-value".to_string())),
+                optional: true,
+            },
+        );
+
+        generate_provided_secrets_file(&defs, &output_path).unwrap();
+
+        let content = std::fs::read_to_string(&output_path).unwrap();
+
+        // Check header
+        assert!(content.contains("# User-provided secrets"));
+
+        // Check API_KEY (required, no default)
+        assert!(content.contains("# (required)\nAPI_KEY=\n"));
+
+        // Check SMTP_PORT (required, has default)
+        assert!(content.contains("# (required, default: 465)\nSMTP_PORT=465\n"));
+
+        // Check OPTIONAL_SECRET (optional, has default)
+        assert!(content.contains("# (optional, default: default-value)\nOPTIONAL_SECRET=default-value\n"));
+    }
+
+    #[test]
+    fn test_validate_provided_secrets_all_present() {
+        use super::super::manifest::{
+            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+        };
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        let mut secrets_file = NamedTempFile::new().unwrap();
+        write!(secrets_file, "API_KEY=secret123\nSMTP_PORT=587").unwrap();
+        secrets_file.flush().unwrap();
+
+        let mut provided_secrets = HashMap::new();
+        provided_secrets.insert(
+            "API_KEY".to_string(),
+            ProvidedSecretDef {
+                default: None,
+                optional: false,
+            },
+        );
+        provided_secrets.insert(
+            "SMTP_PORT".to_string(),
+            ProvidedSecretDef {
+                default: None,
+                optional: false,
+            },
+        );
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(ComposeConfig {
+                    values_file_path: None,
+                    provided_secrets: Some(provided_secrets),
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        let result = validate_provided_secrets(&manifest, secrets_file.path());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_provided_secrets_missing_required() {
+        use super::super::manifest::{
+            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+        };
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        let mut secrets_file = NamedTempFile::new().unwrap();
+        write!(secrets_file, "SMTP_PORT=587").unwrap(); // API_KEY missing
+        secrets_file.flush().unwrap();
+
+        let mut provided_secrets = HashMap::new();
+        provided_secrets.insert(
+            "API_KEY".to_string(),
+            ProvidedSecretDef {
+                default: None, // No default, required
+                optional: false,
+            },
+        );
+        provided_secrets.insert(
+            "SMTP_PORT".to_string(),
+            ProvidedSecretDef {
+                default: None,
+                optional: false,
+            },
+        );
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(ComposeConfig {
+                    values_file_path: None,
+                    provided_secrets: Some(provided_secrets),
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        let result = validate_provided_secrets(&manifest, secrets_file.path());
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("API_KEY"));
+        assert!(err.contains("Missing required secrets"));
+    }
+
+    #[test]
+    fn test_validate_provided_secrets_with_default() {
+        use super::super::manifest::{
+            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+        };
+        use tempfile::NamedTempFile;
+
+        // Empty secrets file
+        let secrets_file = NamedTempFile::new().unwrap();
+
+        let mut provided_secrets = HashMap::new();
+        provided_secrets.insert(
+            "SMTP_PORT".to_string(),
+            ProvidedSecretDef {
+                default: Some(serde_yaml_neo::Value::Number(465.into())), // Has default
+                optional: false,
+            },
+        );
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(ComposeConfig {
+                    values_file_path: None,
+                    provided_secrets: Some(provided_secrets),
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        // Should pass because the secret has a default value
+        let result = validate_provided_secrets(&manifest, secrets_file.path());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_provided_secrets_optional_missing() {
+        use super::super::manifest::{
+            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+        };
+        use tempfile::NamedTempFile;
+
+        // Empty secrets file
+        let secrets_file = NamedTempFile::new().unwrap();
+
+        let mut provided_secrets = HashMap::new();
+        provided_secrets.insert(
+            "OPTIONAL_KEY".to_string(),
+            ProvidedSecretDef {
+                default: None, // No default
+                optional: true, // But it's optional
+            },
+        );
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(ComposeConfig {
+                    values_file_path: None,
+                    provided_secrets: Some(provided_secrets),
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        // Should pass because the secret is optional
+        let result = validate_provided_secrets(&manifest, secrets_file.path());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_provided_secrets_no_compose_config() {
+        use super::super::manifest::{ManifestMetadata, ManifestSpec, MowsManifest};
+        use tempfile::NamedTempFile;
+
+        let secrets_file = NamedTempFile::new().unwrap();
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec { compose: None },
+        };
+
+        // Should pass - no compose config means no secrets to validate
+        let result = validate_provided_secrets(&manifest, secrets_file.path());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_provided_secrets_no_provided_secrets_field() {
+        use super::super::manifest::{
+            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest,
+        };
+        use tempfile::NamedTempFile;
+
+        let secrets_file = NamedTempFile::new().unwrap();
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(ComposeConfig {
+                    values_file_path: None,
+                    provided_secrets: None, // No providedSecrets field
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        // Should pass - no providedSecrets means nothing to validate
+        let result = validate_provided_secrets(&manifest, secrets_file.path());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_provided_secrets_file_not_exists() {
+        use super::super::manifest::{
+            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+        };
+        use std::path::Path;
+
+        let nonexistent_path = Path::new("/nonexistent/path/secrets.env");
+
+        let mut provided_secrets = HashMap::new();
+        provided_secrets.insert(
+            "API_KEY".to_string(),
+            ProvidedSecretDef {
+                default: Some(serde_yaml_neo::Value::String("default-key".to_string())),
+                optional: false,
+            },
+        );
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(ComposeConfig {
+                    values_file_path: None,
+                    provided_secrets: Some(provided_secrets),
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        // Should pass because the secret has a default value
+        let result = validate_provided_secrets(&manifest, nonexistent_path);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_provided_secrets_file_not_exists_missing_required() {
+        use super::super::manifest::{
+            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+        };
+        use std::path::Path;
+
+        let nonexistent_path = Path::new("/nonexistent/path/secrets.env");
+
+        let mut provided_secrets = HashMap::new();
+        provided_secrets.insert(
+            "API_KEY".to_string(),
+            ProvidedSecretDef {
+                default: None, // No default
+                optional: false,
+            },
+        );
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(ComposeConfig {
+                    values_file_path: None,
+                    provided_secrets: Some(provided_secrets),
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        // Should fail - file doesn't exist and no default
+        let result = validate_provided_secrets(&manifest, nonexistent_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("API_KEY"));
+    }
+
+    #[test]
+    fn test_validate_provided_secrets_empty_value() {
+        use super::super::manifest::{
+            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+        };
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        let mut secrets_file = NamedTempFile::new().unwrap();
+        write!(secrets_file, "API_KEY=   \n").unwrap(); // Whitespace-only value
+        secrets_file.flush().unwrap();
+
+        let mut provided_secrets = HashMap::new();
+        provided_secrets.insert(
+            "API_KEY".to_string(),
+            ProvidedSecretDef {
+                default: None,
+                optional: false,
+            },
+        );
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(ComposeConfig {
+                    values_file_path: None,
+                    provided_secrets: Some(provided_secrets),
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        // Should fail - whitespace-only counts as empty
+        let result = validate_provided_secrets(&manifest, secrets_file.path());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("API_KEY"));
+    }
+
+    #[test]
+    fn test_generate_provided_secrets_file_boolean_default() {
+        use super::super::manifest::ProvidedSecretDef;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let output_path = dir.path().join("provided-secrets.env");
+
+        let mut defs = HashMap::new();
+        defs.insert(
+            "FEATURE_ENABLED".to_string(),
+            ProvidedSecretDef {
+                default: Some(serde_yaml_neo::Value::Bool(true)),
+                optional: false,
+            },
+        );
+        defs.insert(
+            "DEBUG_MODE".to_string(),
+            ProvidedSecretDef {
+                default: Some(serde_yaml_neo::Value::Bool(false)),
+                optional: true,
+            },
+        );
+
+        generate_provided_secrets_file(&defs, &output_path).unwrap();
+
+        let content = std::fs::read_to_string(&output_path).unwrap();
+
+        assert!(content.contains("# (optional, default: false)\nDEBUG_MODE=false\n"));
+        assert!(content.contains("# (required, default: true)\nFEATURE_ENABLED=true\n"));
     }
 }
