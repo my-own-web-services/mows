@@ -5,19 +5,21 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, trace};
 
+use crate::error::{IoResultExt, MpmError, Result};
+
 // Re-export YAML indentation utilities from dedicated module
 pub use crate::yaml_indent::{detect_yaml_indent, yaml_to_4_space_indent, yaml_with_indent};
 
-pub fn find_git_root() -> Result<PathBuf, String> {
+pub fn find_git_root() -> Result<PathBuf> {
     debug!("Finding git repository root");
     let output = Command::new("git")
         .args(["rev-parse", "--show-toplevel"])
         .output()
-        .map_err(|e| format!("Failed to execute git command: {}", e))?;
+        .map_err(|e| MpmError::command("git rev-parse", e.to_string()))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("Not in a git repository: {}", stderr));
+        return Err(MpmError::Git(format!("Not in a git repository: {}", stderr.trim())));
     }
 
     let path_str = String::from_utf8_lossy(&output.stdout);
@@ -27,30 +29,30 @@ pub fn find_git_root() -> Result<PathBuf, String> {
     Ok(path)
 }
 
-pub fn read_input(input: &Option<PathBuf>) -> Result<String, String> {
+pub fn read_input(input: &Option<PathBuf>) -> Result<String> {
     match input {
         Some(path) => {
             trace!("Reading input from file: {}", path.display());
             fs::read_to_string(path)
-                .map_err(|e| format!("Failed to read file '{}': {}", path.display(), e))
+                .io_context(format!("Failed to read file '{}'", path.display()))
         }
         None => {
             trace!("Reading input from stdin");
             let mut buffer = String::new();
             io::stdin()
                 .read_to_string(&mut buffer)
-                .map_err(|e| format!("Failed to read from stdin: {}", e))?;
+                .io_context("Failed to read from stdin")?;
             Ok(buffer)
         }
     }
 }
 
-pub fn write_output(output: &Option<PathBuf>, content: &str) -> Result<(), String> {
+pub fn write_output(output: &Option<PathBuf>, content: &str) -> Result<()> {
     match output {
         Some(path) => {
             trace!("Writing output to file: {}", path.display());
             fs::write(path, content)
-                .map_err(|e| format!("Failed to write to file '{}': {}", path.display(), e))
+                .io_context(format!("Failed to write to file '{}'", path.display()))
         }
         None => {
             trace!("Writing output to stdout");
@@ -65,8 +67,8 @@ pub fn write_output(output: &Option<PathBuf>, content: &str) -> Result<(), Strin
 pub fn parse_yaml<T: serde::de::DeserializeOwned>(
     content: &str,
     path: Option<&Path>,
-) -> Result<T, String> {
-    serde_yaml::from_str(content).map_err(|e| format_yaml_error(content, path, &e))
+) -> Result<T> {
+    serde_yaml::from_str(content).map_err(|e| MpmError::Message(format_yaml_error(content, path, &e)))
 }
 
 /// Extract "while parsing... at line X column Y" from YAML error messages.

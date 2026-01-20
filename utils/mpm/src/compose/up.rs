@@ -2,6 +2,7 @@ use std::fs;
 use std::process::Command;
 use tracing::{debug, info};
 
+use crate::error::{MpmError, Result};
 use super::checks::{
     check_containers_ready, print_check_results, run_and_print_health_checks, run_debug_checks,
 };
@@ -10,41 +11,41 @@ use super::render::{run_render_pipeline, RenderContext};
 use crate::utils::parse_yaml;
 
 /// Check if Docker daemon is available and running
-fn check_docker_available() -> Result<(), String> {
+fn check_docker_available() -> Result<()> {
     // First check if docker command exists
     let output = Command::new("docker")
         .arg("--version")
         .output()
         .map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound {
-                "Docker is not installed or not in PATH. Please install Docker first.".to_string()
+                MpmError::Docker("Docker is not installed or not in PATH. Please install Docker first.".to_string())
             } else {
-                format!("Failed to check Docker version: {}", e)
+                MpmError::command("docker --version", e.to_string())
             }
         })?;
 
     if !output.status.success() {
-        return Err("Docker command failed. Is Docker installed correctly?".to_string());
+        return Err(MpmError::Docker("Docker command failed. Is Docker installed correctly?".to_string()));
     }
 
     // Check if Docker daemon is running by pinging it
     let output = Command::new("docker")
         .args(["info", "--format", "{{.ServerVersion}}"])
         .output()
-        .map_err(|e| format!("Failed to check Docker daemon: {}", e))?;
+        .map_err(|e| MpmError::command("docker info", e.to_string()))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         if stderr.contains("Cannot connect") || stderr.contains("permission denied") {
-            return Err(format!(
+            return Err(MpmError::Docker(format!(
                 r#"Cannot connect to Docker daemon. Is Docker running?
 Try: sudo systemctl start docker
 Or add your user to the docker group: sudo usermod -aG docker $USER
 Error: {}"#,
                 stderr.trim()
-            ));
+            )));
         }
-        return Err(format!("Docker daemon check failed: {}", stderr.trim()));
+        return Err(MpmError::Docker(format!("Docker daemon check failed: {}", stderr.trim())));
     }
 
     let version = String::from_utf8_lossy(&output.stdout);
@@ -54,7 +55,7 @@ Error: {}"#,
 }
 
 /// Run compose up: render templates and run docker compose up
-pub fn compose_up() -> Result<(), String> {
+pub fn compose_up() -> Result<()> {
     let base_dir = find_manifest_dir()?;
 
     info!("Running compose up in: {}", base_dir.display());
@@ -225,7 +226,7 @@ fn get_compose_content(results_dir: &std::path::Path) -> Option<serde_yaml::Valu
 }
 
 /// Execute docker compose up with the project configuration
-fn run_docker_compose_up(ctx: &RenderContext) -> Result<(), String> {
+fn run_docker_compose_up(ctx: &RenderContext) -> Result<()> {
     let project_name = ctx.manifest.project_name();
     let results_dir = ctx.base_dir.join("results");
 
@@ -235,7 +236,7 @@ fn run_docker_compose_up(ctx: &RenderContext) -> Result<(), String> {
     } else if results_dir.join("docker-compose.yml").exists() {
         "docker-compose.yml"
     } else {
-        return Err("No docker-compose.yaml or docker-compose.yml found in results directory".to_string());
+        return Err(MpmError::Docker("No docker-compose.yaml or docker-compose.yml found in results directory".to_string()));
     };
 
     info!(
@@ -277,13 +278,13 @@ fn run_docker_compose_up(ctx: &RenderContext) -> Result<(), String> {
 
     let status = cmd
         .status()
-        .map_err(|e| format!("Failed to execute docker compose: {}", e))?;
+        .map_err(|e| MpmError::command("docker compose up", e.to_string()))?;
 
     if !status.success() {
-        return Err(format!(
+        return Err(MpmError::Docker(format!(
             "docker compose up failed with exit code: {}",
             status.code().unwrap_or(-1)
-        ));
+        )));
     }
 
     info!("Docker compose up completed successfully");

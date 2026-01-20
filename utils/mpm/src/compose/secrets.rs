@@ -3,6 +3,8 @@ use std::fs;
 use std::path::Path;
 use tracing::{debug, trace, warn};
 
+use crate::error::Result;
+
 /// Parse a quoted string value, handling escape sequences
 /// Returns the unquoted value with escapes processed
 fn parse_quoted_value(value: &str, quote_char: char) -> String {
@@ -195,14 +197,16 @@ pub fn merge_generated_secrets(
 }
 
 /// Load secrets from a .env file as a HashMap
-pub fn load_secrets_as_map(path: &Path) -> Result<HashMap<String, String>, String> {
+pub fn load_secrets_as_map(path: &Path) -> Result<HashMap<String, String>> {
+    use crate::error::IoResultExt;
+
     if !path.exists() {
         debug!("Secrets file does not exist: {}", path.display());
         return Ok(HashMap::new());
     }
 
     let content = fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read secrets file '{}': {}", path.display(), e))?;
+        .io_context(format!("Failed to read secrets file '{}'", path.display()))?;
 
     let map = parse_env_file_ordered(&content)
         .into_iter()
@@ -215,7 +219,8 @@ pub fn load_secrets_as_map(path: &Path) -> Result<HashMap<String, String>, Strin
 /// Regenerate secrets (all or specific key)
 /// This works by clearing the value(s) in generated-secrets.env,
 /// then re-running the render pipeline which will regenerate empty values
-pub fn secrets_regenerate(key: Option<&str>) -> Result<(), String> {
+pub fn secrets_regenerate(key: Option<&str>) -> Result<()> {
+    use crate::error::{IoResultExt, MpmError};
     use super::find_manifest_dir;
     use super::render::{render_generated_secrets, write_secret_file, RenderContext};
     use tracing::info;
@@ -225,14 +230,14 @@ pub fn secrets_regenerate(key: Option<&str>) -> Result<(), String> {
     let secrets_path = base_dir.join("results/generated-secrets.env");
 
     if !secrets_path.exists() {
-        return Err(
-            "No generated-secrets.env found. Run 'mpm compose up' first.".to_string()
-        );
+        return Err(MpmError::path(&secrets_path,
+            "No generated-secrets.env found. Run 'mpm compose up' first.",
+        ));
     }
 
     // Read current secrets
     let content = fs::read_to_string(&secrets_path)
-        .map_err(|e| format!("Failed to read secrets file: {}", e))?;
+        .io_context("Failed to read secrets file")?;
 
     let entries = parse_env_file_ordered(&content);
 
@@ -256,9 +261,9 @@ pub fn secrets_regenerate(key: Option<&str>) -> Result<(), String> {
 
     if cleared_count == 0 {
         if let Some(k) = key {
-            return Err(format!("Key '{}' not found in generated-secrets.env", k));
+            return Err(MpmError::Validation(format!("Key '{}' not found in generated-secrets.env", k)));
         }
-        return Err("No keys found in generated-secrets.env".to_string());
+        return Err(MpmError::Validation("No keys found in generated-secrets.env".to_string()));
     }
 
     // Write the cleared content with secure permissions (600)

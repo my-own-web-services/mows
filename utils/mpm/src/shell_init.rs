@@ -6,6 +6,7 @@ use clap::CommandFactory;
 use clap_complete::aot::{generate, Shell};
 
 use crate::cli::Cli;
+use crate::error::Result;
 
 /// Standard completion directories for each shell
 fn get_completion_path(shell: Shell) -> Option<PathBuf> {
@@ -57,7 +58,7 @@ fn generate_completions(shell: Shell) -> Vec<u8> {
 }
 
 /// Output shell completions to stdout
-pub fn shell_init(install: bool) -> Result<(), String> {
+pub fn shell_init(install: bool) -> Result<()> {
     let shell = detect_shell().unwrap_or(Shell::Bash);
 
     if install {
@@ -72,7 +73,7 @@ pub fn shell_init(install: bool) -> Result<(), String> {
 }
 
 /// Install completions to the standard directory for the detected shell
-fn install_completions(shell: Shell) -> Result<(), String> {
+fn install_completions(shell: Shell) -> Result<()> {
     let path = get_completion_path(shell)
         .ok_or_else(|| format!("Unsupported shell for automatic installation: {}", shell))?;
 

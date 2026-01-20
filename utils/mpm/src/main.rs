@@ -5,6 +5,7 @@ compile_error!("mpm only supports Unix-like operating systems (Linux, macOS)");
 
 mod cli;
 mod compose;
+pub mod error;
 mod manpage;
 mod self_update;
 mod shell_init;
@@ -117,12 +118,13 @@ fn main() {
     check_for_updates_background();
 
     if let Err(e) = result {
+        let msg = e.to_string();
         // format_file_error output starts with newline and includes "error:" prefix
         // so don't duplicate it for those errors
-        if e.starts_with('\n') {
-            eprintln!("{}", e);
+        if msg.starts_with('\n') {
+            eprintln!("{}", msg);
         } else {
-            eprintln!("{}: {}", "error".red().bold(), e);
+            eprintln!("{}: {}", "error".red().bold(), msg);
         }
         std::process::exit(1);
     }

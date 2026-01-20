@@ -4,6 +4,7 @@ use std::process::Command;
 use tracing::{debug, info};
 
 use super::config::{MpmConfig, ProjectEntry};
+use crate::error::{IoResultExt, MpmError, Result};
 use crate::utils::find_git_root;
 
 /// Information about a detected Dockerfile
@@ -36,7 +37,7 @@ fn get_git_remote_url() -> Option<String> {
 }
 
 /// Get the git repository name from the current directory
-fn get_git_repo_name() -> Result<String, String> {
+fn get_git_repo_name() -> Result<String> {
     // Try to get the remote URL first
     let output = Command::new("git")
         .args(["remote", "get-url", "origin"])
@@ -56,10 +57,10 @@ fn get_git_repo_name() -> Result<String, String> {
     let output = Command::new("git")
         .args(["rev-parse", "--show-toplevel"])
         .output()
-        .map_err(|e| format!("Failed to get git root: {}", e))?;
+        .map_err(|e| MpmError::command("git rev-parse", e.to_string()))?;
 
     if !output.status.success() {
-        return Err("Not in a git repository".to_string());
+        return Err(MpmError::Git("Not in a git repository".to_string()));
     }
 
     let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -67,7 +68,7 @@ fn get_git_repo_name() -> Result<String, String> {
         .file_name()
         .and_then(|n| n.to_str())
         .map(|s| s.to_string())
-        .ok_or_else(|| "Could not determine repository name".to_string())
+        .ok_or_else(|| MpmError::Git("Could not determine repository name".to_string()))
 }
 
 /// Extract repository name from a git URL
@@ -272,7 +273,7 @@ fn generate_generated_secrets_template() -> &'static str {
 }
 
 /// Initialize a new mpm compose project
-pub fn compose_init(name: Option<&str>) -> Result<(), String> {
+pub fn compose_init(name: Option<&str>) -> Result<()> {
     // Determine project name
     let project_name = match name {
         Some(n) => n.to_string(),
@@ -307,7 +308,7 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
 
     // Check if deployment directory already exists
     if deployment_dir.exists() {
-        return Err("deployment directory already exists".to_string());
+        return Err(MpmError::path(&deployment_dir, "deployment directory already exists"));
     }
 
     let templates_dir = deployment_dir.join("templates");
@@ -316,11 +317,11 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
     let results_dir = deployment_dir.join("results");
 
     fs::create_dir_all(&config_dir)
-        .map_err(|e| format!("Failed to create deployment/templates/config: {}", e))?;
+        .io_context("Failed to create deployment/templates/config")?;
     fs::create_dir_all(&data_dir)
-        .map_err(|e| format!("Failed to create deployment/data: {}", e))?;
+        .io_context("Failed to create deployment/data")?;
     fs::create_dir_all(&results_dir)
-        .map_err(|e| format!("Failed to create deployment/results: {}", e))?;
+        .io_context("Failed to create deployment/results")?;
 
     // Generate and write mows-manifest.yaml
     let manifest_path = deployment_dir.join("mows-manifest.yaml");
@@ -329,7 +330,7 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
             &manifest_path,
             generate_manifest(&project_name, repository_url.as_deref()),
         )
-        .map_err(|e| format!("Failed to write mows-manifest.yaml: {}", e))?;
+        .io_context(format!("Failed to write {}", manifest_path.display()))?;
         info!("Created: {}", manifest_path.display());
     } else {
         debug!("Skipping existing: {}", manifest_path.display());
@@ -339,7 +340,7 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
     let values_path = deployment_dir.join("values.yaml");
     if !values_path.exists() {
         fs::write(&values_path, generate_values(&dockerfiles))
-            .map_err(|e| format!("Failed to write values.yaml: {}", e))?;
+            .io_context(format!("Failed to write {}", values_path.display()))?;
         info!("Created: {}", values_path.display());
     } else {
         debug!("Skipping existing: {}", values_path.display());
@@ -348,12 +349,12 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
     // Create values directory and development.yaml
     let values_dir = deployment_dir.join("values");
     fs::create_dir_all(&values_dir)
-        .map_err(|e| format!("Failed to create deployment/values: {}", e))?;
+        .io_context("Failed to create deployment/values")?;
 
     let dev_values_path = values_dir.join("development.yaml");
     if !dev_values_path.exists() {
         fs::write(&dev_values_path, generate_values(&dockerfiles))
-            .map_err(|e| format!("Failed to write values/development.yaml: {}", e))?;
+            .io_context(format!("Failed to write {}", dev_values_path.display()))?;
         info!("Created: {}", dev_values_path.display());
     } else {
         debug!("Skipping existing: {}", dev_values_path.display());
@@ -363,7 +364,7 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
     let compose_path = templates_dir.join("docker-compose.yaml");
     if !compose_path.exists() {
         fs::write(&compose_path, generate_docker_compose(&dockerfiles))
-            .map_err(|e| format!("Failed to write docker-compose.yaml: {}", e))?;
+            .io_context(format!("Failed to write {}", compose_path.display()))?;
         info!("Created: {}", compose_path.display());
     } else {
         debug!("Skipping existing: {}", compose_path.display());
@@ -373,7 +374,7 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
     let gitignore_path = deployment_dir.join(".gitignore");
     if !gitignore_path.exists() {
         fs::write(&gitignore_path, generate_gitignore())
-            .map_err(|e| format!("Failed to write .gitignore: {}", e))?;
+            .io_context(format!("Failed to write {}", gitignore_path.display()))?;
         info!("Created: {}", gitignore_path.display());
     } else {
         debug!("Skipping existing: {}", gitignore_path.display());
@@ -383,7 +384,7 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
     let provided_secrets_path = deployment_dir.join("provided-secrets.env");
     if !provided_secrets_path.exists() {
         fs::write(&provided_secrets_path, generate_provided_secrets())
-            .map_err(|e| format!("Failed to write provided-secrets.env: {}", e))?;
+            .io_context(format!("Failed to write {}", provided_secrets_path.display()))?;
         info!("Created: {}", provided_secrets_path.display());
     } else {
         debug!("Skipping existing: {}", provided_secrets_path.display());
@@ -393,7 +394,7 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
     let generated_secrets_path = templates_dir.join("generated-secrets.env");
     if !generated_secrets_path.exists() {
         fs::write(&generated_secrets_path, generate_generated_secrets_template())
-            .map_err(|e| format!("Failed to write generated-secrets.env: {}", e))?;
+            .io_context(format!("Failed to write {}", generated_secrets_path.display()))?;
         info!("Created: {}", generated_secrets_path.display());
     } else {
         debug!("Skipping existing: {}", generated_secrets_path.display());
@@ -401,9 +402,8 @@ pub fn compose_init(name: Option<&str>) -> Result<(), String> {
 
     // Register project in global config
     let mut config = MpmConfig::load()?;
-    let repo_path = git_root.canonicalize().map_err(|e| {
-        format!("Failed to get absolute path for repo: {}", e)
-    })?;
+    let repo_path = git_root.canonicalize()
+        .io_context("Failed to get absolute path for repo")?;
     config.upsert_project(ProjectEntry {
         project_name: project_name.clone(),
         instance_name: None,

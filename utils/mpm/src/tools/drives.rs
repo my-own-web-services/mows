@@ -6,6 +6,8 @@ use comfy_table::{presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ContentA
 use serde::Deserialize;
 use tracing::debug;
 
+use crate::error::Result;
+
 /// Result of SMART health check
 #[derive(Debug, Clone)]
 enum SmartResult {
@@ -72,7 +74,7 @@ fn get_smart_health(device: &str) -> SmartResult {
         Err(_) => SmartResult::NotInstalled,
         Ok(o) => {
             let stdout = String::from_utf8_lossy(&o.stdout);
-            let parsed: Result<SmartctlOutput, _> = serde_json::from_str(&stdout);
+            let parsed: std::result::Result<SmartctlOutput, _> = serde_json::from_str(&stdout);
 
             match parsed {
                 Ok(data) => {
@@ -86,7 +88,7 @@ fn get_smart_health(device: &str) -> SmartResult {
                             if msg.string.contains("not support SMART")
                                 || msg.string.contains("Unknown USB bridge")
                             {
-                                return SmartResult::Unknown("n/a".to_string());
+                                return SmartResult::Unknown("n/a".to_string().into());
                             }
                         }
                     }
@@ -98,14 +100,14 @@ fn get_smart_health(device: &str) -> SmartResult {
                             SmartResult::Failed
                         }
                     } else {
-                        SmartResult::Unknown("n/a".to_string())
+                        SmartResult::Unknown("n/a".to_string().into())
                     }
                 }
                 Err(_) => {
                     if stdout.contains("Permission denied") {
                         SmartResult::PermissionDenied
                     } else {
-                        SmartResult::Unknown("n/a".to_string())
+                        SmartResult::Unknown("n/a".to_string().into())
                     }
                 }
             }
@@ -114,14 +116,14 @@ fn get_smart_health(device: &str) -> SmartResult {
 }
 
 /// Get block devices using lsblk
-fn get_block_devices() -> Result<Vec<BlockDevice>, String> {
+fn get_block_devices() -> Result<Vec<BlockDevice>> {
     let output = Command::new("lsblk")
         .args(["--json", "-o", "NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,FSUSE%,MODEL"])
         .output()
         .map_err(|e| format!("Failed to run lsblk: {}", e))?;
 
     if !output.status.success() {
-        return Err("lsblk command failed".to_string());
+        return Err("lsblk command failed".to_string().into());
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -224,7 +226,7 @@ fn add_children_rows(
 }
 
 /// Main drives command
-pub fn drives_command() -> Result<(), String> {
+pub fn drives_command() -> Result<()> {
     debug!("Listing drives with health, size, and partition information");
 
     let devices = get_block_devices()?;

@@ -3,6 +3,7 @@ use std::fs;
 use std::path::Path;
 use tracing::debug;
 
+use crate::error::{IoResultExt, MpmError, Result};
 use crate::utils::parse_yaml;
 
 /// Metadata section of the mows-manifest.yaml
@@ -49,7 +50,7 @@ pub struct MowsManifest {
 impl MowsManifest {
     /// Find and load the manifest from a directory
     /// Checks for mows-manifest.yaml and mows-manifest.yml
-    pub fn load(dir: &Path) -> Result<Self, String> {
+    pub fn load(dir: &Path) -> Result<Self> {
         let candidates = ["mows-manifest.yaml", "mows-manifest.yml"];
 
         for name in candidates {
@@ -57,15 +58,15 @@ impl MowsManifest {
             if path.is_file() {
                 debug!("Loading manifest from: {}", path.display());
                 let content = fs::read_to_string(&path)
-                    .map_err(|e| format!("Failed to read manifest '{}': {}", path.display(), e))?;
+                    .io_context(format!("Failed to read manifest '{}'", path.display()))?;
                 return parse_yaml(&content, Some(&path));
             }
         }
 
-        Err(format!(
+        Err(MpmError::Manifest(format!(
             "No mows-manifest.yaml or mows-manifest.yml found in {}",
             dir.display()
-        ))
+        )))
     }
 
     /// Get the project name from the manifest
@@ -129,7 +130,7 @@ spec:
         let dir = tempdir().unwrap();
         let result = MowsManifest::load(dir.path());
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No mows-manifest.yaml"));
+        assert!(result.unwrap_err().to_string().contains("No mows-manifest.yaml"));
     }
 
     #[test]
@@ -141,7 +142,7 @@ spec:
         println!("Serialized spec:\n{}", yaml);
 
         // Now try to deserialize that back
-        let result: Result<ManifestSpec, _> = serde_yaml::from_str(&yaml);
+        let result: std::result::Result<ManifestSpec, _> = serde_yaml::from_str(&yaml);
         println!("Deserialize own output: {:?}", result);
         assert!(result.is_ok());
         assert!(result.unwrap().compose.is_some());

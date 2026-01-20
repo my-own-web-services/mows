@@ -1,24 +1,25 @@
+use crate::error::{MpmError, Result};
 use super::config::MpmConfig;
 
 /// Navigate to a project directory (prints the path for shell integration)
-pub fn compose_cd(project: &str, instance: Option<&str>) -> Result<(), String> {
+pub fn compose_cd(project: &str, instance: Option<&str>) -> Result<()> {
     let config = MpmConfig::load()?;
 
     // Find matching projects
     let projects = config.find_projects(project);
 
     if projects.is_empty() {
-        return Err(format!(
+        return Err(MpmError::Config(format!(
             r#"No project found with name '{}'
 Use 'mpm compose install' to add a project."#,
             project
-        ));
+        )));
     }
 
     // If instance is specified, find exact match
     if let Some(instance_name) = instance {
         let project_entry = config.find_project(project, Some(instance_name)).ok_or_else(|| {
-            format!(
+            MpmError::Config(format!(
                 r#"No instance '{}' found for project '{}'
 Available instances: {}"#,
                 instance_name,
@@ -29,16 +30,15 @@ Available instances: {}"#,
                     .map(|s| s.as_str())
                     .collect::<Vec<_>>()
                     .join(", ")
-            )
+            ))
         })?;
 
         let manifest_dir = project_entry.manifest_dir();
         if !manifest_dir.exists() {
-            return Err(format!(
-                r#"Project directory no longer exists: {}
+            return Err(MpmError::path(&manifest_dir, format!(
+                r#"Project directory no longer exists
 The project may have been moved or deleted."#,
-                manifest_dir.display()
-            ));
+            )));
         }
 
         println!("{}", manifest_dir.display());
@@ -51,11 +51,10 @@ The project may have been moved or deleted."#,
         let manifest_dir = project_entry.manifest_dir();
 
         if !manifest_dir.exists() {
-            return Err(format!(
-                r#"Project directory no longer exists: {}
+            return Err(MpmError::path(&manifest_dir, format!(
+                r#"Project directory no longer exists
 The project may have been moved or deleted."#,
-                manifest_dir.display()
-            ));
+            )));
         }
 
         println!("{}", manifest_dir.display());
@@ -78,7 +77,7 @@ The project may have been moved or deleted."#,
         ));
     }
 
-    Err(format!(
+    Err(MpmError::Config(format!(
         r#"Multiple instances of '{}' found. Please specify an instance with --instance:
 
 {}
@@ -87,7 +86,7 @@ Example: mpm compose cd {} --instance <name>"#,
         project,
         options.join("\n"),
         project
-    ))
+    )))
 }
 
 #[cfg(test)]

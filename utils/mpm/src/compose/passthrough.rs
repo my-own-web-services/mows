@@ -1,11 +1,12 @@
 use std::process::Command;
 use tracing::{debug, info};
 
+use crate::error::{MpmError, Result};
 use super::find_manifest_dir;
 use super::manifest::MowsManifest;
 
 /// Pass through commands to docker compose with project context
-pub fn compose_passthrough(args: &[String]) -> Result<(), String> {
+pub fn compose_passthrough(args: &[String]) -> Result<()> {
     let base_dir = find_manifest_dir()?;
 
     // Load manifest to get project name
@@ -19,9 +20,9 @@ pub fn compose_passthrough(args: &[String]) -> Result<(), String> {
     } else if results_dir.join("docker-compose.yml").exists() {
         results_dir.join("docker-compose.yml")
     } else {
-        return Err(
+        return Err(MpmError::Docker(
             "No docker-compose.yaml found in results/. Run 'mpm compose up' first.".to_string(),
-        );
+        ));
     };
 
     info!(
@@ -62,13 +63,13 @@ pub fn compose_passthrough(args: &[String]) -> Result<(), String> {
     // Execute with inherited stdio for interactive commands
     let status = cmd
         .status()
-        .map_err(|e| format!("Failed to execute docker compose: {}", e))?;
+        .map_err(|e| MpmError::command("docker compose", e.to_string()))?;
 
     if !status.success() {
-        return Err(format!(
+        return Err(MpmError::Docker(format!(
             "docker compose failed with exit code: {}",
             status.code().unwrap_or(-1)
-        ));
+        )));
     }
 
     Ok(())

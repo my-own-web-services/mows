@@ -2,17 +2,18 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, info};
 
+use crate::error::{IoResultExt, MpmError, Result};
 use super::config::{MpmConfig, ProjectEntry};
 use super::find_manifest_in_repo;
 use super::manifest::MowsManifest;
 
 /// Validate and sanitize a git URL
-fn validate_git_url(url: &str) -> Result<(), String> {
+fn validate_git_url(url: &str) -> Result<()> {
     let url = url.trim();
 
     // Check for empty URL
     if url.is_empty() {
-        return Err("URL cannot be empty".to_string());
+        return Err(MpmError::Validation("URL cannot be empty".to_string()));
     }
 
     // Check for valid URL schemes
@@ -20,39 +21,39 @@ fn validate_git_url(url: &str) -> Result<(), String> {
     let has_valid_scheme = valid_schemes.iter().any(|s| url.starts_with(s));
 
     if !has_valid_scheme {
-        return Err(format!(
+        return Err(MpmError::Validation(format!(
             "Invalid URL scheme. URL must start with one of: {}",
             valid_schemes.join(", ")
-        ));
+        )));
     }
 
     // Reject file:// URLs (security risk)
     if url.starts_with("file://") {
-        return Err("file:// URLs are not supported for security reasons".to_string());
+        return Err(MpmError::Validation("file:// URLs are not supported for security reasons".to_string()));
     }
 
     // Check for shell injection characters
     let dangerous_chars = ['`', '$', '(', ')', ';', '&', '|', '\n', '\r'];
     if url.chars().any(|c| dangerous_chars.contains(&c)) {
-        return Err("URL contains invalid characters".to_string());
+        return Err(MpmError::Validation("URL contains invalid characters".to_string()));
     }
 
     Ok(())
 }
 
 /// Sanitize repository name to prevent path traversal
-fn sanitize_repo_name(name: &str) -> Result<String, String> {
+fn sanitize_repo_name(name: &str) -> Result<String> {
     // Remove any path components
     let name = name.trim();
 
     // Reject empty names
     if name.is_empty() {
-        return Err("Repository name cannot be empty".to_string());
+        return Err(MpmError::Validation("Repository name cannot be empty".to_string()));
     }
 
     // Reject path traversal attempts
     if name.contains("..") || name.starts_with('/') || name.starts_with('\\') {
-        return Err("Invalid repository name: path traversal detected".to_string());
+        return Err(MpmError::Validation("Invalid repository name: path traversal detected".to_string()));
     }
 
     // Only allow safe characters: alphanumeric, dash, underscore, dot
@@ -62,19 +63,19 @@ fn sanitize_repo_name(name: &str) -> Result<String, String> {
         .collect();
 
     if sanitized.is_empty() {
-        return Err("Repository name contains no valid characters".to_string());
+        return Err(MpmError::Validation("Repository name contains no valid characters".to_string()));
     }
 
     // Don't allow names that are just dots
     if sanitized.chars().all(|c| c == '.') {
-        return Err("Invalid repository name".to_string());
+        return Err(MpmError::Validation("Invalid repository name".to_string()));
     }
 
     Ok(sanitized)
 }
 
 /// Install a mpm repo from a URL
-pub fn compose_install(url: &str, target: Option<&Path>) -> Result<(), String> {
+pub fn compose_install(url: &str, target: Option<&Path>) -> Result<()> {
     // Validate URL before doing anything
     validate_git_url(url)?;
 
@@ -90,9 +91,8 @@ pub fn compose_install(url: &str, target: Option<&Path>) -> Result<(), String> {
     let clone_dir = target_dir.join(&repo_name);
 
     if clone_dir.exists() {
-        return Err(format!(
-            "Directory '{}' already exists. Remove it first or choose a different target.",
-            clone_dir.display()
+        return Err(MpmError::path(&clone_dir,
+            "Directory already exists. Remove it first or choose a different target.",
         ));
     }
 
@@ -120,9 +120,8 @@ pub fn compose_install(url: &str, target: Option<&Path>) -> Result<(), String> {
     config.upsert_project(ProjectEntry {
         project_name: project_name.to_string(),
         instance_name: None,
-        repo_path: clone_dir.canonicalize().map_err(|e| {
-            format!("Failed to get absolute path for repo: {}", e)
-        })?,
+        repo_path: clone_dir.canonicalize()
+            .io_context(format!("Failed to get absolute path for repo '{}'", clone_dir.display()))?,
         manifest_path: if relative_manifest_path.as_os_str().is_empty() {
             PathBuf::from(".")
         } else {
@@ -142,7 +141,7 @@ pub fn compose_install(url: &str, target: Option<&Path>) -> Result<(), String> {
 }
 
 /// Extract repository name from URL
-fn extract_repo_name(url: &str) -> Result<String, String> {
+fn extract_repo_name(url: &str) -> Result<String> {
     // Handle various URL formats:
     // https://github.com/user/repo.git
     // git@github.com:user/repo.git
@@ -156,22 +155,22 @@ fn extract_repo_name(url: &str) -> Result<String, String> {
         .or_else(|| url.rsplit(':').next())
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
-        .ok_or_else(|| format!("Could not extract repository name from URL: {}", url))
+        .ok_or_else(|| MpmError::Validation(format!("Could not extract repository name from URL: {}", url)))
 }
 
 /// Clone a repository (keeps .git for updates via git pull)
-fn clone_repo(url: &str, target: &Path) -> Result<(), String> {
+fn clone_repo(url: &str, target: &Path) -> Result<()> {
     debug!("Cloning {} to {}", url, target.display());
 
     let output = Command::new("git")
         .args(["clone", url])
         .arg(target)
         .output()
-        .map_err(|e| format!("Failed to run git clone: {}", e))?;
+        .map_err(|e| MpmError::command("git clone", e.to_string()))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("git clone failed: {}", stderr.trim()));
+        return Err(MpmError::Git(format!("git clone failed: {}", stderr.trim())));
     }
 
     // Disable git hooks to prevent arbitrary code execution from cloned repos

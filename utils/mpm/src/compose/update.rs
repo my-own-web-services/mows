@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, info, warn};
 
+use crate::error::{IoResultExt, MpmError, Result};
 use crate::utils::{detect_yaml_indent, yaml_with_indent};
 use super::config::MpmConfig;
 use super::find_manifest_dir;
@@ -21,12 +22,12 @@ struct UpdateBackup {
 
 impl UpdateBackup {
     /// Restore from backup on failure
-    fn restore(self) -> Result<(), String> {
+    fn restore(self) -> Result<()> {
         warn!("Update failed, restoring previous state...");
 
         // Restore values file
         fs::write(&self.values_path, &self.values_content)
-            .map_err(|e| format!("Failed to restore values file: {}", e))?;
+            .io_context("Failed to restore values file")?;
 
         // Restore secrets if they existed
         if let Some(secrets) = self.generated_secrets {
@@ -48,7 +49,7 @@ impl UpdateBackup {
 }
 
 /// Update the repository and merge values
-pub fn compose_update() -> Result<(), String> {
+pub fn compose_update() -> Result<()> {
     let base_dir = find_manifest_dir()?;
 
     info!("Updating project in: {}", base_dir.display());
@@ -88,10 +89,10 @@ pub fn compose_update() -> Result<(), String> {
         Err(e) => {
             // Attempt rollback
             if let Err(restore_err) = backup.restore() {
-                return Err(format!(
+                return Err(MpmError::Message(format!(
                     "Update failed: {}\nAdditionally, failed to restore previous state: {}",
                     e, restore_err
-                ));
+                )));
             }
             Err(e)
         }
@@ -104,7 +105,7 @@ fn do_update(
     repo_root: &Path,
     current_manifest_dir: &Path,
     values_backup: &str,
-) -> Result<(), String> {
+) -> Result<()> {
     // Pull latest changes
     git_pull(repo_root)?;
 
@@ -134,18 +135,18 @@ fn do_update(
     // Merge values.yaml
     let new_values_path = find_values_file(new_manifest_dir, &manifest)?;
     let new_values_content = fs::read_to_string(&new_values_path)
-        .map_err(|e| format!("Failed to read new values file: {}", e))?;
+        .io_context(format!("Failed to read new values file '{}'", new_values_path.display()))?;
 
     let merged_values = merge_values(&values_backup, &new_values_content)?;
     fs::write(&new_values_path, &merged_values)
-        .map_err(|e| format!("Failed to write merged values: {}", e))?;
+        .io_context(format!("Failed to write merged values to '{}'", new_values_path.display()))?;
     info!("Merged values.yaml");
 
     // If manifest moved, copy secrets to new location
     if manifest_moved {
         let new_results_dir = new_manifest_dir.join("results");
         fs::create_dir_all(&new_results_dir)
-            .map_err(|e| format!("Failed to create results directory: {}", e))?;
+            .io_context(format!("Failed to create results directory '{}'", new_results_dir.display()))?;
 
         // Re-read secrets from current location (they were backed up before git pull)
         let generated_secrets = backup_file(
@@ -157,14 +158,14 @@ fn do_update(
         if let Some(ref secrets) = generated_secrets {
             let dest = new_results_dir.join("generated-secrets.env");
             fs::write(&dest, secrets)
-                .map_err(|e| format!("Failed to copy generated-secrets.env: {}", e))?;
+                .io_context("Failed to copy generated-secrets.env")?;
             info!("Copied generated-secrets.env to new location");
         }
 
         if let Some(ref secrets) = provided_secrets {
             let dest = new_manifest_dir.join("provided-secrets.env");
             fs::write(&dest, secrets)
-                .map_err(|e| format!("Failed to copy provided-secrets.env: {}", e))?;
+                .io_context("Failed to copy provided-secrets.env")?;
             info!("Copied provided-secrets.env to new location");
         }
 
@@ -175,7 +176,7 @@ fn do_update(
             // Create symlink to old data directory to preserve data
             info!("Creating symlink to preserve data directory");
             std::os::unix::fs::symlink(&old_data_dir, &new_data_dir)
-                .map_err(|e| format!("Failed to link data directory: {}", e))?;
+                .io_context("Failed to link data directory")?;
         }
 
         // Update global config with new path
@@ -202,7 +203,7 @@ fn do_update(
 }
 
 /// Find the repository root by looking for .git directory
-fn find_repo_root(start: &Path) -> Result<PathBuf, String> {
+fn find_repo_root(start: &Path) -> Result<PathBuf> {
     let mut current = start.to_path_buf();
 
     loop {
@@ -211,7 +212,7 @@ fn find_repo_root(start: &Path) -> Result<PathBuf, String> {
         }
 
         if !current.pop() {
-            return Err("Not in a git repository".to_string());
+            return Err(MpmError::Git("Not in a git repository".to_string()));
         }
     }
 }
@@ -223,7 +224,7 @@ fn find_repo_root(start: &Path) -> Result<PathBuf, String> {
 /// in parent directories, which is needed for update operations where we start from
 /// a subdirectory and need to find the manifest above us. It also returns the file
 /// path (not directory) which is required for tracking manifest moves during updates.
-fn find_manifest(start: &Path) -> Result<PathBuf, String> {
+fn find_manifest(start: &Path) -> Result<PathBuf> {
     let mut current = start.to_path_buf();
 
     loop {
@@ -242,11 +243,11 @@ fn find_manifest(start: &Path) -> Result<PathBuf, String> {
         }
     }
 
-    Err("No mows-manifest.yaml found".to_string())
+    Err(MpmError::Manifest("No mows-manifest.yaml found".to_string()))
 }
 
 /// Find the values file in a directory
-fn find_values_file(dir: &Path, manifest: &MowsManifest) -> Result<PathBuf, String> {
+fn find_values_file(dir: &Path, manifest: &MowsManifest) -> Result<PathBuf> {
     // Check if custom values file path is specified in manifest
     if let Some(compose_config) = &manifest.spec.compose {
         if let Some(custom_path) = &compose_config.values_file_path {
@@ -254,10 +255,7 @@ fn find_values_file(dir: &Path, manifest: &MowsManifest) -> Result<PathBuf, Stri
             if path.exists() {
                 return Ok(path);
             }
-            return Err(format!(
-                "Custom values file not found: {}",
-                path.display()
-            ));
+            return Err(MpmError::path(&path, "Custom values file not found"));
         }
     }
 
@@ -268,32 +266,32 @@ fn find_values_file(dir: &Path, manifest: &MowsManifest) -> Result<PathBuf, Stri
             return Ok(path);
         }
     }
-    Err(format!("No values file found in {}", dir.display()))
+    Err(MpmError::path(dir, "No values file found"))
 }
 
 /// Backup a file's content
-fn backup_file(dir: &Path, name: &str) -> Result<String, String> {
+fn backup_file(dir: &Path, name: &str) -> Result<String> {
     let path = dir.join(name);
     fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to backup {}: {}", name, e))
+        .io_context(format!("Failed to backup {}", name))
 }
 
 /// Pull latest changes from git
-fn git_pull(repo_root: &Path) -> Result<(), String> {
+fn git_pull(repo_root: &Path) -> Result<()> {
     info!("Pulling latest changes...");
 
     let output = Command::new("git")
         .args(["pull", "--ff-only"])
         .current_dir(repo_root)
         .output()
-        .map_err(|e| format!("Failed to run git pull: {}", e))?;
+        .map_err(|e| MpmError::command("git pull", e.to_string()))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!(
+        return Err(MpmError::Git(format!(
             "git pull failed: {}\nTry resolving conflicts manually.",
             stderr.trim()
-        ));
+        )));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -303,14 +301,14 @@ fn git_pull(repo_root: &Path) -> Result<(), String> {
 }
 
 /// Merge values: keep existing keys, add new ones, comment out removed ones
-fn merge_values(old_content: &str, new_content: &str) -> Result<String, String> {
+fn merge_values(old_content: &str, new_content: &str) -> Result<String> {
     // Detect indentation from the existing file, default to 4 spaces
     let indent = detect_yaml_indent(old_content).unwrap_or(4);
 
     let old_value: serde_yaml::Value = serde_yaml::from_str(old_content)
-        .map_err(|e| format!("Failed to parse old values: {}", e))?;
+        .map_err(|e| MpmError::yaml_parse("old values", e))?;
     let new_value: serde_yaml::Value = serde_yaml::from_str(new_content)
-        .map_err(|e| format!("Failed to parse new values: {}", e))?;
+        .map_err(|e| MpmError::yaml_parse("new values", e))?;
 
     // Collect all keys from both files
     let old_keys = collect_keys(&old_value, "");
@@ -323,8 +321,7 @@ fn merge_values(old_content: &str, new_content: &str) -> Result<String, String> 
     let merged = merge_yaml_values(new_value, old_value.clone());
 
     // Serialize with proper indentation
-    let yaml = serde_yaml::to_string(&merged)
-        .map_err(|e| format!("Failed to serialize merged values: {}", e))?;
+    let yaml = serde_yaml::to_string(&merged)?;
     let mut output = yaml_with_indent(&yaml, indent);
 
     // Add deprecated keys as comments at the end

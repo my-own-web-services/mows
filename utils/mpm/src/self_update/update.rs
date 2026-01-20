@@ -10,6 +10,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
+use crate::error::{MpmError, Result};
+
 const GITHUB_API_URL: &str = "https://api.github.com/repos/my-own-web-services/mows/releases";
 const GITHUB_RELEASES_URL: &str = "https://github.com/my-own-web-services/mows/releases/download";
 const REPO_URL: &str = "https://github.com/my-own-web-services/mows.git";
@@ -26,16 +28,16 @@ const VERSION_CHECK_TIMEOUT_SECS: u64 = 1;
 /// Move a file, falling back to copy+delete if rename fails with cross-device error.
 /// This handles the case where source and destination are on different filesystems
 /// (e.g., /tmp is tmpfs while target is on a real disk).
-fn move_file(src: &Path, dst: &Path) -> Result<(), String> {
+fn move_file(src: &Path, dst: &Path) -> Result<()> {
     match fs::rename(src, dst) {
         Ok(()) => Ok(()),
         Err(e) if e.raw_os_error() == Some(libc::EXDEV) => {
             // Cross-device link error - fall back to copy + delete
-            fs::copy(src, dst).map_err(|e| format!("Failed to copy file: {}", e))?;
-            fs::remove_file(src).map_err(|e| format!("Failed to remove source file: {}", e))?;
+            fs::copy(src, dst).map_err(|e| MpmError::Message(format!("Failed to copy file: {}", e)))?;
+            fs::remove_file(src).map_err(|e| MpmError::Message(format!("Failed to remove source file: {}", e)))?;
             Ok(())
         }
-        Err(e) => Err(format!("Failed to move file: {}", e)),
+        Err(e) => Err(MpmError::Message(format!("Failed to move file: {}", e))),
     }
 }
 
@@ -46,73 +48,73 @@ struct GithubRelease {
 }
 
 /// Create an HTTP client with appropriate timeouts and headers for downloads
-fn create_http_client() -> Result<Client, String> {
+fn create_http_client() -> Result<Client> {
     Client::builder()
         .timeout(Duration::from_secs(HTTP_TIMEOUT_SECS))
         .connect_timeout(Duration::from_secs(10))
         .user_agent(format!("mpm/{}", env!("CARGO_PKG_VERSION")))
         .build()
-        .map_err(|e| format!("Failed to create HTTP client: {}", e))
+        .map_err(|e| MpmError::Message(format!("Failed to create HTTP client: {}", e)))
 }
 
 /// Create an HTTP client with short timeout for background version checking
-fn create_version_check_client() -> Result<Client, String> {
+fn create_version_check_client() -> Result<Client> {
     Client::builder()
         .timeout(Duration::from_secs(VERSION_CHECK_TIMEOUT_SECS))
         .connect_timeout(Duration::from_secs(VERSION_CHECK_TIMEOUT_SECS))
         .user_agent(format!("mpm/{}", env!("CARGO_PKG_VERSION")))
         .build()
-        .map_err(|e| format!("Failed to create HTTP client: {}", e))
+        .map_err(|e| MpmError::Message(format!("Failed to create HTTP client: {}", e)))
 }
 
 /// Get the current architecture string for binary naming
-fn get_arch() -> Result<&'static str, String> {
+fn get_arch() -> Result<&'static str> {
     match std::env::consts::ARCH {
         "x86_64" => Ok("amd64"),
         "aarch64" => Ok("arm64"),
-        arch => Err(format!("Unsupported architecture: {}", arch)),
+        arch => Err(MpmError::Message(format!("Unsupported architecture: {}", arch))),
     }
 }
 
 /// Get the current OS string for binary naming
-fn get_os() -> Result<&'static str, String> {
+fn get_os() -> Result<&'static str> {
     match std::env::consts::OS {
         "linux" => Ok("linux"),
         "macos" => Ok("darwin"),
-        os => Err(format!("Unsupported operating system: {}", os)),
+        os => Err(MpmError::Message(format!("Unsupported operating system: {}", os))),
     }
 }
 
 /// Fetch the latest mpm release version from GitHub API
-fn fetch_latest_version() -> Result<String, String> {
+fn fetch_latest_version() -> Result<String> {
     fetch_latest_version_with_client(create_http_client()?)
 }
 
 /// Fetch the latest version using a short timeout (for background checks)
-fn fetch_latest_version_fast() -> Result<String, String> {
+fn fetch_latest_version_fast() -> Result<String> {
     fetch_latest_version_with_client(create_version_check_client()?)
 }
 
 /// Fetch the latest mpm release version using the provided HTTP client
-fn fetch_latest_version_with_client(client: Client) -> Result<String, String> {
+fn fetch_latest_version_with_client(client: Client) -> Result<String> {
     let url = format!("{}/latest", GITHUB_API_URL);
 
     let response = client
         .get(&url)
         .header("Accept", "application/vnd.github+json")
         .send()
-        .map_err(|e| format!("Failed to fetch latest release: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to fetch latest release: {}", e)))?;
 
     if !response.status().is_success() {
-        return Err(format!(
+        return Err(MpmError::Message(format!(
             "Failed to fetch latest release: HTTP {}",
             response.status()
-        ));
+        )));
     }
 
     let release: GithubRelease = response
         .json()
-        .map_err(|e| format!("Failed to parse GitHub API response: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to parse GitHub API response: {}", e)))?;
 
     // Extract version from tag like "mpm-v0.2.0"
     release
@@ -120,15 +122,15 @@ fn fetch_latest_version_with_client(client: Client) -> Result<String, String> {
         .strip_prefix("mpm-v")
         .map(|v| v.to_string())
         .ok_or_else(|| {
-            format!(
+            MpmError::Message(format!(
                 "Unexpected tag format: {} (expected mpm-vX.Y.Z)",
                 release.tag_name
-            )
+            ))
         })
 }
 
 /// Fetch release info for a specific version or latest
-fn fetch_release_info(version: Option<&str>) -> Result<(String, String), String> {
+fn fetch_release_info(version: Option<&str>) -> Result<(String, String)> {
     let version = match version {
         Some(v) => v.to_string(),
         None => fetch_latest_version()?,
@@ -144,38 +146,38 @@ fn fetch_release_info(version: Option<&str>) -> Result<(String, String), String>
 }
 
 /// Download a file from URL to a path
-fn download_file(url: &str, dest: &Path) -> Result<(), String> {
+fn download_file(url: &str, dest: &Path) -> Result<()> {
     let client = create_http_client()?;
 
     let response = client
         .get(url)
         .send()
-        .map_err(|e| format!("Failed to download {}: {}", url, e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to download {}: {}", url, e)))?;
 
     if !response.status().is_success() {
-        return Err(format!(
+        return Err(MpmError::Message(format!(
             "Failed to download {}: HTTP {}",
             url,
             response.status()
-        ));
+        )));
     }
 
     let bytes = response
         .bytes()
-        .map_err(|e| format!("Failed to read response body: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to read response body: {}", e)))?;
 
     let mut file =
-        File::create(dest).map_err(|e| format!("Failed to create file {}: {}", dest.display(), e))?;
+        File::create(dest).map_err(|e| MpmError::Message(format!("Failed to create file {}: {}", dest.display(), e)))?;
 
     file.write_all(&bytes)
-        .map_err(|e| format!("Failed to write file {}: {}", dest.display(), e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to write file {}: {}", dest.display(), e)))?;
 
     Ok(())
 }
 
 /// Calculate SHA256 checksum of a file
-fn calculate_checksum(path: &Path) -> Result<String, String> {
-    let mut file = File::open(path).map_err(|e| format!("Failed to open file: {}", e))?;
+fn calculate_checksum(path: &Path) -> Result<String> {
+    let mut file = File::open(path).map_err(|e| MpmError::Message(format!("Failed to open file: {}", e)))?;
 
     let mut hasher = Sha256::new();
     let mut buffer = [0u8; 8192];
@@ -183,7 +185,7 @@ fn calculate_checksum(path: &Path) -> Result<String, String> {
     loop {
         let bytes_read = file
             .read(&mut buffer)
-            .map_err(|e| format!("Failed to read file: {}", e))?;
+            .map_err(|e| MpmError::Message(format!("Failed to read file: {}", e)))?;
         if bytes_read == 0 {
             break;
         }
@@ -194,19 +196,19 @@ fn calculate_checksum(path: &Path) -> Result<String, String> {
 }
 
 /// Verify the checksum of a downloaded binary
-fn verify_checksum(binary_path: &Path, checksum_url: &str) -> Result<(), String> {
+fn verify_checksum(binary_path: &Path, checksum_url: &str) -> Result<()> {
     let checksum_path = binary_path.with_extension("checksum");
 
     download_file(checksum_url, &checksum_path)?;
 
     // Read expected checksum from file (format: "hash  filename")
     let checksum_content =
-        fs::read_to_string(&checksum_path).map_err(|e| format!("Failed to read checksum file: {}", e))?;
+        fs::read_to_string(&checksum_path).map_err(|e| MpmError::Message(format!("Failed to read checksum file: {}", e)))?;
 
     let expected_checksum = checksum_content
         .split_whitespace()
         .next()
-        .ok_or("Invalid checksum file format")?
+        .ok_or_else(|| MpmError::Message("Invalid checksum file format".to_string()))?
         .to_lowercase();
 
     // Clean up checksum file
@@ -216,53 +218,53 @@ fn verify_checksum(binary_path: &Path, checksum_url: &str) -> Result<(), String>
     let actual_checksum = calculate_checksum(binary_path)?;
 
     if actual_checksum != expected_checksum {
-        return Err(format!(
+        return Err(MpmError::Message(format!(
             r#"Checksum verification failed!
 Expected: {}
 Actual:   {}"#,
             expected_checksum, actual_checksum
-        ));
+        )));
     }
 
     Ok(())
 }
 
 /// Get the path to the currently running binary
-fn get_current_binary_path() -> Result<PathBuf, String> {
-    env::current_exe().map_err(|e| format!("Failed to get current executable path: {}", e))
+fn get_current_binary_path() -> Result<PathBuf> {
+    env::current_exe().map_err(|e| MpmError::Message(format!("Failed to get current executable path: {}", e)))
 }
 
 /// Replace the current binary with the new one
-fn replace_binary(new_binary: &Path, current_binary: &Path) -> Result<(), String> {
+fn replace_binary(new_binary: &Path, current_binary: &Path) -> Result<()> {
     // Create backup of current binary
     let backup_path = current_binary.with_extension("backup");
 
     // Copy current binary to backup (in case we need to restore)
     fs::copy(current_binary, &backup_path)
-        .map_err(|e| format!("Failed to create backup of current binary: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to create backup of current binary: {}", e)))?;
 
     // Try to replace the binary
-    let result = (|| -> Result<(), String> {
+    let result = (|| -> Result<()> {
         // Remove the current binary
         fs::remove_file(current_binary)
-            .map_err(|e| format!("Failed to remove current binary: {}", e))?;
+            .map_err(|e| MpmError::Message(format!("Failed to remove current binary: {}", e)))?;
 
         // Move new binary into place (handles cross-device link errors)
         move_file(new_binary, current_binary)?;
 
         // Set executable permissions
         let mut perms = fs::metadata(current_binary)
-            .map_err(|e| format!("Failed to get binary metadata: {}", e))?
+            .map_err(|e| MpmError::Message(format!("Failed to get binary metadata: {}", e)))?
             .permissions();
         perms.set_mode(0o755);
         fs::set_permissions(current_binary, perms)
-            .map_err(|e| format!("Failed to set binary permissions: {}", e))?;
+            .map_err(|e| MpmError::Message(format!("Failed to set binary permissions: {}", e)))?;
 
         Ok(())
     })();
 
     // If replacement failed, try to restore backup
-    if let Err(e) = &result {
+    if let Err(e) = result {
         eprintln!("Update failed, attempting to restore backup...");
         if let Err(restore_err) = move_file(&backup_path, current_binary) {
             eprintln!(
@@ -271,7 +273,7 @@ fn replace_binary(new_binary: &Path, current_binary: &Path) -> Result<(), String
                 backup_path.display()
             );
         }
-        return Err(e.clone());
+        return Err(e);
     }
 
     // Clean up backup on success
@@ -281,7 +283,7 @@ fn replace_binary(new_binary: &Path, current_binary: &Path) -> Result<(), String
 }
 
 /// Download and verify the latest binary release
-pub fn update_from_binary(version: Option<&str>) -> Result<(), String> {
+pub fn update_from_binary(version: Option<&str>) -> Result<()> {
     let current_version = env!("CARGO_PKG_VERSION");
     let (new_version, download_url) = fetch_release_info(version)?;
 
@@ -315,7 +317,7 @@ pub fn update_from_binary(version: Option<&str>) -> Result<(), String> {
 
     // Create temp directory for download
     let temp_dir =
-        tempfile::tempdir().map_err(|e| format!("Failed to create temp directory: {}", e))?;
+        tempfile::tempdir().map_err(|e| MpmError::Message(format!("Failed to create temp directory: {}", e)))?;
     let temp_binary = temp_dir.path().join("mpm-new");
 
     // Download the binary
@@ -335,10 +337,10 @@ pub fn update_from_binary(version: Option<&str>) -> Result<(), String> {
             .map(|m| m.permissions().readonly())
             .unwrap_or(true)
         {
-            return Err(format!(
+            return Err(MpmError::Message(format!(
                 "Cannot update: no write permission to {}. Try running with sudo.",
                 parent.display()
-            ));
+            )));
         }
     }
 
@@ -366,7 +368,7 @@ pub fn update_from_binary(version: Option<&str>) -> Result<(), String> {
 }
 
 /// Clone repository, verify SSH signature, and build from source
-pub fn update_from_source(version: Option<&str>) -> Result<(), String> {
+pub fn update_from_source(version: Option<&str>) -> Result<()> {
     // Check required dependencies
     check_dependencies()?;
 
@@ -374,24 +376,24 @@ pub fn update_from_source(version: Option<&str>) -> Result<(), String> {
 
     // Create temp directory for the clone
     let temp_dir =
-        tempfile::tempdir().map_err(|e| format!("Failed to create temp directory: {}", e))?;
+        tempfile::tempdir().map_err(|e| MpmError::Message(format!("Failed to create temp directory: {}", e)))?;
     let repo_path = temp_dir.path().join("mows");
 
     // Clone the repository
     println!("Cloning repository...");
     let repo_path_str = repo_path
         .to_str()
-        .ok_or_else(|| "Invalid path: contains non-UTF8 characters".to_string())?;
+        .ok_or_else(|| MpmError::Message("Invalid path: contains non-UTF8 characters".to_string()))?;
 
     let output = Command::new("git")
         .args(["clone", "--depth", "100", REPO_URL, repo_path_str])
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .output()
-        .map_err(|e| format!("Failed to clone repository: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to clone repository: {}", e)))?;
 
     if !output.status.success() {
-        return Err("Failed to clone repository".to_string());
+        return Err(MpmError::Message("Failed to clone repository".to_string()));
     }
 
     // Determine which tag to use
@@ -404,11 +406,11 @@ pub fn update_from_source(version: Option<&str>) -> Result<(), String> {
             .args(["tag", "-l", &tag])
             .current_dir(&repo_path)
             .output()
-            .map_err(|e| format!("Failed to list tags: {}", e))?;
+            .map_err(|e| MpmError::Message(format!("Failed to list tags: {}", e)))?;
 
         let tags = String::from_utf8_lossy(&output.stdout);
         if tags.trim().is_empty() {
-            return Err(format!("Version {} not found (tag {} does not exist)", v, tag));
+            return Err(MpmError::Message(format!("Version {} not found (tag {} does not exist)", v, tag)));
         }
 
         tag
@@ -418,12 +420,12 @@ pub fn update_from_source(version: Option<&str>) -> Result<(), String> {
             .args(["tag", "-l", "mpm-v*", "--sort=-v:refname"])
             .current_dir(&repo_path)
             .output()
-            .map_err(|e| format!("Failed to list tags: {}", e))?;
+            .map_err(|e| MpmError::Message(format!("Failed to list tags: {}", e)))?;
 
         let tags = String::from_utf8_lossy(&output.stdout);
         tags.lines()
             .next()
-            .ok_or("No mpm release tags found in repository")?
+            .ok_or_else(|| MpmError::Message("No mpm release tags found in repository".to_string()))?
             .to_string()
     };
 
@@ -438,14 +440,14 @@ pub fn update_from_source(version: Option<&str>) -> Result<(), String> {
         .args(["checkout", &target_tag])
         .current_dir(&repo_path)
         .output()
-        .map_err(|e| format!("Failed to checkout tag: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to checkout tag: {}", e)))?;
 
     if !output.status.success() {
-        return Err(format!(
+        return Err(MpmError::Message(format!(
             "Failed to checkout tag {}: {}",
             target_tag,
             String::from_utf8_lossy(&output.stderr)
-        ));
+        )));
     }
 
     // Build using Docker
@@ -457,16 +459,16 @@ pub fn update_from_source(version: Option<&str>) -> Result<(), String> {
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .output()
-        .map_err(|e| format!("Failed to run build script: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to run build script: {}", e)))?;
 
     if !output.status.success() {
-        return Err("Build failed".to_string());
+        return Err(MpmError::Message("Build failed".to_string()));
     }
 
     // Get the built binary
     let new_binary = mpm_dir.join("dist/mpm");
     if !new_binary.exists() {
-        return Err("Build completed but binary not found at dist/mpm".to_string());
+        return Err(MpmError::Message("Build completed but binary not found at dist/mpm".to_string()));
     }
 
     // Get current binary path
@@ -485,10 +487,10 @@ pub fn update_from_source(version: Option<&str>) -> Result<(), String> {
             .map(|m| m.permissions().readonly())
             .unwrap_or(true)
         {
-            return Err(format!(
+            return Err(MpmError::Message(format!(
                 "Cannot update: no write permission to {}. Try running with sudo.",
                 parent.display()
-            ));
+            )));
         }
     }
 
@@ -516,18 +518,18 @@ pub fn update_from_source(version: Option<&str>) -> Result<(), String> {
 }
 
 /// Check that required dependencies (git, docker) are available
-fn check_dependencies() -> Result<(), String> {
+fn check_dependencies() -> Result<()> {
     // Check git
     Command::new("git")
         .arg("--version")
         .output()
-        .map_err(|_| "git is not installed or not in PATH")?;
+        .map_err(|_| MpmError::Message("git is not installed or not in PATH".to_string()))?;
 
     // Check docker
     Command::new("docker")
         .arg("--version")
         .output()
-        .map_err(|_| "docker is not installed or not in PATH")?;
+        .map_err(|_| MpmError::Message("docker is not installed or not in PATH".to_string()))?;
 
     // Check docker is running
     let output = Command::new("docker")
@@ -535,22 +537,22 @@ fn check_dependencies() -> Result<(), String> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
-        .map_err(|_| "docker is not running")?;
+        .map_err(|_| MpmError::Message("docker is not running".to_string()))?;
 
     if !output.success() {
-        return Err("docker daemon is not running".to_string());
+        return Err(MpmError::Message("docker daemon is not running".to_string()));
     }
 
     Ok(())
 }
 
 /// Verify SSH signature on a git tag using the hardcoded trusted key
-fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
+fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<()> {
     use std::io::Write;
 
     // Create a temporary allowed_signers file with our trusted key
     let temp_dir =
-        tempfile::tempdir().map_err(|e| format!("Failed to create temp directory: {}", e))?;
+        tempfile::tempdir().map_err(|e| MpmError::Message(format!("Failed to create temp directory: {}", e)))?;
     let allowed_signers_path = temp_dir.path().join("allowed_signers");
 
     // Format: <principal> <key-type> <key>
@@ -558,9 +560,9 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
     let allowed_signers_content = format!("* {}\n", TRUSTED_SSH_KEY);
 
     let mut file = File::create(&allowed_signers_path)
-        .map_err(|e| format!("Failed to create allowed_signers file: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to create allowed_signers file: {}", e)))?;
     file.write_all(allowed_signers_content.as_bytes())
-        .map_err(|e| format!("Failed to write allowed_signers file: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to write allowed_signers file: {}", e)))?;
 
     // Configure git to use our allowed_signers file for this verification
     let output = Command::new("git")
@@ -576,7 +578,7 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
         ])
         .current_dir(repo_path)
         .output()
-        .map_err(|e| format!("Failed to verify tag signature: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to verify tag signature: {}", e)))?;
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -584,24 +586,24 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
     if !output.status.success() {
         // Check if it's because the tag isn't signed
         if stderr.contains("error: no signature found") || stderr.contains("no signature") {
-            return Err(format!(
+            return Err(MpmError::Message(format!(
                 "Tag {} is not signed. Cannot verify authenticity.",
                 tag
-            ));
+            )));
         }
         // Check for SSH signature format issues
         if stderr.contains("Bad signature") || stderr.contains("Could not verify signature") {
-            return Err(format!(
+            return Err(MpmError::Message(format!(
                 "SSH signature verification failed. The tag may have been signed with a different key.\n{}",
                 stderr
-            ));
+            )));
         }
-        return Err(format!(
+        return Err(MpmError::Message(format!(
             r#"Signature verification failed:
 {}
 {}"#,
             stdout, stderr
-        ));
+        )));
     }
 
     // Verify the signature was actually validated with our trusted key.
@@ -612,12 +614,12 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
     let has_good_signature = combined_output.contains(r#"Good "git" signature for"#)
         || combined_output.contains("Good signature from");
     if !has_good_signature {
-        return Err(format!(
+        return Err(MpmError::Message(format!(
             r#"Signature verification did not confirm a good signature:
 {}
 {}"#,
             stdout, stderr
-        ));
+        )));
     }
 
     println!("SSH signature verified successfully.");
@@ -625,16 +627,16 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<(), String> {
 }
 
 /// Compute SHA256 hash of the currently running binary
-fn get_self_hash() -> Result<String, String> {
+fn get_self_hash() -> Result<String> {
     let binary_path = get_current_binary_path()?;
     let mut file = File::open(&binary_path)
-        .map_err(|e| format!("Failed to open binary: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to open binary: {}", e)))?;
 
     let mut hasher = Sha256::new();
     let mut buffer = [0u8; 8192];
     loop {
         let bytes_read = file.read(&mut buffer)
-            .map_err(|e| format!("Failed to read binary: {}", e))?;
+            .map_err(|e| MpmError::Message(format!("Failed to read binary: {}", e)))?;
         if bytes_read == 0 {
             break;
         }
@@ -646,7 +648,7 @@ fn get_self_hash() -> Result<String, String> {
 }
 
 /// Fetch expected checksum from GitHub releases for verification
-fn fetch_expected_checksum(version: &str) -> Result<String, String> {
+fn fetch_expected_checksum(version: &str) -> Result<String> {
     let arch = get_arch()?;
     let os = get_os()?;
     let checksum_url = format!(
@@ -658,26 +660,26 @@ fn fetch_expected_checksum(version: &str) -> Result<String, String> {
     let response = client
         .get(&checksum_url)
         .send()
-        .map_err(|e| format!("Failed to fetch checksum: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to fetch checksum: {}", e)))?;
 
     if !response.status().is_success() {
-        return Err(format!("Checksum not found for v{}", version));
+        return Err(MpmError::Message(format!("Checksum not found for v{}", version)));
     }
 
     let content = response
         .text()
-        .map_err(|e| format!("Failed to read checksum: {}", e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to read checksum: {}", e)))?;
 
     // Format: "hash  filename" - extract just the hash
     content
         .split_whitespace()
         .next()
         .map(String::from)
-        .ok_or_else(|| "Invalid checksum format".to_string())
+        .ok_or_else(|| MpmError::Message("Invalid checksum format".to_string()))
 }
 
 /// Show version information and check for updates
-pub fn show_version() -> Result<(), String> {
+pub fn show_version() -> Result<()> {
     let current_version = env!("CARGO_PKG_VERSION");
     let git_hash = env!("GIT_HASH");
     let git_date = env!("GIT_DATE");
@@ -745,7 +747,7 @@ pub fn show_version() -> Result<(), String> {
 }
 
 /// Main self-update entry point
-pub fn self_update(build: bool, version: Option<&str>) -> Result<(), String> {
+pub fn self_update(build: bool, version: Option<&str>) -> Result<()> {
     let result = if build {
         update_from_source(version)
     } else {
@@ -913,8 +915,8 @@ mod tests {
         let result = get_arch();
         // We're running on a supported arch if tests are running
         match std::env::consts::ARCH {
-            "x86_64" => assert_eq!(result, Ok("amd64")),
-            "aarch64" => assert_eq!(result, Ok("arm64")),
+            "x86_64" => assert_eq!(result.unwrap(), "amd64"),
+            "aarch64" => assert_eq!(result.unwrap(), "arm64"),
             _ => assert!(result.is_err()),
         }
     }
@@ -924,8 +926,8 @@ mod tests {
         // Should return Ok on supported OS
         let result = get_os();
         match std::env::consts::OS {
-            "linux" => assert_eq!(result, Ok("linux")),
-            "macos" => assert_eq!(result, Ok("darwin")),
+            "linux" => assert_eq!(result.unwrap(), "linux"),
+            "macos" => assert_eq!(result.unwrap(), "darwin"),
             _ => assert!(result.is_err()),
         }
     }
