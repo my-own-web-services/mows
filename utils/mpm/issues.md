@@ -75,14 +75,16 @@ If panic occurs between `create` and `commit`/`restore`, backup directory is lea
 
 ---
 
-### 5. GitHub Actions Not Pinned to SHA
+### 5. ~~GitHub Actions Not Pinned to SHA~~ RESOLVED
 
 **File:** `.github/workflows/publish-mpm.yml`
 **Category:** DevOps (Security)
 
-GitHub Actions pinned to mutable tags (v3, v4) instead of immutable SHA hashes. Supply chain security vulnerability.
+**Status:** RESOLVED - All GitHub Actions are now pinned to full SHA hashes with version comments. Added `.github/dependabot.yml` to automatically update pinned SHAs weekly.
 
-**Recommendation:** Pin to SHA hashes:
+~~GitHub Actions pinned to mutable tags (v3, v4) instead of immutable SHA hashes. Supply chain security vulnerability.~~
+
+~~**Recommendation:** Pin to SHA hashes:~~
 
 ```yaml
 - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1

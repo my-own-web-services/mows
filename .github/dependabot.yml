@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # GitHub Actions - monthly updates for pinned SHA hashes
+  # Security updates are always created regardless of schedule
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Rust dependencies for mpm - monthly updates
+  # Security updates are always created regardless of schedule
+  - package-ecosystem: "cargo"
+    directory: "/utils/mpm"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "deps(mpm)"
+    labels:
+      - "dependencies"
+      - "rust"
