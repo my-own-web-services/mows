@@ -473,23 +473,27 @@ External commands executed with varying patterns for error handling, output capt
 
 ### Security
 
-#### 35. Secrets File Permissions Race Condition
+#### 35. ~~Secrets File Permissions Race Condition~~ RESOLVED
 
 **File:** `src/compose/render.rs:18-30`
 
-File permissions set AFTER creation, creating brief window where file is world-readable.
+**Status:** RESOLVED - Changed `write_secret_file` to use `OpenOptions::new().mode(SECRET_FILE_MODE)` which sets permissions atomically at file creation, eliminating the race condition window.
 
-**Recommendation:** Use `OpenOptions::mode(0o600)` at creation time.
+~~File permissions set AFTER creation, creating brief window where file is world-readable.~~
+
+~~**Recommendation:** Use `OpenOptions::mode(0o600)` at creation time.~~
 
 ---
 
-#### 36. Git URL Validation Allows Insecure Protocols
+#### 36. ~~Git URL Validation Allows Insecure Protocols~~ RESOLVED
 
 **File:** `src/compose/install.rs:19`
 
-Allows `git://` and `http://` protocols which can be MITM'd.
+**Status:** RESOLVED - Changed `validate_git_url` to only allow secure protocols: `https://`, `ssh://`, and `git@`. Insecure protocols (`http://`, `git://`) are now rejected with a clear error message.
 
-**Recommendation:** Only allow `https://`, `ssh://`, and `git@`.
+~~Allows `git://` and `http://` protocols which can be MITM'd.~~
+
+~~**Recommendation:** Only allow `https://`, `ssh://`, and `git@`.~~
 
 ---
 

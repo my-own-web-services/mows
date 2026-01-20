@@ -1,8 +1,8 @@
 use gtmpl_ng::{self as gtmpl};
 use std::collections::{HashMap, HashSet};
-use std::fs::{self, File};
+use std::fs::{self, OpenOptions};
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use tracing::{debug, info, trace, warn};
 
@@ -23,15 +23,18 @@ const SECRET_FILE_MODE: u32 = 0o600;
 const DIRECTORY_MODE: u32 = 0o755;
 
 /// Write a file with restricted permissions (600 - owner read/write only)
-/// Used for secrets files to prevent world-readable credentials
+/// Used for secrets files to prevent world-readable credentials.
+/// Permissions are set atomically at file creation to avoid race conditions.
 pub fn write_secret_file(path: &Path, content: &str) -> Result<()> {
-    let mut file = File::create(path)
+    // Set permissions at creation time to avoid race condition where file
+    // exists briefly with default (potentially world-readable) permissions
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .mode(SECRET_FILE_MODE)
+        .open(path)
         .io_context(format!("Failed to create file '{}'", path.display()))?;
-
-    // Set permissions before writing content
-    let permissions = fs::Permissions::from_mode(SECRET_FILE_MODE);
-    fs::set_permissions(path, permissions)
-        .io_context(format!("Failed to set permissions on '{}'", path.display()))?;
 
     file.write_all(content.as_bytes())
         .io_context(format!("Failed to write to '{}'", path.display()))?;
