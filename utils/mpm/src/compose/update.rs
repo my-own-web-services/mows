@@ -60,7 +60,9 @@ pub fn compose_update() -> Result<()> {
 
     // Get current manifest location
     let current_manifest_path = find_manifest(&base_dir)?;
-    let current_manifest_dir = current_manifest_path.parent().unwrap();
+    let current_manifest_dir = current_manifest_path
+        .parent()
+        .ok_or_else(|| format!("Invalid manifest path: {}", current_manifest_path.display()))?;
     debug!("Current manifest: {}", current_manifest_path.display());
 
     // Load current manifest to check for custom values path
@@ -118,7 +120,9 @@ fn do_update(
             find_manifest_in_repo(&repo_root)?
         }
     };
-    let new_manifest_dir = new_manifest_path.parent().unwrap();
+    let new_manifest_dir = new_manifest_path
+        .parent()
+        .ok_or_else(|| format!("Invalid manifest path: {}", new_manifest_path.display()))?;
 
     let manifest_moved = new_manifest_dir != current_manifest_dir;
     if manifest_moved {

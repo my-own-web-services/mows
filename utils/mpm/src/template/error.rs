@@ -72,10 +72,8 @@ fn find_similar_field(missing: &str, available: &[String]) -> Option<String> {
         let dist = levenshtein(missing_clean, field);
         // Only suggest if distance is reasonable (at most half the length + 2)
         let max_dist = (missing_clean.len() / 2).max(2);
-        if dist <= max_dist {
-            if best_match.is_none() || dist < best_match.unwrap().1 {
-                best_match = Some((field, dist));
-            }
+        if dist <= max_dist && best_match.map_or(true, |(_, d)| dist < d) {
+            best_match = Some((field, dist));
         }
     }
 
@@ -128,10 +126,8 @@ fn find_similar_function(missing: &str, available: &[String]) -> Option<String> 
         let dist = levenshtein(&missing_lower, &func_lower);
         // Only suggest if distance is reasonable (at most half the length + 2)
         let max_dist = (missing.len() / 2).max(2);
-        if dist <= max_dist {
-            if best_match.is_none() || dist < best_match.unwrap().1 {
-                best_match = Some((func, dist));
-            }
+        if dist <= max_dist && best_match.map_or(true, |(_, d)| dist < d) {
+            best_match = Some((func, dist));
         }
     }
 
