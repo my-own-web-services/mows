@@ -89,7 +89,6 @@ These tests are skipped in CI due to environment limitations and should be run l
 |------|--------|
 | `test-compose-up` | Requires Docker daemon with port binding |
 | `test-self-update` | Network-dependent, requires GitHub API |
-| `test-compose-cd` | Shell integration not available in CI |
 
 ## Building
 

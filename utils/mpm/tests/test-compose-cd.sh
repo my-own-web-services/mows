@@ -33,18 +33,17 @@ register_test_project() {
     local config_dir=$(dirname "$MPM_CONFIG_PATH")
     mkdir -p "$config_dir"
 
-    # Build the project entry
+    # Build the project entry with proper 4-space indentation for nested fields
     local instance_line=""
     if [[ -n "$instance_name" ]]; then
-        instance_line="  instanceName: $instance_name"
+        instance_line=$'\n    instanceName: '"$instance_name"
     fi
 
     # Append to config or create new
     if [[ -f "$MPM_CONFIG_PATH" ]]; then
         # Add to existing projects array
         cat >> "$MPM_CONFIG_PATH" << EOF
-  - projectName: $project_name
-$instance_line
+  - projectName: ${project_name}${instance_line}
     repoPath: $repo_path
     manifestPath: $manifest_path
 EOF
@@ -53,8 +52,7 @@ EOF
         cat > "$MPM_CONFIG_PATH" << EOF
 compose:
   projects:
-  - projectName: $project_name
-$instance_line
+  - projectName: ${project_name}${instance_line}
     repoPath: $repo_path
     manifestPath: $manifest_path
 EOF
@@ -100,6 +98,8 @@ log_test "compose cd: with instance name"
 TEST_DIR=$(create_test_dir "cd-instance")
 mkdir -p "$TEST_DIR/multi-project-prod/deployment"
 mkdir -p "$TEST_DIR/multi-project-staging/deployment"
+# Reset config for this test (mpm may have added update section to previous config)
+rm -f "$MPM_CONFIG_PATH"
 register_test_project "multi-project" "$TEST_DIR/multi-project-prod" "deployment" "prod"
 register_test_project "multi-project" "$TEST_DIR/multi-project-staging" "deployment" "staging"
 OUTPUT=$($MPM_BIN compose cd "multi-project" --instance "staging" 2>&1)

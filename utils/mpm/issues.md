@@ -268,13 +268,13 @@ Link-Time Optimization disabled for ARM64 due to SIGILL errors. Creates performa
 
 ---
 
-#### 20. Flaky Tests Skipped in CI (33%)
+#### 20. ~~Flaky Tests Skipped in CI (33%)~~ Tests Skipped in CI (22%)
 
 **File:** `.github/workflows/publish-mpm.yml:58`
 
-3 out of 9 tests skipped: test-compose-up, test-self-update, test-compose-cd.
+**PARTIALLY RESOLVED:** Fixed test-compose-cd (was a bug in YAML generation, not flaky). Now only 2 out of 9 tests skipped: test-compose-up (requires Docker daemon), test-self-update (requires network).
 
-**Recommendation:** Fix flaky tests instead of skipping them.
+**Remaining:** The 2 skipped tests have legitimate environment requirements (Docker daemon, GitHub API access) that aren't available in CI.
 
 ---
 
