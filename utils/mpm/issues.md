@@ -12,7 +12,7 @@ Comprehensive code review conducted 2026-01-20 across 8 perspectives.
 | Rust/Tech     | 3        | 6     | 11    |
 | DevOps        | 3        | 7     | 12    |
 | Architecture  | 2        | 4     | 6     |
-| QA            | 3        | 4     | 8     |
+| QA            | 2        | 4     | 8     |
 | Fine Taste    | 0        | 3     | 5     |
 | Documentation | 1        | 4     | 6     |
 | Repository    | 0        | 3     | 6     |
@@ -54,14 +54,16 @@ If panic occurs between `create` and `commit`/`restore`, backup directory is lea
 
 ---
 
-### 4. Hardcoded Version in Dockerfile
+### 4. ~~Hardcoded Version in Dockerfile~~ RESOLVED
 
 **File:** `Dockerfile:3`
 **Category:** DevOps
 
-`ARG SERVICE_VERSION="0.2.0"` is hardcoded and outdated (current version is 0.5.3). Creates version inconsistency between binary and container metadata.
+**Status:** RESOLVED - Updated build.sh to extract version from Cargo.toml and pass it as SERVICE_VERSION build arg. Dockerfile default changed to `0.0.0-dev` to make it clear when version isn't being passed.
 
-**Recommendation:** Pass version as build arg from build.sh extracted from Cargo.toml.
+~~`ARG SERVICE_VERSION="0.2.0"` is hardcoded and outdated (current version is 0.5.3). Creates version inconsistency between binary and container metadata.~~
+
+~~**Recommendation:** Pass version as build arg from build.sh extracted from Cargo.toml.~~
 
 ---
 
@@ -111,16 +113,25 @@ Updated CLAUDE.md with documentation on using `TestConfigGuard`.
 
 ---
 
-### 8. Excessive unwrap()/expect() in Production Code
+### 8. ~~Excessive unwrap()/expect() in Production Code~~ RESOLVED
 
 **File:** 222 occurrences across 17 files
 **Category:** QA
 
-Extensive use of `.unwrap()` and `.expect()` can cause panics instead of graceful error handling.
+**Status:** RESOLVED - Audited all 222 occurrences across 17 files:
 
-**High-risk files:** `compose/update.rs`, `compose/install.rs`, `template/render.rs`, `self_update/update.rs`
+- 215+ occurrences are in test code (appropriate - tests should panic on failures)
+- Fixed 5 production code issues:
+  - `compose/update.rs`: 2 fixes - `parent().unwrap()` → `parent().ok_or_else()`
+  - `tools/jq.rs`: 1 fix - proper JSON serialization error propagation
+  - `template/error.rs`: 2 fixes - `map_or` pattern instead of `is_none()/unwrap()`
+- 1 `expect()` in `health.rs` retained (compile-time constant initialization, appropriate use)
 
-**Recommendation:** Audit all `.unwrap()` calls and convert to proper `Result` error propagation.
+~~Extensive use of `.unwrap()` and `.expect()` can cause panics instead of graceful error handling.~~
+
+~~**High-risk files:** `compose/update.rs`, `compose/install.rs`, `template/render.rs`, `self_update/update.rs`~~
+
+~~**Recommendation:** Audit all `.unwrap()` calls and convert to proper `Result` error propagation.~~
 
 ---
 
