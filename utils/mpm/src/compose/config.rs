@@ -7,7 +7,6 @@ use std::path::{Path, PathBuf};
 use tracing::{debug, info};
 
 use crate::error::{IoResultExt, MpmError, Result};
-use crate::utils::yaml_to_4_space_indent;
 
 /// Environment variable to override the config file path.
 ///
@@ -202,8 +201,7 @@ impl MpmConfig {
         fs::create_dir_all(parent)
             .io_context("Failed to create config directory")?;
 
-        let yaml = serde_yaml_neo::to_string(self)?;
-        let content = yaml_to_4_space_indent(&yaml);
+        let content = serde_yaml_neo::to_string_with_indent(self, 4)?;
 
         // Write to temporary file first (atomic write pattern)
         let temp_path = path.with_extension("yaml.tmp");
