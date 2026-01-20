@@ -10,6 +10,13 @@ use std::process::Command;
 use std::time::Duration;
 use tracing::{debug, warn};
 
+/// Timeout for HTTP health check requests.
+/// Short timeout to avoid blocking on unresponsive services.
+const HTTP_REQUEST_TIMEOUT: Duration = Duration::from_secs(2);
+
+/// Timeout for establishing TCP connections during health checks.
+const TCP_CONNECT_TIMEOUT: Duration = Duration::from_secs(2);
+
 /// Health information for a Docker container.
 ///
 /// Contains the container's running state, health check status, recent log errors,
@@ -669,8 +676,8 @@ fn check_url_reachable(url: &str) -> Option<UrlCheckResult> {
         .unwrap_or(false);
 
     let client = match Client::builder()
-        .timeout(Duration::from_secs(2))
-        .connect_timeout(Duration::from_secs(2))
+        .timeout(HTTP_REQUEST_TIMEOUT)
+        .connect_timeout(TCP_CONNECT_TIMEOUT)
         .danger_accept_invalid_certs(skip_tls)
         .build()
     {
