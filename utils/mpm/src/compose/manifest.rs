@@ -198,4 +198,373 @@ spec:
             Some("values/development.yaml".to_string())
         );
     }
+
+    // =========================================================================
+    // Validation Tests (#58) - Invalid versions, missing fields, malformed YAML
+    // =========================================================================
+
+    #[test]
+    fn test_manifest_missing_manifest_version() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"metadata:
+  name: test-project
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("missing field") || err.contains("manifestVersion"),
+            "Expected error about missing manifestVersion, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_manifest_missing_metadata() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("missing field") || err.contains("metadata"),
+            "Expected error about missing metadata, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_manifest_missing_metadata_name() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+metadata:
+  description: "No name field"
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("missing field") || err.contains("name"),
+            "Expected error about missing name, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_manifest_invalid_yaml_syntax() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+metadata:
+  name: test-project
+  invalid yaml here: [unclosed bracket
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_manifest_wrong_type_for_manifest_version() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: 123
+metadata:
+  name: test-project
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        // Numbers are coerced to strings in YAML, so this should actually work
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().manifest_version, "123");
+    }
+
+    #[test]
+    fn test_manifest_wrong_type_for_metadata() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+metadata: "should be an object"
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("invalid type") || err.contains("expected") || err.contains("struct"),
+            "Expected type error, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_manifest_empty_file() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(&manifest_path, "").unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_manifest_null_content() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(&manifest_path, "null").unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_manifest_array_instead_of_object() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"- item1
+- item2
+"#,
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_manifest_unknown_fields_allowed() {
+        // Unknown fields should be ignored (forward compatibility)
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+metadata:
+  name: test-project
+  unknownField: "should be ignored"
+  anotherUnknown: 123
+spec:
+  compose: {}
+  kubernetes: {}
+  unknownSpec: "also ignored"
+"#,
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().project_name(), "test-project");
+    }
+
+    #[test]
+    fn test_manifest_deeply_nested_invalid() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+metadata:
+  name: test-project
+spec:
+  compose:
+    repositoryUrl: 12345
+"#,
+        )
+        .unwrap();
+
+        // repositoryUrl should be a string, but numbers get coerced
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_manifest_special_characters_in_name() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+metadata:
+  name: "project-with-special_chars.v2"
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().project_name(), "project-with-special_chars.v2");
+    }
+
+    #[test]
+    fn test_manifest_unicode_in_name() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+metadata:
+  name: "项目名称"
+  description: "プロジェクト説明"
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().project_name(), "项目名称");
+    }
+
+    #[test]
+    fn test_manifest_very_long_name() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        let long_name = "a".repeat(10000);
+        fs::write(
+            &manifest_path,
+            format!(
+                r#"manifestVersion: "0.1"
+metadata:
+  name: "{}"
+spec:
+  compose: {{}}
+"#,
+                long_name
+            ),
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().project_name().len(), 10000);
+    }
+
+    #[test]
+    fn test_manifest_empty_name() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+metadata:
+  name: ""
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        // Empty name is technically valid YAML but semantically problematic
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().project_name(), "");
+    }
+
+    #[test]
+    fn test_manifest_whitespace_only_name() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+metadata:
+  name: "   "
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_manifest_tab_indentation() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        // YAML with tabs (often problematic)
+        fs::write(
+            &manifest_path,
+            "manifestVersion: \"0.1\"\nmetadata:\n\tname: test-project\nspec:\n\tcompose: {}\n",
+        )
+        .unwrap();
+
+        let result = MowsManifest::load(dir.path());
+        // Tabs in YAML can cause issues
+        // The result depends on the YAML parser behavior
+        // Just ensure it doesn't panic
+        let _ = result;
+    }
+
+    #[test]
+    fn test_manifest_duplicate_keys() {
+        let dir = tempdir().unwrap();
+        let manifest_path = dir.path().join("mows-manifest.yaml");
+        fs::write(
+            &manifest_path,
+            r#"manifestVersion: "0.1"
+manifestVersion: "0.2"
+metadata:
+  name: test-project
+  name: other-name
+spec:
+  compose: {}
+"#,
+        )
+        .unwrap();
+
+        // Duplicate keys behavior depends on parser - last wins typically
+        let result = MowsManifest::load(dir.path());
+        // Just ensure it doesn't panic
+        let _ = result;
+    }
 }

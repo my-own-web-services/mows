@@ -12,13 +12,7 @@ mod up;
 mod update;
 
 pub use cd::compose_cd;
-pub use docker::{
-    check_docker_available, default_client, BollardDockerClient, CommandOutput,
-    ComposePassthroughOptions, ComposeUpOptions, DockerClient, MockDockerClient,
-    ENV_MOCK_DOCKER,
-};
-#[cfg(test)]
-pub use docker::{ConfigurableMockClient, MockResponse};
+pub use docker::{default_client, DockerClient};
 pub use init::compose_init;
 pub use install::compose_install;
 pub use passthrough::compose_passthrough;
