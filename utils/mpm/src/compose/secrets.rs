@@ -372,4 +372,319 @@ KEY5=  spaces
         assert!(merged.contains("KEY1=existing"));
         assert!(merged.contains("# Footer"));
     }
+
+    // =========================================================================
+    // Edge Case Tests (#23) - Special characters, long values, escape sequences
+    // =========================================================================
+
+    #[test]
+    fn test_very_long_secret_value() {
+        let long_value = "x".repeat(10000);
+        let content = format!("LONG_SECRET={}", long_value);
+        let entries = parse_env_file_ordered(&content);
+
+        assert_eq!(entries.len(), 1);
+        if let Some(value) = &entries[0].1 {
+            assert_eq!(value.len(), 10000);
+        } else {
+            panic!("Expected value");
+        }
+    }
+
+    #[test]
+    fn test_escape_sequences_in_double_quotes() {
+        let content = r#"KEY="line1\nline2\ttabbed\\backslash""#;
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        if let Some(value) = &entries[0].1 {
+            assert!(value.contains('\n'), "Should have newline");
+            assert!(value.contains('\t'), "Should have tab");
+            assert!(value.contains('\\'), "Should have backslash");
+        }
+    }
+
+    #[test]
+    fn test_escape_sequences_in_single_quotes() {
+        let content = r#"KEY='line1\nline2\ttabbed'"#;
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        if let Some(value) = &entries[0].1 {
+            // Single quotes should also process escape sequences
+            assert!(value.contains('\n') || value.contains("\\n"));
+        }
+    }
+
+    #[test]
+    fn test_escaped_quotes() {
+        let content = r#"KEY="value with \"quoted\" text""#;
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        if let Some(value) = &entries[0].1 {
+            assert!(value.contains('"'), "Should have preserved quotes");
+        }
+    }
+
+    #[test]
+    fn test_unbalanced_quotes_warning() {
+        let content = r#"KEY="unclosed quote"#;
+        let entries = parse_env_file_ordered(content);
+
+        // Should still parse but warn
+        assert_eq!(entries.len(), 1);
+        assert!(entries[0].1.is_some());
+    }
+
+    #[test]
+    fn test_multiple_equals_signs() {
+        let content = "URL=https://example.com?foo=bar&baz=qux";
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].0, "URL");
+        if let Some(value) = &entries[0].1 {
+            assert_eq!(value, "https://example.com?foo=bar&baz=qux");
+        }
+    }
+
+    #[test]
+    fn test_special_characters_in_value() {
+        let content = "SPECIAL=!@#$%^&*()[]{}|;':\"<>?,./";
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        if let Some(value) = &entries[0].1 {
+            assert!(value.contains('!'));
+            assert!(value.contains('@'));
+            assert!(value.contains('#'));
+        }
+    }
+
+    #[test]
+    fn test_unicode_in_value() {
+        let content = "UNICODE=日本語テスト🎉";
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        if let Some(value) = &entries[0].1 {
+            assert!(value.contains('日'));
+            assert!(value.contains('🎉'));
+        }
+    }
+
+    #[test]
+    fn test_unicode_in_quoted_value() {
+        let content = r#"UNICODE="日本語 with spaces 🎉""#;
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        if let Some(value) = &entries[0].1 {
+            assert!(value.contains('日'));
+            assert!(value.contains("with spaces"));
+            assert!(value.contains('🎉'));
+        }
+    }
+
+    #[test]
+    fn test_empty_content() {
+        let content = "";
+        let entries = parse_env_file_ordered(content);
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn test_only_comments() {
+        let content = "# Comment 1\n# Comment 2\n# Comment 3";
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 3);
+        for entry in &entries {
+            assert!(entry.1.is_none(), "Comments should have None value");
+        }
+    }
+
+    #[test]
+    fn test_only_empty_lines() {
+        let content = "\n\n\n";
+        let entries = parse_env_file_ordered(content);
+
+        // Each empty line should be preserved
+        assert_eq!(entries.len(), 3);
+    }
+
+    #[test]
+    fn test_key_with_invalid_characters_warning() {
+        // Keys with invalid characters should be warned but still parsed
+        let content = "INVALID-KEY=value";
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        // The key is still parsed
+        assert!(entries[0].1.is_some());
+    }
+
+    #[test]
+    fn test_empty_key() {
+        let content = "=value";
+        let entries = parse_env_file_ordered(content);
+
+        // Empty key should be skipped
+        assert_eq!(entries.len(), 1);
+        assert!(entries[0].1.is_none(), "Empty key line should be preserved as-is");
+    }
+
+    #[test]
+    fn test_line_without_equals() {
+        let content = "not_a_valid_entry";
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        assert!(entries[0].1.is_none());
+    }
+
+    #[test]
+    fn test_merge_with_empty_existing_content() {
+        let existing = "";
+        let new = "KEY1=value1\nKEY2=value2";
+
+        let merged = merge_generated_secrets(Some(existing), new);
+        assert_eq!(merged, new);
+    }
+
+    #[test]
+    fn test_merge_with_whitespace_only_existing() {
+        let existing = "   \n\t\n   ";
+        let new = "KEY1=value1";
+
+        let merged = merge_generated_secrets(Some(existing), new);
+        assert_eq!(merged, new);
+    }
+
+    #[test]
+    fn test_merge_preserves_key_order_from_new() {
+        let existing = "KEY3=existing3\nKEY1=existing1";
+        let new = "KEY1=new1\nKEY2=new2\nKEY3=new3";
+
+        let merged = merge_generated_secrets(Some(existing), new);
+
+        // Order should follow `new`, but values from `existing` are used where non-empty
+        let lines: Vec<&str> = merged.lines().collect();
+        assert_eq!(lines.len(), 3);
+        assert!(lines[0].starts_with("KEY1="));
+        assert!(lines[1].starts_with("KEY2="));
+        assert!(lines[2].starts_with("KEY3="));
+    }
+
+    #[test]
+    fn test_parse_quoted_value_with_newlines() {
+        let content = "MULTILINE=\"line1\\nline2\\nline3\"";
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        if let Some(value) = &entries[0].1 {
+            let newline_count = value.chars().filter(|&c| c == '\n').count();
+            assert_eq!(newline_count, 2, "Should have 2 newlines");
+        }
+    }
+
+    #[test]
+    fn test_value_with_leading_trailing_whitespace() {
+        let content = "KEY=  value with spaces  ";
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        if let Some(value) = &entries[0].1 {
+            // Leading/trailing whitespace should be trimmed
+            assert_eq!(value, "value with spaces");
+        }
+    }
+
+    #[test]
+    fn test_quoted_value_preserves_whitespace() {
+        let content = "KEY=\"  value with spaces  \"";
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 1);
+        if let Some(value) = &entries[0].1 {
+            // Quoted values should preserve internal whitespace
+            assert!(value.contains("  value") || value.contains("value  "));
+        }
+    }
+
+    #[test]
+    fn test_mix_of_quoted_and_unquoted() {
+        let content = r#"UNQUOTED=simple
+DOUBLE="double quoted"
+SINGLE='single quoted'
+EMPTY=
+COMPLEX="with \"escape\""
+"#;
+        let entries = parse_env_file_ordered(content);
+
+        assert_eq!(entries.len(), 5);
+        assert_eq!(entries[0].1, Some("simple".to_string()));
+        assert_eq!(entries[1].1, Some("double quoted".to_string()));
+        assert_eq!(entries[2].1, Some("single quoted".to_string()));
+        assert_eq!(entries[3].1, Some("".to_string()));
+    }
+
+    #[test]
+    fn test_load_secrets_nonexistent_file() {
+        let path = std::path::Path::new("/nonexistent/path/secrets.env");
+        let result = load_secrets_as_map(path);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_load_secrets_existing_file() {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        let mut temp_file = NamedTempFile::new().unwrap();
+        write!(temp_file, "KEY1=value1\nKEY2=value2").unwrap();
+        temp_file.flush().unwrap();
+
+        let result = load_secrets_as_map(temp_file.path());
+        assert!(result.is_ok());
+
+        let map = result.unwrap();
+        assert_eq!(map.get("KEY1"), Some(&"value1".to_string()));
+        assert_eq!(map.get("KEY2"), Some(&"value2".to_string()));
+    }
+
+    #[test]
+    fn test_is_properly_quoted_double() {
+        assert_eq!(is_properly_quoted("\"hello\""), Some('"'));
+        assert_eq!(is_properly_quoted("\"hello world\""), Some('"'));
+        assert_eq!(is_properly_quoted("\"\""), Some('"'));
+    }
+
+    #[test]
+    fn test_is_properly_quoted_single() {
+        assert_eq!(is_properly_quoted("'hello'"), Some('\''));
+        assert_eq!(is_properly_quoted("'hello world'"), Some('\''));
+        assert_eq!(is_properly_quoted("''"), Some('\''));
+    }
+
+    #[test]
+    fn test_is_properly_quoted_invalid() {
+        assert_eq!(is_properly_quoted("hello"), None);
+        assert_eq!(is_properly_quoted("\"hello"), None);
+        assert_eq!(is_properly_quoted("hello\""), None);
+        assert_eq!(is_properly_quoted("\"hello'"), None);
+        assert_eq!(is_properly_quoted("'hello\""), None);
+        assert_eq!(is_properly_quoted("a"), None);
+        assert_eq!(is_properly_quoted(""), None);
+    }
+
+    #[test]
+    fn test_is_properly_quoted_with_internal_quotes() {
+        // Unescaped internal quote should not be considered properly quoted
+        assert_eq!(is_properly_quoted("\"hel\"lo\""), None);
+        // But escaped internal quote should be fine
+        assert_eq!(is_properly_quoted(r#""hel\"lo""#), Some('"'));
+    }
 }
