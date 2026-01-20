@@ -61,3 +61,51 @@ rm -f "$MPM_CONFIG_PATH"
 - The config file stores project registrations and update check timestamps
 - Modifying the real config could break user workflows or cause unexpected behavior
 - Tests run in parallel by default, so the mutex in TestConfigGuard prevents race conditions
+
+## Running Tests
+
+### Unit Tests
+
+```bash
+cargo test                    # Run all unit tests
+cargo test config::tests      # Run specific module tests
+cargo test -- --nocapture     # Show test output
+```
+
+### Integration Tests (E2E)
+
+```bash
+cd tests
+./run-all.sh                  # Run all integration tests
+./run-all.sh test-cli         # Run specific test
+VERBOSE=1 ./run-all.sh        # Verbose output
+```
+
+### Tests Skipped in CI
+
+These tests are skipped in CI due to environment limitations and should be run locally:
+
+| Test | Reason |
+|------|--------|
+| `test-compose-up` | Requires Docker daemon with port binding |
+| `test-self-update` | Network-dependent, requires GitHub API |
+| `test-compose-cd` | Shell integration not available in CI |
+
+## Building
+
+### Development
+
+```bash
+cargo build                   # Debug build
+cargo build --release         # Release build (local)
+```
+
+### Static Binary (Docker)
+
+```bash
+bash build.sh                 # Build static binary to dist/mpm
+TARGETARCH=arm64 bash build.sh  # Cross-compile for ARM64
+PROFILE=dev bash build.sh     # Faster dev build
+```
+
+See [docs/development.md](docs/development.md) for full build options and CI/CD documentation.

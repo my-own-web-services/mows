@@ -124,13 +124,27 @@ Limited testing of error paths: network failures, corrupted YAML, permission err
 
 ---
 
-### 10. CLAUDE.md Missing CI/CD Context
-**File:** `CLAUDE.md`
+### 10. ~~CLAUDE.md Missing CI/CD Context~~ RESOLVED
+**File:** `CLAUDE.md`, `docs/development.md`
 **Category:** Documentation
 
-Missing: how to run full test suite locally, what tests are skipped in CI and why, build.sh usage, cross-compilation notes.
+**Status:** RESOLVED - Created comprehensive `docs/development.md` covering:
+- Building (development, release, static Docker builds)
+- Build options and environment variables
+- Cross-compilation notes (ARM64 via cargo-zigbuild)
+- Running unit tests and integration tests
+- Tests skipped in CI and why
+- CI/CD pipeline stages and triggers
+- Release process
+- Project structure
+- Debugging tips
 
-**Recommendation:** Add sections on testing, building, and CI/CD pipeline.
+Updated CLAUDE.md with quick reference and link to full guide.
+Updated README.md with link to development guide.
+
+~~Missing: how to run full test suite locally, what tests are skipped in CI and why, build.sh usage, cross-compilation notes.~~
+
+~~**Recommendation:** Add sections on testing, building, and CI/CD pipeline.~~
 
 ---
 
