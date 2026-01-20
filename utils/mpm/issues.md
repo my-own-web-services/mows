@@ -305,13 +305,15 @@ Missing: SBOM generation, dependency vulnerability scanning, container image sca
 
 ---
 
-#### 19. LTO Disabled for ARM64 Cross-Compilation
+#### 19. ~~LTO Disabled for ARM64 Cross-Compilation~~ RESOLVED
 
 **File:** `Dockerfile:76`
 
-Link-Time Optimization disabled for ARM64 due to SIGILL errors. Creates performance/size parity issues.
+**Status:** RESOLVED - Updated Zig from 0.13.0 to 0.15.2 and enabled thin LTO for ARM64 cross-compilation. The SIGILL issue was caused by older Zig/LLVM versions. Thin LTO provides most of the optimization benefits while being more compatible with cross-compilation.
 
-**Recommendation:** Test with newer Zig/LLVM versions or use native ARM64 runners.
+~~Link-Time Optimization disabled for ARM64 due to SIGILL errors. Creates performance/size parity issues.~~
+
+~~**Recommendation:** Test with newer Zig/LLVM versions or use native ARM64 runners.~~
 
 ---
 
