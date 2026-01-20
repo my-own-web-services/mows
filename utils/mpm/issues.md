@@ -256,23 +256,27 @@ Changes made:
 
 ---
 
-#### 15. Blocking I/O in Port Health Checks
+#### 15. ~~Blocking I/O in Port Health Checks~~ RESOLVED
 
 **File:** `src/compose/checks/health.rs:543-566`
 
-Sequential TCP connection attempts with `sleep()` blocks main thread. With many ports, delays accumulate.
+**Status:** RESOLVED - Refactored `collect_port_status` to use rayon for parallel TCP connection checks. Port checks are now collected first, then checked in parallel using `par_iter()`, and results are grouped back to containers.
 
-**Recommendation:** Use async or parallel checks with `rayon`.
+~~Sequential TCP connection attempts with `sleep()` blocks main thread. With many ports, delays accumulate.~~
+
+~~**Recommendation:** Use async or parallel checks with `rayon`.~~
 
 ---
 
-#### 16. Unbounded Recursion in Dependency Collection
+#### 16. ~~Unbounded Recursion in Dependency Collection~~ RESOLVED
 
 **File:** `src/tools/workspace_docker.rs:324-360`
 
-No maximum depth limit for transitive dependency resolution. Circular dependencies could cause stack overflow.
+**Status:** RESOLVED - Added `MAX_DEPENDENCIES` constant (1000) as a fail-safe limit. The function already uses iterative processing with a `processed` HashSet to prevent infinite loops, but now also returns an error if the limit is exceeded.
 
-**Recommendation:** Add depth counter and fail-safe maximum (e.g., 100 levels).
+~~No maximum depth limit for transitive dependency resolution. Circular dependencies could cause stack overflow.~~
+
+~~**Recommendation:** Add depth counter and fail-safe maximum (e.g., 100 levels).~~
 
 ---
 
