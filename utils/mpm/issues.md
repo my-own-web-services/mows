@@ -932,11 +932,19 @@ Commands exist but not documented.
 
 ---
 
-#### 77. tests/ Lacks README
+#### 77. ~~tests/ Lacks README~~ RESOLVED
 
 **File:** `tests/`
 
-No documentation about test organization or how to run different suites.
+**Status:** RESOLVED - Added `tests/README.md` documenting:
+- Test organization (table of all test files and their purpose)
+- How to run tests (command line options, examples)
+- Environment variables
+- Mock Docker client for CI
+- Tests skipped in CI and why
+- Guide for writing new tests
+
+~~No documentation about test organization or how to run different suites.~~
 
 ---
 
