@@ -16,6 +16,9 @@ TARGETARCH="${TARGETARCH:-amd64}"
 GIT_HASH="${GIT_HASH:-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')}"
 GIT_DATE="${GIT_DATE:-$(git log -1 --format=%cs 2>/dev/null || echo 'unknown')}"
 
+# Extract version from Cargo.toml
+SERVICE_VERSION="${SERVICE_VERSION:-$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')}"
+
 # Create dist directory
 mkdir -p dist
 
@@ -29,7 +32,7 @@ else
 fi
 
 # Build and export the static binary directly to dist/
-echo "Building mpm static binary (profile: ${PROFILE}, arch: ${TARGETARCH}, git: ${GIT_HASH})..."
+echo "Building mpm static binary (v${SERVICE_VERSION}, profile: ${PROFILE}, arch: ${TARGETARCH}, git: ${GIT_HASH})..."
 
 # Check if docker buildx is available (required for multi-context builds)
 if ! docker buildx version >/dev/null 2>&1; then
@@ -63,6 +66,7 @@ docker buildx build \
     --build-context lock=../../ \
     --build-arg PROFILE="${PROFILE}" \
     --build-arg SERVICE_NAME="${SERVICE_NAME}" \
+    --build-arg SERVICE_VERSION="${SERVICE_VERSION}" \
     --build-arg TARGETARCH="${TARGETARCH}" \
     --build-arg GIT_HASH="${GIT_HASH}" \
     --build-arg GIT_DATE="${GIT_DATE}" \
