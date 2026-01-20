@@ -6,7 +6,7 @@ use clap::CommandFactory;
 use clap_complete::aot::{generate, Shell};
 
 use crate::cli::Cli;
-use crate::error::Result;
+use crate::error::{IoResultExt, Result};
 
 /// Standard completion directories for each shell
 fn get_completion_path(shell: Shell) -> Option<PathBuf> {
@@ -67,7 +67,7 @@ pub fn shell_init(install: bool) -> Result<()> {
         // Output to stdout for piping
         let completions = generate_completions(shell);
         io::Write::write_all(&mut io::stdout(), &completions)
-            .map_err(|e| format!("Failed to write completions: {}", e))?;
+            .io_context("Failed to write completions")?;
         Ok(())
     }
 }
@@ -80,13 +80,13 @@ fn install_completions(shell: Shell) -> Result<()> {
     // Create parent directory if needed
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory {}: {}", parent.display(), e))?;
+            .io_context(format!("Failed to create directory {}", parent.display()))?;
     }
 
     // Generate and write completions
     let completions = generate_completions(shell);
     fs::write(&path, completions)
-        .map_err(|e| format!("Failed to write completions to {}: {}", path.display(), e))?;
+        .io_context(format!("Failed to write completions to {}", path.display()))?;
 
     eprintln!("Installed {} completions to {}", shell, path.display());
 

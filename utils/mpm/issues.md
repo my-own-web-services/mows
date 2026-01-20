@@ -525,13 +525,20 @@ Canonicalize can be slow with many symlinks. Mitigated by MAX_DIRECTORY_DEPTH.
 
 ### Rust/Tech
 
-#### 40. Non-idiomatic Error Conversion
+#### 40. ~~Non-idiomatic Error Conversion~~ RESOLVED
 
 **File:** Multiple files
 
-`.map_err(|e| format!("...: {}", e))` loses error context and chains.
+**Status:** RESOLVED - Converted `.map_err(|e| format!(...))` patterns to use proper error extension traits:
+- `IoResultExt::io_context()` for I/O errors (preserves source error chain)
+- `TomlResultExt::toml_context()` for TOML parsing errors
+- `MpmError::command()` for command execution errors
 
-**Recommendation:** Consider `anyhow` or `thiserror`.
+Files updated: `drives.rs`, `workspace_docker.rs`, `manpage.rs`, `shell_init.rs`
+
+~~`.map_err(|e| format!("...: {}", e))` loses error context and chains.~~
+
+~~**Recommendation:** Consider `anyhow` or `thiserror`.~~
 
 ---
 

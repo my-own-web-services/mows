@@ -5,17 +5,17 @@ use std::path::{Path, PathBuf};
 use tracing::debug;
 use walkdir::WalkDir;
 
-use crate::error::Result;
+use crate::error::{IoResultExt, Result, TomlResultExt};
 
 /// Main entry point for the workspace-docker command
 pub fn workspace_docker_command(all: bool, path: &Option<PathBuf>) -> Result<()> {
     let start_path = match path {
         Some(p) => p.clone(),
         None => std::env::current_dir()
-            .map_err(|e| format!("Failed to get current directory: {}", e))?,
+            .io_context("Failed to get current directory")?,
     };
     let start_path = fs::canonicalize(&start_path)
-        .map_err(|e| format!("Failed to resolve path '{}': {}", start_path.display(), e))?;
+        .io_context(format!("Failed to resolve path '{}'", start_path.display()))?;
 
     // Find workspace root
     let workspace_root = find_workspace_root(&start_path)?;
@@ -58,7 +58,7 @@ fn find_workspace_root(start: &Path) -> Result<PathBuf> {
         let cargo_toml = current.join("Cargo.toml");
         if cargo_toml.exists() {
             let content = fs::read_to_string(&cargo_toml)
-                .map_err(|e| format!("Failed to read {}: {}", cargo_toml.display(), e))?;
+                .io_context(format!("Failed to read {}", cargo_toml.display()))?;
 
             // Check if this is a workspace root
             if content.contains("[workspace]") {
@@ -188,10 +188,10 @@ struct WorkspaceDep {
 /// Parse the root workspace Cargo.toml
 fn parse_workspace_toml(path: &Path) -> Result<WorkspaceConfig> {
     let content =
-        fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+        fs::read_to_string(path).io_context(format!("Failed to read {}", path.display()))?;
 
     let cargo: CargoToml =
-        toml::from_str(&content).map_err(|e| format!("Failed to parse {}: {}", path.display(), e))?;
+        toml::from_str(&content).toml_context(path.display().to_string())?;
 
     let workspace = cargo
         .workspace
@@ -255,10 +255,10 @@ struct PackageDepInfo {
 /// Parse a package's Cargo.toml and extract workspace dependencies with their local features
 fn parse_package_deps(path: &Path) -> Result<(Option<String>, BTreeMap<String, PackageDepInfo>)> {
     let content =
-        fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+        fs::read_to_string(path).io_context(format!("Failed to read {}", path.display()))?;
 
     let cargo: CargoToml =
-        toml::from_str(&content).map_err(|e| format!("Failed to parse {}: {}", path.display(), e))?;
+        toml::from_str(&content).toml_context(path.display().to_string())?;
 
     // version can be either a string ("0.1.0") or a table ({ workspace = true })
     let version = cargo
@@ -396,7 +396,7 @@ fn generate_for_package(
     // Write to file
     let output_path = package_path.join("cargo-workspace-docker.toml");
     fs::write(&output_path, content)
-        .map_err(|e| format!("Failed to write {}: {}", output_path.display(), e))?;
+        .io_context(format!("Failed to write {}", output_path.display()))?;
 
     Ok(())
 }
