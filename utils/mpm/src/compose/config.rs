@@ -1,3 +1,4 @@
+use fs2::FileExt;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::Write;
@@ -96,6 +97,69 @@ impl MpmConfig {
         Ok(PathBuf::from(home).join(".config/mows.cloud/mpm.yaml"))
     }
 
+    /// Get the lock file path for concurrent access protection
+    fn lock_path() -> Result<PathBuf> {
+        let config_path = Self::config_path()?;
+        Ok(config_path.with_extension("yaml.lock"))
+    }
+
+    /// Acquire an exclusive lock on the config file
+    /// Returns the lock file handle which releases the lock when dropped
+    fn acquire_lock() -> Result<File> {
+        let lock_path = Self::lock_path()?;
+
+        // Create parent directory if needed
+        if let Some(parent) = lock_path.parent() {
+            fs::create_dir_all(parent)
+                .io_context("Failed to create config directory")?;
+        }
+
+        // Open or create the lock file
+        let lock_file = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(&lock_path)
+            .io_context("Failed to open config lock file")?;
+
+        // Acquire exclusive lock (blocks until available)
+        lock_file.lock_exclusive()
+            .io_context("Failed to acquire config file lock")?;
+
+        debug!("Acquired config file lock");
+        Ok(lock_file)
+    }
+
+    /// Execute a closure that modifies the config atomically with file locking.
+    ///
+    /// This prevents race conditions when multiple mpm processes access the config
+    /// simultaneously. The lock is held for the entire read-modify-write operation.
+    ///
+    /// # Example
+    /// ```ignore
+    /// MpmConfig::with_locked(|config| {
+    ///     config.upsert_project(entry);
+    /// })?;
+    /// ```
+    pub fn with_locked<F>(f: F) -> Result<()>
+    where
+        F: FnOnce(&mut MpmConfig),
+    {
+        // Acquire exclusive lock (released when _lock_file is dropped)
+        let _lock_file = Self::acquire_lock()?;
+
+        // Load current config (or default if not exists)
+        let mut config = Self::load()?;
+
+        // Apply modifications
+        f(&mut config);
+
+        // Save with the lock still held
+        config.save_without_lock()?;
+
+        debug!("Released config file lock");
+        Ok(())
+    }
+
     /// Load the config from disk, or return default if not found
     pub fn load() -> Result<Self> {
         let path = Self::config_path()?;
@@ -112,9 +176,21 @@ impl MpmConfig {
             .map_err(|e| MpmError::Config(format!("Failed to parse config file '{}': {}", path.display(), e)))
     }
 
-    /// Save the config to disk using atomic write
-    /// Writes to a temporary file first, then renames to prevent corruption
+    /// Save the config to disk using atomic write with file locking.
+    ///
+    /// For read-modify-write operations, prefer using `with_locked()` instead
+    /// to ensure the entire operation is atomic.
+    ///
+    /// This method acquires an exclusive lock, writes the config, then releases
+    /// the lock. Uses a temporary file + rename for crash safety.
     pub fn save(&self) -> Result<()> {
+        // Acquire exclusive lock for the write operation
+        let _lock_file = Self::acquire_lock()?;
+        self.save_without_lock()
+    }
+
+    /// Internal save without acquiring lock (used by with_locked)
+    fn save_without_lock(&self) -> Result<()> {
         let path = Self::config_path()?;
 
         // Create parent directories
