@@ -2,7 +2,7 @@ use std::path::Path;
 use tracing::debug;
 
 use crate::error::{MpmError, Result};
-use crate::utils::{detect_yaml_indent, parse_yaml, read_input, write_output};
+use crate::utils::{parse_yaml, read_input, write_output};
 
 use super::selector::{find_matching_paths, get_value_at_path_mut, is_docker_compose};
 
@@ -56,7 +56,11 @@ pub fn expand_object_command(
 ) -> Result<()> {
     debug!("Expanding dot-notation keys to nested object");
     let content = read_input(input)?;
-    let indent = detect_yaml_indent(&content).unwrap_or(4);
+    let indent = serde_yaml_neo::detect_indentation(&content)
+        .ok()
+        .flatten()
+        .map(|i| i.spaces())
+        .unwrap_or(4);
     let mut value: serde_yaml_neo::Value = parse_yaml(&content, input)?;
 
     // Determine the selector to use
@@ -110,7 +114,11 @@ pub fn flatten_object_command(
 ) -> Result<()> {
     debug!("Flattening nested object to dot-notation keys");
     let content = read_input(input)?;
-    let indent = detect_yaml_indent(&content).unwrap_or(4);
+    let indent = serde_yaml_neo::detect_indentation(&content)
+        .ok()
+        .flatten()
+        .map(|i| i.spaces())
+        .unwrap_or(4);
     let mut value: serde_yaml_neo::Value = parse_yaml(&content, input)?;
 
     // Determine the selector to use
