@@ -8,16 +8,19 @@ use crate::error::{MpmError, Result};
 use super::error::format_template_error;
 use super::variables::load_variables_with_defaults;
 
-/// Template render result
-struct RenderResult {
-    rendered: String,
-}
-
-/// Renders a template, returning rendered content and preamble line count
-fn render_template(
+/// Renders a template string with variables, returning rendered content.
+///
+/// This is the core template rendering function used by both the `mpm template render`
+/// command and compose rendering. It:
+/// - Sets up gtmpl with all template functions
+/// - Generates a preamble that defines `$varname` shortcuts for each variable
+/// - Parses and renders the template
+///
+/// On error, returns the TemplateError and the preamble line count (for error formatting).
+pub fn render_template_string(
     template_content: &str,
     variables: &gtmpl::Value,
-) -> std::result::Result<RenderResult, (TemplateError, usize)> {
+) -> std::result::Result<String, (TemplateError, usize)> {
     trace!("Parsing template ({} bytes)", template_content.len());
     let mut template = gtmpl::Template::default();
 
@@ -29,25 +32,7 @@ fn render_template(
     // Generate variable definitions preamble so users can use $varname syntax
     // Each variable on its own line, with trim markers to avoid output whitespace
     // We track the number of preamble lines to adjust error line numbers
-    let (full_template, preamble_lines) = if let gtmpl::Value::Object(map) = variables {
-        if map.is_empty() {
-            (template_content.to_string(), 0)
-        } else {
-            let var_count = map.len();
-            let preamble: String = map
-                .keys()
-                .map(|k| format!("{{{{- ${k} := .{k} }}}}\n"))
-                .collect();
-            trace!(
-                "Template preamble ({} lines): {}",
-                var_count,
-                preamble.escape_debug()
-            );
-            (format!("{}{}", preamble, template_content), var_count)
-        }
-    } else {
-        (template_content.to_string(), 0)
-    };
+    let (full_template, preamble_lines) = generate_preamble(template_content, variables);
 
     template
         .parse(&full_template)
@@ -60,7 +45,31 @@ fn render_template(
         .render(&context)
         .map_err(|e| (TemplateError::from(e), preamble_lines))?;
 
-    Ok(RenderResult { rendered })
+    Ok(rendered)
+}
+
+/// Generate variable definitions preamble for template.
+/// Returns (full_template_with_preamble, preamble_line_count).
+fn generate_preamble(template_content: &str, variables: &gtmpl::Value) -> (String, usize) {
+    if let gtmpl::Value::Object(map) = variables {
+        if map.is_empty() {
+            (template_content.to_string(), 0)
+        } else {
+            let preamble: String = map
+                .keys()
+                .map(|k| format!("{{{{- ${k} := .{k} }}}}\n"))
+                .collect();
+            let preamble_line_count = preamble.lines().count();
+            trace!(
+                "Template preamble ({} lines): {}",
+                preamble_line_count,
+                preamble.escape_debug()
+            );
+            (format!("{}{}", preamble, template_content), preamble_line_count)
+        }
+    } else {
+        (template_content.to_string(), 0)
+    }
 }
 
 fn render_single_file(input: &Path, output: &Path, values: &gtmpl::Value) -> Result<()> {
@@ -73,7 +82,7 @@ fn render_single_file(input: &Path, output: &Path, values: &gtmpl::Value) -> Res
     let template_content = fs::read_to_string(input)
         .map_err(|e| MpmError::Message(format!("Failed to read template file '{}': {}", input.display(), e)))?;
 
-    let result = render_template(&template_content, values).map_err(|(error, preamble_lines)| {
+    let rendered = render_template_string(&template_content, values).map_err(|(error, preamble_lines)| {
         MpmError::Template(format_template_error(input, &template_content, &error, preamble_lines, 6, Some(values)))
     })?;
 
@@ -88,7 +97,7 @@ fn render_single_file(input: &Path, output: &Path, values: &gtmpl::Value) -> Res
         })?;
     }
 
-    fs::write(output, result.rendered)
+    fs::write(output, rendered)
         .map_err(|e| MpmError::Message(format!("Failed to write output file '{}': {}", output.display(), e)))?;
 
     trace!("Finished rendering file: {}", input.display());
@@ -174,9 +183,8 @@ mod tests {
         );
         let values = gtmpl::Value::Object(values_map);
 
-        let result = render_template(template, &values).unwrap();
-        // The preamble adds a newline that shows up in output
-        assert!(result.rendered.contains("Hello World!"));
+        let rendered = render_template_string(template, &values).unwrap();
+        assert!(rendered.contains("Hello World!"));
     }
 
     #[test]
@@ -189,7 +197,7 @@ mod tests {
         );
         let values = gtmpl::Value::Object(values_map);
 
-        let result = render_template(template, &values).unwrap();
-        assert!(result.rendered.contains("HELLO"));
+        let rendered = render_template_string(template, &values).unwrap();
+        assert!(rendered.contains("HELLO"));
     }
 }
