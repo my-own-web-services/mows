@@ -542,11 +542,13 @@ Files updated: `drives.rs`, `workspace_docker.rs`, `manpage.rs`, `shell_init.rs`
 
 ---
 
-#### 41. Missing #[must_use] Annotations
+#### 41. ~~Missing #[must_use] Annotations~~ NOT NEEDED
 
 **File:** Functions returning Result without side effects
 
-Compiler won't warn if result is accidentally ignored.
+**Status:** NOT NEEDED - Rust already warns on unused `Result` and `Option` values by default. Adding explicit `#[must_use]` annotations would be redundant for most cases.
+
+~~Compiler won't warn if result is accidentally ignored.~~
 
 ---
 
@@ -577,27 +579,33 @@ Compiler won't warn if result is accidentally ignored.
 
 ---
 
-#### 44. Redundant Clone in Hot Loop
+#### 44. ~~Redundant Clone in Hot Loop~~ RESOLVED
 
 **File:** `src/compose/secrets.rs:187`
 
-`.clone()` called twice per entry in merge logic.
+**Status:** RESOLVED - No `.clone()` calls exist in the merge logic. The code uses references and `format!()` which doesn't require cloning.
+
+~~`.clone()` called twice per entry in merge logic.~~
 
 ---
 
-#### 45. Unnecessary String Allocation in find_git_root
+#### 45. ~~Unnecessary String Allocation in find_git_root~~ NOT AN ISSUE
 
 **File:** `src/utils.rs:23`
 
-`String::from_utf8_lossy` creates owned String when trimmed slice would suffice.
+**Status:** NOT AN ISSUE - `String::from_utf8_lossy` returns `Cow<str>`, not `String`. It only allocates if there are invalid UTF-8 bytes (rare for git output). The `.trim()` returns a borrowed `&str` slice, which `PathBuf::from()` accepts directly.
+
+~~`String::from_utf8_lossy` creates owned String when trimmed slice would suffice.~~
 
 ---
 
-#### 46. Missing Timeout on Background Update Check
+#### 46. ~~Missing Timeout on Background Update Check~~ NOT AN ISSUE
 
 **File:** `src/self_update/update.rs:769-785`
 
-1-second HTTP timeout but no overall function timeout. Network stack issues could hang CLI exit.
+**Status:** NOT AN ISSUE - The reqwest `timeout()` is a **total request timeout** (not just HTTP-level), covering the entire operation: DNS resolution, TCP connection, TLS handshake, request sending, and response receiving. Combined with `connect_timeout()`, any network stack hang will timeout after 1 second. The subsequent config file operations are local disk I/O.
+
+~~1-second HTTP timeout but no overall function timeout. Network stack issues could hang CLI exit.~~
 
 ---
 
@@ -633,13 +641,15 @@ Cache scope only by architecture. PRs can corrupt main branch caches.
 
 ---
 
-#### 50. UPX Compression Without Verification
+#### 50. ~~UPX Compression Without Verification~~ RESOLVED
 
 **File:** `Dockerfile:85`
 
-UPX applied without testing compressed binary works.
+**Status:** RESOLVED - Added `/${BINARY_NAME} --version` verification step after UPX compression to ensure the compressed binary still works.
 
-**Recommendation:** Add `/${BINARY_NAME} --version` after compression.
+~~UPX applied without testing compressed binary works.~~
+
+~~**Recommendation:** Add `/${BINARY_NAME} --version` after compression.~~
 
 ---
 
@@ -669,11 +679,13 @@ After installation, doesn't verify installed version matches expected.
 
 ---
 
-#### 54. prepare-publish.sh Uses Non-Portable sed -i
+#### 54. ~~prepare-publish.sh Uses Non-Portable sed -i~~ RESOLVED
 
 **File:** `scripts/prepare-publish.sh`
 
-GNU sed syntax breaks on macOS.
+**Status:** RESOLVED - Added portable `sedi()` helper function that detects OS and uses `sed -i ''` on macOS, `sed -i` on Linux. Replaced all `sed -i` calls with `sedi`.
+
+~~GNU sed syntax breaks on macOS.~~
 
 ---
 
