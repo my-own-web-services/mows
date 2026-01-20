@@ -922,11 +922,13 @@ Commands exist but not documented.
 
 ---
 
-#### 76. yaml_indent Public But Internal
+#### 76. ~~yaml_indent Public But Internal~~ RESOLVED
 
 **File:** `src/yaml_indent.rs`
 
-Declared `pub mod` but primarily internal utility. Re-exported via utils.rs.
+**Status:** RESOLVED - Changed `pub mod yaml_indent` to `mod yaml_indent` in main.rs. The module is now internal-only, with needed functions re-exported via utils.rs. Also removed unused `yaml_with_indent` from the re-export.
+
+~~Declared `pub mod` but primarily internal utility. Re-exported via utils.rs.~~
 
 ---
 

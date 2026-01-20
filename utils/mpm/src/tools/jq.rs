@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use tracing::debug;
 
 use crate::error::{MpmError, Result};
-use crate::utils::{parse_yaml, read_input, write_output, yaml_to_4_space_indent};
+use crate::utils::{parse_yaml, read_input, write_output};
 
 pub fn jq_command(
     query: &str,
@@ -60,8 +60,7 @@ pub fn jq_command(
         let result_json: serde_json::Value = results[0].clone().into();
 
         if yaml_output {
-            let yaml = serde_yaml_neo::to_string(&result_json)?;
-            yaml_to_4_space_indent(&yaml)
+            serde_yaml_neo::to_string_with_indent(&result_json, 4)?
         } else {
             serde_json::to_string_pretty(&result_json).map_err(MpmError::JsonSerialize)?
         }
@@ -70,8 +69,7 @@ pub fn jq_command(
             results.iter().map(|v| v.clone().into()).collect();
 
         if yaml_output {
-            let yaml = serde_yaml_neo::to_string(&results_json)?;
-            yaml_to_4_space_indent(&yaml)
+            serde_yaml_neo::to_string_with_indent(&results_json, 4)?
         } else {
             let formatted: std::result::Result<Vec<_>, _> = results_json
                 .iter()

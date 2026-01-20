@@ -2,15 +2,15 @@ use std::path::PathBuf;
 use tracing::debug;
 
 use crate::error::{MpmError, Result};
-use crate::utils::{parse_yaml, read_input, write_output, yaml_to_4_space_indent};
+use crate::utils::{parse_yaml, read_input, write_output};
 
 pub fn json_to_yaml(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<()> {
     debug!("Converting JSON to YAML");
     let content = read_input(input)?;
     let value: serde_json::Value =
         serde_json::from_str(&content).map_err(MpmError::JsonParse)?;
-    let yaml = serde_yaml_neo::to_string(&value)?;
-    write_output(output, &yaml_to_4_space_indent(&yaml))
+    let yaml = serde_yaml_neo::to_string_with_indent(&value, 4)?;
+    write_output(output, &yaml)
 }
 
 pub fn yaml_to_json(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<()> {
