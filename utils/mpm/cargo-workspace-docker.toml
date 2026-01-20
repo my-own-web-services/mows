@@ -5,6 +5,7 @@ debug = false
 debug-assertions = false
 lto = true
 rpath = false
+strip = "symbols"
 
 [workspace]
 exclude = ["target"]
@@ -24,7 +25,7 @@ unsafe_code = "forbid"
 
 [workspace.package]
 edition = "2021"
-version = "0.5.2"
+version = "0.5.3"
 
 [workspace.dependencies.anyhow]
 default-features = false

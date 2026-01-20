@@ -9,8 +9,8 @@ export BUILDX_BAKE_ENTITLEMENTS_FS=0
 export PROFILE="${PROFILE:-release}"
 
 # Target architecture: amd64 (default) or arm64
+# Cross-compilation is used for arm64, so we always build on amd64
 TARGETARCH="${TARGETARCH:-amd64}"
-PLATFORM="linux/${TARGETARCH}"
 
 # Get git info for version embedding
 GIT_HASH="${GIT_HASH:-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')}"
@@ -44,14 +44,19 @@ if ! docker buildx version >/dev/null 2>&1; then
     exit 1
 fi
 
-# Cache options for CI (set BUILDX_CACHE_DIR to enable)
+# Cache options for CI
+# Set BUILDX_CACHE=gha for GitHub Actions cache backend (recommended for CI)
+# Set BUILDX_CACHE_DIR for local directory cache
 CACHE_ARGS=""
-if [ -n "${BUILDX_CACHE_DIR:-}" ]; then
+if [ "${BUILDX_CACHE:-}" = "gha" ]; then
+    # GitHub Actions cache backend - optimized for GHA, supports cross-job caching
+    CACHE_ARGS="--cache-from type=gha,scope=${TARGETARCH} --cache-to type=gha,scope=${TARGETARCH},mode=max"
+elif [ -n "${BUILDX_CACHE_DIR:-}" ]; then
+    # Local directory cache
     CACHE_ARGS="--cache-from type=local,src=${BUILDX_CACHE_DIR} --cache-to type=local,dest=${BUILDX_CACHE_DIR}-new,mode=max"
 fi
 
 docker buildx build \
-    --platform "${PLATFORM}" \
     --file Dockerfile \
     --target binary \
     --build-context mows-common-rust=../mows-common-rust \
