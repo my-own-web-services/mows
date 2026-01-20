@@ -16,20 +16,19 @@ fn validate_git_url(url: &str) -> Result<()> {
         return Err(MpmError::Validation("URL cannot be empty".to_string()));
     }
 
-    // Check for valid URL schemes
-    let valid_schemes = ["https://", "http://", "git://", "ssh://", "git@"];
-    let has_valid_scheme = valid_schemes.iter().any(|s| url.starts_with(s));
+    // Only allow secure URL schemes to prevent MITM attacks
+    // - https:// - encrypted HTTP
+    // - ssh:// - encrypted SSH protocol
+    // - git@ - SSH shorthand (e.g., git@github.com:user/repo.git)
+    // Rejected: http://, git:// (unencrypted, vulnerable to MITM)
+    let secure_schemes = ["https://", "ssh://", "git@"];
+    let has_secure_scheme = secure_schemes.iter().any(|s| url.starts_with(s));
 
-    if !has_valid_scheme {
+    if !has_secure_scheme {
         return Err(MpmError::Validation(format!(
-            "Invalid URL scheme. URL must start with one of: {}",
-            valid_schemes.join(", ")
+            "Insecure URL scheme. For security, URL must start with one of: {}",
+            secure_schemes.join(", ")
         )));
-    }
-
-    // Reject file:// URLs (security risk)
-    if url.starts_with("file://") {
-        return Err(MpmError::Validation("file:// URLs are not supported for security reasons".to_string()));
     }
 
     // Check for shell injection characters
