@@ -8,8 +8,9 @@
 
 use std::collections::HashSet;
 use std::path::Path;
-use std::process::Command;
 use tracing::{debug, info};
+
+use crate::compose::DockerClient;
 
 /// Result of a single check
 #[derive(Debug)]
@@ -122,6 +123,7 @@ fn should_skip_volume(mount: &VolumeMount) -> bool {
 
 /// Run all debug checks on the deployment
 pub fn run_debug_checks(
+    client: &dyn DockerClient,
     compose_content: &serde_yaml_neo::Value,
     base_dir: &Path,
     project_name: &str,
@@ -129,10 +131,10 @@ pub fn run_debug_checks(
     let mut results = Vec::new();
 
     // Check Traefik if labels are used
-    results.extend(check_traefik(compose_content, project_name));
+    results.extend(check_traefik(client, compose_content, project_name));
 
     // Check Ofelia/Watchtower handlers
-    results.extend(check_scheduled_handlers(compose_content));
+    results.extend(check_scheduled_handlers(client, compose_content));
 
     // Check volume mounts
     results.extend(check_volume_mounts(compose_content, base_dir));
@@ -144,7 +146,7 @@ pub fn run_debug_checks(
 }
 
 /// Check if Traefik is available when traefik labels are used
-fn check_traefik(compose: &serde_yaml_neo::Value, project_name: &str) -> Vec<CheckResult> {
+fn check_traefik(client: &dyn DockerClient, compose: &serde_yaml_neo::Value, project_name: &str) -> Vec<CheckResult> {
     let mut results = Vec::new();
 
     // Check if any service uses traefik labels
@@ -161,15 +163,10 @@ fn check_traefik(compose: &serde_yaml_neo::Value, project_name: &str) -> Vec<Che
     let project_networks = get_compose_networks(compose, project_name);
 
     // Check if traefik container exists and is running
-    let output = Command::new("docker")
-        .args(["ps", "--filter", "name=traefik", "--format", "{{.Names}}"])
-        .output();
-
-    match output {
-        Ok(out) if out.status.success() => {
-            let containers = String::from_utf8_lossy(&out.stdout);
-            let traefik_containers: Vec<&str> =
-                containers.lines().filter(|s| !s.is_empty()).collect();
+    match client.list_containers(&[("name", "traefik")]) {
+        Ok(json) => {
+            // Parse container names from JSON
+            let traefik_containers = parse_container_names(&json);
 
             if traefik_containers.is_empty() {
                 results.push(CheckResult::warn(
@@ -180,7 +177,7 @@ fn check_traefik(compose: &serde_yaml_neo::Value, project_name: &str) -> Vec<Che
             } else {
                 // Check if traefik is on the same network
                 for container in &traefik_containers {
-                    let networks = get_container_networks(container);
+                    let networks = get_container_networks(client, container);
                     let shared: Vec<_> = project_networks.intersection(&networks).collect();
 
                     if shared.is_empty() {
@@ -204,17 +201,10 @@ fn check_traefik(compose: &serde_yaml_neo::Value, project_name: &str) -> Vec<Che
                 }
             }
         }
-        Ok(out) => {
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            results.push(CheckResult::error(
-                "traefik",
-                &format!("Failed to check for traefik container: {}", stderr),
-            ));
-        }
         Err(e) => {
             results.push(CheckResult::error(
                 "traefik",
-                &format!("Failed to run docker command: {}", e),
+                &format!("Failed to check for traefik container: {}", e),
             ));
         }
     }
@@ -223,7 +213,7 @@ fn check_traefik(compose: &serde_yaml_neo::Value, project_name: &str) -> Vec<Che
 }
 
 /// Check if ofelia or watchtower is available when needed
-fn check_scheduled_handlers(compose: &serde_yaml_neo::Value) -> Vec<CheckResult> {
+fn check_scheduled_handlers(client: &dyn DockerClient, compose: &serde_yaml_neo::Value) -> Vec<CheckResult> {
     let mut results = Vec::new();
 
     let uses_ofelia = has_labels_containing(compose, "ofelia");
@@ -232,7 +222,7 @@ fn check_scheduled_handlers(compose: &serde_yaml_neo::Value) -> Vec<CheckResult>
 
     if uses_ofelia {
         info!("Ofelia labels detected, checking for ofelia container...");
-        match check_container_exists("ofelia") {
+        match check_container_exists(client, "ofelia") {
             Some(true) => {
                 results.push(CheckResult::pass(
                     "ofelia",
@@ -257,7 +247,7 @@ fn check_scheduled_handlers(compose: &serde_yaml_neo::Value) -> Vec<CheckResult>
 
     if uses_watchtower {
         info!("Watchtower labels detected, checking for watchtower container...");
-        match check_container_exists("watchtower") {
+        match check_container_exists(client, "watchtower") {
             Some(true) => {
                 results.push(CheckResult::pass(
                     "watchtower",
@@ -511,24 +501,19 @@ fn get_compose_networks(compose: &serde_yaml_neo::Value, project_name: &str) -> 
     networks
 }
 
-fn get_container_networks(container_name: &str) -> HashSet<String> {
+fn get_container_networks(client: &dyn DockerClient, container_name: &str) -> HashSet<String> {
     let mut networks = HashSet::new();
 
-    let output = Command::new("docker")
-        .args([
-            "inspect",
-            container_name,
-            "--format",
-            "{{range $k, $v := .NetworkSettings.Networks}}{{$k}}\n{{end}}",
-        ])
-        .output();
-
-    if let Ok(out) = output {
-        if out.status.success() {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            for line in stdout.lines() {
-                if !line.is_empty() {
-                    networks.insert(line.to_string());
+    if let Ok(json) = client.inspect_container(container_name) {
+        // Parse networks from JSON response
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&json) {
+            if let Some(network_settings) = value.get("NetworkSettings") {
+                if let Some(networks_map) = network_settings.get("Networks") {
+                    if let Some(obj) = networks_map.as_object() {
+                        for key in obj.keys() {
+                            networks.insert(key.clone());
+                        }
+                    }
                 }
             }
         }
@@ -537,24 +522,37 @@ fn get_container_networks(container_name: &str) -> HashSet<String> {
     networks
 }
 
-fn check_container_exists(name_pattern: &str) -> Option<bool> {
-    let output = Command::new("docker")
-        .args([
-            "ps",
-            "--filter",
-            &format!("name={}", name_pattern),
-            "--format",
-            "{{.Names}}",
-        ])
-        .output()
-        .ok()?;
-
-    if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        Some(!stdout.trim().is_empty())
-    } else {
-        None
+fn check_container_exists(client: &dyn DockerClient, name_pattern: &str) -> Option<bool> {
+    match client.list_containers(&[("name", name_pattern)]) {
+        Ok(json) => {
+            let containers = parse_container_names(&json);
+            Some(!containers.is_empty())
+        }
+        Err(_) => None,
     }
+}
+
+/// Parse container names from bollard list_containers JSON response.
+fn parse_container_names(json: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    if let Ok(value) = serde_json::from_str::<serde_json::Value>(json) {
+        if let Some(arr) = value.as_array() {
+            for container in arr {
+                // bollard returns Names as an array of strings like ["/container_name"]
+                if let Some(container_names) = container.get("Names") {
+                    if let Some(names_arr) = container_names.as_array() {
+                        for name in names_arr {
+                            if let Some(s) = name.as_str() {
+                                // Remove leading slash
+                                names.push(s.trim_start_matches('/').to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    names
 }
 
 #[cfg(test)]

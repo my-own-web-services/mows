@@ -54,12 +54,12 @@ jobs:
       - name: Run e2e tests
         run: |
           cd utils/mpm/tests
-          # Skip tests that require Docker daemon or network access
-          # - test-compose-up: requires Docker daemon with port binding
-          # - test-self-update: requires network access to GitHub API
-          SKIP_TESTS="test-compose-up,test-self-update" ./run-all.sh
+          # Use mock Docker client for tests that would otherwise need Docker daemon
+          # Skip test-self-update which requires network access to GitHub API
+          SKIP_TESTS="test-self-update" ./run-all.sh
         env:
           MPM_BIN: ${{ github.workspace }}/utils/mpm/target/release/mpm
+          MPM_MOCK_DOCKER: "1"
 
   build:
     needs: test
