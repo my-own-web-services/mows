@@ -27,6 +27,7 @@ Comprehensive code review conducted 2026-01-20 across 8 perspectives.
 **Category:** Rust/Tech
 
 **Status:** RESOLVED - Added file locking using the `fs2` crate:
+
 - Added `acquire_lock()` helper that creates/opens a `.yaml.lock` file and acquires an exclusive lock
 - `save()` now acquires an exclusive lock before writing
 - Added `with_locked()` method for atomic read-modify-write operations that holds the lock for the entire operation
@@ -132,9 +133,9 @@ Updated CLAUDE.md with documentation on using `TestConfigGuard`.
 
 - 215+ occurrences are in test code (appropriate - tests should panic on failures)
 - Fixed 5 production code issues:
-  - `compose/update.rs`: 2 fixes - `parent().unwrap()` → `parent().ok_or_else()`
-  - `tools/jq.rs`: 1 fix - proper JSON serialization error propagation
-  - `template/error.rs`: 2 fixes - `map_or` pattern instead of `is_none()/unwrap()`
+    - `compose/update.rs`: 2 fixes - `parent().unwrap()` → `parent().ok_or_else()`
+    - `tools/jq.rs`: 1 fix - proper JSON serialization error propagation
+    - `template/error.rs`: 2 fixes - `map_or` pattern instead of `is_none()/unwrap()`
 - 1 `expect()` in `health.rs` retained (compile-time constant initialization, appropriate use)
 
 ~~Extensive use of `.unwrap()` and `.expect()` can cause panics instead of graceful error handling.~~
@@ -208,6 +209,7 @@ Updated README.md with link to development guide.
 **File:** `src/template/render.rs:24`, `src/compose/render.rs:175`
 
 **Status:** NOT AN ISSUE - Reviewed gtmpl-ng source code (`~/projects/gtmpl-rust`). The `all_functions()` provides 155 safe template functions:
+
 - 152 Helm-compatible: string manipulation, math, crypto hashes, encoding, lists, dicts, regex, paths, JSON/YAML
 - 3 mows-specific: `mowsRandomString`, `mowsDigest`, `mowsJoinDomain`
 
@@ -227,6 +229,7 @@ Updated README.md with link to development guide.
 **Category:** Architecture
 
 **Status:** RESOLVED - Migrated entire codebase to use `MpmError` enum with `thiserror`. Created `src/error.rs` with:
+
 - `MpmError` enum with variants: Git, Docker, Config, Manifest, Template, Validation, Jq, Message, Io, YamlParse, YamlSerialize, Command, Path
 - Helper constructors for common error types
 - `IoResultExt` trait for ergonomic IO error context
@@ -245,10 +248,11 @@ Updated README.md with link to development guide.
 **Status:** RESOLVED - Migrated entire workspace from deprecated `serde-yaml` to `serde-yaml-neo` (v0.10.0) and updated all YAML serialization to use native `to_string_with_indent()` API.
 
 Changes made:
+
 - Replaced `serde_yaml::to_string()` + `yaml_with_indent()` post-processing with `serde_yaml_neo::to_string_with_indent()` in:
-  - `src/tools/object.rs` (4 places)
-  - `src/compose/render.rs` (1 place)
-  - `src/compose/update.rs` (1 place)
+    - `src/tools/object.rs` (4 places)
+    - `src/compose/render.rs` (1 place)
+    - `src/compose/update.rs` (1 place)
 - The `yaml_indent.rs` module is kept for backwards compatibility but no longer used in hot paths
 
 ~~Allocates new `String` for every line with `format!` and `" ".repeat()`. For large YAML files, creates many temporary allocations.~~
@@ -530,6 +534,7 @@ Canonicalize can be slow with many symlinks. Mitigated by MAX_DIRECTORY_DEPTH.
 **File:** Multiple files
 
 **Status:** RESOLVED - Converted `.map_err(|e| format!(...))` patterns to use proper error extension traits:
+
 - `IoResultExt::io_context()` for I/O errors (preserves source error chain)
 - `TomlResultExt::toml_context()` for TOML parsing errors
 - `MpmError::command()` for command execution errors
@@ -614,6 +619,7 @@ Files updated: `drives.rs`, `workspace_docker.rs`, `manpage.rs`, `shell_init.rs`
 **File:** `template/render.rs`, `compose/render.rs`
 
 **Status:** RESOLVED - Extracted shared `render_template_string()` function in `template/render.rs` that handles:
+
 - Template setup with all gtmpl functions
 - Variable preamble generation (`{{- $varname := .varname }}`)
 - Parsing and rendering with proper error handling
@@ -676,13 +682,20 @@ Build script modifies source tree, violates build hermeticity.
 
 **Recommendation:** Verify instead of regenerate.
 
+**This is fixed by addressing the bigger issue of generating this whole stuff inside the container, also fixing the issue with cargo-chef**
+
 ---
 
-#### 53. install.sh Not Validating Installed Version
+#### 53. ~~install.sh Not Validating Installed Version~~ RESOLVED
 
 **File:** `scripts/install.sh:195`
 
-After installation, doesn't verify installed version matches expected.
+**Status:** RESOLVED - Added version verification after installation:
+- Captures installed version from `mpm --version` output
+- Compares against expected version that was downloaded
+- Fails with clear error if versions don't match
+
+~~After installation, doesn't verify installed version matches expected.~~
 
 ---
 
@@ -854,6 +867,7 @@ Examples use `0.2.0`, `0.3.0` but current version is `0.5.3`.
 **File:** `docs/tools/overview.md:250-308`
 
 **Status:** RESOLVED - Added comprehensive documentation including:
+
 - "Why This Tool Exists" section explaining the problem it solves
 - "When to Regenerate" section with clear guidance
 - Improved structure with proper headings
