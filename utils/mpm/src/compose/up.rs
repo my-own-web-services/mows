@@ -1,5 +1,6 @@
 use std::fs;
 use std::process::Command;
+use std::time::Duration;
 use tracing::{debug, info};
 
 use crate::error::{MpmError, Result};
@@ -9,6 +10,16 @@ use super::checks::{
 use super::find_manifest_dir;
 use super::render::{run_render_pipeline, RenderContext};
 use crate::utils::parse_yaml;
+
+/// Maximum time to wait for containers to become ready after `docker compose up`.
+const CONTAINER_READY_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Interval between container readiness polls.
+const CONTAINER_POLL_INTERVAL: Duration = Duration::from_secs(2);
+
+/// Initial delay after starting containers before first readiness check.
+/// Allows containers time to appear in `docker ps`.
+const CONTAINER_STARTUP_DELAY: Duration = Duration::from_secs(1);
 
 /// Check if Docker daemon is available and running
 fn check_docker_available() -> Result<()> {
@@ -131,13 +142,11 @@ fn run_post_deployment_checks(ctx: &RenderContext) {
     use std::io::{self, Write};
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
-    use std::time::{Duration, Instant};
+    use std::time::Instant;
 
     let project_name = ctx.manifest.project_name();
     let results_dir = ctx.base_dir.join("results");
 
-    let timeout = Duration::from_secs(30);
-    let poll_interval = Duration::from_secs(2);
     let start = Instant::now();
 
     // Track whether we're showing a progress line that needs clearing
@@ -154,7 +163,7 @@ fn run_post_deployment_checks(ctx: &RenderContext) {
     });
 
     // Initial short wait for containers to appear
-    std::thread::sleep(Duration::from_secs(1));
+    std::thread::sleep(CONTAINER_STARTUP_DELAY);
 
     // Poll until ready or timeout
     let interrupted = loop {
@@ -164,7 +173,7 @@ fn run_post_deployment_checks(ctx: &RenderContext) {
             break false;
         }
 
-        if start.elapsed() >= timeout {
+        if start.elapsed() >= CONTAINER_READY_TIMEOUT {
             debug!(
                 "Container readiness timeout: {}/{} running, {} starting",
                 readiness.running, readiness.total, readiness.starting
@@ -190,7 +199,7 @@ fn run_post_deployment_checks(ctx: &RenderContext) {
         let _ = io::stdout().flush();
         showing_progress.store(true, Ordering::SeqCst);
 
-        std::thread::sleep(poll_interval);
+        std::thread::sleep(CONTAINER_POLL_INTERVAL);
     };
 
     // Clear progress line before continuing

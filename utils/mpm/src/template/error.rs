@@ -5,38 +5,7 @@ use gtmpl_ng::{ExecError, TemplateError, Value};
 use colored::Colorize;
 use mows_common_rust::error_display::format_file_error;
 use std::path::Path;
-
-/// Calculate Levenshtein distance between two strings
-fn levenshtein(a: &str, b: &str) -> usize {
-    let a_len = a.chars().count();
-    let b_len = b.chars().count();
-
-    if a_len == 0 {
-        return b_len;
-    }
-    if b_len == 0 {
-        return a_len;
-    }
-
-    let a_chars: Vec<char> = a.chars().collect();
-    let b_chars: Vec<char> = b.chars().collect();
-
-    let mut prev_row: Vec<usize> = (0..=b_len).collect();
-    let mut curr_row: Vec<usize> = vec![0; b_len + 1];
-
-    for i in 1..=a_len {
-        curr_row[0] = i;
-        for j in 1..=b_len {
-            let cost = if a_chars[i - 1] == b_chars[j - 1] { 0 } else { 1 };
-            curr_row[j] = (prev_row[j] + 1)
-                .min(curr_row[j - 1] + 1)
-                .min(prev_row[j - 1] + cost);
-        }
-        std::mem::swap(&mut prev_row, &mut curr_row);
-    }
-
-    prev_row[b_len]
-}
+use strsim::levenshtein;
 
 /// Extract all field names from a gtmpl Value (recursively collects nested field paths and leaf names)
 fn collect_field_names(value: &Value, prefix: &str, fields: &mut Vec<String>) {
