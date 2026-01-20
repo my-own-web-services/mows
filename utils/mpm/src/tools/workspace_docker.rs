@@ -201,10 +201,10 @@ fn parse_workspace_toml(path: &Path) -> Result<WorkspaceConfig> {
 
     let mut dependencies = BTreeMap::new();
 
-    if let Some(deps) = workspace.dependencies {
-        for (name, value) in deps {
-            let dep = parse_workspace_dep(&value);
-            dependencies.insert(name, dep);
+    if let Some(workspace_dependencies) = workspace.dependencies {
+        for (name, value) in workspace_dependencies {
+            let dependency = parse_workspace_dep(&value);
+            dependencies.insert(name, dependency);
         }
     }
 
@@ -271,11 +271,11 @@ fn parse_package_deps(path: &Path) -> Result<(Option<String>, BTreeMap<String, P
     let mut workspace_deps = BTreeMap::new();
 
     // Check all dependency sections
-    for deps in [cargo.dependencies, cargo.dev_dependencies, cargo.build_dependencies]
+    for dependencies in [cargo.dependencies, cargo.dev_dependencies, cargo.build_dependencies]
         .into_iter()
         .flatten()
     {
-        for (name, value) in deps {
+        for (name, value) in dependencies {
             if is_workspace_dep(&value) {
                 let features = extract_local_features(&value);
                 // Merge features if dependency appears in multiple sections
@@ -341,16 +341,16 @@ fn collect_all_deps(
         processed.insert(dep_name.clone());
 
         // Check if this is a path dependency
-        if let Some(ws_dep) = workspace_config.dependencies.get(&dep_name) {
-            if let Some(rel_path) = &ws_dep.path {
-                let dep_path = workspace_root.join(rel_path).join("Cargo.toml");
-                if dep_path.exists() {
-                    debug!("Processing transitive deps from: {}", dep_path.display());
-                    let (_, transitive_deps) = parse_package_deps(&dep_path)?;
-                    for (td_name, td_info) in transitive_deps {
-                        if !all_deps.contains_key(&td_name) {
-                            all_deps.insert(td_name.clone(), td_info);
-                            to_process.push(td_name);
+        if let Some(workspace_dependency) = workspace_config.dependencies.get(&dep_name) {
+            if let Some(relative_path) = &workspace_dependency.path {
+                let dependency_path = workspace_root.join(relative_path).join("Cargo.toml");
+                if dependency_path.exists() {
+                    debug!("Processing transitive deps from: {}", dependency_path.display());
+                    let (_, transitive_deps) = parse_package_deps(&dependency_path)?;
+                    for (transitive_dependency_name, transitive_dependency_info) in transitive_deps {
+                        if !all_deps.contains_key(&transitive_dependency_name) {
+                            all_deps.insert(transitive_dependency_name.clone(), transitive_dependency_info);
+                            to_process.push(transitive_dependency_name);
                         }
                     }
                 }
@@ -433,9 +433,9 @@ fn generate_toml_content(
     }
 
     // Workspace dependencies last (already sorted by BTreeMap)
-    for (dep_name, pkg_dep_info) in deps {
-        if let Some(ws_dep) = workspace_config.dependencies.get(dep_name.as_str()) {
-            output.push_str(&format_workspace_dep(dep_name, ws_dep, pkg_dep_info)?);
+    for (dependency_name, package_dependency_info) in deps {
+        if let Some(workspace_dependency) = workspace_config.dependencies.get(dependency_name.as_str()) {
+            output.push_str(&format_workspace_dep(dependency_name, workspace_dependency, package_dependency_info)?);
         }
     }
 
@@ -464,7 +464,7 @@ fn validate_dependency_name(name: &str) -> Result<()> {
     Ok(())
 }
 
-fn format_workspace_dep(name: &str, dep: &WorkspaceDep, pkg_info: &PackageDepInfo) -> Result<String> {
+fn format_workspace_dep(name: &str, dependency: &WorkspaceDep, package_info: &PackageDepInfo) -> Result<String> {
     validate_dependency_name(name)?;
     let mut output = format!("\n[workspace.dependencies.{}]\n", name);
 
@@ -475,19 +475,19 @@ fn format_workspace_dep(name: &str, dep: &WorkspaceDep, pkg_info: &PackageDepInf
     let mut all_features: Vec<String> = Vec::new();
 
     // Add workspace-level features first
-    if let Some(ws_features) = &dep.features {
-        for f in ws_features {
-            if !all_features.contains(f) {
-                all_features.push(f.clone());
+    if let Some(workspace_features) = &dependency.features {
+        for feature in workspace_features {
+            if !all_features.contains(feature) {
+                all_features.push(feature.clone());
             }
         }
     }
 
     // Add package-level features (these take precedence / get merged)
-    if let Some(pkg_features) = &pkg_info.features {
-        for f in pkg_features {
-            if !all_features.contains(f) {
-                all_features.push(f.clone());
+    if let Some(package_features) = &package_info.features {
+        for feature in package_features {
+            if !all_features.contains(feature) {
+                all_features.push(feature.clone());
             }
         }
     }
@@ -495,16 +495,16 @@ fn format_workspace_dep(name: &str, dep: &WorkspaceDep, pkg_info: &PackageDepInf
     // Output merged features
     if !all_features.is_empty() {
         all_features.sort(); // Deterministic output
-        let features_str: Vec<String> = all_features.iter().map(|f| format!("\"{}\"", f)).collect();
+        let features_str: Vec<String> = all_features.iter().map(|feature| format!("\"{}\"", feature)).collect();
         output.push_str(&format!("features = [{}]\n", features_str.join(", ")));
     }
 
     // Path or version
     // For Docker builds, path dependencies use the crate name as the directory
     // (e.g., "./mows-common-rust" instead of the actual relative path)
-    if dep.path.is_some() {
+    if dependency.path.is_some() {
         output.push_str(&format!("path = \"./{}\"\n", name));
-    } else if let Some(version) = &dep.version {
+    } else if let Some(version) = &dependency.version {
         output.push_str(&format!("version = \"{}\"\n", version));
     }
 
