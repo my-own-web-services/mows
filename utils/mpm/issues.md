@@ -21,14 +21,20 @@ Comprehensive code review conducted 2026-01-20 across 8 perspectives.
 
 ## Critical Issues
 
-### 1. Race Condition in Config File Access
+### 1. ~~Race Condition in Config File Access~~ RESOLVED
 
 **File:** `src/compose/config.rs:114-152`
 **Category:** Rust/Tech
 
-Atomic write pattern doesn't protect against concurrent access from multiple `mpm` processes. Two processes could both read the config, modify different fields, and the last write wins (data loss).
+**Status:** RESOLVED - Added file locking using the `fs2` crate:
+- Added `acquire_lock()` helper that creates/opens a `.yaml.lock` file and acquires an exclusive lock
+- `save()` now acquires an exclusive lock before writing
+- Added `with_locked()` method for atomic read-modify-write operations that holds the lock for the entire operation
+- Lock is automatically released when the file handle is dropped (RAII pattern)
 
-**Recommendation:** Use file locking (e.g., `fs2` crate) or advisory locks before read-modify-write operations.
+~~Atomic write pattern doesn't protect against concurrent access from multiple `mpm` processes. Two processes could both read the config, modify different fields, and the last write wins (data loss).~~
+
+~~**Recommendation:** Use file locking (e.g., `fs2` crate) or advisory locks before read-modify-write operations.~~
 
 ---
 
