@@ -185,6 +185,16 @@ main() {
         export PATH="${install_dir}:$PATH"
     fi
 
+    # Verify installed version matches expected
+    local installed_version
+    installed_version=$(mpm version 2>/dev/null | grep -oP '^mpm \K[0-9]+\.[0-9]+\.[0-9]+' || true)
+    if [ -z "$installed_version" ]; then
+        error "Failed to verify installed version. 'mpm version' did not return expected output."
+    fi
+    if [ "$installed_version" != "$version" ]; then
+        error "Version mismatch! Expected: ${version}, Installed: ${installed_version}"
+    fi
+
     # Setup shell completions and man pages
     setup_completions
     setup_manpages
@@ -192,7 +202,7 @@ main() {
     echo
     success "Installation complete!"
     echo
-    mpm --version
+    mpm version
     echo
     info "Restart your shell or run: exec \$SHELL"
     info "Then run 'mpm --help' to get started."
