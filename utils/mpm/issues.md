@@ -909,11 +909,16 @@ Commands exist but not documented.
 
 ### Repository
 
-#### 75. Duplicate Manifest Finding Logic
+#### 75. ~~Duplicate Manifest Finding Logic~~ RESOLVED
 
 **File:** `compose/mod.rs`, `compose/update.rs:226`
 
-`find_manifest` in update.rs duplicates logic in compose/mod.rs.
+**Status:** RESOLVED - Extracted shared `find_manifest_file_from()` function in mod.rs:
+- Walks UP parent directories and returns the manifest file path
+- Used by both `find_manifest_dir()` in mod.rs and update.rs
+- Removed duplicate `find_manifest()` from update.rs (~25 lines)
+
+~~`find_manifest` in update.rs duplicates logic in compose/mod.rs.~~
 
 ---
 
