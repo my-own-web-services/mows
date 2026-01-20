@@ -1,34 +1,32 @@
 use std::path::PathBuf;
 use tracing::debug;
 
+use crate::error::{MpmError, Result};
 use crate::utils::{parse_yaml, read_input, write_output, yaml_to_4_space_indent};
 
-pub fn json_to_yaml(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<(), String> {
+pub fn json_to_yaml(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<()> {
     debug!("Converting JSON to YAML");
     let content = read_input(input)?;
     let value: serde_json::Value =
-        serde_json::from_str(&content).map_err(|e| format!("Failed to parse JSON: {}", e))?;
-    let yaml =
-        serde_yaml::to_string(&value).map_err(|e| format!("Failed to convert to YAML: {}", e))?;
+        serde_json::from_str(&content).map_err(MpmError::JsonParse)?;
+    let yaml = serde_yaml::to_string(&value)?;
     write_output(output, &yaml_to_4_space_indent(&yaml))
 }
 
-pub fn yaml_to_json(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<(), String> {
+pub fn yaml_to_json(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<()> {
     debug!("Converting YAML to JSON");
     let content = read_input(input)?;
     let value: serde_yaml::Value = parse_yaml(&content, input.as_deref())?;
-    let json = serde_json::to_string_pretty(&value)
-        .map_err(|e| format!("Failed to convert to JSON: {}", e))?;
+    let json = serde_json::to_string_pretty(&value).map_err(MpmError::JsonSerialize)?;
     write_output(output, &json)
 }
 
-pub fn prettify_json(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<(), String> {
+pub fn prettify_json(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<()> {
     debug!("Prettifying JSON");
     let content = read_input(input)?;
     let value: serde_json::Value =
-        serde_json::from_str(&content).map_err(|e| format!("Failed to parse JSON: {}", e))?;
-    let json = serde_json::to_string_pretty(&value)
-        .map_err(|e| format!("Failed to prettify JSON: {}", e))?;
+        serde_json::from_str(&content).map_err(MpmError::JsonParse)?;
+    let json = serde_json::to_string_pretty(&value).map_err(MpmError::JsonSerialize)?;
     write_output(output, &json)
 }
 

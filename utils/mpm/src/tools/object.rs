@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use tracing::debug;
 
+use crate::error::{MpmError, Result};
 use crate::utils::{detect_yaml_indent, parse_yaml, read_input, write_output, yaml_with_indent};
 
 use super::selector::{find_matching_paths, get_value_at_path_mut, is_docker_compose};
@@ -25,7 +26,7 @@ impl std::fmt::Display for FlattenLabelsError {
 
 /// Flatten labels in a docker-compose YAML value
 /// This transforms nested label structures to flat dot-notation
-pub fn flatten_labels_in_compose(mut value: serde_yaml::Value) -> Result<serde_yaml::Value, FlattenLabelsError> {
+pub fn flatten_labels_in_compose(mut value: serde_yaml::Value) -> std::result::Result<serde_yaml::Value, FlattenLabelsError> {
     if !is_docker_compose(&value) {
         return Err(FlattenLabelsError::NotDockerCompose);
     }
@@ -52,7 +53,7 @@ pub fn expand_object_command(
     input: &Option<PathBuf>,
     output: &Option<PathBuf>,
     selector: &Option<String>,
-) -> Result<(), String> {
+) -> Result<()> {
     debug!("Expanding dot-notation keys to nested object");
     let content = read_input(input)?;
     let indent = detect_yaml_indent(&content).unwrap_or(4);
@@ -75,9 +76,8 @@ pub fn expand_object_command(
     if effective_selector.is_empty() {
         // Transform the entire document
         let tree = mows_common_rust::labels::labels_to_tree(value)
-            .map_err(|e| format!("Failed to expand: {}", e))?;
-        let yaml = serde_yaml::to_string(&tree)
-            .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
+            .map_err(|e| MpmError::Message(format!("Failed to expand: {}", e)))?;
+        let yaml = serde_yaml::to_string(&tree)?;
         write_output(output, &yaml_with_indent(&yaml, indent))
     } else {
         // Transform only matching paths
@@ -93,13 +93,12 @@ pub fn expand_object_command(
         for path in matching_paths {
             if let Some(target) = get_value_at_path_mut(&mut value, &path) {
                 let transformed = mows_common_rust::labels::labels_to_tree(target.clone())
-                    .map_err(|e| format!("Failed to expand at path {:?}: {}", path, e))?;
+                    .map_err(|e| MpmError::Message(format!("Failed to expand at path {:?}: {}", path, e)))?;
                 *target = transformed;
             }
         }
 
-        let yaml = serde_yaml::to_string(&value)
-            .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
+        let yaml = serde_yaml::to_string(&value)?;
         write_output(output, &yaml_with_indent(&yaml, indent))
     }
 }
@@ -108,7 +107,7 @@ pub fn flatten_object_command(
     input: &Option<PathBuf>,
     output: &Option<PathBuf>,
     selector: &Option<String>,
-) -> Result<(), String> {
+) -> Result<()> {
     debug!("Flattening nested object to dot-notation keys");
     let content = read_input(input)?;
     let indent = detect_yaml_indent(&content).unwrap_or(4);
@@ -131,9 +130,8 @@ pub fn flatten_object_command(
     if effective_selector.is_empty() {
         // Transform the entire document
         let labels = mows_common_rust::labels::tree_to_labels(value)
-            .map_err(|e| format!("Failed to flatten: {}", e))?;
-        let yaml = serde_yaml::to_string(&labels)
-            .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
+            .map_err(|e| MpmError::Message(format!("Failed to flatten: {}", e)))?;
+        let yaml = serde_yaml::to_string(&labels)?;
         write_output(output, &yaml_with_indent(&yaml, indent))
     } else {
         // Transform only matching paths
@@ -149,13 +147,12 @@ pub fn flatten_object_command(
         for path in matching_paths {
             if let Some(target) = get_value_at_path_mut(&mut value, &path) {
                 let transformed = mows_common_rust::labels::tree_to_labels(target.clone())
-                    .map_err(|e| format!("Failed to flatten at path {:?}: {}", path, e))?;
+                    .map_err(|e| MpmError::Message(format!("Failed to flatten at path {:?}: {}", path, e)))?;
                 *target = transformed;
             }
         }
 
-        let yaml = serde_yaml::to_string(&value)
-            .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
+        let yaml = serde_yaml::to_string(&value)?;
         write_output(output, &yaml_with_indent(&yaml, indent))
     }
 }

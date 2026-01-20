@@ -5,6 +5,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use tracing::{debug, info};
 
+use crate::error::{IoResultExt, MpmError, Result};
 use crate::utils::yaml_to_4_space_indent;
 
 /// Environment variable to override the config file path.
@@ -82,7 +83,7 @@ impl MpmConfig {
     ///
     /// Checks the MPM_CONFIG_PATH environment variable first.
     /// Falls back to ~/.config/mows.cloud/mpm.yaml if not set.
-    pub fn config_path() -> Result<PathBuf, String> {
+    pub fn config_path() -> Result<PathBuf> {
         // Check for environment variable override first
         if let Ok(path) = std::env::var(MPM_CONFIG_PATH_ENV) {
             debug!("Using config path from {}: {}", MPM_CONFIG_PATH_ENV, path);
@@ -91,12 +92,12 @@ impl MpmConfig {
 
         // Default to ~/.config/mows.cloud/mpm.yaml
         let home = std::env::var("HOME")
-            .map_err(|_| "HOME environment variable not set".to_string())?;
+            .map_err(|_| MpmError::Config("HOME environment variable not set".to_string()))?;
         Ok(PathBuf::from(home).join(".config/mows.cloud/mpm.yaml"))
     }
 
     /// Load the config from disk, or return default if not found
-    pub fn load() -> Result<Self, String> {
+    pub fn load() -> Result<Self> {
         let path = Self::config_path()?;
 
         if !path.exists() {
@@ -105,24 +106,23 @@ impl MpmConfig {
         }
 
         let content = fs::read_to_string(&path)
-            .map_err(|e| format!("Failed to read config file '{}': {}", path.display(), e))?;
+            .io_context(format!("Failed to read config file '{}'", path.display()))?;
 
         serde_yaml::from_str(&content)
-            .map_err(|e| format!("Failed to parse config file '{}': {}", path.display(), e))
+            .map_err(|e| MpmError::Config(format!("Failed to parse config file '{}': {}", path.display(), e)))
     }
 
     /// Save the config to disk using atomic write
     /// Writes to a temporary file first, then renames to prevent corruption
-    pub fn save(&self) -> Result<(), String> {
+    pub fn save(&self) -> Result<()> {
         let path = Self::config_path()?;
 
         // Create parent directories
-        let parent = path.parent().ok_or("Invalid config path")?;
+        let parent = path.parent().ok_or_else(|| MpmError::Config("Invalid config path".to_string()))?;
         fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create config directory: {}", e))?;
+            .io_context("Failed to create config directory")?;
 
-        let yaml = serde_yaml::to_string(self)
-            .map_err(|e| format!("Failed to serialize config: {}", e))?;
+        let yaml = serde_yaml::to_string(self)?;
         let content = yaml_to_4_space_indent(&yaml);
 
         // Write to temporary file first (atomic write pattern)
@@ -130,23 +130,23 @@ impl MpmConfig {
 
         // Create file with restrictive permissions (600 - owner read/write only)
         let mut file = File::create(&temp_path)
-            .map_err(|e| format!("Failed to create temp config file: {}", e))?;
+            .io_context("Failed to create temp config file")?;
 
         // Set permissions before writing content
         let permissions = fs::Permissions::from_mode(0o600);
         fs::set_permissions(&temp_path, permissions)
-            .map_err(|e| format!("Failed to set config file permissions: {}", e))?;
+            .io_context("Failed to set config file permissions")?;
 
         file.write_all(content.as_bytes())
-            .map_err(|e| format!("Failed to write temp config file: {}", e))?;
+            .io_context("Failed to write temp config file")?;
 
         // Ensure data is flushed to disk
         file.sync_all()
-            .map_err(|e| format!("Failed to sync config file: {}", e))?;
+            .io_context("Failed to sync config file")?;
 
         // Atomic rename
         fs::rename(&temp_path, &path)
-            .map_err(|e| format!("Failed to save config file: {}", e))?;
+            .io_context("Failed to save config file")?;
 
         info!("Saved config to {}", path.display());
         Ok(())

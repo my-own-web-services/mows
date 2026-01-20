@@ -21,14 +21,15 @@ pub use update::compose_update;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
+use crate::error::{IoResultExt, MpmError, Result};
 use crate::utils::find_git_root;
 
 /// Find the first mows-manifest.yaml/yml file in a directory tree
 /// Searches up to 5 levels deep, skipping hidden directories
-pub(crate) fn find_manifest_in_repo(repo_dir: &Path) -> Result<PathBuf, String> {
+pub(crate) fn find_manifest_in_repo(repo_dir: &Path) -> Result<PathBuf> {
     let manifests = find_all_manifests_in_repo(repo_dir);
     manifests.into_iter().next().ok_or_else(|| {
-        format!("No mows-manifest.yaml found in '{}'", repo_dir.display())
+        MpmError::Manifest(format!("No mows-manifest.yaml found in '{}'", repo_dir.display()))
     })
 }
 
@@ -73,9 +74,9 @@ fn has_manifest(dir: &Path) -> bool {
 /// This supports both:
 /// - Installed projects (no .git directory) - uses parent directory search
 /// - Development repos - uses git root search
-pub(crate) fn find_manifest_dir() -> Result<PathBuf, String> {
+pub(crate) fn find_manifest_dir() -> Result<PathBuf> {
     let current_dir = std::env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+        .io_context("Failed to get current directory")?;
 
     // Check if current directory has a manifest
     if has_manifest(&current_dir) {
@@ -100,12 +101,12 @@ pub(crate) fn find_manifest_dir() -> Result<PathBuf, String> {
             1 => {
                 let manifest_dir = manifests[0]
                     .parent()
-                    .ok_or("Invalid manifest path")?
+                    .ok_or_else(|| MpmError::path(&manifests[0], "Invalid manifest path"))?
                     .to_path_buf();
                 return Ok(manifest_dir);
             }
             n => {
-                return Err(format!(
+                return Err(MpmError::Manifest(format!(
                     "Found {} mows-manifest.yaml files in repository. \
                      Please run from the directory containing the manifest you want to use:\n{}",
                     n,
@@ -114,10 +115,10 @@ pub(crate) fn find_manifest_dir() -> Result<PathBuf, String> {
                         .map(|p| format!("  - {}", p.display()))
                         .collect::<Vec<_>>()
                         .join("\n")
-                ));
+                )));
             }
         }
     }
 
-    Err("No mows-manifest.yaml found. Run from a project directory or use 'mpm compose install' to add a project.".to_string())
+    Err(MpmError::Manifest("No mows-manifest.yaml found. Run from a project directory or use 'mpm compose install' to add a project.".to_string()))
 }

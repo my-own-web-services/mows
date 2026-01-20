@@ -4,6 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::{debug, info, trace};
 
+use crate::error::{MpmError, Result};
 use super::error::format_template_error;
 use super::variables::load_variables_with_defaults;
 
@@ -16,7 +17,7 @@ struct RenderResult {
 fn render_template(
     template_content: &str,
     variables: &gtmpl::Value,
-) -> Result<RenderResult, (TemplateError, usize)> {
+) -> std::result::Result<RenderResult, (TemplateError, usize)> {
     trace!("Parsing template ({} bytes)", template_content.len());
     let mut template = gtmpl::Template::default();
 
@@ -62,7 +63,7 @@ fn render_template(
     Ok(RenderResult { rendered })
 }
 
-fn render_single_file(input: &Path, output: &Path, values: &gtmpl::Value) -> Result<(), String> {
+fn render_single_file(input: &Path, output: &Path, values: &gtmpl::Value) -> Result<()> {
     trace!(
         "Rendering file: {} -> {}",
         input.display(),
@@ -70,53 +71,53 @@ fn render_single_file(input: &Path, output: &Path, values: &gtmpl::Value) -> Res
     );
 
     let template_content = fs::read_to_string(input)
-        .map_err(|e| format!("Failed to read template file '{}': {}", input.display(), e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to read template file '{}': {}", input.display(), e)))?;
 
     let result = render_template(&template_content, values).map_err(|(error, preamble_lines)| {
-        format_template_error(input, &template_content, &error, preamble_lines, 6, Some(values))
+        MpmError::Template(format_template_error(input, &template_content, &error, preamble_lines, 6, Some(values)))
     })?;
 
     // Create parent directories if they don't exist
     if let Some(parent) = output.parent() {
         fs::create_dir_all(parent).map_err(|e| {
-            format!(
+            MpmError::Message(format!(
                 "Failed to create output directory '{}': {}",
                 parent.display(),
                 e
-            )
+            ))
         })?;
     }
 
     fs::write(output, result.rendered)
-        .map_err(|e| format!("Failed to write output file '{}': {}", output.display(), e))?;
+        .map_err(|e| MpmError::Message(format!("Failed to write output file '{}': {}", output.display(), e)))?;
 
     trace!("Finished rendering file: {}", input.display());
     Ok(())
 }
 
-fn render_directory(input: &Path, output: &Path, values: &gtmpl::Value) -> Result<(), String> {
+fn render_directory(input: &Path, output: &Path, values: &gtmpl::Value) -> Result<()> {
     debug!("Rendering directory: {}", input.display());
 
     if !input.is_dir() {
-        return Err(format!("{} is not a directory", input.display()));
+        return Err(MpmError::path(input, "not a directory"));
     }
 
     // Create output directory
     fs::create_dir_all(output).map_err(|e| {
-        format!(
+        MpmError::Message(format!(
             "Failed to create output directory '{}': {}",
             output.display(),
             e
-        )
+        ))
     })?;
 
     trace!("Created output directory: {}", output.display());
 
     // Walk the directory tree
     for entry in fs::read_dir(input)
-        .map_err(|e| format!("Failed to read directory '{}': {}", input.display(), e))?
+        .map_err(|e| MpmError::Message(format!("Failed to read directory '{}': {}", input.display(), e)))?
     {
-        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
+        let entry = entry.map_err(|e| MpmError::Message(format!("Failed to read directory entry: {}", e)))?;
         let path = entry.path();
         let file_name = entry.file_name();
         let output_path = output.join(&file_name);
@@ -138,7 +139,7 @@ pub fn render_template_command(
     input: &PathBuf,
     variable_args: &[String],
     output: &PathBuf,
-) -> Result<(), String> {
+) -> Result<()> {
     info!(
         "Rendering templates: {} -> {}",
         input.display(),
@@ -154,7 +155,7 @@ pub fn render_template_command(
         debug!("Input is a directory");
         render_directory(input, output, &variables)
     } else {
-        Err(format!("{} is not a file or directory", input.display()))
+        Err(MpmError::path(input, "not a file or directory"))
     }
 }
 

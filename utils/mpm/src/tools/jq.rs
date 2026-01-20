@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use tracing::debug;
 
+use crate::error::{MpmError, Result};
 use crate::utils::{parse_yaml, read_input, write_output, yaml_to_4_space_indent};
 
 pub fn jq_command(
@@ -8,7 +9,7 @@ pub fn jq_command(
     input: &Option<PathBuf>,
     output: &Option<PathBuf>,
     yaml_output: bool,
-) -> Result<(), String> {
+) -> Result<()> {
     use jaq_interpret::{Ctx, FilterT, RcIter, Val};
 
     debug!("Running jq query: {}", query);
@@ -19,16 +20,16 @@ pub fn jq_command(
         json
     } else {
         let yaml: serde_yaml::Value = parse_yaml(&content, input.as_deref())?;
-        serde_json::to_value(&yaml).map_err(|e| format!("Failed to convert YAML to JSON: {}", e))?
+        serde_json::to_value(&yaml).map_err(MpmError::JsonSerialize)?
     };
 
     // Parse the jq filter
     let (main, errs) = jaq_parse::parse(query, jaq_parse::main());
     if !errs.is_empty() {
         let err_msgs: Vec<String> = errs.iter().map(|e| format!("{:?}", e)).collect();
-        return Err(format!("Failed to parse jq query: {}", err_msgs.join(", ")));
+        return Err(MpmError::Jq(format!("Failed to parse query: {}", err_msgs.join(", "))));
     }
-    let main = main.ok_or("Failed to parse jq query")?;
+    let main = main.ok_or_else(|| MpmError::Jq("Failed to parse query".to_string()))?;
 
     // Create filter context (starts with core filters only)
     let mut arena = jaq_interpret::ParseCtx::new(Vec::new());
@@ -36,10 +37,10 @@ pub fn jq_command(
 
     if !arena.errs.is_empty() {
         let err_msgs: Vec<String> = arena.errs.iter().map(|e| format!("{}", e.0)).collect();
-        return Err(format!(
-            "Failed to compile jq query: {}",
+        return Err(MpmError::Jq(format!(
+            "Failed to compile query: {}",
             err_msgs.join(", ")
-        ));
+        )));
     }
 
     // Convert JSON to Val (jaq Val has From<serde_json::Value> impl)
@@ -51,28 +52,25 @@ pub fn jq_command(
 
     let results: Vec<Val> = filter
         .run((ctx, input_val))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("jq query error: {}", e))?;
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(|e| MpmError::Jq(format!("query error: {}", e)))?;
 
     // Format output
     let output_str = if results.len() == 1 {
         let result_json: serde_json::Value = results[0].clone().into();
 
         if yaml_output {
-            let yaml = serde_yaml::to_string(&result_json)
-                .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
+            let yaml = serde_yaml::to_string(&result_json)?;
             yaml_to_4_space_indent(&yaml)
         } else {
-            serde_json::to_string_pretty(&result_json)
-                .map_err(|e| format!("Failed to convert to JSON: {}", e))?
+            serde_json::to_string_pretty(&result_json).map_err(MpmError::JsonSerialize)?
         }
     } else {
         let results_json: Vec<serde_json::Value> =
             results.iter().map(|v| v.clone().into()).collect();
 
         if yaml_output {
-            let yaml = serde_yaml::to_string(&results_json)
-                .map_err(|e| format!("Failed to convert to YAML: {}", e))?;
+            let yaml = serde_yaml::to_string(&results_json)?;
             yaml_to_4_space_indent(&yaml)
         } else {
             results_json

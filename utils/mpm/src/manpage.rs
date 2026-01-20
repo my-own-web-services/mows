@@ -6,6 +6,7 @@ use clap::CommandFactory;
 use clap_mangen::Man;
 
 use crate::cli::Cli;
+use crate::error::{MpmError, Result};
 
 /// Get man page installation path
 /// - If /usr/local/share/man is writable: use system path (in default MANPATH)
@@ -39,7 +40,7 @@ fn get_manpage_path() -> Option<PathBuf> {
 }
 
 /// Generate man page for the main command
-fn generate_main_manpage() -> Result<Vec<u8>, String> {
+fn generate_main_manpage() -> Result<Vec<u8>> {
     let cmd = Cli::command();
     let mut buf = Vec::new();
     Man::new(cmd)
@@ -49,7 +50,7 @@ fn generate_main_manpage() -> Result<Vec<u8>, String> {
 }
 
 /// Output man page to stdout or install it
-pub fn manpage(install: bool) -> Result<(), String> {
+pub fn manpage(install: bool) -> Result<()> {
     let content = generate_main_manpage()?;
 
     if install {
@@ -64,12 +65,12 @@ pub fn manpage(install: bool) -> Result<(), String> {
 }
 
 /// Install man page to the standard directory
-fn install_manpage(content: &[u8]) -> Result<(), String> {
+fn install_manpage(content: &[u8]) -> Result<()> {
     let path = get_manpage_path()
-        .ok_or_else(|| "Could not determine installation path".to_string())?;
+        .ok_or_else(|| MpmError::Message("Could not determine installation path".to_string()))?;
     let man_dir = path
         .parent()
-        .ok_or_else(|| "Invalid man page path".to_string())?;
+        .ok_or_else(|| MpmError::Message("Invalid man page path".to_string()))?;
 
     // Create directory if needed
     fs::create_dir_all(man_dir)
