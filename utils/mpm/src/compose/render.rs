@@ -585,12 +585,17 @@ pub fn render_admin_infos(ctx: &RenderContext) -> Result<()> {
     render_template_file(&template_path, &output_path, &variables)
 }
 
-/// Backup state for rollback on pipeline failure
+/// Backup state for rollback on pipeline failure.
+///
+/// Implements `Drop` to auto-restore on panic, ensuring the backup directory
+/// is not leaked even if the pipeline fails unexpectedly.
 struct PipelineBackup {
     /// Path to backup directory (if results existed)
     backup_dir: Option<PathBuf>,
     /// Path to results directory
     results_dir: PathBuf,
+    /// Whether the backup has been finalized (committed or restored)
+    finalized: bool,
 }
 
 impl PipelineBackup {
@@ -628,11 +633,18 @@ impl PipelineBackup {
         Ok(PipelineBackup {
             backup_dir,
             results_dir: results_dir.to_path_buf(),
+            finalized: false,
         })
     }
 
     /// Restore from backup on failure
-    fn restore(self) -> Result<()> {
+    fn restore(mut self) -> Result<()> {
+        self.finalized = true;
+        self.do_restore()
+    }
+
+    /// Internal restore logic (used by both restore() and Drop)
+    fn do_restore(&self) -> Result<()> {
         warn!("Pipeline failed, attempting to restore previous state");
 
         // Remove the partially-created results directory
@@ -643,9 +655,9 @@ impl PipelineBackup {
         }
 
         // Restore from backup if we had one
-        if let Some(backup_path) = self.backup_dir {
+        if let Some(ref backup_path) = self.backup_dir {
             debug!("Restoring results from backup");
-            fs::rename(&backup_path, &self.results_dir)
+            fs::rename(backup_path, &self.results_dir)
                 .io_context("Failed to restore results from backup")?;
         }
 
@@ -653,13 +665,27 @@ impl PipelineBackup {
     }
 
     /// Commit the changes by removing the backup (called on success)
-    fn commit(self) -> Result<()> {
-        if let Some(backup_path) = self.backup_dir {
+    fn commit(mut self) -> Result<()> {
+        self.finalized = true;
+        if let Some(ref backup_path) = self.backup_dir {
             debug!("Removing backup directory after successful pipeline");
-            fs::remove_dir_all(&backup_path)
+            fs::remove_dir_all(backup_path)
                 .io_context("Failed to remove backup directory")?;
         }
         Ok(())
+    }
+}
+
+impl Drop for PipelineBackup {
+    fn drop(&mut self) {
+        // If not finalized (panic occurred), attempt to restore
+        if !self.finalized {
+            warn!("PipelineBackup dropped without finalization, attempting auto-restore");
+            // Ignore errors in Drop - we can't do much about them
+            if let Err(e) = self.do_restore() {
+                warn!("Failed to auto-restore on drop: {}", e);
+            }
+        }
     }
 }
 

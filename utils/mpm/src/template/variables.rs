@@ -326,4 +326,340 @@ mod tests {
             _ => panic!("Expected object"),
         }
     }
+
+    // =========================================================================
+    // Conflict and Edge Case Tests (#63)
+    // =========================================================================
+
+    #[test]
+    fn test_conflicting_keys_explicit_var_overrides_values_file() {
+        // When values file has 'extra' and explicit variable is also named 'extra',
+        // the explicit variable should override
+        let dir = tempdir().unwrap();
+        let values_path = dir.path().join("values.yaml");
+        std::fs::write(
+            &values_path,
+            "extra: original_value\nhostname: example.com",
+        )
+        .unwrap();
+
+        let mut extra_file = NamedTempFile::new().unwrap();
+        write!(extra_file, "name: overridden").unwrap();
+        extra_file.flush().unwrap();
+
+        let args = vec![format!("extra:{}", extra_file.path().display())];
+        let variables = load_variables_with_defaults(dir.path(), &args).unwrap();
+
+        match variables {
+            gtmpl::Value::Object(map) => {
+                // hostname should still be there
+                assert_eq!(
+                    map.get("hostname"),
+                    Some(&gtmpl::Value::String("example.com".to_string()))
+                );
+                // extra should be the explicit variable (an object), not the string from values
+                if let Some(gtmpl::Value::Object(extra)) = map.get("extra") {
+                    assert!(extra.contains_key("name"));
+                } else {
+                    panic!("Expected extra to be overridden to an object");
+                }
+            }
+            _ => panic!("Expected object"),
+        }
+    }
+
+    #[test]
+    fn test_duplicate_explicit_variables_last_wins() {
+        let mut file1 = NamedTempFile::new().unwrap();
+        write!(file1, "value: first").unwrap();
+        file1.flush().unwrap();
+
+        let mut file2 = NamedTempFile::new().unwrap();
+        write!(file2, "value: second").unwrap();
+        file2.flush().unwrap();
+
+        // Same name 'config' used twice
+        let args = vec![
+            format!("config:{}", file1.path().display()),
+            format!("config:{}", file2.path().display()),
+        ];
+        let variables = load_variables_only(&args).unwrap();
+
+        match variables {
+            gtmpl::Value::Object(map) => {
+                if let Some(gtmpl::Value::Object(config)) = map.get("config") {
+                    // Last one should win
+                    assert_eq!(
+                        config.get("value"),
+                        Some(&gtmpl::Value::String("second".to_string()))
+                    );
+                } else {
+                    panic!("Expected config to be an object");
+                }
+            }
+            _ => panic!("Expected object"),
+        }
+    }
+
+    #[test]
+    fn test_very_large_yaml_file() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        // Create a YAML file with 10000 keys
+        let mut content = String::new();
+        for i in 0..10000 {
+            content.push_str(&format!("key_{}: value_{}\n", i, i));
+        }
+        write!(temp_file, "{}", content).unwrap();
+        temp_file.flush().unwrap();
+
+        let arg = format!("large:{}", temp_file.path().display());
+        let result = load_variables_only(&[arg]);
+        assert!(result.is_ok());
+
+        if let Ok(gtmpl::Value::Object(map)) = result {
+            if let Some(gtmpl::Value::Object(large)) = map.get("large") {
+                assert_eq!(large.len(), 10000);
+            }
+        }
+    }
+
+    #[test]
+    fn test_deeply_nested_yaml() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        // Create deeply nested YAML
+        let content = r#"
+level1:
+  level2:
+    level3:
+      level4:
+        level5:
+          level6:
+            level7:
+              level8:
+                level9:
+                  level10:
+                    value: "deep"
+"#;
+        write!(temp_file, "{}", content).unwrap();
+        temp_file.flush().unwrap();
+
+        let arg = format!("nested:{}", temp_file.path().display());
+        let result = load_variables_only(&[arg]);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_empty_yaml_file() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        write!(temp_file, "").unwrap();
+        temp_file.flush().unwrap();
+
+        let arg = format!("empty:{}", temp_file.path().display());
+        let result = load_variables_only(&[arg]);
+        // Empty YAML parses as null, which should be handled
+        // The function should either succeed or fail gracefully
+        let _ = result;
+    }
+
+    #[test]
+    fn test_yaml_with_only_comments() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        write!(temp_file, "# This is a comment\n# Another comment\n").unwrap();
+        temp_file.flush().unwrap();
+
+        let arg = format!("comments:{}", temp_file.path().display());
+        let result = load_variables_only(&[arg]);
+        // Comments-only YAML parses as null
+        let _ = result;
+    }
+
+    #[test]
+    fn test_env_file_with_special_characters() {
+        let mut temp_file = tempfile::Builder::new()
+            .suffix(".env")
+            .tempfile()
+            .unwrap();
+        write!(
+            temp_file,
+            r#"SPECIAL_CHARS=hello!@#$%^&*()
+EQUALS_IN_VALUE=key=value=more
+SPACES=  leading and trailing
+EMPTY_VALUE=
+URL=https://example.com?foo=bar&baz=qux
+"#
+        )
+        .unwrap();
+        temp_file.flush().unwrap();
+
+        let arg = format!("env:{}", temp_file.path().display());
+        let result = load_variables_only(&[arg]);
+        assert!(result.is_ok());
+
+        if let Ok(gtmpl::Value::Object(map)) = result {
+            if let Some(gtmpl::Value::Object(env)) = map.get("env") {
+                assert_eq!(
+                    env.get("SPECIAL_CHARS"),
+                    Some(&gtmpl::Value::String("hello!@#$%^&*()".to_string()))
+                );
+                // Note: splitn(2, '=') means everything after first = is the value
+                assert_eq!(
+                    env.get("EQUALS_IN_VALUE"),
+                    Some(&gtmpl::Value::String("key=value=more".to_string()))
+                );
+                assert_eq!(
+                    env.get("EMPTY_VALUE"),
+                    Some(&gtmpl::Value::String("".to_string()))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_invalid_variable_format() {
+        let result = parse_variable_arg("no-colon");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("expected 'name:path'"));
+    }
+
+    #[test]
+    fn test_empty_variable_name() {
+        let result = parse_variable_arg(":/some/path");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("cannot be empty"));
+    }
+
+    #[test]
+    fn test_variable_file_not_found() {
+        let arg = "missing:/nonexistent/path/file.yaml".to_string();
+        let result = load_variables_only(&[arg]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Failed to read"));
+    }
+
+    #[test]
+    fn test_invalid_json_file() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        write!(temp_file, "{{ invalid json }}").unwrap();
+        temp_file.flush().unwrap();
+
+        let arg = format!("invalid:{}", temp_file.path().display());
+        let result = load_variables_only(&[arg]);
+        // Should try YAML fallback which might also fail
+        // Just ensure it doesn't panic
+        let _ = result;
+    }
+
+    #[test]
+    fn test_binary_file_content() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        // Write some binary content
+        temp_file.write_all(&[0x00, 0xFF, 0x80, 0x7F, 0x01]).unwrap();
+        temp_file.flush().unwrap();
+
+        let arg = format!("binary:{}", temp_file.path().display());
+        let result = load_variables_only(&[arg]);
+        // Should fail gracefully
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_yaml_with_anchors_and_aliases() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        write!(
+            temp_file,
+            r#"
+defaults: &defaults
+  timeout: 30
+  retries: 3
+
+production:
+  <<: *defaults
+  timeout: 60
+
+development:
+  <<: *defaults
+"#
+        )
+        .unwrap();
+        temp_file.flush().unwrap();
+
+        let arg = format!("anchors:{}", temp_file.path().display());
+        let result = load_variables_only(&[arg]);
+        // YAML anchors and aliases should parse successfully
+        // The exact structure after conversion depends on the YAML parser
+        assert!(result.is_ok(), "YAML with anchors should parse: {:?}", result);
+    }
+
+    #[test]
+    fn test_json_with_unicode() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        write!(
+            temp_file,
+            r#"{{"name": "日本語", "emoji": "🎉", "mixed": "Hello 世界"}}"#
+        )
+        .unwrap();
+        temp_file.flush().unwrap();
+
+        let arg = format!("unicode:{}", temp_file.path().display());
+        let result = load_variables_only(&[arg]);
+        assert!(result.is_ok());
+
+        if let Ok(gtmpl::Value::Object(map)) = result {
+            if let Some(gtmpl::Value::Object(unicode)) = map.get("unicode") {
+                assert_eq!(
+                    unicode.get("name"),
+                    Some(&gtmpl::Value::String("日本語".to_string()))
+                );
+                assert_eq!(
+                    unicode.get("emoji"),
+                    Some(&gtmpl::Value::String("🎉".to_string()))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_yaml_multiline_strings() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        write!(
+            temp_file,
+            r#"
+literal: |
+  Line 1
+  Line 2
+  Line 3
+folded: >
+  This is a long
+  line that should
+  be folded.
+"#
+        )
+        .unwrap();
+        temp_file.flush().unwrap();
+
+        let arg = format!("multiline:{}", temp_file.path().display());
+        let result = load_variables_only(&[arg]);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_values_yml_priority_over_yaml() {
+        let dir = tempdir().unwrap();
+        // Create both values.yml and values.yaml
+        std::fs::write(dir.path().join("values.yml"), "source: yml").unwrap();
+        std::fs::write(dir.path().join("values.yaml"), "source: yaml").unwrap();
+
+        let variables = load_variables_with_defaults(dir.path(), &[]).unwrap();
+
+        match variables {
+            gtmpl::Value::Object(map) => {
+                // values.yml should be found first (it's listed first in candidates)
+                assert_eq!(
+                    map.get("source"),
+                    Some(&gtmpl::Value::String("yml".to_string()))
+                );
+            }
+            _ => panic!("Expected object"),
+        }
+    }
 }

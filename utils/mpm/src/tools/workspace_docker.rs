@@ -153,6 +153,7 @@ struct Package {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct Workspace {
     members: Option<Vec<String>>,
     dependencies: Option<BTreeMap<String, toml::Value>>,
@@ -176,6 +177,7 @@ struct WorkspaceConfig {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct WorkspaceDep {
     version: Option<String>,
     path: Option<String>,

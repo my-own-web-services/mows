@@ -37,14 +37,6 @@ impl CommandOutput {
         }
     }
 
-    /// Create a failed output with the given stderr.
-    pub fn failure(stderr: impl Into<String>) -> Self {
-        Self {
-            stdout: String::new(),
-            stderr: stderr.into(),
-            success: false,
-        }
-    }
 }
 
 impl From<Output> for CommandOutput {
@@ -119,9 +111,6 @@ pub trait DockerClient: Send + Sync {
 
     /// Inspect a container and return JSON output.
     fn inspect_container(&self, container: &str) -> Result<String>;
-
-    /// Get network information as JSON.
-    fn inspect_network(&self, network: &str) -> Result<String>;
 
     /// List containers with optional filters, returning JSON array.
     fn list_containers(&self, filters: &[(&str, &str)]) -> Result<String>;
@@ -327,20 +316,6 @@ Error: {}"#,
         })
     }
 
-    fn inspect_network(&self, network: &str) -> Result<String> {
-        debug!("Inspecting network via bollard: {}", network);
-        self.runtime.block_on(async {
-            let info = self
-                .docker
-                .inspect_network(network, None::<bollard::query_parameters::InspectNetworkOptions>)
-                .await
-                .map_err(|e| MpmError::Docker(format!("Failed to inspect network '{}': {}", network, e)))?;
-
-            serde_json::to_string(&info)
-                .map_err(|e| MpmError::Docker(format!("Failed to serialize network info: {}", e)))
-        })
-    }
-
     fn list_containers(&self, filters: &[(&str, &str)]) -> Result<String> {
         debug!("Listing containers via bollard with {} filters", filters.len());
         self.runtime.block_on(async {
@@ -384,15 +359,6 @@ Error: {}"#,
 /// mpm compose up  # Uses mock Docker client
 /// ```
 pub const ENV_MOCK_DOCKER: &str = "MPM_MOCK_DOCKER";
-
-/// Check if Docker is available and the daemon is running.
-/// Convenience function using the default client.
-pub fn check_docker_available() -> Result<()> {
-    let client = default_client()?;
-    let version = client.check_daemon()?;
-    debug!("Docker daemon version: {}", version);
-    Ok(())
-}
 
 /// Create a default Docker client.
 ///
@@ -468,11 +434,6 @@ impl DockerClient for MockDockerClient {
         Ok(format!(r#"{{"Id": "mock-{}", "Name": "/{}", "State": {{"Running": true}}}}"#, container, container))
     }
 
-    fn inspect_network(&self, network: &str) -> Result<String> {
-        debug!("Mock: inspect_network {}", network);
-        Ok(format!(r#"{{"Name": "{}", "Driver": "bridge"}}"#, network))
-    }
-
     fn list_containers(&self, filters: &[(&str, &str)]) -> Result<String> {
         debug!("Mock: list_containers filters={:?}", filters);
         // Return empty list - no conflicting containers
@@ -542,7 +503,6 @@ pub struct ConfigurableMockClient {
     pub compose_ps: MockResponse,
     pub compose_logs: MockResponse,
     pub inspect_container: MockResponse,
-    pub inspect_network: MockResponse,
     pub list_containers: MockResponse,
 }
 
@@ -572,10 +532,6 @@ impl DockerClient for ConfigurableMockClient {
         self.inspect_container.to_result("{}")
     }
 
-    fn inspect_network(&self, _network: &str) -> Result<String> {
-        self.inspect_network.to_result("{}")
-    }
-
     fn list_containers(&self, _filters: &[(&str, &str)]) -> Result<String> {
         self.list_containers.to_result("[]")
     }
@@ -592,14 +548,6 @@ mod tests {
         assert!(output.success);
         assert_eq!(output.stdout, "hello");
         assert!(output.stderr.is_empty());
-    }
-
-    #[test]
-    fn test_command_output_failure() {
-        let output = CommandOutput::failure("error message");
-        assert!(!output.success);
-        assert!(output.stdout.is_empty());
-        assert_eq!(output.stderr, "error message");
     }
 
     #[test]
@@ -672,5 +620,135 @@ mod tests {
         let version = client.unwrap().check_daemon().unwrap();
         assert!(version.contains("mock"));
         std::env::remove_var(ENV_MOCK_DOCKER);
+    }
+
+    // =========================================================================
+    // Error Scenario Tests (#9) - Testing error paths with configurable mock
+    // =========================================================================
+
+    #[test]
+    fn test_daemon_connection_failure() {
+        let mock = ConfigurableMockClient {
+            daemon: MockResponse::err("Cannot connect to the Docker daemon"),
+            ..Default::default()
+        };
+
+        let result = mock.check_daemon();
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("Cannot connect"));
+    }
+
+    #[test]
+    fn test_compose_ps_failure() {
+        let mock = ConfigurableMockClient {
+            compose_ps: MockResponse::err("no configuration file provided"),
+            ..Default::default()
+        };
+
+        let result = mock.compose_ps("test-project", "{{.Name}}");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("no configuration"));
+    }
+
+    #[test]
+    fn test_compose_logs_failure() {
+        let mock = ConfigurableMockClient {
+            compose_logs: MockResponse::err("service not found"),
+            ..Default::default()
+        };
+
+        let result = mock.compose_logs("test-project", Some("5m"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_inspect_container_not_found() {
+        let mock = ConfigurableMockClient {
+            inspect_container: MockResponse::err("Error: No such container: nonexistent"),
+            ..Default::default()
+        };
+
+        let result = mock.inspect_container("nonexistent");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("No such container"));
+    }
+
+    #[test]
+    fn test_list_containers_permission_denied() {
+        let mock = ConfigurableMockClient {
+            list_containers: MockResponse::err("permission denied while trying to connect"),
+            ..Default::default()
+        };
+
+        let result = mock.list_containers(&[]);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("permission denied"));
+    }
+
+    #[test]
+    fn test_all_operations_fail_when_daemon_down() {
+        let mock = ConfigurableMockClient {
+            daemon: MockResponse::err("Cannot connect to the Docker daemon"),
+            compose_ps: MockResponse::err("Cannot connect to the Docker daemon"),
+            compose_logs: MockResponse::err("Cannot connect to the Docker daemon"),
+            inspect_container: MockResponse::err("Cannot connect to the Docker daemon"),
+            list_containers: MockResponse::err("Cannot connect to the Docker daemon"),
+        };
+
+        assert!(mock.check_daemon().is_err());
+        assert!(mock.compose_ps("test", "{{.Name}}").is_err());
+        assert!(mock.compose_logs("test", None).is_err());
+        assert!(mock.inspect_container("test").is_err());
+        assert!(mock.list_containers(&[]).is_err());
+    }
+
+    #[test]
+    fn test_partial_failure_scenario() {
+        // Simulate daemon up but compose project not found
+        let mock = ConfigurableMockClient {
+            daemon: MockResponse::ok("24.0.0"),
+            compose_ps: MockResponse::err("no containers found for project test"),
+            compose_logs: MockResponse::err("no containers found for project test"),
+            ..Default::default()
+        };
+
+        assert!(mock.check_daemon().is_ok());
+        assert!(mock.compose_ps("test", "{{.Name}}").is_err());
+        assert!(mock.compose_logs("test", None).is_err());
+    }
+
+    #[test]
+    fn test_empty_response_handling() {
+        let mock = ConfigurableMockClient {
+            compose_ps: MockResponse::ok(""),
+            list_containers: MockResponse::ok("[]"),
+            ..Default::default()
+        };
+
+        let ps_result = mock.compose_ps("test", "{{.Name}}");
+        assert!(ps_result.is_ok());
+        assert!(ps_result.unwrap().stdout.is_empty());
+
+        let list_result = mock.list_containers(&[]);
+        assert!(list_result.is_ok());
+        assert_eq!(list_result.unwrap(), "[]");
+    }
+
+    #[test]
+    fn test_malformed_json_response() {
+        let mock = ConfigurableMockClient {
+            inspect_container: MockResponse::ok("not valid json"),
+            list_containers: MockResponse::ok("also not json"),
+            ..Default::default()
+        };
+
+        // The mock just returns the string - JSON parsing happens at the call site
+        let result = mock.inspect_container("test");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "not valid json");
     }
 }
