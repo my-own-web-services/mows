@@ -28,6 +28,10 @@ use crate::utils::yaml_to_4_space_indent;
 /// ```
 pub const MPM_CONFIG_PATH_ENV: &str = "MPM_CONFIG_PATH";
 
+/// File permission mode for config file: owner read/write only (rw-------).
+/// Prevents other users from reading potentially sensitive project paths.
+const CONFIG_FILE_MODE: u32 = 0o600;
+
 /// Global mpm configuration stored at ~/.config/mows.cloud/mpm.yaml
 /// Can be overridden by setting the MPM_CONFIG_PATH environment variable
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -133,7 +137,7 @@ impl MpmConfig {
             .io_context("Failed to create temp config file")?;
 
         // Set permissions before writing content
-        let permissions = fs::Permissions::from_mode(0o600);
+        let permissions = fs::Permissions::from_mode(CONFIG_FILE_MODE);
         fs::set_permissions(&temp_path, permissions)
             .io_context("Failed to set config file permissions")?;
 
