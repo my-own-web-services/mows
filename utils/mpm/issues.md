@@ -609,11 +609,18 @@ Files updated: `drives.rs`, `workspace_docker.rs`, `manpage.rs`, `shell_init.rs`
 
 ---
 
-#### 47. Duplicate Template Rendering Logic
+#### 47. ~~Duplicate Template Rendering Logic~~ RESOLVED
 
 **File:** `template/render.rs`, `compose/render.rs`
 
-Preamble generation and variable injection logic duplicated.
+**Status:** RESOLVED - Extracted shared `render_template_string()` function in `template/render.rs` that handles:
+- Template setup with all gtmpl functions
+- Variable preamble generation (`{{- $varname := .varname }}`)
+- Parsing and rendering with proper error handling
+
+Both `template/render.rs` and `compose/render.rs` now use this shared function, eliminating ~80 lines of duplicated code.
+
+~~Preamble generation and variable injection logic duplicated.~~
 
 ---
 

@@ -10,6 +10,7 @@ use super::manifest::MowsManifest;
 use super::secrets::{load_secrets_as_map, merge_generated_secrets};
 use crate::error::{IoResultExt, MpmError, Result};
 use crate::template::error::format_template_error;
+use crate::template::render_template_string;
 use crate::template::variables::load_variable_file;
 use crate::tools::{flatten_labels_in_compose, FlattenLabelsError};
 use crate::utils::{detect_yaml_indent, parse_yaml};
@@ -203,53 +204,16 @@ fn render_template_file(
     output: &Path,
     variables: &gtmpl::Value,
 ) -> Result<()> {
-    use gtmpl_ng::all_functions::all_functions;
-
     trace!("Rendering: {} -> {}", input.display(), output.display());
 
     let template_content = fs::read_to_string(input)
         .io_context(format!("Failed to read template '{}'", input.display()))?;
 
-    let mut template = gtmpl::Template::default();
-
-    // Add all template functions
-    for (name, func) in all_functions() {
-        template.add_func(name, func);
-    }
-
-    // Generate variable definitions preamble
-    let (full_template, preamble_lines) = if let gtmpl::Value::Object(map) = variables {
-        if map.is_empty() {
-            (template_content.clone(), 0)
-        } else {
-            let preamble: String = map
-                .keys()
-                .map(|k| format!("{{{{- ${k} := .{k} }}}}\n"))
-                .collect();
-            let preamble_line_count = preamble.lines().count();
-            (format!("{}{}", preamble, template_content), preamble_line_count)
-        }
-    } else {
-        (template_content.clone(), 0)
-    };
-
-    template.parse(&full_template).map_err(|e| {
+    let rendered = render_template_string(&template_content, variables).map_err(|(error, preamble_lines)| {
         MpmError::Template(format_template_error(
             input,
             &template_content,
-            &gtmpl::TemplateError::ParseError(e),
-            preamble_lines,
-            6,
-            Some(variables),
-        ))
-    })?;
-
-    let context = gtmpl::Context::from(variables.clone());
-    let rendered = template.render(&context).map_err(|e| {
-        MpmError::Template(format_template_error(
-            input,
-            &template_content,
-            &gtmpl::TemplateError::ExecError(e),
+            &error,
             preamble_lines,
             6,
             Some(variables),
@@ -407,45 +371,11 @@ pub fn render_generated_secrets(ctx: &RenderContext) -> Result<()> {
 
     let variables = ctx.get_template_variables();
 
-    use gtmpl_ng::all_functions::all_functions;
-    let mut template = gtmpl::Template::default();
-    for (name, func) in all_functions() {
-        template.add_func(name, func);
-    }
-
-    // Generate variable definitions preamble
-    let (full_template, preamble_lines) = if let gtmpl::Value::Object(map) = &variables {
-        if map.is_empty() {
-            (template_content.clone(), 0)
-        } else {
-            let preamble: String = map
-                .keys()
-                .map(|k| format!("{{{{- ${k} := .{k} }}}}\n"))
-                .collect();
-            let preamble_line_count = preamble.lines().count();
-            (format!("{}{}", preamble, template_content), preamble_line_count)
-        }
-    } else {
-        (template_content.clone(), 0)
-    };
-
-    template.parse(&full_template).map_err(|e| {
+    let rendered = render_template_string(&template_content, &variables).map_err(|(error, preamble_lines)| {
         MpmError::Template(format_template_error(
             &template_path,
             &template_content,
-            &gtmpl::TemplateError::ParseError(e),
-            preamble_lines,
-            6,
-            Some(&variables),
-        ))
-    })?;
-
-    let context = gtmpl::Context::from(variables.clone());
-    let rendered = template.render(&context).map_err(|e| {
-        MpmError::Template(format_template_error(
-            &template_path,
-            &template_content,
-            &gtmpl::TemplateError::ExecError(e),
+            &error,
             preamble_lines,
             6,
             Some(&variables),
