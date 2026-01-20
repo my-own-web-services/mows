@@ -121,6 +121,7 @@ mpm tools prettify-json              # Format JSON
 mpm tools expand-object              # Dot notation to nested
 mpm tools flatten-object             # Nested to dot notation
 mpm tools jq <FILTER>                # Query JSON/YAML
+mpm tools drives                     # List drives with SMART health status
 mpm tools cargo-workspace-docker           # Generate cargo-workspace-docker.toml
 mpm tools cargo-workspace-docker --all     # Regenerate for all packages
 
