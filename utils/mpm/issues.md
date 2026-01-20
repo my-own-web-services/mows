@@ -8,7 +8,7 @@ Comprehensive code review conducted 2026-01-20 across 8 perspectives.
 
 | Perspective   | Critical | Major | Minor |
 | ------------- | -------- | ----- | ----- |
-| Security      | 0        | 2     | 5     |
+| Security      | 0        | 1     | 5     |
 | Rust/Tech     | 3        | 6     | 9     |
 | DevOps        | 3        | 7     | 12    |
 | Architecture  | 2        | 4     | 6     |
@@ -184,13 +184,20 @@ Updated README.md with link to development guide.
 
 ### Security
 
-#### 11. Path Traversal in Custom Values File Path
+#### 11. ~~Path Traversal in Custom Values File Path~~ RESOLVED
 
 **File:** `src/compose/render.rs:121-133`
 
-The validation prevents `..` and absolute paths but doesn't prevent subtle traversal attacks like `./templates/../../../etc/passwd`.
+**Status:** RESOLVED - Replaced string-based validation with proper canonical path resolution:
 
-**Recommendation:** Use canonical path resolution and verify result is within expected directory.
+- Added `validate_path_within_dir()` function that canonicalizes both paths
+- Verifies resolved path starts with the base directory after symlink resolution
+- Detects traversal via `..`, symlinks pointing outside, and other normalization tricks
+- Added 4 tests: valid paths, absolute paths, traversal, and symlink traversal
+
+~~The validation prevents `..` and absolute paths but doesn't prevent subtle traversal attacks like `./templates/../../../etc/passwd`.~~
+
+~~**Recommendation:** Use canonical path resolution and verify result is within expected directory.~~
 
 ---
 

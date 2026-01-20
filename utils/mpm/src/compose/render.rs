@@ -122,26 +122,55 @@ impl RenderContext {
     }
 }
 
+/// Validate that a path is safely within a base directory.
+/// Uses canonical path resolution to prevent path traversal attacks.
+fn validate_path_within_dir(base_dir: &Path, relative_path: &str) -> Result<PathBuf> {
+    // Reject absolute paths early
+    if Path::new(relative_path).is_absolute() {
+        return Err(MpmError::Path {
+            path: relative_path.into(),
+            message: "absolute paths not allowed".to_string(),
+        });
+    }
+
+    // Construct the full path
+    let full_path = base_dir.join(relative_path);
+
+    // Canonicalize both paths to resolve symlinks and normalize
+    // Note: canonicalize requires the path to exist, so we check the parent for new files
+    let canonical_base = base_dir.canonicalize().map_err(|e| MpmError::Path {
+        path: base_dir.to_path_buf(),
+        message: format!("failed to resolve base directory: {}", e),
+    })?;
+
+    let canonical_full = full_path.canonicalize().map_err(|e| MpmError::Path {
+        path: full_path.clone(),
+        message: format!("failed to resolve path: {}", e),
+    })?;
+
+    // Verify the resolved path is within the base directory
+    if !canonical_full.starts_with(&canonical_base) {
+        return Err(MpmError::Path {
+            path: relative_path.into(),
+            message: "path traversal not allowed: resolved path is outside base directory"
+                .to_string(),
+        });
+    }
+
+    Ok(canonical_full)
+}
+
 /// Load values.yaml from a directory
 fn load_values(dir: &Path, manifest: &MowsManifest) -> Result<gtmpl::Value> {
     // Check if custom values file path is specified in manifest
     if let Some(compose_config) = &manifest.spec.compose {
         if let Some(custom_path) = &compose_config.values_file_path {
-            // Validate path doesn't escape the manifest directory (prevent path traversal)
-            if custom_path.contains("..") {
-                return Err(MpmError::Path {
-                    path: custom_path.into(),
-                    message: "Invalid valuesFilePath: path traversal not allowed".to_string(),
-                });
-            }
-            if Path::new(custom_path).is_absolute() {
-                return Err(MpmError::Path {
-                    path: custom_path.into(),
-                    message: "Invalid valuesFilePath: absolute paths not allowed".to_string(),
-                });
-            }
+            // Validate path is safely within the manifest directory
+            let path = validate_path_within_dir(dir, custom_path).map_err(|e| MpmError::Path {
+                path: custom_path.into(),
+                message: format!("invalid valuesFilePath: {}", e),
+            })?;
 
-            let path = dir.join(custom_path);
             debug!(
                 "Loading values from custom path (manifest): {}",
                 path.display()
@@ -894,6 +923,68 @@ spec:
         assert!(results_dir.exists());
         let content = fs::read_to_string(results_dir.join("test.txt")).unwrap();
         assert_eq!(content, "new");
+    }
+
+    #[test]
+    fn test_validate_path_within_dir_allows_valid_paths() {
+        let dir = tempdir().unwrap();
+        let subdir = dir.path().join("subdir");
+        fs::create_dir_all(&subdir).unwrap();
+        let file = subdir.join("file.txt");
+        fs::write(&file, "test").unwrap();
+
+        // Valid relative path should succeed
+        let result = validate_path_within_dir(dir.path(), "subdir/file.txt");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), file.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn test_validate_path_within_dir_rejects_absolute_path() {
+        let dir = tempdir().unwrap();
+
+        let result = validate_path_within_dir(dir.path(), "/etc/passwd");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("absolute paths not allowed"));
+    }
+
+    #[test]
+    fn test_validate_path_within_dir_rejects_traversal() {
+        let dir = tempdir().unwrap();
+        let subdir = dir.path().join("subdir");
+        fs::create_dir_all(&subdir).unwrap();
+
+        // Create a file outside the base directory to traverse to
+        let outside_file = dir.path().join("outside.txt");
+        fs::write(&outside_file, "outside").unwrap();
+
+        // Attempt path traversal from subdir
+        let result = validate_path_within_dir(&subdir, "../outside.txt");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("outside base directory"));
+    }
+
+    #[test]
+    fn test_validate_path_within_dir_rejects_symlink_traversal() {
+        let dir = tempdir().unwrap();
+        let base = dir.path().join("base");
+        fs::create_dir_all(&base).unwrap();
+
+        // Create a symlink pointing outside the base directory
+        let outside_file = dir.path().join("secret.txt");
+        fs::write(&outside_file, "secret").unwrap();
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+            let link = base.join("link");
+            symlink(&outside_file, &link).unwrap();
+
+            // Symlink traversal should be detected
+            let result = validate_path_within_dir(&base, "link");
+            assert!(result.is_err());
+            assert!(result.unwrap_err().to_string().contains("outside base directory"));
+        }
     }
 
 }
