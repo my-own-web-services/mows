@@ -116,6 +116,7 @@ jobs:
         with:
           name: mpm-${{ matrix.os_name }}-${{ matrix.arch }}
           path: utils/mpm/dist/mpm-*
+          retention-days: 7
 
   release:
     needs: build

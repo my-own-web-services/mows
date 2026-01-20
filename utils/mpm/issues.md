@@ -432,13 +432,15 @@ Three separate implementations of nearly identical logic for finding values file
 
 ---
 
-#### 33. Dead/Incomplete Build Command
+#### 33. ~~Dead/Incomplete Build Command~~ RESOLVED
 
 **File:** `src/main.rs:56`
 
-`Build` command defined but does nothing except print git root.
+**Status:** RESOLVED - Removed the incomplete Build command from cli.rs and main.rs.
 
-**Recommendation:** Implement or remove the command.
+~~`Build` command defined but does nothing except print git root.~~
+
+~~**Recommendation:** Implement or remove the command.~~
 
 ---
 
@@ -583,13 +585,15 @@ Preamble generation and variable injection logic duplicated.
 
 ### DevOps
 
-#### 48. No Binary Artifact Retention Policy
+#### 48. ~~No Binary Artifact Retention Policy~~ RESOLVED
 
 **File:** `.github/workflows/publish-mpm.yml:113`
 
-Artifacts kept for default 90 days, accumulating storage costs.
+**Status:** RESOLVED - Added `retention-days: 7` to artifact upload step.
 
-**Recommendation:** Set `retention-days: 7` for PR builds.
+~~Artifacts kept for default 90 days, accumulating storage costs.~~
+
+~~**Recommendation:** Set `retention-days: 7` for PR builds.~~
 
 ---
 
@@ -663,11 +667,13 @@ No explicit `DOCKER_BUILDKIT=1` set.
 
 ---
 
-#### 57. .dockerignore Could Be Expanded
+#### 57. ~~.dockerignore Could Be Expanded~~ RESOLVED
 
 **File:** `.dockerignore`
 
-Only excludes `target`, `dist`. Could also exclude `tests/`, `docs/`, `.git/`, `*.md`.
+**Status:** RESOLVED - Expanded .dockerignore to exclude `.git`, `.github`, `tests`, `docs`, `*.md` (except README.md), `.vscode`, `.idea`, and editor swap files.
+
+~~Only excludes `target`, `dist`. Could also exclude `tests/`, `docs/`, `.git/`, `*.md`.~~
 
 ---
 
@@ -756,19 +762,23 @@ Lines 290, 294, 308, 325: similar issues.
 
 ---
 
-#### 67. #[allow(dead_code)] on Package::name
+#### 67. ~~#[allow(dead_code)] on Package::name~~ RESOLVED
 
 **File:** `src/tools/workspace_docker.rs:150-153`
 
-If field is unused, remove it. If needed for deserialization, restructure.
+**Status:** RESOLVED - Removed the unused `name` field from the `Package` struct entirely since it was not needed for deserialization.
+
+~~If field is unused, remove it. If needed for deserialization, restructure.~~
 
 ---
 
-#### 68. Empty Test Module in passthrough.rs
+#### 68. ~~Empty Test Module in passthrough.rs~~ RESOLVED
 
 **File:** `src/compose/passthrough.rs:78-80`
 
-Empty test module with comment. Either remove or add unit tests with mocks.
+**Status:** RESOLVED - Removed the empty test module. Integration tests cover this functionality.
+
+~~Empty test module with comment. Either remove or add unit tests with mocks.~~
 
 ---
 
@@ -815,11 +825,13 @@ Commands exist but not documented.
 
 ---
 
-#### 73. TODO in Code Without Context
+#### 73. ~~TODO in Code Without Context~~ RESOLVED
 
 **File:** `src/tools/jq.rs:116`
 
-"TODO: Re-enable when standard library support is added" - no context.
+**Status:** RESOLVED - Added detailed context including GitHub issue link (https://github.com/01mf02/jaq/issues/56) and explanation of what stdlib functions are missing.
+
+~~"TODO: Re-enable when standard library support is added" - no context.~~
 
 ---
 

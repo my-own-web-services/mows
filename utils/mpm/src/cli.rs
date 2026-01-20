@@ -28,8 +28,6 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Build command
-    Build,
     /// Docker Compose deployment management
     Compose {
         #[command(subcommand)]
