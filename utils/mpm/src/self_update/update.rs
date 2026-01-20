@@ -519,29 +519,22 @@ pub fn update_from_source(version: Option<&str>) -> Result<()> {
 
 /// Check that required dependencies (git, docker) are available
 fn check_dependencies() -> Result<()> {
+    use crate::compose::default_client;
+
     // Check git
     Command::new("git")
         .arg("--version")
         .output()
         .map_err(|_| MpmError::Message("git is not installed or not in PATH".to_string()))?;
 
-    // Check docker
-    Command::new("docker")
-        .arg("--version")
-        .output()
-        .map_err(|_| MpmError::Message("docker is not installed or not in PATH".to_string()))?;
+    // Check docker using the DockerClient (which also verifies daemon is running)
+    let client = default_client().map_err(|e| {
+        MpmError::Message(format!("Docker is not available: {}", e))
+    })?;
 
-    // Check docker is running
-    let output = Command::new("docker")
-        .args(["info"])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map_err(|_| MpmError::Message("docker is not running".to_string()))?;
-
-    if !output.success() {
-        return Err(MpmError::Message("docker daemon is not running".to_string()));
-    }
+    client.check_daemon().map_err(|e| {
+        MpmError::Message(format!("Docker daemon is not running: {}", e))
+    })?;
 
     Ok(())
 }

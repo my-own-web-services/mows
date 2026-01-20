@@ -4733,6 +4733,7 @@ name = "mpm"
 version = "0.5.3"
 dependencies = [
  "aho-corasick",
+ "bollard",
  "clap",
  "clap_complete",
  "clap_mangen",
@@ -4756,6 +4757,7 @@ dependencies = [
  "strsim 0.11.1",
  "tempfile",
  "thiserror 1.0.69",
+ "tokio",
  "toml",
  "tracing",
  "tracing-subscriber",
