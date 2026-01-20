@@ -1,5 +1,5 @@
 use crate::utils::format_yaml_error;
-use gtmpl_ng::helm_functions::{serde_json_value_to_gtmpl_value, serde_yaml_value_to_gtmpl_value};
+use gtmpl_ng::helm_functions::serde_json_value_to_gtmpl_value;
 use gtmpl_ng::{self as gtmpl};
 use std::collections::HashMap;
 use std::fs;
@@ -74,10 +74,14 @@ pub fn load_variable_file(path: &Path) -> Result<gtmpl::Value, String> {
         Ok(serde_json_value_to_gtmpl_value(json_value))
     } else {
         // Try YAML with proper error formatting
-        match serde_yaml::from_str::<serde_yaml::Value>(&content) {
+        match serde_yaml_neo::from_str::<serde_yaml_neo::Value>(&content) {
             Ok(yaml_value) => {
                 trace!("Parsed as YAML");
-                Ok(serde_yaml_value_to_gtmpl_value(yaml_value))
+                // Convert YAML to JSON first, then to gtmpl Value
+                // This works because JSON is a subset of YAML
+                let json_value: serde_json::Value = serde_json::to_value(&yaml_value)
+                    .map_err(|e| format!("Failed to convert YAML to JSON: {}", e))?;
+                Ok(serde_json_value_to_gtmpl_value(json_value))
             }
             Err(yaml_err) => Err(format_yaml_error(&content, Some(path), &yaml_err))
         }

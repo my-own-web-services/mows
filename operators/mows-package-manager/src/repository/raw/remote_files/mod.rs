@@ -124,7 +124,7 @@ pub enum RemoteFilesSpecError {
     #[error(transparent)]
     SerdeJsonError(#[from] serde_json::Error),
     #[error(transparent)]
-    SerdeYamlError(#[from] serde_yaml_ng::Error),
+    SerdeYamlError(#[from] serde_yaml_neo::Error),
     #[error(transparent)]
     GetRemoteFileError(#[from] GetRemoteFileError),
 }

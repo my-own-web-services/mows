@@ -171,7 +171,7 @@ pub async fn create_mock_users(db: &DB) -> anyhow::Result<()> {
             bail!("Mock user file not found: {e}");
         }
     };
-    let mock_users: Vec<MockUser> = serde_yaml::from_str(&mock_users_string)?;
+    let mock_users: Vec<MockUser> = serde_yaml_neo::from_str(&mock_users_string)?;
 
     let mut new_users = vec![];
     for mock_user in mock_users {

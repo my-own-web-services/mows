@@ -103,7 +103,7 @@ fn run_pre_deployment_checks(ctx: &RenderContext) {
         }
     };
 
-    let compose_value: serde_yaml::Value = match parse_yaml(&content, Some(&compose_path)) {
+    let compose_value: serde_yaml_neo::Value = match parse_yaml(&content, Some(&compose_path)) {
         Ok(v) => v,
         Err(e) => {
             debug!("Could not parse docker-compose for checks: {}", e);
@@ -211,7 +211,7 @@ fn run_post_deployment_checks(ctx: &RenderContext) {
 }
 
 /// Load docker-compose content from results directory
-fn get_compose_content(results_dir: &std::path::Path) -> Option<serde_yaml::Value> {
+fn get_compose_content(results_dir: &std::path::Path) -> Option<serde_yaml_neo::Value> {
     let compose_path = if results_dir.join("docker-compose.yaml").exists() {
         results_dir.join("docker-compose.yaml")
     } else if results_dir.join("docker-compose.yml").exists() {
@@ -222,7 +222,7 @@ fn get_compose_content(results_dir: &std::path::Path) -> Option<serde_yaml::Valu
 
     fs::read_to_string(&compose_path)
         .ok()
-        .and_then(|content| serde_yaml::from_str(&content).ok())
+        .and_then(|content| serde_yaml_neo::from_str(&content).ok())
 }
 
 /// Execute docker compose up with the project configuration

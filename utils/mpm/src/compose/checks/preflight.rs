@@ -70,9 +70,9 @@ struct VolumeMount {
 /// (mapping with source/target/type fields).
 ///
 /// Returns None for entries that can't be parsed.
-fn parse_volume_entry(volume: &serde_yaml::Value) -> Option<VolumeMount> {
+fn parse_volume_entry(volume: &serde_yaml_neo::Value) -> Option<VolumeMount> {
     match volume {
-        serde_yaml::Value::String(s) => {
+        serde_yaml_neo::Value::String(s) => {
             // Short syntax: "host:container" or "host:container:mode"
             let host_path = s.split(':').next().unwrap_or("").to_string();
             Some(VolumeMount {
@@ -80,7 +80,7 @@ fn parse_volume_entry(volume: &serde_yaml::Value) -> Option<VolumeMount> {
                 volume_type: None,
             })
         }
-        serde_yaml::Value::Mapping(m) => {
+        serde_yaml_neo::Value::Mapping(m) => {
             // Long syntax with type field
             let volume_type = m.get("type").and_then(|v| v.as_str()).map(String::from);
             let host_path = m
@@ -122,7 +122,7 @@ fn should_skip_volume(mount: &VolumeMount) -> bool {
 
 /// Run all debug checks on the deployment
 pub fn run_debug_checks(
-    compose_content: &serde_yaml::Value,
+    compose_content: &serde_yaml_neo::Value,
     base_dir: &Path,
     project_name: &str,
 ) -> Vec<CheckResult> {
@@ -144,7 +144,7 @@ pub fn run_debug_checks(
 }
 
 /// Check if Traefik is available when traefik labels are used
-fn check_traefik(compose: &serde_yaml::Value, project_name: &str) -> Vec<CheckResult> {
+fn check_traefik(compose: &serde_yaml_neo::Value, project_name: &str) -> Vec<CheckResult> {
     let mut results = Vec::new();
 
     // Check if any service uses traefik labels
@@ -223,7 +223,7 @@ fn check_traefik(compose: &serde_yaml::Value, project_name: &str) -> Vec<CheckRe
 }
 
 /// Check if ofelia or watchtower is available when needed
-fn check_scheduled_handlers(compose: &serde_yaml::Value) -> Vec<CheckResult> {
+fn check_scheduled_handlers(compose: &serde_yaml_neo::Value) -> Vec<CheckResult> {
     let mut results = Vec::new();
 
     let uses_ofelia = has_labels_containing(compose, "ofelia");
@@ -284,12 +284,12 @@ fn check_scheduled_handlers(compose: &serde_yaml::Value) -> Vec<CheckResult> {
 }
 
 /// Check if volume mount paths exist
-fn check_volume_mounts(compose: &serde_yaml::Value, base_dir: &Path) -> Vec<CheckResult> {
+fn check_volume_mounts(compose: &serde_yaml_neo::Value, base_dir: &Path) -> Vec<CheckResult> {
     let mut results = Vec::new();
     let results_dir = base_dir.join("results");
 
     let services = match compose.get("services") {
-        Some(serde_yaml::Value::Mapping(m)) => m,
+        Some(serde_yaml_neo::Value::Mapping(m)) => m,
         _ => return results,
     };
 
@@ -297,7 +297,7 @@ fn check_volume_mounts(compose: &serde_yaml::Value, base_dir: &Path) -> Vec<Chec
         let service_name = service_name.as_str().unwrap_or("unknown");
 
         let volumes = match service.get("volumes") {
-            Some(serde_yaml::Value::Sequence(v)) => v,
+            Some(serde_yaml_neo::Value::Sequence(v)) => v,
             _ => continue,
         };
 
@@ -344,14 +344,14 @@ fn check_volume_mounts(compose: &serde_yaml::Value, base_dir: &Path) -> Vec<Chec
 }
 
 /// Check file permissions for mounted volumes
-fn check_file_permissions(compose: &serde_yaml::Value, base_dir: &Path) -> Vec<CheckResult> {
+fn check_file_permissions(compose: &serde_yaml_neo::Value, base_dir: &Path) -> Vec<CheckResult> {
     use std::os::unix::fs::MetadataExt;
 
     let mut results = Vec::new();
     let results_dir = base_dir.join("results");
 
     let services = match compose.get("services") {
-        Some(serde_yaml::Value::Mapping(m)) => m,
+        Some(serde_yaml_neo::Value::Mapping(m)) => m,
         _ => return results,
     };
 
@@ -359,7 +359,7 @@ fn check_file_permissions(compose: &serde_yaml::Value, base_dir: &Path) -> Vec<C
         let service_name = service_name.as_str().unwrap_or("unknown");
 
         let volumes = match service.get("volumes") {
-            Some(serde_yaml::Value::Sequence(v)) => v,
+            Some(serde_yaml_neo::Value::Sequence(v)) => v,
             _ => continue,
         };
 
@@ -432,23 +432,23 @@ fn normalize_path(path: &Path) -> std::path::PathBuf {
     normalized
 }
 
-fn has_traefik_labels(compose: &serde_yaml::Value) -> bool {
+fn has_traefik_labels(compose: &serde_yaml_neo::Value) -> bool {
     has_labels_containing(compose, "traefik")
 }
 
-fn has_labels_containing(compose: &serde_yaml::Value, pattern: &str) -> bool {
+fn has_labels_containing(compose: &serde_yaml_neo::Value, pattern: &str) -> bool {
     let services = match compose.get("services") {
-        Some(serde_yaml::Value::Mapping(m)) => m,
+        Some(serde_yaml_neo::Value::Mapping(m)) => m,
         _ => return false,
     };
 
     for (_, service) in services {
         let labels = match service.get("labels") {
-            Some(serde_yaml::Value::Mapping(m)) => m
+            Some(serde_yaml_neo::Value::Mapping(m)) => m
                 .iter()
                 .filter_map(|(k, _)| k.as_str())
                 .collect::<Vec<_>>(),
-            Some(serde_yaml::Value::Sequence(s)) => {
+            Some(serde_yaml_neo::Value::Sequence(s)) => {
                 s.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>()
             }
             _ => continue,
@@ -464,12 +464,12 @@ fn has_labels_containing(compose: &serde_yaml::Value, pattern: &str) -> bool {
     false
 }
 
-fn get_compose_networks(compose: &serde_yaml::Value, project_name: &str) -> HashSet<String> {
+fn get_compose_networks(compose: &serde_yaml_neo::Value, project_name: &str) -> HashSet<String> {
     let mut networks = HashSet::new();
     let mut has_explicit_service_networks = false;
 
     // Check if any service explicitly specifies networks
-    if let Some(serde_yaml::Value::Mapping(services)) = compose.get("services") {
+    if let Some(serde_yaml_neo::Value::Mapping(services)) = compose.get("services") {
         for (_, service) in services {
             if service.get("networks").is_some() {
                 has_explicit_service_networks = true;
@@ -485,7 +485,7 @@ fn get_compose_networks(compose: &serde_yaml::Value, project_name: &str) -> Hash
     }
 
     // Check for explicitly defined networks
-    if let Some(serde_yaml::Value::Mapping(nets)) = compose.get("networks") {
+    if let Some(serde_yaml_neo::Value::Mapping(nets)) = compose.get("networks") {
         for (name, config) in nets {
             if let Some(name_str) = name.as_str() {
                 // Check if external
@@ -563,7 +563,7 @@ mod tests {
 
     #[test]
     fn test_has_traefik_labels() {
-        let compose: serde_yaml::Value = serde_yaml::from_str(
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
 services:
   web:
@@ -580,7 +580,7 @@ services:
 
     #[test]
     fn test_no_traefik_labels() {
-        let compose: serde_yaml::Value = serde_yaml::from_str(
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
 services:
   web:
@@ -596,7 +596,7 @@ services:
 
     #[test]
     fn test_get_compose_networks() {
-        let compose: serde_yaml::Value = serde_yaml::from_str(
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
 services:
   web:

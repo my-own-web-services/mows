@@ -119,7 +119,7 @@ bigdecimal = { version = "0.4.8", features = ["serde", "serde_json"] }
 kube = { workspace = true, features = ["runtime", "default", "derive"] }
 schemars = { workspace = true, features = ["chrono"] }
 k8s-openapi = { workspace = true, features = ["latest"] }
-serde_yaml = { workspace = true }
+serde_yaml_neo = { workspace = true }
 prometheus-client = { workspace = true }
 opentelemetry = { workspace = true, features = ["trace"] }
 futures = { workspace = true, features = ["default"] }

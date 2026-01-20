@@ -193,25 +193,40 @@ The validation prevents `..` and absolute paths but doesn't prevent subtle trave
 
 ### Rust/Tech
 
-#### 13. String-Based Error Handling Throughout Codebase
+#### 13. ~~String-Based Error Handling Throughout Codebase~~ RESOLVED
 
 **File:** All modules
 **Category:** Architecture
 
-Entire application uses `Result<T, String>` for error handling. Loses type safety, prevents pattern matching, makes recovery impossible.
+**Status:** RESOLVED - Migrated entire codebase to use `MpmError` enum with `thiserror`. Created `src/error.rs` with:
+- `MpmError` enum with variants: Git, Docker, Config, Manifest, Template, Validation, Jq, Message, Io, YamlParse, YamlSerialize, Command, Path
+- Helper constructors for common error types
+- `IoResultExt` trait for ergonomic IO error context
+- All modules now use `Result<T, MpmError>` instead of `Result<T, String>`
 
-**Recommendation:** Define proper error enums using `thiserror` or `anyhow`.
+~~Entire application uses `Result<T, String>` for error handling. Loses type safety, prevents pattern matching, makes recovery impossible.~~
+
+~~**Recommendation:** Define proper error enums using `thiserror` or `anyhow`.~~
 
 ---
 
-#### 14. String Allocation in Hot Path (YAML Indent)
+#### 14. ~~String Allocation in Hot Path (YAML Indent)~~ RESOLVED
 
 **File:** `src/yaml_indent.rs:49-134`
 
-Allocates new `String` for every line with `format!` and `" ".repeat()`. For large YAML files, creates many temporary allocations.
-Move to our own fork of serde-yaml and implement it properly there
+**Status:** RESOLVED - Migrated entire workspace from deprecated `serde-yaml` to `serde-yaml-neo` (v0.10.0) and updated all YAML serialization to use native `to_string_with_indent()` API.
 
-**Recommendation:** Pre-allocate output buffer capacity, reuse indent strings.
+Changes made:
+- Replaced `serde_yaml::to_string()` + `yaml_with_indent()` post-processing with `serde_yaml_neo::to_string_with_indent()` in:
+  - `src/tools/object.rs` (4 places)
+  - `src/compose/render.rs` (1 place)
+  - `src/compose/update.rs` (1 place)
+- The `yaml_indent.rs` module is kept for backwards compatibility but no longer used in hot paths
+
+~~Allocates new `String` for every line with `format!` and `" ".repeat()`. For large YAML files, creates many temporary allocations.~~
+~~Move to our own fork of serde-yaml and implement it properly there~~
+
+~~**Recommendation:** Pre-allocate output buffer capacity, reuse indent strings.~~
 
 ---
 

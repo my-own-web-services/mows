@@ -28,13 +28,13 @@ pub fn read_internal_config() -> anyhow::Result<InternalConfig> {
     };
 
     let config_file = replace_variables(config_file)?;
-    let config: InternalConfig = serde_yaml::from_str(&config_file)?;
+    let config: InternalConfig = serde_yaml_neo::from_str(&config_file)?;
 
     Ok(config)
 }
 
 pub fn replace_variables(mut config_file: String) -> anyhow::Result<String> {
-    let first_config: ConfigVariablePrefix = serde_yaml::from_str(&config_file)?;
+    let first_config: ConfigVariablePrefix = serde_yaml_neo::from_str(&config_file)?;
     for (key, value) in std::env::vars() {
         config_file = config_file.replace(
             format!("{}{}", first_config.variable_prefix, key).as_str(),

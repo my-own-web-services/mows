@@ -62,7 +62,7 @@ pub struct CertResolverConfig {
 pub struct HttpConfig {
     pub entrypoints: Option<HashMap<String, Entrypoint>>,
     pub routers: Option<HashMap<String, HttpRouter>>,
-    #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
+    #[serde(with = "serde_yaml_neo::with::singleton_map_recursive", default)]
     #[schemars(with = "Option<HashMap<String, HttpMiddleware>>")]
     pub middlewares: Option<HashMap<String, HttpMiddleware>>,
     pub services: Option<HashMap<String, HttpService>>,
@@ -81,7 +81,7 @@ impl HttpConfig {
 pub struct TcpConfig {
     pub entrypoints: Option<HashMap<String, Entrypoint>>,
     pub routers: Option<HashMap<String, TcpRouter>>,
-    #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
+    #[serde(with = "serde_yaml_neo::with::singleton_map_recursive", default)]
     #[schemars(with = "Option<HashMap<String, TcpMiddleware>>")]
     pub middlewares: Option<HashMap<String, TcpMiddleware>>,
     pub services: Option<HashMap<String, TcpService>>,
@@ -100,7 +100,7 @@ impl TcpConfig {
 pub struct UdpConfig {
     pub entrypoints: Option<HashMap<String, Entrypoint>>,
     pub routers: Option<HashMap<String, UdpRouter>>,
-    #[serde(with = "serde_yaml::with::singleton_map_recursive", default)]
+    #[serde(with = "serde_yaml_neo::with::singleton_map_recursive", default)]
     #[schemars(with = "Option<HashMap<String, UdpMiddleware>>")]
     pub middlewares: Option<HashMap<String, UdpMiddleware>>,
     pub services: Option<HashMap<String, HttpService>>,

@@ -12,7 +12,7 @@ use crate::error::{IoResultExt, MpmError, Result};
 use crate::template::error::format_template_error;
 use crate::template::variables::load_variable_file;
 use crate::tools::{flatten_labels_in_compose, FlattenLabelsError};
-use crate::utils::{detect_yaml_indent, parse_yaml, yaml_with_indent};
+use crate::utils::{detect_yaml_indent, parse_yaml};
 
 /// Write a file with restricted permissions (600 - owner read/write only)
 /// Used for secrets files to prevent world-readable credentials
@@ -486,7 +486,7 @@ pub fn render_docker_compose(ctx: &RenderContext) -> Result<()> {
     let content = fs::read_to_string(&output_path)
         .io_context("Failed to read rendered docker-compose")?;
 
-    let yaml_value: serde_yaml::Value = parse_yaml(&content, Some(&output_path))?;
+    let yaml_value: serde_yaml_neo::Value = parse_yaml(&content, Some(&output_path))?;
 
     // Check if this looks like a docker-compose file with services
     if yaml_value.get("services").is_some() {
@@ -495,9 +495,8 @@ pub fn render_docker_compose(ctx: &RenderContext) -> Result<()> {
             Ok(flattened) => {
                 // Detect indentation from rendered template, default to 4 spaces
                 let indent = detect_yaml_indent(&content).unwrap_or(4);
-                let yaml = serde_yaml::to_string(&flattened)?;
-                let output = yaml_with_indent(&yaml, indent);
-                fs::write(&output_path, output)
+                let yaml = serde_yaml_neo::to_string_with_indent(&flattened, indent)?;
+                fs::write(&output_path, yaml)
                     .io_context("Failed to write docker-compose")?;
             }
             Err(FlattenLabelsError::NoLabels) => {

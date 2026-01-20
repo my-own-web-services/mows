@@ -44,7 +44,7 @@ k8s-openapi = { workspace = true, features = ["latest"] }
 schemars = { workspace = true, features = ["chrono"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["default"] }
-serde_yaml = { workspace = true }
+serde_yaml_neo = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 
 tracing = { workspace = true, features = ["default"] }

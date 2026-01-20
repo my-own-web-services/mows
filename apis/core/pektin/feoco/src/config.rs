@@ -21,7 +21,7 @@ const CONFIG_PATH: &str = "/config.yml";
 pub fn read_config() -> Config {
     let config_file = read_to_string(CONFIG_PATH).unwrap();
     let config_file = replace_variables(config_file);
-    let mut config: Config = serde_yaml::from_str(&config_file).unwrap();
+    let mut config: Config = serde_yaml_neo::from_str(&config_file).unwrap();
     for header in config.headers.all.clone() {
         config.headers.all.insert(
             header.0.to_string(),
@@ -49,7 +49,7 @@ pub fn read_config() -> Config {
 }
 
 pub fn replace_variables(mut config_file: String) -> String {
-    let first_config: Config = serde_yaml::from_str(&config_file).unwrap();
+    let first_config: Config = serde_yaml_neo::from_str(&config_file).unwrap();
     for (key, value) in std::env::vars() {
         config_file = config_file.replace(
             format!("{}{}", first_config.variable_prefix, key).as_str(),

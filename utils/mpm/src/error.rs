@@ -22,12 +22,12 @@ pub enum MpmError {
     YamlParse {
         path: String,
         #[source]
-        source: serde_yaml::Error,
+        source: serde_yaml_neo::Error,
     },
 
     /// YAML serialization error.
     #[error("Failed to serialize YAML: {0}")]
-    YamlSerialize(#[from] serde_yaml::Error),
+    YamlSerialize(#[from] serde_yaml_neo::Error),
 
     /// JSON parsing error.
     #[error("Failed to parse JSON: {0}")]
@@ -123,7 +123,7 @@ impl MpmError {
     }
 
     /// Create a YAML parse error with path context.
-    pub fn yaml_parse(path: impl Into<String>, source: serde_yaml::Error) -> Self {
+    pub fn yaml_parse(path: impl Into<String>, source: serde_yaml_neo::Error) -> Self {
         Self::YamlParse {
             path: path.into(),
             source,
@@ -157,7 +157,7 @@ pub trait YamlResultExt<T> {
     fn yaml_context(self, path: impl Into<String>) -> Result<T>;
 }
 
-impl<T> YamlResultExt<T> for std::result::Result<T, serde_yaml::Error> {
+impl<T> YamlResultExt<T> for std::result::Result<T, serde_yaml_neo::Error> {
     fn yaml_context(self, path: impl Into<String>) -> Result<T> {
         self.map_err(|e| MpmError::yaml_parse(path, e))
     }

@@ -3,6 +3,6 @@ use verkehr::kubernetes_controller::crd::VerkehrResource;
 fn main() {
     print!(
         "{}",
-        serde_yaml::to_string(&VerkehrResource::crd()).unwrap()
+        serde_yaml_neo::to_string(&VerkehrResource::crd()).unwrap()
     )
 }

@@ -181,7 +181,7 @@ Address={}/24
         let mut k3s_registries_yaml_string = String::new();
         if ic.dev.enabled {
             if let Some(k3s_registries) = &ic.dev.k3s_registries_file {
-                k3s_registries_yaml_string = serde_yaml::to_string(&k3s_registries)
+                k3s_registries_yaml_string = serde_yaml_neo::to_string(&k3s_registries)
                     .context("Failed to serialize the k3s registries into a yaml string")?;
             }
         }

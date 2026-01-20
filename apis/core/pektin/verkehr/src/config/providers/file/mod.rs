@@ -21,7 +21,7 @@ pub fn load_file_config(path: &str) -> anyhow::Result<RoutingConfig> {
     };
 
     let config: RoutingConfig = match file_type {
-        "yaml" => serde_yaml::from_str(&contents)?,
+        "yaml" => serde_yaml_neo::from_str(&contents)?,
         "json" => serde_json::from_str(&contents)?,
         _ => bail!("file type not supported"),
     };

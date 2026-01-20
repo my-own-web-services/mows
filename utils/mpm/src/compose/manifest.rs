@@ -26,7 +26,7 @@ pub struct ComposeConfig {
     pub values_file_path: Option<String>,
     // Flatten additional fields for forward compatibility
     #[serde(flatten)]
-    pub extra: serde_yaml::Value,
+    pub extra: serde_yaml_neo::Value,
 }
 
 /// Specification for different deployment types
@@ -138,11 +138,11 @@ spec:
         let spec = ManifestSpec {
             compose: Some(ComposeConfig::default()),
         };
-        let yaml = serde_yaml::to_string(&spec).unwrap();
+        let yaml = serde_yaml_neo::to_string(&spec).unwrap();
         println!("Serialized spec:\n{}", yaml);
 
         // Now try to deserialize that back
-        let result: std::result::Result<ManifestSpec, _> = serde_yaml::from_str(&yaml);
+        let result: std::result::Result<ManifestSpec, _> = serde_yaml_neo::from_str(&yaml);
         println!("Deserialize own output: {:?}", result);
         assert!(result.is_ok());
         assert!(result.unwrap().compose.is_some());
@@ -154,10 +154,10 @@ spec:
             compose: Some(ComposeConfig {
                 repository_url: Some("https://github.com/user/repo".to_string()),
                 values_file_path: None,
-                extra: serde_yaml::Value::default(),
+                extra: serde_yaml_neo::Value::default(),
             }),
         };
-        let yaml = serde_yaml::to_string(&spec).unwrap();
+        let yaml = serde_yaml_neo::to_string(&spec).unwrap();
         println!("Serialized spec with repositoryUrl:\n{}", yaml);
 
         assert!(yaml.contains("compose:"));
@@ -165,7 +165,7 @@ spec:
         assert!(yaml.contains("https://github.com/user/repo"));
 
         // Test deserialization
-        let deserialized: ManifestSpec = serde_yaml::from_str(&yaml).unwrap();
+        let deserialized: ManifestSpec = serde_yaml_neo::from_str(&yaml).unwrap();
         assert!(deserialized.compose.is_some());
         assert_eq!(
             deserialized.compose.unwrap().repository_url,
@@ -179,10 +179,10 @@ spec:
             compose: Some(ComposeConfig {
                 repository_url: None,
                 values_file_path: Some("values/development.yaml".to_string()),
-                extra: serde_yaml::Value::default(),
+                extra: serde_yaml_neo::Value::default(),
             }),
         };
-        let yaml = serde_yaml::to_string(&spec).unwrap();
+        let yaml = serde_yaml_neo::to_string(&spec).unwrap();
         println!("Serialized spec with valuesFilePath:\n{}", yaml);
 
         assert!(yaml.contains("compose:"));
@@ -190,7 +190,7 @@ spec:
         assert!(yaml.contains("values/development.yaml"));
 
         // Test deserialization
-        let deserialized: ManifestSpec = serde_yaml::from_str(&yaml).unwrap();
+        let deserialized: ManifestSpec = serde_yaml_neo::from_str(&yaml).unwrap();
         assert!(deserialized.compose.is_some());
         let compose = deserialized.compose.unwrap();
         assert_eq!(

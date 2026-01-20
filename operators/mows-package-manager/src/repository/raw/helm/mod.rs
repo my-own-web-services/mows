@@ -114,7 +114,7 @@ impl HelmRepoSpec {
 
             for (source_path, yaml_content) in documents_with_paths.iter()
             {
-                let resource = serde_yaml_ng::from_str::<serde_yaml_ng::Value>(yaml_content)
+                let resource = serde_yaml_neo::from_str::<serde_yaml_neo::Value>(yaml_content)
                     .map_err(|e| {
                         HelmRepoError::RenderHelmError(format!(
                             "Error parsing YAML document from {}: {}",
@@ -312,7 +312,7 @@ impl HelmRepoSpec {
         })?;
 
         let helm_repository_index: HelmRepositoryIndex =
-            serde_yaml_ng::from_str(&helm_repository_index_string).map_err(|e| {
+            serde_yaml_neo::from_str(&helm_repository_index_string).map_err(|e| {
                 HelmRepoError::FetchHelmRepoError(format!(
                     "Error parsing HelmRepo: {} while parsing string: {}",
                     e, helm_repository_index_string

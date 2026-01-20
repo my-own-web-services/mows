@@ -101,7 +101,7 @@ pub fn check_containers_ready(project_name: &str) -> ContainerReadiness {
 /// Collect container health information
 pub(super) fn collect_container_health(
     project_name: &str,
-    compose: Option<&serde_yaml::Value>,
+    compose: Option<&serde_yaml_neo::Value>,
 ) -> Vec<ContainerHealth> {
     let mut containers: Vec<ContainerHealth> = Vec::new();
 
@@ -281,9 +281,9 @@ fn collect_port_status(project_name: &str, containers: &mut [ContainerHealth]) {
 }
 
 /// Collect traefik URLs from compose labels
-fn collect_traefik_urls(compose: &serde_yaml::Value, containers: &mut [ContainerHealth]) {
+fn collect_traefik_urls(compose: &serde_yaml_neo::Value, containers: &mut [ContainerHealth]) {
     let services = match compose.get("services") {
-        Some(serde_yaml::Value::Mapping(m)) => m,
+        Some(serde_yaml_neo::Value::Mapping(m)) => m,
         _ => return,
     };
 
@@ -298,11 +298,11 @@ fn collect_traefik_urls(compose: &serde_yaml::Value, containers: &mut [Container
         if let Some(container) = container {
             // Look for traefik.http.routers.*.rule label with Host()
             let labels = match service.get("labels") {
-                Some(serde_yaml::Value::Mapping(m)) => m
+                Some(serde_yaml_neo::Value::Mapping(m)) => m
                     .iter()
                     .filter_map(|(k, v)| Some((k.as_str()?, v.as_str()?)))
                     .collect::<Vec<_>>(),
-                Some(serde_yaml::Value::Sequence(s)) => s
+                Some(serde_yaml_neo::Value::Sequence(s)) => s
                     .iter()
                     .filter_map(|v| v.as_str())
                     .filter_map(|s| {
@@ -870,7 +870,7 @@ mod tests {
 
     #[test]
     fn test_collect_traefik_urls_mapping_labels() {
-        let compose: serde_yaml::Value = serde_yaml::from_str(
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
 services:
   web:
@@ -899,7 +899,7 @@ services:
 
     #[test]
     fn test_collect_traefik_urls_sequence_labels() {
-        let compose: serde_yaml::Value = serde_yaml::from_str(
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
 services:
   api:
@@ -931,7 +931,7 @@ services:
 
     #[test]
     fn test_collect_traefik_urls_complex_rule() {
-        let compose: serde_yaml::Value = serde_yaml::from_str(
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
 services:
   web:
@@ -961,7 +961,7 @@ services:
 
     #[test]
     fn test_collect_traefik_urls_no_match() {
-        let compose: serde_yaml::Value = serde_yaml::from_str(
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
 services:
   web:
@@ -988,7 +988,7 @@ services:
 
     #[test]
     fn test_collect_traefik_urls_multiple_routers() {
-        let compose: serde_yaml::Value = serde_yaml::from_str(
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
 services:
   web:

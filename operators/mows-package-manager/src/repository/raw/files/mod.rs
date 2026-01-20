@@ -73,7 +73,7 @@ pub enum FilesSpecError {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
-    SerdeYamlError(#[from] serde_yaml_ng::Error),
+    SerdeYamlError(#[from] serde_yaml_neo::Error),
     #[error(transparent)]
     SerdeJsonError(#[from] serde_json::Error),
     #[error(transparent)]
