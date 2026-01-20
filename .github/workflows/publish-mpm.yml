@@ -54,8 +54,10 @@ jobs:
       - name: Run e2e tests
         run: |
           cd utils/mpm/tests
-          # Skip flaky tests that have CI-specific issues (Docker ports, network)
-          SKIP_TESTS="test-compose-up,test-self-update,test-compose-cd" ./run-all.sh
+          # Skip tests that require Docker daemon or network access
+          # - test-compose-up: requires Docker daemon with port binding
+          # - test-self-update: requires network access to GitHub API
+          SKIP_TESTS="test-compose-up,test-self-update" ./run-all.sh
         env:
           MPM_BIN: ${{ github.workspace }}/utils/mpm/target/release/mpm
 
