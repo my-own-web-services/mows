@@ -224,7 +224,8 @@ fn collect_container_logs(project_name: &str, containers: &mut [ContainerHealth]
 
 /// Collect port status for containers
 fn collect_port_status(project_name: &str, containers: &mut [ContainerHealth]) {
-    use std::collections::HashSet;
+    use rayon::prelude::*;
+    use std::collections::{HashMap, HashSet};
 
     let output = Command::new("docker")
         .args([
@@ -240,40 +241,59 @@ fn collect_port_status(project_name: &str, containers: &mut [ContainerHealth]) {
     match output {
         Ok(out) if out.status.success() => {
             let stdout = String::from_utf8_lossy(&out.stdout);
+
+            // First pass: collect all ports to check (container_name, url, port)
+            let mut port_checks: Vec<(String, String, u16)> = Vec::new();
+
             for line in stdout.lines() {
                 let parts: Vec<&str> = line.split('\t').collect();
                 if parts.len() >= 2 {
                     let name = parts[0];
                     let ports = parts[1];
 
-                    if let Some(container) = containers.iter_mut().find(|c| c.name == name) {
-                        // Track seen ports to avoid duplicates (Docker reports IPv4 and IPv6 bindings separately)
-                        let mut seen_ports: HashSet<u16> = HashSet::new();
+                    // Track seen ports per container to avoid duplicates
+                    let mut seen_ports: HashSet<u16> = HashSet::new();
 
-                        for port_mapping in ports.split(", ") {
-                            if let Some(binding) = extract_host_binding(port_mapping) {
-                                // Skip if we've already processed this port
-                                if !seen_ports.insert(binding.port) {
-                                    continue;
-                                }
-
-                                // Determine the address to connect to based on interface binding
-                                // - 0.0.0.0 or :: means all interfaces, so we connect to localhost
-                                // - specific IP means connect to that IP
-                                let connect_addr = match binding.interface.as_str() {
-                                    "0.0.0.0" | "::" => "127.0.0.1".to_string(),
-                                    addr => addr.to_string(),
-                                };
-
-                                let url = format!("http://{}:{}", connect_addr, binding.port);
-                                let responding = check_http_endpoint(&url).unwrap_or(false);
-                                container.ports.push(PortStatus {
-                                    port: binding.port,
-                                    responding,
-                                });
+                    for port_mapping in ports.split(", ") {
+                        if let Some(binding) = extract_host_binding(port_mapping) {
+                            if !seen_ports.insert(binding.port) {
+                                continue;
                             }
+
+                            let connect_addr = match binding.interface.as_str() {
+                                "0.0.0.0" | "::" => "127.0.0.1".to_string(),
+                                addr => addr.to_string(),
+                            };
+
+                            let url = format!("http://{}:{}", connect_addr, binding.port);
+                            port_checks.push((name.to_string(), url, binding.port));
                         }
                     }
+                }
+            }
+
+            // Check all ports in parallel
+            let results: Vec<(String, u16, bool)> = port_checks
+                .par_iter()
+                .map(|(name, url, port)| {
+                    let responding = check_http_endpoint(url).unwrap_or(false);
+                    (name.clone(), *port, responding)
+                })
+                .collect();
+
+            // Group results by container name
+            let mut port_results: HashMap<String, Vec<PortStatus>> = HashMap::new();
+            for (name, port, responding) in results {
+                port_results
+                    .entry(name)
+                    .or_default()
+                    .push(PortStatus { port, responding });
+            }
+
+            // Assign results to containers
+            for container in containers.iter_mut() {
+                if let Some(ports) = port_results.remove(&container.name) {
+                    container.ports = ports;
                 }
             }
         }

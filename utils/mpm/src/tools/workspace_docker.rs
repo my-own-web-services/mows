@@ -321,7 +321,10 @@ fn is_workspace_dep(value: &toml::Value) -> bool {
     }
 }
 
-/// Recursively collect all workspace dependencies including transitive ones
+/// Maximum number of dependencies to process (fail-safe against runaway graphs)
+const MAX_DEPENDENCIES: usize = 1000;
+
+/// Collect all workspace dependencies including transitive ones
 /// Returns a map of dependency name -> PackageDepInfo with merged features
 fn collect_all_deps(
     workspace_root: &Path,
@@ -336,6 +339,15 @@ fn collect_all_deps(
         if processed.contains(&dep_name) {
             continue;
         }
+
+        // Fail-safe: prevent runaway processing of very large dependency graphs
+        if processed.len() >= MAX_DEPENDENCIES {
+            return Err(format!(
+                "Exceeded maximum dependency limit ({}). Possible circular dependency or unusually large workspace.",
+                MAX_DEPENDENCIES
+            ).into());
+        }
+
         processed.insert(dep_name.clone());
 
         // Check if this is a path dependency
