@@ -894,11 +894,16 @@ Commands exist but not documented.
 
 ---
 
-#### 74. docker-compose.yaml Undocumented
+#### 74. ~~docker-compose.yaml Undocumented~~ RESOLVED
 
 **File:** `docker-compose.yaml`
 
-No comments explaining purpose vs build.sh.
+**Status:** RESOLVED - Added header comment explaining:
+- Enables `docker compose build` as alternative to build.sh
+- Marks package for `cargo-workspace-docker --all` detection
+- Points to build.sh for production builds
+
+~~No comments explaining purpose vs build.sh.~~
 
 ---
 

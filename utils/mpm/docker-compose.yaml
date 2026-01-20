@@ -1,3 +1,12 @@
+# Docker Compose build configuration for mpm
+#
+# This file serves two purposes:
+# 1. Enables `docker compose build` as an alternative to build.sh
+# 2. Marks this package for cargo-workspace-docker detection (--all flag)
+#
+# For production builds, use build.sh which provides additional features
+# like architecture selection and output directory configuration.
+
 services:
     mpm:
         build:
