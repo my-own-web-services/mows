@@ -292,7 +292,6 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
     let git_root = find_git_root()?;
     debug!("Git root: {}", git_root.display());
 
-    // Find Dockerfiles
     let dockerfiles = find_dockerfiles(&git_root);
     if dockerfiles.is_empty() {
         debug!("No Dockerfiles found");
@@ -303,7 +302,6 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
         }
     }
 
-    // Create deployment directory structure
     let deployment_dir = PathBuf::from("deployment");
 
     // Check if deployment directory already exists
@@ -323,7 +321,6 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
     fs::create_dir_all(&results_dir)
         .io_context("Failed to create deployment/results")?;
 
-    // Generate and write mows-manifest.yaml
     let manifest_path = deployment_dir.join("mows-manifest.yaml");
     if !manifest_path.exists() {
         fs::write(
@@ -336,7 +333,6 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
         debug!("Skipping existing: {}", manifest_path.display());
     }
 
-    // Generate and write values.yaml
     let values_path = deployment_dir.join("values.yaml");
     if !values_path.exists() {
         fs::write(&values_path, generate_values(&dockerfiles))
@@ -346,7 +342,6 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
         debug!("Skipping existing: {}", values_path.display());
     }
 
-    // Create values directory and development.yaml
     let values_dir = deployment_dir.join("values");
     fs::create_dir_all(&values_dir)
         .io_context("Failed to create deployment/values")?;
@@ -360,7 +355,6 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
         debug!("Skipping existing: {}", dev_values_path.display());
     }
 
-    // Generate and write templates/docker-compose.yaml
     let compose_path = templates_dir.join("docker-compose.yaml");
     if !compose_path.exists() {
         fs::write(&compose_path, generate_docker_compose(&dockerfiles))
@@ -370,7 +364,6 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
         debug!("Skipping existing: {}", compose_path.display());
     }
 
-    // Generate and write .gitignore
     let gitignore_path = deployment_dir.join(".gitignore");
     if !gitignore_path.exists() {
         fs::write(&gitignore_path, generate_gitignore())
@@ -380,7 +373,6 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
         debug!("Skipping existing: {}", gitignore_path.display());
     }
 
-    // Generate and write provided-secrets.env
     let provided_secrets_path = deployment_dir.join("provided-secrets.env");
     if !provided_secrets_path.exists() {
         fs::write(&provided_secrets_path, generate_provided_secrets())
@@ -390,7 +382,6 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
         debug!("Skipping existing: {}", provided_secrets_path.display());
     }
 
-    // Generate and write templates/generated-secrets.env
     let generated_secrets_path = templates_dir.join("generated-secrets.env");
     if !generated_secrets_path.exists() {
         fs::write(&generated_secrets_path, generate_generated_secrets_template())
