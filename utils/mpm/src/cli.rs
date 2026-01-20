@@ -17,11 +17,19 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Commands {
     /// Docker Compose deployment management
+    ///
+    /// Commands for managing mpm-style Docker Compose deployments with
+    /// templated configuration, automatic secrets generation, and
+    /// health monitoring.
     Compose {
         #[command(subcommand)]
         command: ComposeCommands,
     },
-    /// Small utilities
+    /// Data transformation utilities
+    ///
+    /// Small utilities for working with JSON, YAML, and other data formats.
+    /// All tools read from stdin and write to stdout by default, or use
+    /// -i/--input and -o/--output for file operations.
     Tools {
         #[command(subcommand)]
         tool: ToolCommands,
@@ -98,26 +106,67 @@ pub enum Commands {
 
 #[derive(Subcommand)]
 pub enum ComposeCommands {
-    /// Render templates and start the deployment with docker compose up
+    /// Render templates and start the deployment
+    ///
+    /// Executes the full deployment pipeline:
+    /// 1. Renders Go templates in the templates/ directory using values.yaml
+    /// 2. Generates any missing secrets defined in mows-manifest.yaml
+    /// 3. Flattens nested Traefik labels to dot-notation format
+    /// 4. Runs docker compose up -d
+    /// 5. Monitors container health and displays status
+    ///
+    /// Templates use Go template syntax with Helm-compatible functions.
+    /// Secrets are auto-generated based on patterns in mows-manifest.yaml.
     Up,
     /// Initialize a new mpm compose project
+    ///
+    /// Creates the standard mpm project structure:
+    /// - mows-manifest.yaml: Project configuration and secrets definitions
+    /// - values.yaml: Template variables (gitignored)
+    /// - templates/: Directory for Go templates
+    /// - templates/docker-compose.yaml.gotmpl: Main compose template
+    /// - .gitignore: Excludes values.yaml, results/, secrets/
+    ///
+    /// If run in a git repository, auto-detects the project name from
+    /// the remote URL.
     Init {
         /// Project name (defaults to git repository name)
         name: Option<String>,
     },
-    /// Install a mpm repo from a URL
+    /// Clone and install a mpm project from a git URL
+    ///
+    /// Clones the repository and registers it with mpm for easy navigation.
+    /// Only HTTPS and SSH URLs are allowed for security.
+    ///
+    /// After installation, use 'mpm compose cd <project>' to navigate to it,
+    /// then 'mpm compose up' to deploy.
     Install {
-        /// Git repository URL to clone
+        /// Git repository URL (https:// or git@)
         url: String,
         /// Target directory (defaults to current directory)
         #[arg(short, long)]
         target: Option<std::path::PathBuf>,
     },
-    /// Update the repository and merge values
-    Update,
-    /// Print the path to a project directory
+    /// Pull latest changes and merge values
     ///
-    /// Use with cd: cd $(mpm compose cd myproject)
+    /// Updates the project by:
+    /// 1. Running git pull to fetch upstream changes
+    /// 2. Merging new keys from default-values.yaml into values.yaml
+    /// 3. Preserving existing values (your customizations are kept)
+    /// 4. Commenting out keys that were removed upstream
+    ///
+    /// Safe to run repeatedly - your values.yaml modifications are preserved.
+    Update,
+    /// Print the path to a registered project
+    ///
+    /// Prints the absolute path to a project's directory, useful for
+    /// shell navigation. Projects are registered when installed or
+    /// when 'mpm compose up' is run.
+    ///
+    /// Usage with cd: cd $(mpm compose cd myproject)
+    ///
+    /// If multiple instances of a project exist (same project installed
+    /// in different locations), use --instance to specify which one.
     Cd {
         /// Project name to navigate to
         project: String,
@@ -125,12 +174,23 @@ pub enum ComposeCommands {
         #[arg(short, long)]
         instance: Option<String>,
     },
-    /// Manage secrets
+    /// Manage deployment secrets
+    ///
+    /// Secrets are defined in mows-manifest.yaml and stored in secrets/.env.
+    /// They are auto-generated on first 'mpm compose up' and can be
+    /// regenerated with this command.
     Secrets {
         #[command(subcommand)]
         command: SecretsCommands,
     },
     /// Pass through to docker compose with project context
+    ///
+    /// Any unrecognized subcommand is passed directly to docker compose
+    /// with the project's compose file. Useful for commands like:
+    ///   mpm compose logs -f
+    ///   mpm compose ps
+    ///   mpm compose down
+    ///   mpm compose exec service_name bash
     #[command(external_subcommand)]
     Passthrough(Vec<String>),
 }
@@ -138,8 +198,15 @@ pub enum ComposeCommands {
 #[derive(Subcommand)]
 pub enum SecretsCommands {
     /// Regenerate secrets (all or specific key)
+    ///
+    /// Regenerates secrets defined in mows-manifest.yaml. By default,
+    /// only generates missing secrets; existing values are preserved.
+    ///
+    /// Use with a specific key name to force regeneration of that secret.
+    /// The secret patterns (length, character set) are defined in the
+    /// mows-manifest.yaml file.
     Regenerate {
-        /// Specific key to regenerate (regenerates all if not specified)
+        /// Specific key to regenerate (regenerates all missing if not specified)
         key: Option<String>,
     },
 }
@@ -147,6 +214,12 @@ pub enum SecretsCommands {
 #[derive(Subcommand)]
 pub enum ToolCommands {
     /// Convert JSON to YAML
+    ///
+    /// Reads JSON input and outputs equivalent YAML with 4-space indentation.
+    ///
+    /// Example: mpm tools json-to-yaml -i config.json -o config.yaml
+    /// Example: cat data.json | mpm tools json-to-yaml > data.yaml
+    #[command(name = "json-to-yaml")]
     JsonToYaml {
         /// Input file (reads from stdin if not provided)
         #[arg(short, long)]
@@ -156,6 +229,12 @@ pub enum ToolCommands {
         output: Option<PathBuf>,
     },
     /// Convert YAML to JSON
+    ///
+    /// Reads YAML input and outputs pretty-printed JSON.
+    ///
+    /// Example: mpm tools yaml-to-json -i config.yaml -o config.json
+    /// Example: cat data.yaml | mpm tools yaml-to-json > data.json
+    #[command(name = "yaml-to-json")]
     YamlToJson {
         /// Input file (reads from stdin if not provided)
         #[arg(short, long)]
@@ -164,7 +243,13 @@ pub enum ToolCommands {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Prettify JSON
+    /// Prettify JSON with consistent formatting
+    ///
+    /// Reads JSON and outputs with consistent indentation and formatting.
+    /// Useful for normalizing JSON files or making them human-readable.
+    ///
+    /// Example: mpm tools prettify-json -i messy.json -o clean.json
+    #[command(name = "prettify-json")]
     PrettifyJson {
         /// Input file (reads from stdin if not provided)
         #[arg(short, long)]
@@ -173,7 +258,16 @@ pub enum ToolCommands {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Expand flat dot-notation keys to nested object structure
+    /// Expand flat dot-notation keys to nested structure
+    ///
+    /// Transforms flat keys like "traefik.http.routers.app.rule" into
+    /// nested YAML/JSON objects. Useful for editing Traefik labels.
+    ///
+    /// For Docker Compose files, automatically targets services.*.labels.
+    /// Use --selector to specify a different path or apply to entire document.
+    ///
+    /// Example: mpm tools expand-object -i compose.yaml -o expanded.yaml
+    #[command(name = "expand-object")]
     ExpandObject {
         /// Input file (reads from stdin if not provided)
         #[arg(short, long)]
@@ -182,11 +276,19 @@ pub enum ToolCommands {
         #[arg(short, long)]
         output: Option<PathBuf>,
         /// Path selector with glob support (e.g., "services.*.labels")
-        /// Defaults to "services.*.labels" for Docker Compose files
         #[arg(short, long)]
         selector: Option<String>,
     },
-    /// Flatten nested object structure to flat dot-notation keys
+    /// Flatten nested structure to dot-notation keys
+    ///
+    /// Transforms nested YAML/JSON objects into flat dot-notation keys.
+    /// The inverse of expand-object. Useful for converting human-readable
+    /// Traefik configuration back to label format.
+    ///
+    /// For Docker Compose files, automatically targets services.*.labels.
+    ///
+    /// Example: mpm tools flatten-object -i expanded.yaml -o compose.yaml
+    #[command(name = "flatten-object")]
     FlattenObject {
         /// Input file (reads from stdin if not provided)
         #[arg(short, long)]
@@ -195,13 +297,19 @@ pub enum ToolCommands {
         #[arg(short, long)]
         output: Option<PathBuf>,
         /// Path selector with glob support (e.g., "services.*.labels")
-        /// Defaults to "services.*.labels" for Docker Compose files
         #[arg(short, long)]
         selector: Option<String>,
     },
-    /// Run jq queries on JSON/YAML input
+    /// Query JSON/YAML with jq syntax
+    ///
+    /// Run jq-style queries on JSON or YAML input. Supports most jq
+    /// core filters. Input can be JSON or YAML; output defaults to JSON
+    /// but can be YAML with --yaml.
+    ///
+    /// Example: mpm tools jq '.services | keys' -i compose.yaml
+    /// Example: cat data.json | mpm tools jq '.items[] | .name'
     Jq {
-        /// jq query/filter to apply
+        /// jq query/filter to apply (e.g., '.foo.bar', '.[] | select(.x > 1)')
         query: String,
         /// Input file (reads from stdin if not provided)
         #[arg(short, long)]
@@ -213,16 +321,26 @@ pub enum ToolCommands {
         #[arg(long)]
         yaml: bool,
     },
-    /// Check health and size of all drives
+    /// List drives with health and capacity info
     ///
-    /// Lists all block devices with their size and model information.
-    /// Shows SMART health status if smartctl is available (may require sudo).
+    /// Lists all block devices with size, model, and SMART health status.
+    /// SMART data requires smartctl to be installed and may need sudo
+    /// for some drives.
+    ///
+    /// Example: mpm tools drives
+    /// Example: sudo mpm tools drives  # for full SMART access
     Drives,
     /// Generate cargo-workspace-docker.toml for Docker builds
     ///
-    /// Creates minimal workspace configuration files for Dockerized Rust builds.
-    /// Automatically finds the workspace root and resolves all dependencies
-    /// (including transitive ones) needed for the package.
+    /// Creates minimal Cargo workspace configuration for Dockerized builds.
+    /// Resolves all dependencies (including transitive) needed to build
+    /// the package, enabling efficient Docker layer caching with cargo-chef.
+    ///
+    /// Run from a package directory or use --path. Use --all to generate
+    /// for all packages in the workspace that have a docker-compose file.
+    ///
+    /// Example: mpm tools cargo-workspace-docker
+    /// Example: mpm tools cargo-workspace-docker --all
     #[command(name = "cargo-workspace-docker")]
     CargoWorkspaceDocker {
         /// Generate for all packages with docker-compose in the workspace
