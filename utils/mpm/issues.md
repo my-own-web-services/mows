@@ -38,14 +38,16 @@ Comprehensive code review conducted 2026-01-20 across 8 perspectives.
 
 ---
 
-### 2. Unbounded Memory Growth in Template Rendering
+### 2. ~~Unbounded Memory Growth in Template Rendering~~ RESOLVED
 
 **File:** `src/compose/render.rs:234-325`
 **Category:** Rust/Tech
 
-`visited` HashSet grows unbounded during directory traversal. Deep or wide directory trees with many symlinks could consume significant memory.
+**Status:** RESOLVED - Added `MAX_VISITED_DIRECTORIES` constant (10,000) that limits the size of the `visited` HashSet. Returns a clear error message if the limit is exceeded, preventing unbounded memory growth while preserving symlink loop detection.
 
-**Recommendation:** Add depth-based cleanup or limit the visited set size.
+~~`visited` HashSet grows unbounded during directory traversal. Deep or wide directory trees with many symlinks could consume significant memory.~~
+
+~~**Recommendation:** Add depth-based cleanup or limit the visited set size.~~
 
 ---
 

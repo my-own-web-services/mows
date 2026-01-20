@@ -231,6 +231,10 @@ fn render_template_file(
 /// Maximum directory depth to prevent infinite recursion from symlink loops
 const MAX_DIRECTORY_DEPTH: usize = 50;
 
+/// Maximum number of directories to track for symlink loop detection.
+/// This prevents unbounded memory growth in very large directory trees.
+const MAX_VISITED_DIRECTORIES: usize = 10_000;
+
 /// Render a directory of templates with symlink loop detection
 fn render_template_directory(
     input: &Path,
@@ -258,6 +262,17 @@ fn render_template_directory_inner(
             message: format!(
                 "Maximum directory depth ({}) exceeded. Possible symlink loop?",
                 MAX_DIRECTORY_DEPTH
+            ),
+        });
+    }
+
+    // Check visited set size limit to prevent unbounded memory growth
+    if visited.len() >= MAX_VISITED_DIRECTORIES {
+        return Err(MpmError::Path {
+            path: input.to_path_buf(),
+            message: format!(
+                "Too many directories visited ({}). Directory tree may be too large or contain many symlinks.",
+                MAX_VISITED_DIRECTORIES
             ),
         });
     }
