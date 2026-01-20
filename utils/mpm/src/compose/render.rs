@@ -13,7 +13,7 @@ use crate::template::error::format_template_error;
 use crate::template::render_template_string;
 use crate::template::variables::load_variable_file;
 use crate::tools::{flatten_labels_in_compose, FlattenLabelsError};
-use crate::utils::{detect_yaml_indent, parse_yaml};
+use crate::utils::parse_yaml;
 
 /// File permission mode for secrets files: owner read/write only (rw-------).
 /// Prevents world-readable credentials.
@@ -479,7 +479,11 @@ pub fn render_docker_compose(ctx: &RenderContext) -> Result<()> {
         match flatten_labels_in_compose(yaml_value) {
             Ok(flattened) => {
                 // Detect indentation from rendered template, default to 4 spaces
-                let indent = detect_yaml_indent(&content).unwrap_or(4);
+                let indent = serde_yaml_neo::detect_indentation(&content)
+                    .ok()
+                    .flatten()
+                    .map(|i| i.spaces())
+                    .unwrap_or(4);
                 let yaml = serde_yaml_neo::to_string_with_indent(&flattened, indent)?;
                 fs::write(&output_path, yaml)
                     .io_context("Failed to write docker-compose")?;

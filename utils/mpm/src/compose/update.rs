@@ -5,7 +5,6 @@ use std::process::Command;
 use tracing::{debug, info, warn};
 
 use crate::error::{IoResultExt, MpmError, Result};
-use crate::utils::detect_yaml_indent;
 use super::config::MpmConfig;
 use super::{find_manifest_dir, find_manifest_file_from, find_manifest_in_repo};
 use super::manifest::MowsManifest;
@@ -278,7 +277,11 @@ fn git_pull(repo_root: &Path) -> Result<()> {
 /// Merge values: keep existing keys, add new ones, comment out removed ones
 fn merge_values(old_content: &str, new_content: &str) -> Result<String> {
     // Detect indentation from the existing file, default to 4 spaces
-    let indent = detect_yaml_indent(old_content).unwrap_or(4);
+    let indent = serde_yaml_neo::detect_indentation(old_content)
+        .ok()
+        .flatten()
+        .map(|i| i.spaces())
+        .unwrap_or(4);
 
     let old_value: serde_yaml_neo::Value = serde_yaml_neo::from_str(old_content)
         .map_err(|e| MpmError::yaml_parse("old values", e))?;

@@ -12,7 +12,6 @@ mod shell_init;
 mod template;
 mod tools;
 mod utils;
-mod yaml_indent;
 
 use clap::Parser;
 use colored::Colorize;
