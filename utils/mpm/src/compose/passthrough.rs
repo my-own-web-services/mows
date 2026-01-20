@@ -74,8 +74,3 @@ pub fn compose_passthrough(args: &[String]) -> Result<()> {
 
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    // Passthrough tests would require Docker, so we mainly test in integration tests
-}

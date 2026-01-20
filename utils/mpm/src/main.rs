@@ -25,7 +25,6 @@ use self_update::{check_for_updates_background, notify_if_update_available, self
 use shell_init::shell_init;
 use template::render_template_command;
 use tools::{drives_command, expand_object_command, flatten_object_command, jq_command, json_to_yaml, prettify_json, workspace_docker_command, yaml_to_json};
-use utils::find_git_root;
 
 fn init_tracing(verbose: bool) {
     // RUST_LOG environment variable takes precedence over -V flag
@@ -54,16 +53,6 @@ fn main() {
     notify_if_update_available();
 
     let result = match cli.command {
-        Commands::Build => {
-            match find_git_root() {
-                Ok(root) => {
-                    println!("Git repository root: {}", root.display());
-                    // Does nothing else for now
-                    Ok(())
-                }
-                Err(e) => Err(e),
-            }
-        }
         Commands::Compose { command } => match command {
             ComposeCommands::Up => compose_up(),
             ComposeCommands::Init { name } => compose_init(name.as_deref()),

@@ -111,8 +111,9 @@ mod tests {
         assert!(content.contains("\"test\""));
     }
 
-    // TODO: Re-enable when standard library support is added
-    // Currently only core filters are available, not stdlib functions like select()
+    // TODO: Re-enable when jaq adds stdlib support (tracking: https://github.com/01mf02/jaq/issues/56)
+    // The jaq crate currently only provides core filters, not stdlib functions like select(),
+    // limit(), first(), etc. Once jaq-std supports these, this test can be enabled.
     #[test]
     #[ignore]
     fn test_jq_filter() {

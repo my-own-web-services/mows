@@ -149,8 +149,6 @@ struct CargoToml {
 
 #[derive(Debug, Deserialize)]
 struct Package {
-    #[allow(dead_code)]
-    name: Option<String>,
     version: Option<toml::Value>,
 }
 

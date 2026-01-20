@@ -1,3 +1,18 @@
+# Build artifacts
 target
 dist
 mows-common-rust-temp/target
+
+# Development files not needed in Docker build
+.git
+.github
+tests
+docs
+*.md
+!README.md
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
