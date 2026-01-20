@@ -1,10 +1,10 @@
-use std::path::PathBuf;
+use std::path::Path;
 use tracing::debug;
 
 use crate::error::{MpmError, Result};
 use crate::utils::{parse_yaml, read_input, write_output};
 
-pub fn json_to_yaml(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<()> {
+pub fn json_to_yaml(input: Option<&Path>, output: Option<&Path>) -> Result<()> {
     debug!("Converting JSON to YAML");
     let content = read_input(input)?;
     let value: serde_json::Value =
@@ -13,15 +13,15 @@ pub fn json_to_yaml(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result
     write_output(output, &yaml)
 }
 
-pub fn yaml_to_json(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<()> {
+pub fn yaml_to_json(input: Option<&Path>, output: Option<&Path>) -> Result<()> {
     debug!("Converting YAML to JSON");
     let content = read_input(input)?;
-    let value: serde_yaml_neo::Value = parse_yaml(&content, input.as_deref())?;
+    let value: serde_yaml_neo::Value = parse_yaml(&content, input)?;
     let json = serde_json::to_string_pretty(&value).map_err(MpmError::JsonSerialize)?;
     write_output(output, &json)
 }
 
-pub fn prettify_json(input: &Option<PathBuf>, output: &Option<PathBuf>) -> Result<()> {
+pub fn prettify_json(input: Option<&Path>, output: Option<&Path>) -> Result<()> {
     debug!("Prettifying JSON");
     let content = read_input(input)?;
     let value: serde_json::Value =
@@ -45,11 +45,7 @@ mod tests {
 
         let output_file = NamedTempFile::new().unwrap();
 
-        json_to_yaml(
-            &Some(input_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
-        )
-        .unwrap();
+        json_to_yaml(Some(input_file.path()), Some(output_file.path())).unwrap();
 
         let content = fs::read_to_string(output_file.path()).unwrap();
         assert!(content.contains("key: value"));
@@ -64,11 +60,7 @@ mod tests {
 
         let output_file = NamedTempFile::new().unwrap();
 
-        yaml_to_json(
-            &Some(input_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
-        )
-        .unwrap();
+        yaml_to_json(Some(input_file.path()), Some(output_file.path())).unwrap();
 
         let content = fs::read_to_string(output_file.path()).unwrap();
         let json: serde_json::Value = serde_json::from_str(&content).unwrap();
@@ -84,11 +76,7 @@ mod tests {
 
         let output_file = NamedTempFile::new().unwrap();
 
-        prettify_json(
-            &Some(input_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
-        )
-        .unwrap();
+        prettify_json(Some(input_file.path()), Some(output_file.path())).unwrap();
 
         let content = fs::read_to_string(output_file.path()).unwrap();
         // Should be pretty-printed with indentation

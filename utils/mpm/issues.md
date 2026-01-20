@@ -954,13 +954,19 @@ No documentation about test organization or how to run different suites.
 
 ---
 
-#### 79. Inconsistent Option Handling in APIs
+#### 79. ~~Inconsistent Option Handling in APIs~~ RESOLVED
 
 **File:** Various tool commands
 
-Some use `&Option<PathBuf>`, some use `Option<&Path>`.
+**Status:** RESOLVED - Standardized all tool command APIs to use `Option<&Path>` instead of `&Option<PathBuf>`:
+- `utils/io.rs`: `read_input`, `write_output`
+- `tools/convert.rs`: `json_to_yaml`, `yaml_to_json`, `prettify_json`
+- `tools/jq.rs`: `jq_command`
+- `tools/object.rs`: `expand_object_command`, `flatten_object_command`
+- `tools/workspace_docker.rs`: `workspace_docker_command`
+- Updated main.rs call sites to use `.as_deref()`
 
-**Recommendation:** Use `Option<&Path>` consistently.
+~~Some use `&Option<PathBuf>`, some use `Option<&Path>`.~~
 
 ---
 

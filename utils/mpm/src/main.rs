@@ -65,26 +65,26 @@ fn main() {
             ComposeCommands::Passthrough(args) => compose_passthrough(&args),
         },
         Commands::Tools { tool } => match tool {
-            ToolCommands::JsonToYaml { input, output } => json_to_yaml(&input, &output),
-            ToolCommands::YamlToJson { input, output } => yaml_to_json(&input, &output),
-            ToolCommands::PrettifyJson { input, output } => prettify_json(&input, &output),
+            ToolCommands::JsonToYaml { input, output } => json_to_yaml(input.as_deref(), output.as_deref()),
+            ToolCommands::YamlToJson { input, output } => yaml_to_json(input.as_deref(), output.as_deref()),
+            ToolCommands::PrettifyJson { input, output } => prettify_json(input.as_deref(), output.as_deref()),
             ToolCommands::ExpandObject {
                 input,
                 output,
                 selector,
-            } => expand_object_command(&input, &output, &selector),
+            } => expand_object_command(input.as_deref(), output.as_deref(), &selector),
             ToolCommands::FlattenObject {
                 input,
                 output,
                 selector,
-            } => flatten_object_command(&input, &output, &selector),
+            } => flatten_object_command(input.as_deref(), output.as_deref(), &selector),
             ToolCommands::Jq {
                 query,
                 input,
                 output,
                 yaml,
-            } => jq_command(&query, &input, &output, yaml),
-            ToolCommands::CargoWorkspaceDocker { all, path } => workspace_docker_command(all, &path),
+            } => jq_command(&query, input.as_deref(), output.as_deref(), yaml),
+            ToolCommands::CargoWorkspaceDocker { all, path } => workspace_docker_command(all, path.as_deref()),
             ToolCommands::Drives => drives_command(),
         },
         Commands::Template {

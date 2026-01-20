@@ -8,9 +8,9 @@ use walkdir::WalkDir;
 use crate::error::{IoResultExt, Result, TomlResultExt};
 
 /// Main entry point for the workspace-docker command
-pub fn workspace_docker_command(all: bool, path: &Option<PathBuf>) -> Result<()> {
+pub fn workspace_docker_command(all: bool, path: Option<&Path>) -> Result<()> {
     let start_path = match path {
-        Some(p) => p.clone(),
+        Some(p) => p.to_path_buf(),
         None => std::env::current_dir()
             .io_context("Failed to get current directory")?,
     };

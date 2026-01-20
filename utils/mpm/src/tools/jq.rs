@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 use tracing::debug;
 
 use crate::error::{MpmError, Result};
@@ -6,8 +6,8 @@ use crate::utils::{parse_yaml, read_input, write_output};
 
 pub fn jq_command(
     query: &str,
-    input: &Option<PathBuf>,
-    output: &Option<PathBuf>,
+    input: Option<&Path>,
+    output: Option<&Path>,
     yaml_output: bool,
 ) -> Result<()> {
     use jaq_interpret::{Ctx, FilterT, RcIter, Val};
@@ -19,7 +19,7 @@ pub fn jq_command(
     let input_value: serde_json::Value = if let Ok(json) = serde_json::from_str(&content) {
         json
     } else {
-        let yaml: serde_yaml_neo::Value = parse_yaml(&content, input.as_deref())?;
+        let yaml: serde_yaml_neo::Value = parse_yaml(&content, input)?;
         serde_json::to_value(&yaml).map_err(MpmError::JsonSerialize)?
     };
 
@@ -99,8 +99,8 @@ mod tests {
 
         jq_command(
             ".name",
-            &Some(input_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
+            Some(input_file.path()),
+            Some(output_file.path()),
             false,
         )
         .unwrap();
@@ -127,8 +127,8 @@ mod tests {
 
         jq_command(
             ".items[] | select(.value > 1)",
-            &Some(input_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
+            Some(input_file.path()),
+            Some(output_file.path()),
             false,
         )
         .unwrap();
@@ -148,8 +148,8 @@ mod tests {
 
         jq_command(
             ".name",
-            &Some(input_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
+            Some(input_file.path()),
+            Some(output_file.path()),
             false,
         )
         .unwrap();
@@ -168,8 +168,8 @@ mod tests {
 
         jq_command(
             ".",
-            &Some(input_file.path().to_path_buf()),
-            &Some(output_file.path().to_path_buf()),
+            Some(input_file.path()),
+            Some(output_file.path()),
             true,
         )
         .unwrap();
