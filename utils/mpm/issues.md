@@ -940,13 +940,17 @@ No documentation about test organization or how to run different suites.
 
 ---
 
-#### 78. Utils Module is Catch-All
+#### 78. ~~Utils Module is Catch-All~~ RESOLVED
 
 **File:** `src/utils.rs`
 
-Mixes: git operations, I/O utilities, YAML parsing, indentation.
+**Status:** RESOLVED - Split `utils.rs` into a `utils/` directory module with:
+- `utils/git.rs` - git operations (`find_git_root`)
+- `utils/io.rs` - I/O utilities (`read_input`, `write_output`)
+- `utils/yaml.rs` - YAML parsing (`parse_yaml`, `format_yaml_error`)
+- `utils/mod.rs` - re-exports for backwards compatibility
 
-**Recommendation:** Split into `git.rs`, `io.rs`, `yaml.rs`.
+~~Mixes: git operations, I/O utilities, YAML parsing, indentation.~~
 
 ---
 
