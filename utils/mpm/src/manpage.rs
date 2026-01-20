@@ -6,7 +6,7 @@ use clap::CommandFactory;
 use clap_mangen::Man;
 
 use crate::cli::Cli;
-use crate::error::{MpmError, Result};
+use crate::error::{IoResultExt, MpmError, Result};
 
 /// Get man page installation path
 /// - If /usr/local/share/man is writable: use system path (in default MANPATH)
@@ -45,7 +45,7 @@ fn generate_main_manpage() -> Result<Vec<u8>> {
     let mut buf = Vec::new();
     Man::new(cmd)
         .render(&mut buf)
-        .map_err(|e| format!("Failed to generate man page: {}", e))?;
+        .io_context("Failed to generate man page")?;
     Ok(buf)
 }
 
@@ -59,7 +59,7 @@ pub fn manpage(install: bool) -> Result<()> {
         // Output to stdout for piping
         io::stdout()
             .write_all(&content)
-            .map_err(|e| format!("Failed to write man page: {}", e))?;
+            .io_context("Failed to write man page")?;
         Ok(())
     }
 }
@@ -74,11 +74,11 @@ fn install_manpage(content: &[u8]) -> Result<()> {
 
     // Create directory if needed
     fs::create_dir_all(man_dir)
-        .map_err(|e| format!("Failed to create directory {}: {}", man_dir.display(), e))?;
+        .io_context(format!("Failed to create directory {}", man_dir.display()))?;
 
     // Write man page
     fs::write(&path, content)
-        .map_err(|e| format!("Failed to write {}: {}", path.display(), e))?;
+        .io_context(format!("Failed to write {}", path.display()))?;
 
     eprintln!("Installed man page to {}", path.display());
 
