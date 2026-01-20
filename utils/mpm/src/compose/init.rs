@@ -18,24 +18,6 @@ struct DockerfileInfo {
     context_path: String,
 }
 
-/// Get the git remote URL (returns None if not available or not HTTPS)
-fn get_git_remote_url() -> Option<String> {
-    let output = Command::new("git")
-        .args(["remote", "get-url", "origin"])
-        .output()
-        .ok()?;
-
-    if output.status.success() {
-        let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        // Only return HTTPS URLs
-        if url.starts_with("https://") {
-            return Some(url);
-        }
-    }
-
-    None
-}
-
 /// Get the git repository name from the current directory
 fn get_git_repo_name() -> Result<String> {
     // Try to get the remote URL first
@@ -217,17 +199,7 @@ fn generate_values(dockerfiles: &[DockerfileInfo]) -> String {
 }
 
 /// Generate the mows-manifest.yaml content
-fn generate_manifest(project_name: &str, repository_url: Option<&str>) -> String {
-    let compose_section = if let Some(url) = repository_url {
-        format!(
-            r#"    compose:
-        repositoryUrl: {}"#,
-            url
-        )
-    } else {
-        "    compose: {}".to_string()
-    };
-
+fn generate_manifest(project_name: &str) -> String {
     format!(
         r#"manifestVersion: "0.1"
 metadata:
@@ -235,9 +207,9 @@ metadata:
     description: ""
     version: "0.1"
 spec:
-{}
+    compose: {{}}
 "#,
-        project_name, compose_section
+        project_name
     )
 }
 
@@ -282,12 +254,6 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
 
     info!("Initializing mpm compose project: {}", project_name);
 
-    // Get git remote URL if available (HTTPS only)
-    let repository_url = get_git_remote_url();
-    if let Some(ref url) = repository_url {
-        debug!("Git remote URL: {}", url);
-    }
-
     // Get git root to find Dockerfiles
     let git_root = find_git_root()?;
     debug!("Git root: {}", git_root.display());
@@ -325,7 +291,7 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
     if !manifest_path.exists() {
         fs::write(
             &manifest_path,
-            generate_manifest(&project_name, repository_url.as_deref()),
+            generate_manifest(&project_name),
         )
         .io_context(format!("Failed to write {}", manifest_path.display()))?;
         info!("Created: {}", manifest_path.display());
@@ -443,21 +409,10 @@ mod tests {
 
     #[test]
     fn test_generate_manifest() {
-        let manifest = generate_manifest("test-project", None);
+        let manifest = generate_manifest("test-project");
         assert!(manifest.contains("name: test-project"));
         assert!(manifest.contains("manifestVersion: \"0.1\""));
         assert!(manifest.contains("compose: {}"));
-    }
-
-    #[test]
-    fn test_generate_manifest_with_repository_url() {
-        let manifest =
-            generate_manifest("test-project", Some("https://github.com/user/repo.git"));
-        assert!(manifest.contains("name: test-project"));
-        assert!(manifest.contains("manifestVersion: \"0.1\""));
-        assert!(manifest.contains("repositoryUrl: https://github.com/user/repo.git"));
-        assert!(manifest.contains("compose:"));
-        assert!(!manifest.contains("compose: {}"));
     }
 
     #[test]

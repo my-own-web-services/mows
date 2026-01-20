@@ -21,8 +21,6 @@ pub struct ManifestMetadata {
 #[serde(rename_all = "camelCase")]
 pub struct ComposeConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub repository_url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub values_file_path: Option<String>,
     // Flatten additional fields for forward compatibility
     #[serde(flatten)]
@@ -149,35 +147,9 @@ spec:
     }
 
     #[test]
-    fn test_spec_with_repository_url() {
-        let spec = ManifestSpec {
-            compose: Some(ComposeConfig {
-                repository_url: Some("https://github.com/user/repo".to_string()),
-                values_file_path: None,
-                extra: serde_yaml_neo::Value::default(),
-            }),
-        };
-        let yaml = serde_yaml_neo::to_string(&spec).unwrap();
-        println!("Serialized spec with repositoryUrl:\n{}", yaml);
-
-        assert!(yaml.contains("compose:"));
-        assert!(yaml.contains("repositoryUrl:"));
-        assert!(yaml.contains("https://github.com/user/repo"));
-
-        // Test deserialization
-        let deserialized: ManifestSpec = serde_yaml_neo::from_str(&yaml).unwrap();
-        assert!(deserialized.compose.is_some());
-        assert_eq!(
-            deserialized.compose.unwrap().repository_url,
-            Some("https://github.com/user/repo".to_string())
-        );
-    }
-
-    #[test]
     fn test_spec_with_values_file_path() {
         let spec = ManifestSpec {
             compose: Some(ComposeConfig {
-                repository_url: None,
                 values_file_path: Some("values/development.yaml".to_string()),
                 extra: serde_yaml_neo::Value::default(),
             }),
