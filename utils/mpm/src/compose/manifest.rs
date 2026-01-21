@@ -27,10 +27,13 @@ pub struct ProvidedSecretDef {
     pub optional: bool,
 }
 
-/// Configuration specific to compose deployments
+/// Deployment-specific configuration in the manifest's spec.compose section.
+///
+/// Note: This is different from `config::ComposeConfig` which stores project
+/// registrations in the global mpm config file.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct ComposeConfig {
+pub struct DeploymentConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub values_file_path: Option<String>,
     /// User-provided secrets definitions (key = secret name)
@@ -46,7 +49,7 @@ pub struct ComposeConfig {
 #[serde(rename_all = "camelCase")]
 pub struct ManifestSpec {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub compose: Option<ComposeConfig>,
+    pub compose: Option<DeploymentConfig>,
 }
 
 /// The mows-manifest.yaml structure
@@ -148,7 +151,7 @@ spec:
     #[test]
     fn test_spec_serialization() {
         let spec = ManifestSpec {
-            compose: Some(ComposeConfig::default()),
+            compose: Some(DeploymentConfig::default()),
         };
         let yaml = serde_yaml_neo::to_string(&spec).unwrap();
         println!("Serialized spec:\n{}", yaml);
@@ -163,7 +166,7 @@ spec:
     #[test]
     fn test_spec_with_values_file_path() {
         let spec = ManifestSpec {
-            compose: Some(ComposeConfig {
+            compose: Some(DeploymentConfig {
                 values_file_path: Some("values/development.yaml".to_string()),
                 provided_secrets: None,
                 extra: serde_yaml_neo::Value::default(),

@@ -8,6 +8,8 @@ use tracing::{debug, info};
 
 use crate::error::{IoResultExt, MpmError, Result};
 
+use super::SENSITIVE_FILE_MODE;
+
 /// Environment variable to override the config file path.
 ///
 /// # Testing
@@ -27,10 +29,6 @@ use crate::error::{IoResultExt, MpmError, Result};
 /// env::remove_var("MPM_CONFIG_PATH");
 /// ```
 pub const MPM_CONFIG_PATH_ENV: &str = "MPM_CONFIG_PATH";
-
-/// File permission mode for config file: owner read/write only (rw-------).
-/// Prevents other users from reading potentially sensitive project paths.
-const CONFIG_FILE_MODE: u32 = 0o600;
 
 /// Global mpm configuration stored at ~/.config/mows.cloud/mpm.yaml
 /// Can be overridden by setting the MPM_CONFIG_PATH environment variable
@@ -132,8 +130,16 @@ impl MpmConfig {
         Ok(lock_file)
     }
 
-    /// Load the config from disk, or return default if not found
+    /// Load the config from disk, or return default if not found.
+    ///
+    /// Note: For read-modify-write operations, use `with_locked()` instead
+    /// to prevent race conditions.
     pub fn load() -> Result<Self> {
+        Self::load_internal()
+    }
+
+    /// Internal load implementation (used by both load() and with_locked())
+    fn load_internal() -> Result<Self> {
         let path = Self::config_path()?;
 
         if !path.exists() {
@@ -146,6 +152,42 @@ impl MpmConfig {
 
         serde_yaml_neo::from_str(&content)
             .map_err(|e| MpmError::Config(format!("Failed to parse config file '{}': {}", path.display(), e)))
+    }
+
+    /// Execute a read-modify-write operation atomically under a lock.
+    ///
+    /// This method:
+    /// 1. Acquires an exclusive file lock
+    /// 2. Loads the current config
+    /// 3. Passes the config to the closure for modification
+    /// 4. Saves the modified config
+    /// 5. Releases the lock
+    ///
+    /// Use this instead of separate `load()` + `save()` calls to prevent
+    /// race conditions in concurrent updates.
+    ///
+    /// # Example
+    /// ```ignore
+    /// MpmConfig::with_locked(|config| {
+    ///     config.upsert_project(entry);
+    ///     Ok(())
+    /// })?;
+    /// ```
+    pub fn with_locked<F>(operation: F) -> Result<()>
+    where
+        F: FnOnce(&mut Self) -> Result<()>,
+    {
+        // Acquire exclusive lock for the entire read-modify-write cycle
+        let _lock_file = Self::acquire_lock()?;
+
+        // Load current config (without acquiring another lock)
+        let mut config = Self::load_internal()?;
+
+        // Run the modification operation
+        operation(&mut config)?;
+
+        // Save the modified config (without acquiring another lock)
+        config.save_without_lock()
     }
 
     /// Save the config to disk using atomic write with file locking.
@@ -180,7 +222,7 @@ impl MpmConfig {
             .io_context("Failed to create temp config file")?;
 
         // Set permissions before writing content
-        let permissions = fs::Permissions::from_mode(CONFIG_FILE_MODE);
+        let permissions = fs::Permissions::from_mode(SENSITIVE_FILE_MODE);
         fs::set_permissions(&temp_path, permissions)
             .io_context("Failed to set config file permissions")?;
 
@@ -278,16 +320,10 @@ impl MpmConfig {
     }
 }
 
+// Test utilities for config isolation - exported for use by other test modules
 #[cfg(test)]
-mod tests {
-    //! # Test Guidelines
-    //!
-    //! These tests operate on in-memory config structs only and do NOT touch the filesystem.
-    //! If you add tests that call `MpmConfig::load()` or `MpmConfig::save()`, you MUST use
-    //! the `TestConfigGuard` helper to ensure proper isolation.
-    //! See the documentation on `MPM_CONFIG_PATH_ENV` for details.
-
-    use super::*;
+pub mod test_utils {
+    use super::MPM_CONFIG_PATH_ENV;
     use std::sync::Mutex;
     use tempfile::NamedTempFile;
 
@@ -305,6 +341,8 @@ mod tests {
     ///
     /// # Example
     /// ```ignore
+    /// use crate::compose::config::test_utils::TestConfigGuard;
+    ///
     /// #[test]
     /// fn test_config_persistence() {
     ///     let _guard = TestConfigGuard::new();
@@ -317,13 +355,13 @@ mod tests {
     ///     assert_eq!(loaded.update.unwrap().available_version, "1.0.0");
     /// }
     /// ```
-    struct TestConfigGuard {
+    pub struct TestConfigGuard {
         _temp_file: NamedTempFile,
         _lock: std::sync::MutexGuard<'static, ()>,
     }
 
     impl TestConfigGuard {
-        fn new() -> Self {
+        pub fn new() -> Self {
             let lock = CONFIG_TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
             let temp_file = NamedTempFile::new().expect("Failed to create temp config file");
             std::env::set_var(MPM_CONFIG_PATH_ENV, temp_file.path());
@@ -339,6 +377,19 @@ mod tests {
             std::env::remove_var(MPM_CONFIG_PATH_ENV);
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    //! # Test Guidelines
+    //!
+    //! These tests operate on in-memory config structs only and do NOT touch the filesystem.
+    //! If you add tests that call `MpmConfig::load()` or `MpmConfig::save()`, you MUST use
+    //! the `TestConfigGuard` helper to ensure proper isolation.
+    //! See the documentation on `MPM_CONFIG_PATH_ENV` for details.
+
+    use super::*;
+    use super::test_utils::TestConfigGuard;
 
     #[test]
     fn test_config_serialization() {
@@ -651,5 +702,219 @@ mod tests {
         assert_eq!(loaded.find_projects("project-a").len(), 2);
         assert_eq!(loaded.find_projects("project-b").len(), 1);
         assert!(loaded.find_project("project-a", Some("staging")).is_some());
+    }
+
+    #[test]
+    fn test_concurrent_save_operations() {
+        use std::thread;
+
+        let _guard = TestConfigGuard::new();
+
+        // Start with empty config
+        MpmConfig::default().save_without_lock().unwrap();
+
+        let num_threads = 4;
+        let iterations = 10;
+        let handles: Vec<_> = (0..num_threads)
+            .map(|thread_id| {
+                thread::spawn(move || {
+                    for i in 0..iterations {
+                        // Use with_locked to ensure atomic read-modify-write
+                        MpmConfig::with_locked(|config| {
+                            config.upsert_project(ProjectEntry {
+                                project_name: format!("project-{}-{}", thread_id, i),
+                                instance_name: None,
+                                repo_path: PathBuf::from(format!("/tmp/project-{}-{}", thread_id, i)),
+                                manifest_path: PathBuf::from("."),
+                            });
+                            Ok(())
+                        })
+                        .unwrap();
+                    }
+                })
+            })
+            .collect();
+
+        // Wait for all threads to complete
+        for handle in handles {
+            handle.join().expect("Thread panicked");
+        }
+
+        // Verify all entries were preserved (no data loss)
+        let final_config = MpmConfig::load().expect("Failed to load final config");
+        let expected_count = num_threads * iterations;
+        assert_eq!(
+            final_config.compose.projects.len(),
+            expected_count,
+            "All {} entries should be preserved with atomic updates",
+            expected_count
+        );
+    }
+
+    #[test]
+    fn test_concurrent_load_operations() {
+        use std::thread;
+
+        let _guard = TestConfigGuard::new();
+
+        // Create a config with multiple projects
+        let mut config = MpmConfig::default();
+        for i in 0..10 {
+            config.upsert_project(ProjectEntry {
+                project_name: format!("project-{}", i),
+                instance_name: None,
+                repo_path: PathBuf::from(format!("/tmp/project-{}", i)),
+                manifest_path: PathBuf::from("."),
+            });
+        }
+        config.save().unwrap();
+
+        let num_threads = 8;
+        let iterations = 20;
+        let handles: Vec<_> = (0..num_threads)
+            .map(|_| {
+                thread::spawn(move || {
+                    for _ in 0..iterations {
+                        let config = MpmConfig::load().expect("Concurrent load failed");
+                        // Verify we can read the config correctly
+                        assert_eq!(config.compose.projects.len(), 10);
+                    }
+                })
+            })
+            .collect();
+
+        // Wait for all threads to complete
+        for handle in handles {
+            handle.join().expect("Thread panicked");
+        }
+    }
+
+    #[test]
+    fn test_file_locking_prevents_corruption() {
+        use std::sync::{Arc, Barrier};
+        use std::thread;
+
+        let _guard = TestConfigGuard::new();
+
+        // Start with a config
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "original".to_string(),
+            instance_name: None,
+            repo_path: PathBuf::from("/tmp/original"),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let num_threads = 4;
+        let barrier = Arc::new(Barrier::new(num_threads));
+
+        let handles: Vec<_> = (0..num_threads)
+            .map(|thread_id| {
+                let barrier = Arc::clone(&barrier);
+                thread::spawn(move || {
+                    // Sync all threads to start at the same time
+                    barrier.wait();
+
+                    // Perform a read-modify-write operation
+                    let mut config = MpmConfig::load().unwrap();
+                    config.upsert_project(ProjectEntry {
+                        project_name: format!("thread-{}", thread_id),
+                        instance_name: None,
+                        repo_path: PathBuf::from(format!("/tmp/thread-{}", thread_id)),
+                        manifest_path: PathBuf::from("."),
+                    });
+                    config.save().unwrap();
+                })
+            })
+            .collect();
+
+        // Wait for all threads to complete
+        for handle in handles {
+            handle.join().expect("Thread panicked");
+        }
+
+        // Verify file is not corrupted - should parse correctly
+        let final_config = MpmConfig::load().expect("Config file corrupted");
+        // Original project should still exist
+        assert!(final_config.find_project("original", None).is_some());
+        // At least one thread's project should exist (others may have been overwritten)
+        let thread_projects: Vec<_> = final_config
+            .compose
+            .projects
+            .iter()
+            .filter(|p| p.project_name.starts_with("thread-"))
+            .collect();
+        assert!(!thread_projects.is_empty(), "At least one thread project should exist");
+    }
+
+    #[test]
+    fn test_with_locked_atomic_update() {
+        let _guard = TestConfigGuard::new();
+
+        // Initial save with a project
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "initial".to_string(),
+            instance_name: None,
+            repo_path: PathBuf::from("/path/to/initial"),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        // Use with_locked to atomically update
+        MpmConfig::with_locked(|config| {
+            config.upsert_project(ProjectEntry {
+                project_name: "added-via-with-locked".to_string(),
+                instance_name: None,
+                repo_path: PathBuf::from("/path/to/new"),
+                manifest_path: PathBuf::from("."),
+            });
+            Ok(())
+        })
+        .expect("with_locked should succeed");
+
+        // Verify both projects exist
+        let loaded = MpmConfig::load().expect("Failed to load config");
+        assert!(loaded.find_project("initial", None).is_some());
+        assert!(loaded.find_project("added-via-with-locked", None).is_some());
+    }
+
+    #[test]
+    fn test_with_locked_error_does_not_save() {
+        use crate::error::MpmError;
+
+        let _guard = TestConfigGuard::new();
+
+        // Initial save with a project
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "initial".to_string(),
+            instance_name: None,
+            repo_path: PathBuf::from("/path/to/initial"),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        // Use with_locked but return an error - changes should NOT be saved
+        let result = MpmConfig::with_locked(|config| {
+            config.upsert_project(ProjectEntry {
+                project_name: "should-not-persist".to_string(),
+                instance_name: None,
+                repo_path: PathBuf::from("/path/to/new"),
+                manifest_path: PathBuf::from("."),
+            });
+            Err(MpmError::Validation("Intentional error".to_string()))
+        });
+
+        assert!(result.is_err());
+
+        // Verify the new project was NOT saved (due to error)
+        let loaded = MpmConfig::load().expect("Failed to load config");
+        assert!(loaded.find_project("initial", None).is_some());
+        assert!(
+            loaded.find_project("should-not-persist", None).is_none(),
+            "Project should not be saved when closure returns error"
+        );
     }
 }

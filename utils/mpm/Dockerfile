@@ -103,4 +103,7 @@ COPY --from=builder /${BINARY_NAME} ./mpm
 ENV SERVICE_NAME=${SERVICE_NAME}
 ENV SERVICE_VERSION=${SERVICE_VERSION}
 STOPSIGNAL SIGTERM
+# Healthcheck verifies the binary is functional (uses exec form for scratch compatibility)
+# Note: On scratch images, exec form runs directly without a shell
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD ["./mpm", "--version"]
 ENTRYPOINT ["./mpm"]

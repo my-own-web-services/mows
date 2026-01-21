@@ -53,7 +53,20 @@ fi
 CACHE_ARGS=""
 if [ "${BUILDX_CACHE:-}" = "gha" ]; then
     # GitHub Actions cache backend - optimized for GHA, supports cross-job caching
-    CACHE_ARGS="--cache-from type=gha,scope=${TARGETARCH} --cache-to type=gha,scope=${TARGETARCH},mode=max"
+    # Use branch-aware scope to prevent PRs from corrupting main branch caches
+    BRANCH_NAME="${GITHUB_REF_NAME:-main}"
+    CACHE_SCOPE="${BRANCH_NAME}-${TARGETARCH}"
+    MAIN_CACHE_SCOPE="main-${TARGETARCH}"
+
+    # Read from both branch cache and main cache (fallback for new branches)
+    # Write only to branch-specific cache to prevent PRs from polluting main
+    if [ "$BRANCH_NAME" = "main" ]; then
+        # Main branch: read and write to main cache only
+        CACHE_ARGS="--cache-from type=gha,scope=${CACHE_SCOPE} --cache-to type=gha,scope=${CACHE_SCOPE},mode=max"
+    else
+        # Feature branches: read from branch cache first, then fall back to main cache
+        CACHE_ARGS="--cache-from type=gha,scope=${CACHE_SCOPE} --cache-from type=gha,scope=${MAIN_CACHE_SCOPE} --cache-to type=gha,scope=${CACHE_SCOPE},mode=max"
+    fi
 elif [ -n "${BUILDX_CACHE_DIR:-}" ]; then
     # Local directory cache
     CACHE_ARGS="--cache-from type=local,src=${BUILDX_CACHE_DIR} --cache-to type=local,dest=${BUILDX_CACHE_DIR}-new,mode=max"

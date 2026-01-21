@@ -86,15 +86,103 @@ mpm compose secrets regenerate
 ```
 
 This:
-1. Clears the value(s) to empty
+1. Clears the value(s) to empty in `results/generated-secrets.env`
 2. Re-runs the template rendering
 3. New random values are generated
 
+**Important notes:**
+- Only works with **generated secrets** (`results/generated-secrets.env`), not provided secrets
+- Requires an existing `results/generated-secrets.env` file (run `mpm compose up` first)
+- If a specific key is not found, displays an error with available keys
+
 ## Provided Secrets
 
-### Creating the File
+Provided secrets are user-supplied credentials that cannot be auto-generated (API keys, external service credentials, etc.).
 
-Create `provided-secrets.env` in your deployment directory:
+### Defining in Manifest
+
+You can define required and optional provided secrets in `mows-manifest.yaml`:
+
+```yaml
+manifestVersion: "0.1"
+metadata:
+  name: my-app
+spec:
+  compose:
+    providedSecrets:
+      # Required secret with no default (user MUST provide)
+      STRIPE_SECRET_KEY:
+        default: null
+        optional: false
+
+      # Required secret with a default value
+      SMTP_PORT:
+        default: 465
+        optional: false
+
+      # Optional secret (won't fail if missing)
+      ANALYTICS_KEY:
+        default: null
+        optional: true
+
+      # Optional with sensible default
+      LOG_LEVEL:
+        default: "info"
+        optional: true
+```
+
+**Field Reference:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `default` | any/null | Default value if not provided. Use `null` for no default. |
+| `optional` | bool | If `false` (default), secret must be provided or have a default. |
+
+### Automatic File Generation
+
+When you run `mpm compose install`, a `provided-secrets.env` file is automatically generated from the manifest definition.
+
+**Sync behavior:** If the file already exists, missing secrets from the manifest are **appended** without removing or overwriting existing entries. This allows safe re-running of install.
+
+```bash
+# User-provided secrets
+# Fill in the required values before running 'mpm compose up'
+
+# (required)
+STRIPE_SECRET_KEY=
+
+# (required, default: 465)
+SMTP_PORT=465
+
+# (optional)
+ANALYTICS_KEY=
+
+# (optional, default: info)
+LOG_LEVEL=info
+```
+
+Each entry includes a comment showing whether it's required/optional and its default value.
+
+### Validation on Deploy
+
+When you run `mpm compose up`, the tool first syncs and then validates secrets:
+
+1. **Sync phase:** Any secrets defined in the manifest but missing from `provided-secrets.env` are added with their default values (or empty if no default)
+
+2. **Validation phase:** Checks that all **required** secrets (where `optional: false`) have either:
+   - A non-empty value in `provided-secrets.env`, OR
+   - A non-null default that was applied during sync
+
+3. If validation fails, you get a clear error message:
+   ```
+   Error: Missing required secrets: STRIPE_SECRET_KEY, AWS_ACCESS_KEY_ID.
+   Edit provided-secrets.env at: /path/to/deployment/provided-secrets.env
+   Then run 'mpm compose up' again.
+   ```
+
+### Creating the File Manually
+
+If you didn't use `mpm compose install`, create `provided-secrets.env` manually:
 
 ```bash
 # External API credentials

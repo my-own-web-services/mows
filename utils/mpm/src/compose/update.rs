@@ -182,19 +182,19 @@ fn do_update(
                 .io_context("Failed to link data directory")?;
         }
 
-        // Update global config with new path
-        let mut config = MpmConfig::load()?;
+        // Update global config with new path (using with_locked for atomic read-modify-write)
         let relative_path = new_manifest_dir
             .strip_prefix(repo_root)
-            .unwrap_or(Path::new("."));
-        if config.update_manifest_path(
-            &manifest.project_name(),
-            None,
-            relative_path,
-        ) {
-            config.save()?;
-            info!("Updated config with new manifest path");
-        }
+            .unwrap_or(Path::new("."))
+            .to_path_buf();
+        let project_name = manifest.project_name();
+
+        MpmConfig::with_locked(|config| {
+            if config.update_manifest_path(&project_name, None, &relative_path) {
+                info!("Updated config with new manifest path");
+            }
+            Ok(())
+        })?;
     }
 
     info!("Update completed successfully");

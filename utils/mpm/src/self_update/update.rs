@@ -749,10 +749,10 @@ pub fn self_update(build: bool, version: Option<&str>) -> Result<()> {
 
     // Clear update notification on successful update
     if result.is_ok() {
-        if let Ok(mut config) = crate::compose::config::MpmConfig::load() {
+        let _ = crate::compose::config::MpmConfig::with_locked(|config| {
             config.clear_update_notification();
-            let _ = config.save();
-        }
+            Ok(())
+        });
     }
 
     result
@@ -791,22 +791,18 @@ fn check_and_save_update_info() {
         Err(_) => return, // Silently fail if network is slow/unavailable
     };
 
-    // Load config, update, and save
-    let mut config = match MpmConfig::load() {
-        Ok(c) => c,
-        Err(_) => return,
-    };
-
-    // Only notify if there's actually a newer version
-    if latest_version != current_version && is_newer_version(&latest_version, current_version) {
-        config.set_update_available(latest_version);
-    } else {
-        // Still update the checked_at timestamp by setting current version
-        // This prevents re-checking when already up to date
-        config.set_update_available(current_version.to_string());
-    }
-
-    let _ = config.save();
+    // Atomically load, update, and save config
+    let _ = MpmConfig::with_locked(|config| {
+        // Only notify if there's actually a newer version
+        if latest_version != current_version && is_newer_version(&latest_version, current_version) {
+            config.set_update_available(latest_version.clone());
+        } else {
+            // Still update the checked_at timestamp by setting current version
+            // This prevents re-checking when already up to date
+            config.set_update_available(current_version.to_string());
+        }
+        Ok(())
+    });
 }
 
 /// Compare semantic versions to check if `new` is newer than `current`

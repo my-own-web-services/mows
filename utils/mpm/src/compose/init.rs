@@ -357,17 +357,20 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
         debug!("Skipping existing: {}", generated_secrets_path.display());
     }
 
-    // Register project in global config
-    let mut config = MpmConfig::load()?;
+    // Register project in global config (using with_locked for atomic read-modify-write)
     let repo_path = git_root.canonicalize()
         .io_context("Failed to get absolute path for repo")?;
-    config.upsert_project(ProjectEntry {
-        project_name: project_name.clone(),
-        instance_name: None,
-        repo_path,
-        manifest_path: PathBuf::from("deployment"),
-    });
-    config.save()?;
+    let project_name_owned = project_name.clone();
+
+    MpmConfig::with_locked(|config| {
+        config.upsert_project(ProjectEntry {
+            project_name: project_name_owned,
+            instance_name: None,
+            repo_path,
+            manifest_path: PathBuf::from("deployment"),
+        });
+        Ok(())
+    })?;
 
     info!("Project initialized successfully!");
     info!("Next steps:");

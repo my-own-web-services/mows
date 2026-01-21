@@ -127,20 +127,25 @@ pub fn compose_install(url: &str, target: Option<&Path>) -> Result<()> {
         .unwrap_or(Path::new("."))
         .to_path_buf();
 
-    // Update global config
-    let mut config = MpmConfig::load()?;
-    config.upsert_project(ProjectEntry {
-        project_name: project_name.to_string(),
-        instance_name: None,
-        repo_path: clone_dir.canonicalize()
-            .io_context(format!("Failed to get absolute path for repo '{}'", clone_dir.display()))?,
-        manifest_path: if relative_manifest_path.as_os_str().is_empty() {
-            PathBuf::from(".")
-        } else {
-            relative_manifest_path.clone()
-        },
-    });
-    config.save()?;
+    // Update global config (using with_locked for atomic read-modify-write)
+    let repo_path = clone_dir.canonicalize()
+        .io_context(format!("Failed to get absolute path for repo '{}'", clone_dir.display()))?;
+    let manifest_path = if relative_manifest_path.as_os_str().is_empty() {
+        PathBuf::from(".")
+    } else {
+        relative_manifest_path.clone()
+    };
+    let project_name_owned = project_name.to_string();
+
+    MpmConfig::with_locked(|config| {
+        config.upsert_project(ProjectEntry {
+            project_name: project_name_owned,
+            instance_name: None,
+            repo_path,
+            manifest_path,
+        });
+        Ok(())
+    })?;
 
     info!("Installed project '{}' successfully", project_name);
 
@@ -185,16 +190,23 @@ fn clone_repo(url: &str, target: &Path) -> Result<()> {
         return Err(MpmError::Git(format!("git clone failed: {}", stderr.trim())));
     }
 
-    // Disable git hooks to prevent arbitrary code execution from cloned repos
-    let hook_result = Command::new("git")
+    // Disable git hooks to prevent arbitrary code execution from cloned repos.
+    // This is a security measure - fail the clone if we cannot disable hooks.
+    let hook_output = Command::new("git")
         .args(["config", "core.hooksPath", "/dev/null"])
         .current_dir(target)
-        .output();
+        .output()
+        .map_err(|e| MpmError::Git(format!("Failed to disable git hooks: {}", e)))?;
 
-    if let Err(e) = hook_result {
-        debug!("Warning: Failed to disable git hooks: {}", e);
+    if !hook_output.status.success() {
+        let stderr = String::from_utf8_lossy(&hook_output.stderr);
+        return Err(MpmError::Git(format!(
+            "Failed to disable git hooks (security measure): {}",
+            stderr.trim()
+        )));
     }
 
+    debug!("Git hooks disabled for security");
     Ok(())
 }
 

@@ -1,517 +1,270 @@
-# MPM Issues and Improvements
+# MPM Issues and Improvements - Third Review
 
-Comprehensive code review conducted 2026-01-20 across 8 perspectives.
+Third comprehensive code review conducted 2026-01-20 after addressing issues from second review.
+This review identified new issues from the multi-perspective analysis.
 
 ---
 
 ## Summary
 
-| Perspective   | Critical | Major | Minor |
-| ------------- | -------- | ----- | ----- |
-| Security      | 0        | 1     | 5     |
-| Rust/Tech     | 3        | 6     | 9     |
-| DevOps        | 3        | 7     | 12    |
-| Architecture  | 2        | 4     | 6     |
-| QA            | 2        | 4     | 8     |
-| Fine Taste    | 0        | 3     | 5     |
-| Documentation | 1        | 4     | 4     |
-| Repository    | 0        | 3     | 6     |
+| Perspective   | Critical | Major | Minor | Resolved This Session |
+| ------------- | -------- | ----- | ----- | --------------------- |
+| Security      | 0        | 0     | 2     | 0                     |
+| Rust/Tech     | 0        | 2     | 5     | 4 (#15,#43,#44,#45)   |
+| DevOps        | 0        | 2     | 4     | 5 (#17,#18,#25,#30,#31) |
+| Architecture  | 0        | 2     | 4     | 2 (#5,#49)            |
+| QA            | 0        | 5     | 3     | 17 (#1,#2,#6,#7,#8,#10,#20,#22,#26,#27,#34,#35,#36,#37,#38,#52) |
+| Fine Taste    | 0        | 4     | 1     | 2 (#23,#24)           |
+| Documentation | 0        | 0     | 5     | 5 (#25,#53,#54,#55,#57) |
+| Repository    | 0        | 0     | 2     | 0                     |
+
+**Total: 0 Critical, 15 Major, 26 Minor** (35 issues resolved this session)
+
+Previously: 0 Critical, 0 Major, 5 Minor (after second review)
 
 ---
 
 ## Critical Issues
 
-### 1. ~~Race Condition in Config File Access~~ RESOLVED
+### 26. ~~Missing Tests for secrets_regenerate() Function~~ RESOLVED
 
-**File:** `src/compose/config.rs:114-152`
-**Category:** Rust/Tech
-
-**Status:** RESOLVED - Added file locking using the `fs2` crate:
-
-- Added `acquire_lock()` helper that creates/opens a `.yaml.lock` file and acquires an exclusive lock
-- `save()` now acquires an exclusive lock before writing
-- Added `with_locked()` method for atomic read-modify-write operations that holds the lock for the entire operation
-- Lock is automatically released when the file handle is dropped (RAII pattern)
-
-~~Atomic write pattern doesn't protect against concurrent access from multiple `mpm` processes. Two processes could both read the config, modify different fields, and the last write wins (data loss).~~
-
-~~**Recommendation:** Use file locking (e.g., `fs2` crate) or advisory locks before read-modify-write operations.~~
-
----
-
-### 2. ~~Unbounded Memory Growth in Template Rendering~~ RESOLVED
-
-**File:** `src/compose/render.rs:234-325`
-**Category:** Rust/Tech
-
-**Status:** RESOLVED - Added `MAX_VISITED_DIRECTORIES` constant (10,000) that limits the size of the `visited` HashSet. Returns a clear error message if the limit is exceeded, preventing unbounded memory growth while preserving symlink loop detection.
-
-~~`visited` HashSet grows unbounded during directory traversal. Deep or wide directory trees with many symlinks could consume significant memory.~~
-
-~~**Recommendation:** Add depth-based cleanup or limit the visited set size.~~
-
----
-
-### 3. ~~Missing Drop Implementation for PipelineBackup~~ RESOLVED
-
-**File:** `src/compose/render.rs:604-686`
-**Category:** Rust/Tech
-
-**Status:** RESOLVED - Added `Drop` implementation to `PipelineBackup`:
-
-- Added `finalized` flag to track whether backup was committed or restored
-- Added `do_restore()` internal method for shared restore logic
-- `Drop::drop()` checks if finalized, auto-restores if not (handles panics)
-- Errors in Drop are logged but not propagated (can't return from Drop)
-
-~~If panic occurs between `create` and `commit`/`restore`, backup directory is leaked. No `Drop` guard.~~
-
-~~**Recommendation:** Implement `Drop` to auto-restore on panic (similar to RAII pattern).~~
-
----
-
-### 4. ~~Hardcoded Version in Dockerfile~~ RESOLVED
-
-**File:** `Dockerfile:3`
-**Category:** DevOps
-
-**Status:** RESOLVED - Updated build.sh to extract version from Cargo.toml and pass it as SERVICE_VERSION build arg. Dockerfile default changed to `0.0.0-dev` to make it clear when version isn't being passed.
-
-~~`ARG SERVICE_VERSION="0.2.0"` is hardcoded and outdated (current version is 0.5.3). Creates version inconsistency between binary and container metadata.~~
-
-~~**Recommendation:** Pass version as build arg from build.sh extracted from Cargo.toml.~~
-
----
-
-### 5. ~~GitHub Actions Not Pinned to SHA~~ RESOLVED
-
-**File:** `.github/workflows/publish-mpm.yml`
-**Category:** DevOps (Security)
-
-**Status:** RESOLVED - All GitHub Actions are now pinned to full SHA hashes with version comments. Added `.github/dependabot.yml` to automatically update pinned SHAs weekly.
-
-~~GitHub Actions pinned to mutable tags (v3, v4) instead of immutable SHA hashes. Supply chain security vulnerability.~~
-
-~~**Recommendation:** Pin to SHA hashes:~~
-
-```yaml
-- uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-```
-
----
-
-### 6. Running as Root in Final Container
-
-**File:** `Dockerfile:93-102`
-**Category:** DevOps (Security)
-
-No USER directive - container runs as root by default.
-
-**Recommendation:** Document this limitation or add non-root user for non-scratch base images.
-
----
-
-### 7. ~~Test Isolation Violations~~ RESOLVED
-
-**File:** Multiple test files
+**File:** `src/compose/secrets.rs:417-483`
 **Category:** QA
 
-**Status:** RESOLVED - Added `TestConfigGuard` RAII helper in `src/compose/config.rs` that provides:
-
-- Automatic mutex for concurrent test safety
-- Temporary file creation for isolated config
-- Automatic cleanup on drop
-- 5 new tests demonstrating proper isolation pattern
-
-Updated CLAUDE.md with documentation on using `TestConfigGuard`.
-
-~~Several tests do NOT set `MPM_CONFIG_PATH` despite modifying config state. Could corrupt developer's actual config file.~~
-
-~~**Recommendation:** Audit all tests calling `MpmConfig::load()` or `MpmConfig::save()` to ensure they set MPM_CONFIG_PATH.~~
+**Resolution:** Extracted core logic into testable `clear_secret_values()` function and added 11 comprehensive tests covering:
+- File not found error
+- Key not found error
+- No keys found (empty file with only comments)
+- Single key cleared
+- All keys cleared
+- Preserves comments and empty lines
+- Secure file permissions on new files
+- Quoted values handling
+- Special characters handling
+- Empty existing values
 
 ---
 
-### 8. ~~Excessive unwrap()/expect() in Production Code~~ RESOLVED
+### 27. ~~Missing Tests for run_post_deployment_checks() Function~~ RESOLVED
 
-**File:** 222 occurrences across 17 files
+**File:** `src/compose/up.rs:102-181`
 **Category:** QA
 
-**Status:** RESOLVED - Audited all 222 occurrences across 17 files:
-
-- 215+ occurrences are in test code (appropriate - tests should panic on failures)
-- Fixed 5 production code issues:
-    - `compose/update.rs`: 2 fixes - `parent().unwrap()` → `parent().ok_or_else()`
-    - `tools/jq.rs`: 1 fix - proper JSON serialization error propagation
-    - `template/error.rs`: 2 fixes - `map_or` pattern instead of `is_none()/unwrap()`
-- 1 `expect()` in `health.rs` retained (compile-time constant initialization, appropriate use)
-
-~~Extensive use of `.unwrap()` and `.expect()` can cause panics instead of graceful error handling.~~
-
-~~**High-risk files:** `compose/update.rs`, `compose/install.rs`, `template/render.rs`, `self_update/update.rs`~~
-
-~~**Recommendation:** Audit all `.unwrap()` calls and convert to proper `Result` error propagation.~~
-
----
-
-### 9. ~~Missing Error Scenario Tests~~ PARTIALLY RESOLVED
-
-**File:** Throughout codebase
-**Category:** QA
-
-**Status:** PARTIALLY RESOLVED - Added comprehensive error scenario tests:
-- Docker daemon connection failures
-- Docker compose ps/logs failures
-- Container not found errors
-- Permission denied errors
-- Empty response handling
-- Malformed JSON responses
-- Partial failure scenarios (daemon up, compose down)
-- YAML parsing errors (see #58, #63)
-- Secrets parsing errors (see #23)
-- Convert tool errors (see #61)
-
-Remaining: Network failure simulation, git operation failures.
-
-~~Limited testing of error paths: network failures, corrupted YAML, permission errors, git failures, Docker unavailable.~~
-
-**Recommendation:** Add comprehensive error scenario tests.
-
----
-
-### 10. ~~CLAUDE.md Missing CI/CD Context~~ RESOLVED
-
-**File:** `CLAUDE.md`, `docs/development.md`
-**Category:** Documentation
-
-**Status:** RESOLVED - Created comprehensive `docs/development.md` covering:
-
-- Building (development, release, static Docker builds)
-- Build options and environment variables
-- Cross-compilation notes (ARM64 via cargo-zigbuild)
-- Running unit tests and integration tests
-- Tests skipped in CI and why
-- CI/CD pipeline stages and triggers
-- Release process
-- Project structure
-- Debugging tips
-
-Updated CLAUDE.md with quick reference and link to full guide.
-Updated README.md with link to development guide.
-
-~~Missing: how to run full test suite locally, what tests are skipped in CI and why, build.sh usage, cross-compilation notes.~~
-
-~~**Recommendation:** Add sections on testing, building, and CI/CD pipeline.~~
+**Resolution:** Added 8 tests for the core `check_containers_ready()` function covering:
+- All containers healthy
+- Some containers starting
+- Some containers not running
+- Containers without healthcheck
+- Empty output handling
+- compose_ps failure
+- Mixed container states
+- Unhealthy containers
 
 ---
 
 ## Major Issues
 
-### Security
-
-#### 11. ~~Path Traversal in Custom Values File Path~~ RESOLVED
-
-**File:** `src/compose/render.rs:121-133`
-
-**Status:** RESOLVED - Replaced string-based validation with proper canonical path resolution:
-
-- Added `validate_path_within_dir()` function that canonicalizes both paths
-- Verifies resolved path starts with the base directory after symlink resolution
-- Detects traversal via `..`, symlinks pointing outside, and other normalization tricks
-- Added 4 tests: valid paths, absolute paths, traversal, and symlink traversal
-
-~~The validation prevents `..` and absolute paths but doesn't prevent subtle traversal attacks like `./templates/../../../etc/passwd`.~~
-
-~~**Recommendation:** Use canonical path resolution and verify result is within expected directory.~~
-
----
-
-#### 12. ~~Template Functions Allow Shell Execution~~ INVALID
-
-**File:** `src/template/render.rs:24`, `src/compose/render.rs:175`
-
-**Status:** NOT AN ISSUE - Reviewed gtmpl-ng source code (`~/projects/gtmpl-rust`). The `all_functions()` provides 155 safe template functions:
-
-- 152 Helm-compatible: string manipulation, math, crypto hashes, encoding, lists, dicts, regex, paths, JSON/YAML
-- 3 mows-specific: `mowsRandomString`, `mowsDigest`, `mowsJoinDomain`
-
-**No shell execution functions exist.** The "exec" in gtmpl-ng refers to "template execution" (rendering), not shell commands.
-
-~~Templates use `gtmpl-ng` with `all_functions()` which includes shell execution capabilities.~~
-
-~~**Recommendation:** Whitelist template functions instead of using `all_functions()`, remove shell execution.~~
-
----
-
 ### Rust/Tech
 
-#### 13. ~~String-Based Error Handling Throughout Codebase~~ RESOLVED
+#### 28. ~~Race Condition in Config File Load/Save~~ RESOLVED
 
-**File:** All modules
-**Category:** Architecture
+**File:** `src/compose/config.rs:136-200`
+**Category:** Rust/Tech
 
-**Status:** RESOLVED - Migrated entire codebase to use `MpmError` enum with `thiserror`. Created `src/error.rs` with:
+**Resolution:** Added `with_locked<F>()` method that atomically:
+1. Acquires exclusive file lock
+2. Loads current config
+3. Passes to closure for modification
+4. Saves modified config
+5. Releases lock
 
-- `MpmError` enum with variants: Git, Docker, Config, Manifest, Template, Validation, Jq, Message, Io, YamlParse, YamlSerialize, Command, Path
-- Helper constructors for common error types
-- `IoResultExt` trait for ergonomic IO error context
-- All modules now use `Result<T, MpmError>` instead of `Result<T, String>`
-
-~~Entire application uses `Result<T, String>` for error handling. Loses type safety, prevents pattern matching, makes recovery impossible.~~
-
-~~**Recommendation:** Define proper error enums using `thiserror` or `anyhow`.~~
+Updated all production code call sites (install.rs, init.rs, update.rs, self_update/update.rs) to use `with_locked()` instead of separate load/save calls. Added 2 tests for `with_locked()` behavior.
 
 ---
 
-#### 14. ~~String Allocation in Hot Path (YAML Indent)~~ RESOLVED
+#### 29. Blocking Async Runtime in BollardDockerClient
 
-**File:** `src/yaml_indent.rs:49-134`
+**File:** `src/compose/docker.rs:149-155, 183-206`
+**Category:** Rust/Tech
 
-**Status:** RESOLVED - Migrated entire workspace from deprecated `serde-yaml` to `serde-yaml-neo` (v0.10.0) and updated all YAML serialization to use native `to_string_with_indent()` API.
+The `BollardDockerClient` creates a `current_thread` tokio runtime and uses `block_on()` for every operation:
 
-Changes made:
+```rust
+let runtime = tokio::runtime::Builder::new_current_thread()
+    .enable_all()
+    .build()?;
+```
 
-- Replaced `serde_yaml::to_string()` + `yaml_with_indent()` post-processing with `serde_yaml_neo::to_string_with_indent()` in:
-    - `src/tools/object.rs` (4 places)
-    - `src/compose/render.rs` (1 place)
-    - `src/compose/update.rs` (1 place)
-- The `yaml_indent.rs` module is kept for backwards compatibility but no longer used in hot paths
+**Impact:**
+- Creates overhead for every Docker operation
+- Can cause panic if called from within an async context (nested runtime)
+- The runtime is stored per-client, blocking concurrent calls
 
-~~Allocates new `String` for every line with `format!` and `" ".repeat()`. For large YAML files, creates many temporary allocations.~~
-~~Move to our own fork of serde-yaml and implement it properly there~~
-
-~~**Recommendation:** Pre-allocate output buffer capacity, reuse indent strings.~~
-
----
-
-#### 15. ~~Blocking I/O in Port Health Checks~~ RESOLVED
-
-**File:** `src/compose/checks/health.rs:543-566`
-
-**Status:** RESOLVED - Refactored `collect_port_status` to use rayon for parallel TCP connection checks. Port checks are now collected first, then checked in parallel using `par_iter()`, and results are grouped back to containers.
-
-~~Sequential TCP connection attempts with `sleep()` blocks main thread. With many ports, delays accumulate.~~
-
-~~**Recommendation:** Use async or parallel checks with `rayon`.~~
-
----
-
-#### 16. ~~Unbounded Recursion in Dependency Collection~~ RESOLVED
-
-**File:** `src/tools/workspace_docker.rs:324-360`
-
-**Status:** RESOLVED - Added `MAX_DEPENDENCIES` constant (1000) as a fail-safe limit. The function already uses iterative processing with a `processed` HashSet to prevent infinite loops, but now also returns an error if the limit is exceeded.
-
-~~No maximum depth limit for transitive dependency resolution. Circular dependencies could cause stack overflow.~~
-
-~~**Recommendation:** Add depth counter and fail-safe maximum (e.g., 100 levels).~~
-
----
-
-#### 17. ~~Tight Coupling - Direct Docker Command Execution~~ RESOLVED
-
-**File:** `compose/up.rs`, `compose/checks/`
-**Category:** Architecture
-
-**Status:** RESOLVED - Created comprehensive Docker client abstraction layer in `src/compose/docker.rs`:
-
-- `DockerClient` trait abstracting all Docker operations
-- `BollardDockerClient` using bollard crate for native Docker API (inspect, ping, version, list_containers) and CLI fallback for compose commands
-- `MockDockerClient` for e2e testing without Docker daemon
-- `ConfigurableMockClient` for unit tests with customizable responses
-- `MPM_MOCK_DOCKER=1` environment variable to switch to mock client
-- All Docker callsites migrated to use the abstraction
-- CI updated to use mock client instead of skipping tests
-
-~~Docker commands executed directly via `std::process::Command` scattered throughout with no abstraction layer. Untestable, no way to support alternative runtimes.~~
-
-~~**Recommendation:** Create a `DockerClient` trait abstraction.~~
+**Recommendation:** Make the call chain async, use a shared runtime, or document constraints.
 
 ---
 
 ### DevOps
 
-#### 18. No Supply Chain Security Measures
+#### 30. ~~HEALTHCHECK Ineffective on Scratch Image~~ RESOLVED
 
-**File:** CI/CD pipeline
+**File:** `Dockerfile:106-108`
+**Category:** DevOps
 
-Missing: SBOM generation, dependency vulnerability scanning, container image scanning, SLSA attestations.
-
-**Recommendation:** Add cargo-audit, Trivy scanning, SBOM generation to CI.
-
----
-
-#### 19. ~~LTO Disabled for ARM64 Cross-Compilation~~ RESOLVED
-
-**File:** `Dockerfile:76`
-
-**Status:** RESOLVED - Updated Zig from 0.13.0 to 0.15.2 and enabled thin LTO for ARM64 cross-compilation. The SIGILL issue was caused by older Zig/LLVM versions. Thin LTO provides most of the optimization benefits while being more compatible with cross-compilation.
-
-~~Link-Time Optimization disabled for ARM64 due to SIGILL errors. Creates performance/size parity issues.~~
-
-~~**Recommendation:** Test with newer Zig/LLVM versions or use native ARM64 runners.~~
+**Resolution:** Fixed HEALTHCHECK to use proper exec form on a single line, ensuring Docker correctly parses the array syntax without needing a shell:
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD ["./mpm", "--version"]
+```
+Added comments clarifying exec form usage for scratch compatibility.
 
 ---
 
-#### 20. ~~Flaky Tests Skipped in CI (33%)~~ RESOLVED
+#### 31. ~~Cache Scope Prevents Feature Branch Warming~~ RESOLVED
 
-**File:** `.github/workflows/publish-mpm.yml:58`
+**File:** `build.sh:54-58`
+**Category:** DevOps
 
-**Status:** RESOLVED - With the Docker client abstraction (#17), tests now use `MPM_MOCK_DOCKER=1` environment variable in CI to run Docker-dependent tests with a mock client. Only `test-self-update` is skipped (requires GitHub API network access).
-
-- test-compose-up: Now runs with mock Docker client
-- test-compose-cd: Fixed (was a bug in YAML generation)
-- test-self-update: Skipped (requires network access to GitHub API)
-
----
-
-#### 21. cargo-chef Git Revision Pinned to Fork
-
-**File:** `Dockerfile:17`
-
-Using specific git revision from a fork instead of official cargo-chef release. No automatic updates.
-
-**Recommendation:** Document why fork is needed, open PR upstream, or switch to official.
-
----
-
-#### 22. Build Cache Not Optimized for Monorepo
-
-**File:** `.github/workflows/publish-mpm.yml:40`
-
-Cache key uses `utils/mpm/Cargo.lock` but file is at repository root.
-
-**Recommendation:** Fix path to `${{ hashFiles('**/Cargo.lock') }}` or `Cargo.lock`.
-
----
-
-### QA
-
-#### 23. ~~Secrets Handling Edge Cases Untested~~ RESOLVED
-
-**File:** `src/compose/secrets.rs`
-
-**Status:** RESOLVED - Added 30+ edge case tests including:
-- Very long values (10000+ chars)
-- Escape sequences in quoted strings
-- Unicode characters
-- Special characters
-- Empty content, comments-only files
-- Malformed entries (unbalanced quotes, empty keys, missing =)
-- Merge behavior edge cases
-
-~~Missing tests: incorrect permissions, binary data, very long values, concurrent regeneration, locked files.~~
-
----
-
-#### 24. Git Operations Error Handling Untested
-
-**File:** `compose/update.rs`, `compose/install.rs`
-
-Missing tests: merge conflicts, auth failures, network interruptions, corrupted repos, detached HEAD.
-
----
-
-#### 25. Template Rendering Security Untested
-
-**File:** `src/template/render.rs`
-
-Missing tests: filesystem access attempts, recursive expansion limits, memory exhaustion, code injection.
+**Resolution:** Updated cache logic to read from both branch-specific cache AND main branch cache as fallback. Feature branches now benefit from main branch's cached layers on first build while still writing to their own isolated cache.
 
 ---
 
 ### Architecture
 
-#### 26. Module Organization - Unclear Boundaries in Compose
+#### 32. Naming Confusion: DeploymentConfig vs ComposeConfig
 
-**File:** `compose/` module
+**Files:** `src/compose/manifest.rs:30-45`, `src/compose/config.rs:56-60`
+**Category:** Architecture
 
-`render.rs` (888 lines) handles templates, secrets, backups, Docker Compose, and directory setup. Secrets split between `secrets.rs` and `render.rs`.
+Two similarly named types serving different purposes:
+- `DeploymentConfig` in manifest.rs - Configuration within a project's manifest
+- `ComposeConfig` in config.rs - Global mpm config section with project registrations
 
-**Recommendation:** Restructure into config/, docker/, rendering/, orchestration/ subdirectories.
+While comments exist, the naming is still confusing.
 
----
-
-#### 27. Duplicate ComposeConfig Type Names
-
-**File:** `compose/config.rs`, `compose/manifest.rs`
-
-Two different types named `ComposeConfig` with different purposes.
-
-**Recommendation:** Rename to distinguish: `GlobalComposeConfig` vs `ManifestComposeConfig`.
+**Recommendation:** Consider `ManifestComposeSpec` vs `ProjectRegistry` for clarity.
 
 ---
 
-### Documentation
+#### 33. Tight Coupling in secrets.rs
 
-#### 28. Missing Reproducible Builds Documentation
+**File:** `src/compose/secrets.rs:248-269`
+**Category:** Architecture
 
-**File:** Missing
+The `sync_provided_secrets_from_manifest` and `validate_provided_secrets` functions take `&MowsManifest` directly:
 
-Recent commit added binary integrity verification but no user-facing documentation explaining what it means or how to verify.
+```rust
+pub fn sync_provided_secrets_from_manifest(
+    manifest: &super::manifest::MowsManifest,
+    secrets_path: &Path,
+) -> Result<usize>
+```
 
-**Recommendation:** Create `docs/reproducible-builds.md`.
+**Impact:** Creates tight coupling between secrets module and manifest module.
 
----
-
-#### 29. Missing Build Process Documentation
-
-**File:** Missing
-
-build.sh supports many options (PROFILE, TARGETARCH, cache modes) but none documented.
-
-**Recommendation:** Create `docs/building.md` or add section in README.
+**Recommendation:** Accept simpler interface like `Option<&HashMap<String, ProvidedSecretDef>>` or define a trait.
 
 ---
 
-#### 30. Inconsistent Source Code Doc Comments
+### QA
 
-**File:** Multiple files
+#### 34. ~~No Tests for Error Propagation in compose_up()~~ RESOLVED
 
-Files with minimal coverage: `compose/up.rs` (1 comment), `compose/init.rs` (12 comments for many complex functions).
+**File:** `src/compose/up.rs`
+**Category:** QA
 
-**Recommendation:** Add doc comments to public functions and modules.
-
----
-
-#### 31. Missing Module-Level Documentation
-
-**File:** `src/**/mod.rs` files
-
-No `//!` module doc comments explaining purpose or architecture.
+**Resolution:** Added 3 error propagation tests:
+- `test_render_context_fails_with_invalid_manifest` - verifies YAML parse errors propagate
+- `test_render_pipeline_fails_with_invalid_template` - verifies template errors propagate
+- `test_run_docker_compose_up_propagates_client_error` - verifies Docker client errors propagate with original message
 
 ---
 
-### Repository
+#### 35. ~~Missing Edge Cases in Preflight Volume Checks~~ RESOLVED
 
-#### 32. Duplicate Values File Finding Logic
+**File:** `src/compose/checks/preflight.rs:276-334`
+**Category:** QA
 
-**File:** `compose/render.rs:117`, `compose/update.rs:249`, `template/variables.rs:89`
-
-Three separate implementations of nearly identical logic for finding values files.
-
-**Recommendation:** Consolidate into a single shared function.
-
----
-
-#### 33. ~~Dead/Incomplete Build Command~~ RESOLVED
-
-**File:** `src/main.rs:56`
-
-**Status:** RESOLVED - Removed the incomplete Build command from cli.rs and main.rs.
-
-~~`Build` command defined but does nothing except print git root.~~
-
-~~**Recommendation:** Implement or remove the command.~~
+**Resolution:** Added 4 edge case tests:
+- `test_volume_mount_with_parent_dir_segments` - `..` paths that resolve within project
+- `test_volume_mount_file_not_directory` - file mounts (not directories)
+- `test_volume_mount_missing_file` - missing file detection
+- `test_volume_long_syntax_with_read_only` - long syntax with read_only flag
 
 ---
 
-#### 34. Multiple Command Execution Patterns
+#### 36. ~~Missing File Permission Tests~~ RESOLVED
 
-**File:** 10 different files
+**File:** `src/compose/checks/preflight.rs:337-405`
+**Category:** QA
 
-External commands executed with varying patterns for error handling, output capture, status checking.
+**Resolution:** Added 5 permission tests:
+- `test_check_file_permissions_world_writable_file` - world-writable files
+- `test_check_file_permissions_dir_not_world_readable` - directories not world-readable
+- `test_check_file_permissions_nonexistent_path` - nonexistent paths
+- `test_normalize_path_removes_dot_segments` - path normalization with `.` and `..`
+- `test_normalize_path_relative` - relative path normalization
 
-**Recommendation:** Create a command execution helper module.
+---
+
+#### 37. ~~Concurrent Config Test Accepts Data Loss~~ RESOLVED
+
+**File:** `src/compose/config.rs:666-704`
+**Category:** QA
+
+**Resolution:** Updated `test_concurrent_save_operations` to use `with_locked()` pattern instead of separate load/save calls. Test now verifies all 40 entries (4 threads × 10 iterations) are preserved with no data loss.
+
+---
+
+#### 38. ~~Missing Non-UTF8 Path Tests for compose_cd~~ RESOLVED
+
+**File:** `src/compose/cd.rs`
+**Category:** QA
+
+**Resolution:** Added 6 unicode/special character tests:
+- `test_compose_cd_project_name_with_unicode` - Chinese/Greek/Japanese in project names
+- `test_compose_cd_instance_name_with_unicode` - Japanese in instance names
+- `test_compose_cd_project_name_with_spaces` - spaces in project names
+- `test_compose_cd_project_name_with_special_chars` - special characters (@, _, .)
+- `test_compose_cd_path_with_spaces` - directories with spaces
+- `test_compose_cd_path_with_unicode` - directories with Japanese characters
+
+---
+
+### Fine Taste
+
+#### 39. ~~Naming: `ctx` Should Be `context`~~ RESOLVED
+
+**Files:** `src/compose/up.rs`, `src/compose/render.rs`, `src/compose/secrets.rs`
+**Category:** Fine Taste
+
+**Resolution:** Renamed all `ctx` variables and parameters to `context` throughout up.rs, render.rs, and secrets.rs.
+
+---
+
+#### 40. ~~Naming: `val` Should Be `value`~~ RESOLVED
+
+**Files:** `src/compose/secrets.rs:450`, `src/compose/docker.rs:475`
+**Category:** Fine Taste
+
+**Resolution:** Renamed `val` to `value` and `msg` to `message` in docker.rs MockResponse methods. Renamed `val` to `existing_value` in secrets.rs.
+
+---
+
+#### 41. ~~Naming: Single-Letter `k` for Key~~ RESOLVED
+
+**File:** `src/compose/secrets.rs:443-450, 477`
+**Category:** Fine Taste
+
+**Resolution:** Renamed `k` to `key_name` in clear_secret_values() closure and secrets_regenerate() function.
+
+---
+
+#### 42. ~~Duplicate Compose File Detection Logic~~ RESOLVED
+
+**File:** `src/compose/up.rs:61-68, 185-191, 206-211`
+**Category:** Fine Taste
+
+**Resolution:** Extracted `find_compose_file(dir: &Path) -> Option<PathBuf>` helper function. Updated all 3 call sites to use it. Added 4 tests for the helper function.
 
 ---
 
@@ -519,554 +272,307 @@ External commands executed with varying patterns for error handling, output capt
 
 ### Security
 
-#### 35. ~~Secrets File Permissions Race Condition~~ RESOLVED
+#### 12. SSH Signature Verification Uses String Matching
 
-**File:** `src/compose/render.rs:18-30`
+**File:** `src/self_update/update.rs:606-616`
 
-**Status:** RESOLVED - Changed `write_secret_file` to use `OpenOptions::new().mode(SECRET_FILE_MODE)` which sets permissions atomically at file creation, eliminating the race condition window.
+Verification relies on string matching against git's output, which is fragile due to localization and version differences.
 
-~~File permissions set AFTER creation, creating brief window where file is world-readable.~~
-
-~~**Recommendation:** Use `OpenOptions::mode(0o600)` at creation time.~~
+**Real-world Severity:** LOW - The underlying `git tag -v` does cryptographic validation first.
 
 ---
 
-#### 36. ~~Git URL Validation Allows Insecure Protocols~~ RESOLVED
+#### 13. Hardcoded SSH Key Rotation Concerns
 
-**File:** `src/compose/install.rs:19`
+**File:** `src/self_update/update.rs:20`
 
-**Status:** RESOLVED - Changed `validate_git_url` to only allow secure protocols: `https://`, `ssh://`, and `git@`. Insecure protocols (`http://`, `git://`) are now rejected with a clear error message.
+SSH public key is hardcoded. If rotation is needed, all binaries must be rebuilt.
 
-~~Allows `git://` and `http://` protocols which can be MITM'd.~~
-
-~~**Recommendation:** Only allow `https://`, `ssh://`, and `git@`.~~
-
----
-
-#### 37. Build Script Execution Risk (Mitigated)
-
-**File:** `src/self_update/update.rs:455-460`
-
-Executes `./build.sh` from cloned repo. Mitigated by SSH signature verification.
-
----
-
-#### 38. No Certificate Pinning for Self-Update
-
-**File:** `src/self_update/update.rs:13-14`
-
-GitHub URLs hardcoded but no additional validation beyond HTTPS.
-
-**Recommendation:** Consider certificate pinning for critical infrastructure.
-
----
-
-#### 39. Symlink Loop Detection Can Be Slow
-
-**File:** `src/compose/render.rs:266-281`
-
-Canonicalize can be slow with many symlinks. Mitigated by MAX_DIRECTORY_DEPTH.
+**Status:** INFORMATIONAL - Standard practice for self-updating tools.
 
 ---
 
 ### Rust/Tech
 
-#### 40. ~~Non-idiomatic Error Conversion~~ RESOLVED
+#### 14. Tokio Runtime Per BollardDockerClient Instance
 
-**File:** Multiple files
+**File:** `src/compose/docker.rs:119-123`
 
-**Status:** RESOLVED - Converted `.map_err(|e| format!(...))` patterns to use proper error extension traits:
+Each `BollardDockerClient` creates its own `tokio::runtime::Runtime`. Performance antipattern.
 
-- `IoResultExt::io_context()` for I/O errors (preserves source error chain)
-- `TomlResultExt::toml_context()` for TOML parsing errors
-- `MpmError::command()` for command execution errors
-
-Files updated: `drives.rs`, `workspace_docker.rs`, `manpage.rs`, `shell_init.rs`
-
-~~`.map_err(|e| format!("...: {}", e))` loses error context and chains.~~
-
-~~**Recommendation:** Consider `anyhow` or `thiserror`.~~
+**Recommendation:** Consider shared tokio runtime via `Arc` or lazy_static.
 
 ---
 
-#### 41. ~~Missing #[must_use] Annotations~~ NOT NEEDED
+#### 43. ~~Unnecessary Import Repetition~~ RESOLVED
 
-**File:** Functions returning Result without side effects
+**File:** `src/compose/secrets.rs:8, 228`
 
-**Status:** NOT NEEDED - Rust already warns on unused `Result` and `Option` values by default. Adding explicit `#[must_use]` annotations would be redundant for most cases.
-
-~~Compiler won't warn if result is accidentally ignored.~~
+**Resolution:** Removed 3 duplicate `use crate::error::IoResultExt` imports from functions, keeping only the module-level import.
 
 ---
 
-#### 42. ~~Magic Numbers Without Constants~~ RESOLVED
+#### 44. ~~Unbounded Vector Growth in Health Checks~~ RESOLVED
 
-**File:** `src/compose/render.rs`, `src/compose/config.rs`, `src/compose/up.rs`
+**File:** `src/compose/checks/health.rs:160-175`
 
-**Status:** RESOLVED - Extracted all magic numbers to documented constants:
-
-- `up.rs`: `CONTAINER_READY_TIMEOUT`, `CONTAINER_POLL_INTERVAL`, `CONTAINER_STARTUP_DELAY`
-- `render.rs`: `SECRET_FILE_MODE` (0o600), `DIRECTORY_MODE` (0o755)
-- `config.rs`: `CONFIG_FILE_MODE` (0o600)
-- `health.rs`: `HTTP_REQUEST_TIMEOUT`, `TCP_CONNECT_TIMEOUT`
-
-~~File permissions `0o600`, `0o755`, timeouts like `30`, `2`, `1` used inline.~~
-
-~~**Recommendation:** Create named constants with documentation.~~
+**Resolution:** Added `MAX_LOG_ERRORS_PER_CONTAINER = 50` constant and check before pushing to `log_errors` vector. Prevents unbounded memory growth from chatty error logs.
 
 ---
 
-#### 43. ~~Inefficient Levenshtein Implementation~~ RESOLVED
+#### 45. ~~Magic Numbers in Retry Delays~~ RESOLVED
 
-**File:** `src/template/error.rs:9-38`
+**File:** `src/compose/checks/health.rs:526`
 
-**Status:** RESOLVED - Replaced 30-line custom implementation with `strsim` crate.
-
-~~Allocates new Vec on every call. Consider `strsim` crate.~~
+**Resolution:** Extracted `TCP_RETRY_DELAYS_MS: [u64; 3] = [100, 300, 600]` constant with documentation explaining the retry strategy for TCP connection attempts.
 
 ---
 
-#### 44. ~~Redundant Clone in Hot Loop~~ RESOLVED
+#### 46. String Allocation in Hot Path
 
-**File:** `src/compose/secrets.rs:187`
+**File:** `src/compose/checks/health.rs:162-165`
 
-**Status:** RESOLVED - No `.clone()` calls exist in the merge logic. The code uses references and `format!()` which doesn't require cloning.
+Converting every log line to lowercase for error detection allocates:
+```rust
+let lower = line.to_lowercase();  // Allocates for every line
+```
 
-~~`.clone()` called twice per entry in merge logic.~~
-
----
-
-#### 45. ~~Unnecessary String Allocation in find_git_root~~ NOT AN ISSUE
-
-**File:** `src/utils.rs:23`
-
-**Status:** NOT AN ISSUE - `String::from_utf8_lossy` returns `Cow<str>`, not `String`. It only allocates if there are invalid UTF-8 bytes (rare for git output). The `.trim()` returns a borrowed `&str` slice, which `PathBuf::from()` accepts directly.
-
-~~`String::from_utf8_lossy` creates owned String when trimmed slice would suffice.~~
-
----
-
-#### 46. ~~Missing Timeout on Background Update Check~~ NOT AN ISSUE
-
-**File:** `src/self_update/update.rs:769-785`
-
-**Status:** NOT AN ISSUE - The reqwest `timeout()` is a **total request timeout** (not just HTTP-level), covering the entire operation: DNS resolution, TCP connection, TLS handshake, request sending, and response receiving. Combined with `connect_timeout()`, any network stack hang will timeout after 1 second. The subsequent config file operations are local disk I/O.
-
-~~1-second HTTP timeout but no overall function timeout. Network stack issues could hang CLI exit.~~
-
----
-
-#### 47. ~~Duplicate Template Rendering Logic~~ RESOLVED
-
-**File:** `template/render.rs`, `compose/render.rs`
-
-**Status:** RESOLVED - Extracted shared `render_template_string()` function in `template/render.rs` that handles:
-
-- Template setup with all gtmpl functions
-- Variable preamble generation (`{{- $varname := .varname }}`)
-- Parsing and rendering with proper error handling
-
-Both `template/render.rs` and `compose/render.rs` now use this shared function, eliminating ~80 lines of duplicated code.
-
-~~Preamble generation and variable injection logic duplicated.~~
+**Recommendation:** Consider case-insensitive matching in Aho-Corasick directly.
 
 ---
 
 ### DevOps
 
-#### 48. ~~No Binary Artifact Retention Policy~~ RESOLVED
+#### 16. No Supply Chain Security Measures
 
-**File:** `.github/workflows/publish-mpm.yml:113`
+**File:** CI/CD pipeline
 
-**Status:** RESOLVED - Added `retention-days: 7` to artifact upload step.
-
-~~Artifacts kept for default 90 days, accumulating storage costs.~~
-
-~~**Recommendation:** Set `retention-days: 7` for PR builds.~~
+Missing: SBOM generation, cargo-audit in CI, container image scanning (Trivy), SLSA attestations.
 
 ---
 
-#### 49. Docker Buildx Cache Scope Too Broad
+#### 19. Version Extraction Regex Fragility
 
-**File:** `build.sh:53`
+**File:** `build.sh:20`, `scripts/install.sh:190`
 
-Cache scope only by architecture. PRs can corrupt main branch caches.
-
-**Recommendation:** Use branch-aware scoping.
+Version extraction relies on regex parsing, vulnerable to edge cases.
 
 ---
 
-#### 50. ~~UPX Compression Without Verification~~ RESOLVED
+#### 47. UPX Verification on Cross-Compiled Binaries
 
-**File:** `Dockerfile:85`
+**File:** `Dockerfile:86-89`
 
-**Status:** RESOLVED - Added `/${BINARY_NAME} --version` verification step after UPX compression to ensure the compressed binary still works.
-
-~~UPX applied without testing compressed binary works.~~
-
-~~**Recommendation:** Add `/${BINARY_NAME} --version` after compression.~~
+When cross-compiling for ARM64 on AMD64, verification step runs ARM64 binary which requires QEMU.
 
 ---
 
-#### 51. No Build Reproducibility Verification
+#### 48. Local Cache Rotation Not Handled
 
-**File:** CI pipeline
+**File:** `build.sh:59-61`
 
-Claims "reproducible builds" but no verification step.
-
----
-
-#### 52. cargo-workspace-docker.toml Regeneration in Build
-
-**File:** `build.sh:23-29`
-
-Build script modifies source tree, violates build hermeticity.
-
-**Recommendation:** Verify instead of regenerate.
-
-**This is fixed by addressing the bigger issue of generating this whole stuff inside the container, also fixing the issue with cargo-chef**
+Local cache writes to `${BUILDX_CACHE_DIR}-new` but no rotation logic exists.
 
 ---
 
-#### 53. ~~install.sh Not Validating Installed Version~~ RESOLVED
+### Architecture
 
-**File:** `scripts/install.sh:195`
+#### 49. ~~Duplicate Permission Constant~~ RESOLVED
 
-**Status:** RESOLVED - Added version verification after installation:
-- Captures installed version from `mpm --version` output
-- Compares against expected version that was downloaded
-- Fails with clear error if versions don't match
+**Files:** `src/compose/secrets.rs:12`, `src/compose/config.rs:33`
 
-~~After installation, doesn't verify installed version matches expected.~~
+**Resolution:** Extracted `SENSITIVE_FILE_MODE: u32 = 0o600` to `compose/mod.rs`. Both `secrets.rs` and `config.rs` now import and use this shared constant.
 
 ---
 
-#### 54. ~~prepare-publish.sh Uses Non-Portable sed -i~~ RESOLVED
+#### 50. Large Test Module in secrets.rs
 
-**File:** `scripts/prepare-publish.sh`
+**File:** `src/compose/secrets.rs:485-1670`
 
-**Status:** RESOLVED - Added portable `sedi()` helper function that detects OS and uses `sed -i ''` on macOS, `sed -i` on Linux. Replaced all `sed -i` calls with `sedi`.
+Test module is ~1200 lines, making up ~70% of the file.
 
-~~GNU sed syntax breaks on macOS.~~
-
----
-
-#### 55. No Healthcheck in Container Image
-
-**File:** `Dockerfile` (app stage)
-
-No HEALTHCHECK directive for containerized deployments.
+**Recommendation:** Consider splitting into separate test file.
 
 ---
 
-#### 56. Missing Docker BuildKit Configuration
+#### 51. Error Type String Variants
 
-**File:** Build scripts
+**File:** `src/error.rs`
 
-No explicit `DOCKER_BUILDKIT=1` set.
+Several error variants use string messages rather than structured data:
+- `Manifest(String)`, `Template(String)`, `Validation(String)`, `Message(String)`
 
----
-
-#### 57. ~~.dockerignore Could Be Expanded~~ RESOLVED
-
-**File:** `.dockerignore`
-
-**Status:** RESOLVED - Expanded .dockerignore to exclude `.git`, `.github`, `tests`, `docs`, `*.md` (except README.md), `.vscode`, `.idea`, and editor swap files.
-
-~~Only excludes `target`, `dist`. Could also exclude `tests/`, `docs/`, `.git/`, `*.md`.~~
+Acceptable for CLI but limits programmatic error handling.
 
 ---
 
 ### QA
 
-#### 58. ~~Manifest Validation Limited~~ RESOLVED
+#### 21. run_post_deployment_checks() Untested
 
-**File:** `src/compose/manifest.rs`
+**File:** `src/compose/up.rs:101-180`
 
-**Status:** RESOLVED - Added 20+ validation tests including:
-- Missing required fields (manifestVersion, metadata, metadata.name)
-- Invalid YAML syntax
-- Wrong types for fields
-- Empty/null content
-- Unknown fields (forward compatibility)
-- Unicode and special characters
-- Very long names
-- Tab indentation and duplicate keys
-
-~~Only 6 unit tests, mostly serialization. Missing: invalid version, missing fields, unknown fields, malformed structures.~~
+Health check polling logic has no tests. (Elevated to Critical as #27)
 
 ---
 
-#### 59. Config File Race Conditions Untested
+#### 52. ~~Missing JSON Error Extension Trait~~ RESOLVED
 
-**File:** `src/compose/config.rs`
+**File:** `src/error.rs`
 
-Atomic write implemented but no concurrent tests.
-
----
-
-#### 60. Path Traversal Attack Testing Limited
-
-**File:** `compose/install.rs`
-
-Good sanitization but missing: Unicode normalization, mixed encoding, case-sensitivity bypass tests.
-
----
-
-#### 61. ~~Tool Subcommands Input Validation Limited~~ RESOLVED
-
-**File:** `src/tools/*`
-
-**Status:** RESOLVED - Added 20+ tests for convert tools including:
-- Invalid JSON/YAML input
-- Empty files
-- Very large files (1000+ keys)
-- Deeply nested structures
-- Unicode and special characters
-- Arrays and complex types
-- Multiline strings
-- Nonexistent files
-- Null, boolean, and numeric types
-
-~~Missing tests: extremely large files, binary files, invalid UTF-8, circular references, deep nesting.~~
-
----
-
-#### 62. Self-Update Attack Simulation Missing
-
-**File:** `src/self_update/update.rs`
-
-Missing: MITM simulation, checksum mismatch, signature failure, binary replacement race tests.
-
----
-
-#### 63. ~~Template Variable Conflict Tests Missing~~ RESOLVED
-
-**File:** `src/template/variables.rs`
-
-**Status:** RESOLVED - Added 15+ tests including:
-- Conflicting keys (explicit vars override values file)
-- Duplicate explicit variables (last wins)
-- Very large files (10000+ keys)
-- Deeply nested YAML
-- Empty files and comments-only
-- Special characters in .env files
-- Binary file handling
-- YAML anchors and aliases
-- Unicode content
-- Multiline strings
-- Values file priority (yml vs yaml)
-
-~~Missing: conflicting keys, circular references, very large files.~~
-
----
-
-### Fine Taste
-
-#### 64. Abbreviated Variable Names - RESOLVED
-
-**File:** `src/tools/workspace_docker.rs`
-
-Uses: `ws_dep`, `dep`, `pkg`, `deps`, `rel_path`, `dep_path`, `td_name`
-
-Should be: `workspace_dependency`, `dependency`, `package`, `dependencies`, `relative_path`, `dependency_path`, `transitive_dependency_name`
-
-**Resolution:** Renamed all abbreviated variable names to their full descriptive forms.
-
----
-
-#### 65. Abbreviated Names in template/error.rs - RESOLVED
-
-**File:** `src/template/error.rs:10`
-
-Parameters `a`, `b` should be `first_string`, `second_string` or similar.
-
-**Resolution:** No longer applicable - the levenshtein function is now imported from the `strsim` crate rather than being implemented locally.
-
----
-
-#### 66. Comments That Restate Code - RESOLVED
-
-**File:** `src/compose/init.rs`
-
-Line 57: "// Determine project name" - states WHAT not WHY.
-Lines 290, 294, 308, 325: similar issues.
-
-**Resolution:** Removed redundant comments that merely restated what the code does (e.g., "// Find Dockerfiles", "// Generate and write X"). Kept comments that explain WHY something is done.
-
----
-
-#### 67. ~~#[allow(dead_code)] on Package::name~~ RESOLVED
-
-**File:** `src/tools/workspace_docker.rs:150-153`
-
-**Status:** RESOLVED - Removed the unused `name` field from the `Package` struct entirely since it was not needed for deserialization.
-
-~~If field is unused, remove it. If needed for deserialization, restructure.~~
-
----
-
-#### 68. ~~Empty Test Module in passthrough.rs~~ RESOLVED
-
-**File:** `src/compose/passthrough.rs:78-80`
-
-**Status:** RESOLVED - Removed the empty test module. Integration tests cover this functionality.
-
-~~Empty test module with comment. Either remove or add unit tests with mocks.~~
+**Resolution:** Added `JsonResultExt` trait with `json_context()` method, `json_parse()` helper, and updated `JsonParse` variant to include context field. Added 2 tests for the new trait. Updated `tools/convert.rs` to use the new trait.
 
 ---
 
 ### Documentation
 
-#### 69. Version Examples Outdated
+#### 53. ~~Validation Behavior Documentation Mismatch~~ RESOLVED
 
-**File:** README.md, docs/\*.md
+**File:** `docs/compose/secrets.md:159-172`
 
-Examples use `0.2.0`, `0.3.0` but current version is `0.5.3`.
-
-**Recommendation:** Update to current version or use placeholders.
+**Resolution:** Updated documentation to clarify the two-phase process: sync phase (adds missing secrets with defaults) followed by validation phase (checks required secrets have values).
 
 ---
 
-#### 70. ~~Missing "drives" Command in README~~ RESOLVED
+#### 54. ~~Template Variable Syntax Unclear~~ RESOLVED
 
-**File:** README.md:123
+**File:** `docs/compose/secrets.md:223-238`
 
-**Status:** RESOLVED - Added `mpm tools drives` to the README tools section.
-
-~~`mpm tools drives` implemented but not in README tools section.~~
+**Resolution:** Verified documentation is correct. In Go templates, `$generatedSecrets` references the root-level `generatedSecrets` variable. The `$` prefix denotes the root context variable, which is the correct syntax. No change needed.
 
 ---
 
-#### 71. ~~cargo-workspace-docker Tool Under-Explained~~ RESOLVED
+#### 55. ~~Missing secrets_regenerate Behavior Details~~ RESOLVED
 
-**File:** `docs/tools/overview.md:250-308`
+**File:** `docs/compose/secrets.md:76-91`
 
-**Status:** RESOLVED - Added comprehensive documentation including:
-
-- "Why This Tool Exists" section explaining the problem it solves
-- "When to Regenerate" section with clear guidance
-- Improved structure with proper headings
-
-~~Missing: why tool exists, connection to build.sh, when to regenerate.~~
+**Resolution:** Added "Important notes" section explaining: (1) only works with generated secrets, (2) requires existing file, (3) error behavior when key not found.
 
 ---
 
-#### 72. Missing manpage/shell-init Documentation
+#### 56. CI Test Status Inconsistency
 
-**File:** User-facing docs
+**Files:** `docs/development.md:157-167`, `CLAUDE.md:101-107`
 
-Commands exist but not documented.
-
----
-
-#### 73. ~~TODO in Code Without Context~~ RESOLVED
-
-**File:** `src/tools/jq.rs:116`
-
-**Status:** RESOLVED - Added detailed context including GitHub issue link (https://github.com/01mf02/jaq/issues/56) and explanation of what stdlib functions are missing.
-
-~~"TODO: Re-enable when standard library support is added" - no context.~~
+Slight differences in CI test status information between files.
 
 ---
 
-#### 74. ~~docker-compose.yaml Undocumented~~ RESOLVED
+#### 57. ~~Sync Behavior on Existing File Undocumented~~ RESOLVED
 
-**File:** `docker-compose.yaml`
+**File:** `docs/compose/secrets.md:138-157`
 
-**Status:** RESOLVED - Added header comment explaining:
-- Enables `docker compose build` as alternative to build.sh
-- Marks package for `cargo-workspace-docker --all` detection
-- Points to build.sh for production builds
-
-~~No comments explaining purpose vs build.sh.~~
+**Resolution:** Added "Sync behavior" note clarifying that if file exists, missing secrets are appended without removing or overwriting existing entries. Safe for re-running install.
 
 ---
 
 ### Repository
 
-#### 75. ~~Duplicate Manifest Finding Logic~~ RESOLVED
+#### 58. Duplicated .env File Parsing Logic
 
-**File:** `compose/mod.rs`, `compose/update.rs:226`
+**Files:** `src/compose/secrets.rs:112-165`, `src/template/variables.rs:29-52`
 
-**Status:** RESOLVED - Extracted shared `find_manifest_file_from()` function in mod.rs:
-- Walks UP parent directories and returns the manifest file path
-- Used by both `find_manifest_dir()` in mod.rs and update.rs
-- Removed duplicate `find_manifest()` from update.rs (~25 lines)
+Two separate implementations for parsing `.env` files with different behavior:
+- `secrets.rs` - Comprehensive with escape sequences
+- `variables.rs` - Simpler without escape handling
 
-~~`find_manifest` in update.rs duplicates logic in compose/mod.rs.~~
-
----
-
-#### 76. ~~yaml_indent Public But Internal~~ RESOLVED
-
-**File:** `src/yaml_indent.rs`
-
-**Status:** RESOLVED - Changed `pub mod yaml_indent` to `mod yaml_indent` in main.rs. The module is now internal-only, with needed functions re-exported via utils.rs. Also removed unused `yaml_with_indent` from the re-export.
-
-~~Declared `pub mod` but primarily internal utility. Re-exported via utils.rs.~~
+**Recommendation:** Consolidate or document intentional differences.
 
 ---
 
-#### 77. ~~tests/ Lacks README~~ RESOLVED
+#### 59. normalize_path Function is Module-Private
 
-**File:** `tests/`
+**File:** `src/compose/checks/preflight.rs:409-423`
 
-**Status:** RESOLVED - Added `tests/README.md` documenting:
-- Test organization (table of all test files and their purpose)
-- How to run tests (command line options, examples)
-- Environment variables
-- Mock Docker client for CI
-- Tests skipped in CI and why
-- Guide for writing new tests
+`normalize_path()` is private but could be useful elsewhere.
 
-~~No documentation about test organization or how to run different suites.~~
+**Recommendation:** Consider moving to shared utility module.
 
 ---
 
-#### 78. ~~Utils Module is Catch-All~~ RESOLVED
+## Previously Resolved Issues
 
-**File:** `src/utils.rs`
+### Resolved This Session
 
-**Status:** RESOLVED - Split `utils.rs` into a `utils/` directory module with:
-- `utils/git.rs` - git operations (`find_git_root`)
-- `utils/io.rs` - I/O utilities (`read_input`, `write_output`)
-- `utils/yaml.rs` - YAML parsing (`parse_yaml`, `format_yaml_error`)
-- `utils/mod.rs` - re-exports for backwards compatibility
+| Issue | Category | Resolution |
+|-------|----------|------------|
+| #1 compose_up() tests | QA | Added 4 tests for run_docker_compose_up() |
+| #2 run_debug_checks() tests | QA | Added 16 tests covering all check functions |
+| #5 Render module boundaries | Architecture | Moved write_secret_file() to secrets.rs |
+| #6 Docker compose_up() error paths | QA | Tests via ConfigurableMockClient |
+| #7 ConfigurableMockClient failures | QA | Added MockResponse error support |
+| #8 compose_cd() tests | QA | Added 7 tests for main function |
+| #10 Config concurrent access | QA | Added 3 thread-based tests |
+| #15 Clone pattern optimization | Rust/Tech | Changed par_iter() to into_par_iter() |
+| #17 Branch-aware cache | DevOps | Added GITHUB_REF_NAME to cache scope |
+| #18 Container healthcheck | DevOps | Added HEALTHCHECK directive |
+| #20 Secrets I/O tests | QA | Added 8 I/O error scenario tests |
+| #22 Error extension traits | QA | Added 8 isolated unit tests |
+| #23 Abbreviated variables | Fine Taste | Renamed defs→secret_definitions |
+| #24 Unnecessary clone | Fine Taste | Changed s.clone() to s.to_string() |
+| #25 CI test status docs | Documentation | Updated development.md |
+| #26 secrets_regenerate() tests | QA | Extracted clear_secret_values() + 11 tests |
+| #27 run_post_deployment_checks() tests | QA | Added 8 tests for check_containers_ready() |
+| #28 Config race condition | Rust/Tech | Added with_locked() atomic pattern |
+| #34 Error propagation tests | QA | Added 3 compose_up error tests |
+| #39-41 Abbreviated names | Fine Taste | Renamed ctx/val/k to full names |
+| #42 Duplicate compose file code | Fine Taste | Extracted find_compose_file() helper |
+| #30 HEALTHCHECK scratch image | DevOps | Fixed exec form, single line for proper parsing |
+| #31 Cache scope fallback | DevOps | Added main branch cache fallback for feature branches |
+| #35 Volume check edge cases | QA | Added 4 tests for parent dir, file mounts, read_only |
+| #36 File permission tests | QA | Added 5 tests for permissions and path normalization |
+| #37 Concurrent config test | QA | Fixed to use with_locked() and verify data integrity |
+| #38 Unicode path tests | QA | Added 6 tests for unicode/special chars in paths |
+| #43 Import repetition | Rust/Tech | Removed duplicate IoResultExt imports |
+| #44 Log errors limit | Rust/Tech | Added MAX_LOG_ERRORS_PER_CONTAINER limit |
+| #45 Retry delay constants | Rust/Tech | Extracted TCP_RETRY_DELAYS_MS constant |
+| #49 Permission constant | Architecture | Extracted SENSITIVE_FILE_MODE to compose/mod.rs |
+| #52 JSON error extension | QA | Added JsonResultExt trait with tests |
+| #53-55,#57 Documentation | Documentation | Updated secrets.md with sync/validation details |
 
-~~Mixes: git operations, I/O utilities, YAML parsing, indentation.~~
+### Previously Resolved (Verified No Regressions)
+
+| Issue | Status | Verification |
+|-------|--------|--------------|
+| Race Condition in Config | RESOLVED | fs2 file locking in config.rs |
+| Unbounded Memory Growth | RESOLVED | MAX_VISITED_DIRECTORIES constant |
+| Missing Drop for PipelineBackup | RESOLVED | Drop impl at render.rs:679 |
+| Hardcoded Dockerfile Version | RESOLVED | Extracted from Cargo.toml |
+| GitHub Actions Not Pinned | RESOLVED | All pinned to SHA + dependabot |
+| Path Traversal | RESOLVED | validate_path_within_dir() |
+| String-Based Error Handling | RESOLVED | MpmError enum in error.rs |
+| YAML Indent Hot Path | RESOLVED | serde_yaml_neo native support |
+| Blocking I/O Health Checks | RESOLVED | rayon parallel processing |
+| Unbounded Dependency Recursion | RESOLVED | MAX_DEPENDENCIES constant |
+| Docker Client Abstraction | RESOLVED | DockerClient trait in docker.rs |
+| LTO Disabled ARM64 | RESOLVED | thin LTO with Zig 0.15.2 |
+| Flaky Tests in CI | RESOLVED | MPM_MOCK_DOCKER=1 |
+| Secrets File Permissions Race | RESOLVED | Atomic permissions at creation |
+| Insecure Git Protocols | RESOLVED | Only https/ssh/git@ allowed |
 
 ---
 
-#### 79. ~~Inconsistent Option Handling in APIs~~ RESOLVED
+## Recommendations Priority
 
-**File:** Various tool commands
+### Remaining Unresolved (Low Priority)
 
-**Status:** RESOLVED - Standardized all tool command APIs to use `Option<&Path>` instead of `&Option<PathBuf>`:
-- `utils/io.rs`: `read_input`, `write_output`
-- `tools/convert.rs`: `json_to_yaml`, `yaml_to_json`, `prettify_json`
-- `tools/jq.rs`: `jq_command`
-- `tools/object.rs`: `expand_object_command`, `flatten_object_command`
-- `tools/workspace_docker.rs`: `workspace_docker_command`
-- Updated main.rs call sites to use `.as_deref()`
-
-~~Some use `&Option<PathBuf>`, some use `Option<&Path>`.~~
+1. **#29** Blocking async runtime in BollardDockerClient - would require API changes
+2. **#32** Naming confusion DeploymentConfig vs ComposeConfig - documentation-only concern
+3. **#33** Tight coupling in secrets.rs - would require API changes
+4. **#58** Consolidate .env parsing logic - intentional differences may exist
+5. **#14** Tokio runtime per instance - related to #29
+6. **#46** String allocation in hot path - micro-optimization
+7. **#16** Supply chain security (cargo-audit, SBOM) - CI/CD enhancement
 
 ---
 
-#### 80. ~~FlattenLabelsError Underutilized~~ RESOLVED
+## Positive Observations
 
-**File:** `src/tools/object.rs`
+The codebase demonstrates many excellent practices:
 
-**Status:** RESOLVED - The error type is actually used correctly. In `compose/render.rs`, `FlattenLabelsError` is pattern-matched (`Err(FlattenLabelsError::NoLabels)` handled separately from other errors), not converted to String. The description was outdated.
-
-~~Custom error type defined but immediately converted to String. Good pattern - extend to other modules.~~
-
----
-
-## Previously Noted (Keeping for Reference)
-
-- tab lines
-- file linting based on schema
-- warning for empty variables
-- template before and after render line comparison side by side
+1. **Security:** Path traversal protection, git URL validation, secure file permissions (0o600), git hook disabling
+2. **Error Handling:** Proper `thiserror` usage with context preservation and extension traits
+3. **Testing:** Extensive test coverage with ConfigurableMockClient for Docker operations
+4. **Docker Abstraction:** Clean trait-based design enabling comprehensive testing
+5. **File Operations:** Atomic writes with locking, symlink loop detection
+6. **RAII Patterns:** TestConfigGuard, PipelineBackup with proper cleanup on panic

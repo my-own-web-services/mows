@@ -160,11 +160,11 @@ Some tests are skipped in CI due to environment limitations:
 
 | Test | Reason |
 |------|--------|
-| `test-compose-up` | Requires Docker daemon with port binding |
 | `test-self-update` | Network-dependent, requires GitHub API |
-| `test-compose-cd` | Shell integration not available in CI |
 
-These tests should be run locally before submitting PRs that affect related functionality.
+Note: `test-compose-up` and `test-compose-cd` now run in CI using `MPM_MOCK_DOCKER=1` which provides a mock Docker client that simulates Docker operations without requiring a real Docker daemon.
+
+The `test-self-update` test should be run locally before submitting PRs that affect self-update functionality.
 
 ### Triggering Builds
 

@@ -29,9 +29,13 @@ pub enum MpmError {
     #[error("Failed to serialize YAML: {0}")]
     YamlSerialize(#[from] serde_yaml_neo::Error),
 
-    /// JSON parsing error.
-    #[error("Failed to parse JSON: {0}")]
-    JsonParse(#[source] serde_json::Error),
+    /// JSON parsing error with context.
+    #[error("Failed to parse JSON in {context}: {source}")]
+    JsonParse {
+        context: String,
+        #[source]
+        source: serde_json::Error,
+    },
 
     /// JSON serialization error.
     #[error("Failed to serialize JSON: {0}")]
@@ -137,6 +141,14 @@ impl MpmError {
             source,
         }
     }
+
+    /// Create a JSON parse error with context.
+    pub fn json_parse(context: impl Into<String>, source: serde_json::Error) -> Self {
+        Self::JsonParse {
+            context: context.into(),
+            source,
+        }
+    }
 }
 
 /// Extension trait for adding context to I/O errors.
@@ -175,6 +187,18 @@ impl<T> TomlResultExt<T> for std::result::Result<T, toml::de::Error> {
     }
 }
 
+/// Extension trait for adding context to JSON errors.
+pub trait JsonResultExt<T> {
+    /// Add context to a JSON parse error.
+    fn json_context(self, context: impl Into<String>) -> Result<T>;
+}
+
+impl<T> JsonResultExt<T> for std::result::Result<T, serde_json::Error> {
+    fn json_context(self, context: impl Into<String>) -> Result<T> {
+        self.map_err(|e| MpmError::json_parse(context, e))
+    }
+}
+
 // Allow converting from String for backwards compatibility during migration
 impl From<String> for MpmError {
     fn from(s: String) -> Self {
@@ -185,5 +209,159 @@ impl From<String> for MpmError {
 impl From<&str> for MpmError {
     fn from(s: &str) -> Self {
         Self::Message(s.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::error::Error;
+
+    #[test]
+    fn test_io_result_ext_preserves_error_chain() {
+        let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+        let result: std::result::Result<(), std::io::Error> = Err(io_error);
+
+        let mpm_result = result.io_context("Reading config file");
+        assert!(mpm_result.is_err());
+
+        let err = mpm_result.unwrap_err();
+        assert!(matches!(err, MpmError::Io { .. }));
+
+        // Verify error message contains context
+        let msg = err.to_string();
+        assert!(msg.contains("Reading config file"));
+        assert!(msg.contains("file not found"));
+
+        // Verify source error is preserved
+        assert!(err.source().is_some());
+    }
+
+    #[test]
+    fn test_io_result_ext_success_passes_through() {
+        let result: std::result::Result<i32, std::io::Error> = Ok(42);
+        let mpm_result = result.io_context("Should not appear");
+        assert_eq!(mpm_result.unwrap(), 42);
+    }
+
+    #[test]
+    fn test_yaml_result_ext_preserves_error_chain() {
+        // Create a YAML parse error
+        let yaml_result: std::result::Result<serde_yaml_neo::Value, _> =
+            serde_yaml_neo::from_str("invalid: yaml: content:");
+
+        let mpm_result = yaml_result.yaml_context("/path/to/file.yaml");
+        assert!(mpm_result.is_err());
+
+        let err = mpm_result.unwrap_err();
+        assert!(matches!(err, MpmError::YamlParse { .. }));
+
+        // Verify error message contains path
+        let msg = err.to_string();
+        assert!(msg.contains("/path/to/file.yaml"));
+
+        // Verify source error is preserved
+        assert!(err.source().is_some());
+    }
+
+    #[test]
+    fn test_yaml_result_ext_success_passes_through() {
+        let yaml_result: std::result::Result<serde_yaml_neo::Value, _> =
+            serde_yaml_neo::from_str("key: value");
+
+        let mpm_result = yaml_result.yaml_context("/path/to/file.yaml");
+        assert!(mpm_result.is_ok());
+    }
+
+    #[test]
+    fn test_toml_result_ext_preserves_error_chain() {
+        // Create a TOML parse error
+        let toml_result: std::result::Result<toml::Value, _> = toml::from_str("invalid = [");
+
+        let mpm_result = toml_result.toml_context("/path/to/Cargo.toml");
+        assert!(mpm_result.is_err());
+
+        let err = mpm_result.unwrap_err();
+        assert!(matches!(err, MpmError::TomlParse { .. }));
+
+        // Verify error message contains path
+        let msg = err.to_string();
+        assert!(msg.contains("/path/to/Cargo.toml"));
+
+        // Verify source error is preserved
+        assert!(err.source().is_some());
+    }
+
+    #[test]
+    fn test_toml_result_ext_success_passes_through() {
+        let toml_result: std::result::Result<toml::Value, _> = toml::from_str("key = \"value\"");
+
+        let mpm_result = toml_result.toml_context("/path/to/Cargo.toml");
+        assert!(mpm_result.is_ok());
+    }
+
+    #[test]
+    fn test_json_result_ext_preserves_error_chain() {
+        use super::JsonResultExt;
+
+        // Create a JSON parse error
+        let json_result: std::result::Result<serde_json::Value, _> =
+            serde_json::from_str("{ invalid json }");
+
+        let mpm_result = json_result.json_context("/path/to/data.json");
+        assert!(mpm_result.is_err());
+
+        let err = mpm_result.unwrap_err();
+        assert!(matches!(err, MpmError::JsonParse { .. }));
+
+        // Verify error message contains context
+        let msg = err.to_string();
+        assert!(msg.contains("/path/to/data.json"));
+
+        // Verify source error is preserved
+        assert!(err.source().is_some());
+    }
+
+    #[test]
+    fn test_json_result_ext_success_passes_through() {
+        use super::JsonResultExt;
+
+        let json_result: std::result::Result<serde_json::Value, _> =
+            serde_json::from_str(r#"{"key": "value"}"#);
+
+        let mpm_result = json_result.json_context("/path/to/data.json");
+        assert!(mpm_result.is_ok());
+    }
+
+    #[test]
+    fn test_mpm_error_constructors() {
+        // Test io constructor
+        let io_err = MpmError::io(
+            "Reading file",
+            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "access denied"),
+        );
+        assert!(matches!(io_err, MpmError::Io { .. }));
+        assert!(io_err.to_string().contains("Reading file"));
+
+        // Test path constructor
+        let path_err = MpmError::path("/some/path", "Path does not exist");
+        assert!(matches!(path_err, MpmError::Path { .. }));
+        assert!(path_err.to_string().contains("/some/path"));
+
+        // Test command constructor
+        let cmd_err = MpmError::command("git clone", "repository not found");
+        assert!(matches!(cmd_err, MpmError::Command { .. }));
+        assert!(cmd_err.to_string().contains("git clone"));
+    }
+
+    #[test]
+    fn test_string_conversions() {
+        let err1: MpmError = "Simple error message".into();
+        assert!(matches!(err1, MpmError::Message(_)));
+        assert_eq!(err1.to_string(), "Simple error message");
+
+        let err2: MpmError = String::from("Another error").into();
+        assert!(matches!(err2, MpmError::Message(_)));
+        assert_eq!(err2.to_string(), "Another error");
     }
 }

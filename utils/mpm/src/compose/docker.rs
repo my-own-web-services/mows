@@ -472,22 +472,31 @@ impl MockResponse {
     }
 
     pub fn to_result(&self, default: &str) -> Result<String> {
-        if let Some(ref val) = self.success_value {
-            Ok(val.clone())
-        } else if let Some(ref msg) = self.error_msg {
-            Err(MpmError::Docker(msg.clone()))
+        if let Some(ref value) = self.success_value {
+            Ok(value.clone())
+        } else if let Some(ref message) = self.error_msg {
+            Err(MpmError::Docker(message.clone()))
         } else {
             Ok(default.to_string())
         }
     }
 
     pub fn to_command_output(&self) -> Result<CommandOutput> {
-        if let Some(ref val) = self.success_value {
-            Ok(CommandOutput::success(val.clone()))
-        } else if let Some(ref msg) = self.error_msg {
-            Err(MpmError::Docker(msg.clone()))
+        if let Some(ref value) = self.success_value {
+            Ok(CommandOutput::success(value.clone()))
+        } else if let Some(ref message) = self.error_msg {
+            Err(MpmError::Docker(message.clone()))
         } else {
             Ok(CommandOutput::success(""))
+        }
+    }
+
+    /// Convert to a Result<()> for operations that don't return data
+    pub fn to_unit_result(&self) -> Result<()> {
+        if let Some(ref message) = self.error_msg {
+            Err(MpmError::Docker(message.clone()))
+        } else {
+            Ok(())
         }
     }
 }
@@ -502,6 +511,8 @@ pub struct ConfigurableMockClient {
     pub daemon: MockResponse,
     pub compose_ps: MockResponse,
     pub compose_logs: MockResponse,
+    pub compose_up: MockResponse,
+    pub compose_passthrough: MockResponse,
     pub inspect_container: MockResponse,
     pub list_containers: MockResponse,
 }
@@ -521,11 +532,11 @@ impl DockerClient for ConfigurableMockClient {
     }
 
     fn compose_up(&self, _options: &ComposeUpOptions) -> Result<()> {
-        Ok(())
+        self.compose_up.to_unit_result()
     }
 
     fn compose_passthrough(&self, _options: &ComposePassthroughOptions) -> Result<()> {
-        Ok(())
+        self.compose_passthrough.to_unit_result()
     }
 
     fn inspect_container(&self, _container: &str) -> Result<String> {
@@ -695,6 +706,8 @@ mod tests {
             daemon: MockResponse::err("Cannot connect to the Docker daemon"),
             compose_ps: MockResponse::err("Cannot connect to the Docker daemon"),
             compose_logs: MockResponse::err("Cannot connect to the Docker daemon"),
+            compose_up: MockResponse::err("Cannot connect to the Docker daemon"),
+            compose_passthrough: MockResponse::err("Cannot connect to the Docker daemon"),
             inspect_container: MockResponse::err("Cannot connect to the Docker daemon"),
             list_containers: MockResponse::err("Cannot connect to the Docker daemon"),
         };
@@ -704,6 +717,53 @@ mod tests {
         assert!(mock.compose_logs("test", None).is_err());
         assert!(mock.inspect_container("test").is_err());
         assert!(mock.list_containers(&[]).is_err());
+    }
+
+    #[test]
+    fn test_compose_up_failure() {
+        let mock = ConfigurableMockClient {
+            compose_up: MockResponse::err("no configuration file provided"),
+            ..Default::default()
+        };
+
+        let options = ComposeUpOptions {
+            project: "test",
+            compose_file: std::path::Path::new("/nonexistent/docker-compose.yaml"),
+            project_dir: std::path::Path::new("/nonexistent"),
+            env_files: vec![],
+            working_dir: std::path::Path::new("/nonexistent"),
+            build: false,
+            detach: true,
+            remove_orphans: false,
+        };
+
+        let result = mock.compose_up(&options);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("no configuration file"));
+    }
+
+    #[test]
+    fn test_compose_passthrough_failure() {
+        let mock = ConfigurableMockClient {
+            compose_passthrough: MockResponse::err("unknown command"),
+            ..Default::default()
+        };
+
+        let args = vec!["invalid-command".to_string()];
+        let options = ComposePassthroughOptions {
+            project: "test",
+            compose_file: std::path::Path::new("/nonexistent/docker-compose.yaml"),
+            project_dir: std::path::Path::new("/nonexistent"),
+            env_files: vec![],
+            working_dir: std::path::Path::new("/nonexistent"),
+            args: &args,
+        };
+
+        let result = mock.compose_passthrough(&options);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("unknown command"));
     }
 
     #[test]

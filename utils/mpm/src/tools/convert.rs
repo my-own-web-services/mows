@@ -1,14 +1,14 @@
 use std::path::Path;
 use tracing::debug;
 
-use crate::error::{MpmError, Result};
+use crate::error::{JsonResultExt, MpmError, Result};
 use crate::utils::{parse_yaml, read_input, write_output};
 
 pub fn json_to_yaml(input: Option<&Path>, output: Option<&Path>) -> Result<()> {
     debug!("Converting JSON to YAML");
     let content = read_input(input)?;
-    let value: serde_json::Value =
-        serde_json::from_str(&content).map_err(MpmError::JsonParse)?;
+    let context = input.map_or("stdin".to_string(), |p| p.display().to_string());
+    let value: serde_json::Value = serde_json::from_str(&content).json_context(context)?;
     let yaml = serde_yaml_neo::to_string_with_indent(&value, 4)?;
     write_output(output, &yaml)
 }
@@ -24,8 +24,8 @@ pub fn yaml_to_json(input: Option<&Path>, output: Option<&Path>) -> Result<()> {
 pub fn prettify_json(input: Option<&Path>, output: Option<&Path>) -> Result<()> {
     debug!("Prettifying JSON");
     let content = read_input(input)?;
-    let value: serde_json::Value =
-        serde_json::from_str(&content).map_err(MpmError::JsonParse)?;
+    let context = input.map_or("stdin".to_string(), |p| p.display().to_string());
+    let value: serde_json::Value = serde_json::from_str(&content).json_context(context)?;
     let json = serde_json::to_string_pretty(&value).map_err(MpmError::JsonSerialize)?;
     write_output(output, &json)
 }
