@@ -82,10 +82,12 @@ RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"
       mv /build/target/${RUST_TARGET}/${PROFILE}/${BINARY_NAME} /${BINARY_NAME}; \
     fi
 # Compress with UPX (strip is handled by Rust via profile.release.strip = "symbols")
-# Verify compressed binary still works after UPX
+# Verify compressed binary still works after UPX (only for native builds, not cross-compiled)
 RUN if [ "${PROFILE}" = "release" ]; then \
-      upx --best --lzma /${BINARY_NAME} && \
-      /${BINARY_NAME} --version; \
+      upx --best --lzma /${BINARY_NAME}; \
+      if [ "${TARGETARCH}" = "amd64" ]; then \
+        /${BINARY_NAME} --version; \
+      fi; \
     fi
 
 # Export binary stage for extraction
