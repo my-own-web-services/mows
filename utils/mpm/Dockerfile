@@ -86,7 +86,7 @@ RUN RUST_TARGET=$(if [ "$TARGETARCH" = "arm64" ]; then echo "$RUST_TARGET_ARM64"
 RUN if [ "${PROFILE}" = "release" ]; then \
       upx --best --lzma /${BINARY_NAME}; \
       if [ "${TARGETARCH}" = "amd64" ]; then \
-        /${BINARY_NAME} --version; \
+        /${BINARY_NAME} --help > /dev/null; \
       fi; \
     fi
 
@@ -107,5 +107,5 @@ ENV SERVICE_VERSION=${SERVICE_VERSION}
 STOPSIGNAL SIGTERM
 # Healthcheck verifies the binary is functional (uses exec form for scratch compatibility)
 # Note: On scratch images, exec form runs directly without a shell
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD ["./mpm", "--version"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD ["./mpm", "--help"]
 ENTRYPOINT ["./mpm"]
