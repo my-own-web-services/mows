@@ -92,8 +92,9 @@ Example: mpm compose cd {} --instance <name>"#,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::config::{ComposeConfig, ProjectEntry};
+    use super::super::config::{test_utils::TestConfigGuard, ComposeConfig, ProjectEntry};
     use std::path::PathBuf;
+    use tempfile::tempdir;
 
     fn create_test_config() -> MpmConfig {
         MpmConfig {
@@ -146,5 +147,282 @@ mod tests {
             project.unwrap().repo_path,
             PathBuf::from("/tmp/multi-staging")
         );
+    }
+
+    #[test]
+    fn test_compose_cd_project_not_found() {
+        let _guard = TestConfigGuard::new();
+
+        // Empty config - no projects
+        let config = MpmConfig::default();
+        config.save().unwrap();
+
+        let result = compose_cd("nonexistent", None);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("No project found"));
+        assert!(err.contains("nonexistent"));
+    }
+
+    #[test]
+    fn test_compose_cd_single_project_exists() {
+        let _guard = TestConfigGuard::new();
+
+        // Create a temp directory that exists
+        let dir = tempdir().unwrap();
+        let project_dir = dir.path().to_path_buf();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "my-project".to_string(),
+            instance_name: None,
+            repo_path: project_dir.clone(),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("my-project", None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compose_cd_project_directory_missing() {
+        let _guard = TestConfigGuard::new();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "deleted-project".to_string(),
+            instance_name: None,
+            repo_path: PathBuf::from("/nonexistent/path/that/does/not/exist"),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("deleted-project", None);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("no longer exists"));
+    }
+
+    #[test]
+    fn test_compose_cd_multiple_instances_without_specifying() {
+        let _guard = TestConfigGuard::new();
+
+        let dir1 = tempdir().unwrap();
+        let dir2 = tempdir().unwrap();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "multi".to_string(),
+            instance_name: None,
+            repo_path: dir1.path().to_path_buf(),
+            manifest_path: PathBuf::from("."),
+        });
+        config.upsert_project(ProjectEntry {
+            project_name: "multi".to_string(),
+            instance_name: Some("staging".to_string()),
+            repo_path: dir2.path().to_path_buf(),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("multi", None);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("Multiple instances"));
+        assert!(err.contains("--instance"));
+    }
+
+    #[test]
+    fn test_compose_cd_with_instance_specified() {
+        let _guard = TestConfigGuard::new();
+
+        let dir1 = tempdir().unwrap();
+        let dir2 = tempdir().unwrap();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "multi".to_string(),
+            instance_name: None,
+            repo_path: dir1.path().to_path_buf(),
+            manifest_path: PathBuf::from("."),
+        });
+        config.upsert_project(ProjectEntry {
+            project_name: "multi".to_string(),
+            instance_name: Some("staging".to_string()),
+            repo_path: dir2.path().to_path_buf(),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("multi", Some("staging"));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compose_cd_instance_not_found() {
+        let _guard = TestConfigGuard::new();
+
+        let dir = tempdir().unwrap();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "my-project".to_string(),
+            instance_name: Some("prod".to_string()),
+            repo_path: dir.path().to_path_buf(),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("my-project", Some("nonexistent"));
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("No instance 'nonexistent' found"));
+    }
+
+    #[test]
+    fn test_compose_cd_with_manifest_subdir() {
+        let _guard = TestConfigGuard::new();
+
+        // Create temp directory with manifest subdirectory
+        let dir = tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("deployment")).unwrap();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "subdir-project".to_string(),
+            instance_name: None,
+            repo_path: dir.path().to_path_buf(),
+            manifest_path: PathBuf::from("deployment"),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("subdir-project", None);
+        assert!(result.is_ok());
+    }
+
+    // =========================================================================
+    // Unicode and Special Character Tests (#38)
+    // =========================================================================
+
+    #[test]
+    fn test_compose_cd_project_name_with_unicode() {
+        let _guard = TestConfigGuard::new();
+
+        let dir = tempdir().unwrap();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "项目-αβγ-日本語".to_string(),
+            instance_name: None,
+            repo_path: dir.path().to_path_buf(),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        // Should find the project with unicode name
+        let result = compose_cd("项目-αβγ-日本語", None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compose_cd_instance_name_with_unicode() {
+        let _guard = TestConfigGuard::new();
+
+        let dir = tempdir().unwrap();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "my-project".to_string(),
+            instance_name: Some("ステージング".to_string()),
+            repo_path: dir.path().to_path_buf(),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("my-project", Some("ステージング"));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compose_cd_project_name_with_spaces() {
+        let _guard = TestConfigGuard::new();
+
+        let dir = tempdir().unwrap();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "my project with spaces".to_string(),
+            instance_name: None,
+            repo_path: dir.path().to_path_buf(),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("my project with spaces", None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compose_cd_project_name_with_special_chars() {
+        let _guard = TestConfigGuard::new();
+
+        let dir = tempdir().unwrap();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "project_with-special.chars@123".to_string(),
+            instance_name: None,
+            repo_path: dir.path().to_path_buf(),
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("project_with-special.chars@123", None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compose_cd_path_with_spaces() {
+        let _guard = TestConfigGuard::new();
+
+        // Create directory with spaces in the name
+        let base_dir = tempdir().unwrap();
+        let space_dir = base_dir.path().join("path with spaces");
+        std::fs::create_dir_all(&space_dir).unwrap();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "space-path-project".to_string(),
+            instance_name: None,
+            repo_path: space_dir,
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("space-path-project", None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_compose_cd_path_with_unicode() {
+        let _guard = TestConfigGuard::new();
+
+        // Create directory with unicode in the name
+        let base_dir = tempdir().unwrap();
+        let unicode_dir = base_dir.path().join("日本語フォルダ");
+        std::fs::create_dir_all(&unicode_dir).unwrap();
+
+        let mut config = MpmConfig::default();
+        config.upsert_project(ProjectEntry {
+            project_name: "unicode-path-project".to_string(),
+            instance_name: None,
+            repo_path: unicode_dir,
+            manifest_path: PathBuf::from("."),
+        });
+        config.save().unwrap();
+
+        let result = compose_cd("unicode-path-project", None);
+        assert!(result.is_ok());
     }
 }

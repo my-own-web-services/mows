@@ -1,13 +1,12 @@
 use gtmpl_ng::{self as gtmpl};
 use std::collections::{HashMap, HashSet};
-use std::fs::{self, OpenOptions};
-use std::io::Write;
-use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use tracing::{debug, info, trace, warn};
 
 use super::manifest::MowsManifest;
-use super::secrets::{load_secrets_as_map, merge_generated_secrets};
+use super::secrets::{load_secrets_as_map, merge_generated_secrets, write_secret_file};
 use crate::error::{IoResultExt, MpmError, Result};
 use crate::template::error::format_template_error;
 use crate::template::render_template_string;
@@ -15,33 +14,9 @@ use crate::template::variables::load_variable_file;
 use crate::tools::{flatten_labels_in_compose, FlattenLabelsError};
 use crate::utils::parse_yaml;
 
-/// File permission mode for secrets files: owner read/write only (rw-------).
-/// Prevents world-readable credentials.
-const SECRET_FILE_MODE: u32 = 0o600;
-
 /// Directory permission mode: owner full, group/others read+execute (rwxr-xr-x).
 /// Standard permission for directories that need to be traversable.
 const DIRECTORY_MODE: u32 = 0o755;
-
-/// Write a file with restricted permissions (600 - owner read/write only)
-/// Used for secrets files to prevent world-readable credentials.
-/// Permissions are set atomically at file creation to avoid race conditions.
-pub fn write_secret_file(path: &Path, content: &str) -> Result<()> {
-    // Set permissions at creation time to avoid race condition where file
-    // exists briefly with default (potentially world-readable) permissions
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .mode(SECRET_FILE_MODE)
-        .open(path)
-        .io_context(format!("Failed to create file '{}'", path.display()))?;
-
-    file.write_all(content.as_bytes())
-        .io_context(format!("Failed to write to '{}'", path.display()))?;
-
-    Ok(())
-}
 
 /// Context for rendering templates
 pub struct RenderContext {
@@ -345,9 +320,9 @@ fn render_template_directory_inner(
 }
 
 /// Render generated-secrets.env with merge logic
-pub fn render_generated_secrets(ctx: &RenderContext) -> Result<()> {
-    let template_path = ctx.base_dir.join("templates/generated-secrets.env");
-    let results_dir = ctx.base_dir.join("results");
+pub fn render_generated_secrets(context: &RenderContext) -> Result<()> {
+    let template_path = context.base_dir.join("templates/generated-secrets.env");
+    let results_dir = context.base_dir.join("results");
     let output_path = results_dir.join("generated-secrets.env");
 
     if !template_path.exists() {
@@ -369,7 +344,7 @@ pub fn render_generated_secrets(ctx: &RenderContext) -> Result<()> {
     let template_content = fs::read_to_string(&template_path)
         .io_context("Failed to read generated-secrets template")?;
 
-    let variables = ctx.get_template_variables();
+    let variables = context.get_template_variables();
 
     let rendered = render_template_string(&template_content, &variables).map_err(|(error, preamble_lines)| {
         MpmError::Template(format_template_error(
@@ -396,9 +371,9 @@ pub fn render_generated_secrets(ctx: &RenderContext) -> Result<()> {
 }
 
 /// Copy provided-secrets.env to results with secure permissions
-pub fn copy_provided_secrets(ctx: &RenderContext) -> Result<()> {
-    let source_path = ctx.base_dir.join("provided-secrets.env");
-    let results_dir = ctx.base_dir.join("results");
+pub fn copy_provided_secrets(context: &RenderContext) -> Result<()> {
+    let source_path = context.base_dir.join("provided-secrets.env");
+    let results_dir = context.base_dir.join("results");
     let output_path = results_dir.join("provided-secrets.env");
 
     if !source_path.exists() {
@@ -422,9 +397,9 @@ pub fn copy_provided_secrets(ctx: &RenderContext) -> Result<()> {
 }
 
 /// Render the templates/config directory
-pub fn render_config_templates(ctx: &RenderContext) -> Result<()> {
-    let config_dir = ctx.base_dir.join("templates/config");
-    let output_dir = ctx.base_dir.join("results/config");
+pub fn render_config_templates(context: &RenderContext) -> Result<()> {
+    let config_dir = context.base_dir.join("templates/config");
+    let output_dir = context.base_dir.join("results/config");
 
     if !config_dir.exists() {
         debug!("No templates/config directory found");
@@ -433,13 +408,13 @@ pub fn render_config_templates(ctx: &RenderContext) -> Result<()> {
 
     info!("Rendering templates/config directory");
 
-    let variables = ctx.get_template_variables();
+    let variables = context.get_template_variables();
     render_template_directory(&config_dir, &output_dir, &variables)
 }
 
 /// Render docker-compose.yaml with label flattening
-pub fn render_docker_compose(ctx: &RenderContext) -> Result<()> {
-    let templates_dir = ctx.base_dir.join("templates");
+pub fn render_docker_compose(context: &RenderContext) -> Result<()> {
+    let templates_dir = context.base_dir.join("templates");
 
     // Find docker-compose template
     let template_path = if templates_dir.join("docker-compose.yaml").exists() {
@@ -453,7 +428,7 @@ pub fn render_docker_compose(ctx: &RenderContext) -> Result<()> {
         });
     };
 
-    let output_path = ctx.base_dir.join("results").join(
+    let output_path = context.base_dir.join("results").join(
         template_path
             .file_name()
             .unwrap_or_default()
@@ -464,7 +439,7 @@ pub fn render_docker_compose(ctx: &RenderContext) -> Result<()> {
     info!("Rendering docker-compose template");
 
     // First render the template
-    let variables = ctx.get_template_variables();
+    let variables = context.get_template_variables();
     render_template_file(&template_path, &output_path, &variables)?;
 
     // Then flatten labels if present
@@ -501,9 +476,9 @@ pub fn render_docker_compose(ctx: &RenderContext) -> Result<()> {
 }
 
 /// Setup the data directory symlink
-pub fn setup_data_directory(ctx: &RenderContext) -> Result<()> {
-    let data_dir = ctx.base_dir.join("data");
-    let results_dir = ctx.base_dir.join("results");
+pub fn setup_data_directory(context: &RenderContext) -> Result<()> {
+    let data_dir = context.base_dir.join("data");
+    let results_dir = context.base_dir.join("results");
     let symlink_path = results_dir.join("data");
 
     // Create data directory if it doesn't exist
@@ -555,7 +530,7 @@ pub fn setup_data_directory(ctx: &RenderContext) -> Result<()> {
     let absolute_data_dir = if data_dir.is_absolute() {
         data_dir.clone()
     } else {
-        ctx.base_dir.join(&data_dir)
+        context.base_dir.join(&data_dir)
     };
 
     info!("Creating data directory symlink");
@@ -566,9 +541,9 @@ pub fn setup_data_directory(ctx: &RenderContext) -> Result<()> {
 }
 
 /// Render admin-infos.yaml with secrets variables
-pub fn render_admin_infos(ctx: &RenderContext) -> Result<()> {
-    let template_path = ctx.base_dir.join("templates/admin-infos.yaml");
-    let output_path = ctx.base_dir.join("admin-infos.yaml");
+pub fn render_admin_infos(context: &RenderContext) -> Result<()> {
+    let template_path = context.base_dir.join("templates/admin-infos.yaml");
+    let output_path = context.base_dir.join("admin-infos.yaml");
 
     if !template_path.exists() {
         debug!("No admin-infos.yaml template found");
@@ -578,10 +553,10 @@ pub fn render_admin_infos(ctx: &RenderContext) -> Result<()> {
     info!("Rendering admin-infos.yaml");
 
     // Load secrets
-    let generated_secrets = load_secrets_as_map(&ctx.base_dir.join("results/generated-secrets.env"))?;
-    let provided_secrets = load_secrets_as_map(&ctx.base_dir.join("results/provided-secrets.env"))?;
+    let generated_secrets = load_secrets_as_map(&context.base_dir.join("results/generated-secrets.env"))?;
+    let provided_secrets = load_secrets_as_map(&context.base_dir.join("results/provided-secrets.env"))?;
 
-    let variables = ctx.get_template_variables_with_secrets(&generated_secrets, &provided_secrets);
+    let variables = context.get_template_variables_with_secrets(&generated_secrets, &provided_secrets);
     render_template_file(&template_path, &output_path, &variables)
 }
 
@@ -690,19 +665,19 @@ impl Drop for PipelineBackup {
 }
 
 /// Run the full render pipeline with cleanup on failure
-pub fn run_render_pipeline(ctx: &RenderContext) -> Result<()> {
-    let results_dir = ctx.base_dir.join("results");
+pub fn run_render_pipeline(context: &RenderContext) -> Result<()> {
+    let results_dir = context.base_dir.join("results");
 
     info!(
         "Starting render pipeline for project: {}",
-        ctx.manifest.project_name()
+        context.manifest.project_name()
     );
 
     // Create backup for potential rollback
     let backup = PipelineBackup::create(&results_dir)?;
 
     // Run the pipeline, rolling back on failure
-    match run_render_pipeline_inner(ctx, &results_dir) {
+    match run_render_pipeline_inner(context, &results_dir) {
         Ok(()) => {
             info!("Render pipeline completed successfully");
             // Remove backup on success
@@ -724,7 +699,7 @@ pub fn run_render_pipeline(ctx: &RenderContext) -> Result<()> {
 }
 
 /// Inner pipeline implementation
-fn run_render_pipeline_inner(ctx: &RenderContext, results_dir: &Path) -> Result<()> {
+fn run_render_pipeline_inner(context: &RenderContext, results_dir: &Path) -> Result<()> {
     // Ensure results directory exists (backup creates it if results existed before,
     // but we need to create it if this is a fresh project)
     if !results_dir.exists() {
@@ -733,22 +708,22 @@ fn run_render_pipeline_inner(ctx: &RenderContext, results_dir: &Path) -> Result<
     }
 
     // Step 1: Render generated-secrets.env with merge logic
-    render_generated_secrets(ctx)?;
+    render_generated_secrets(context)?;
 
     // Step 2: Copy provided-secrets.env
-    copy_provided_secrets(ctx)?;
+    copy_provided_secrets(context)?;
 
     // Step 3: Render templates/config directory
-    render_config_templates(ctx)?;
+    render_config_templates(context)?;
 
     // Step 4: Render docker-compose.yaml with label flattening
-    render_docker_compose(ctx)?;
+    render_docker_compose(context)?;
 
     // Step 5: Setup data directory symlink
-    setup_data_directory(ctx)?;
+    setup_data_directory(context)?;
 
     // Step 6: Render admin-infos.yaml
-    render_admin_infos(ctx)?;
+    render_admin_infos(context)?;
 
     Ok(())
 }
@@ -782,8 +757,8 @@ spec:
         let dir = tempdir().unwrap();
         create_test_project(dir.path());
 
-        let ctx = RenderContext::new(dir.path()).unwrap();
-        assert_eq!(ctx.manifest.project_name(), "test-project");
+        let context = RenderContext::new(dir.path()).unwrap();
+        assert_eq!(context.manifest.project_name(), "test-project");
     }
 
     #[test]
@@ -791,8 +766,8 @@ spec:
         let dir = tempdir().unwrap();
         create_test_project(dir.path());
 
-        let ctx = RenderContext::new(dir.path()).unwrap();
-        let vars = ctx.get_template_variables();
+        let context = RenderContext::new(dir.path()).unwrap();
+        let vars = context.get_template_variables();
 
         if let gtmpl::Value::Object(map) = vars {
             assert!(map.contains_key("chart"));

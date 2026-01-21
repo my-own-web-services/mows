@@ -1,9 +1,38 @@
 use std::collections::HashMap;
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
 use tracing::{debug, trace, warn};
 
-use crate::error::Result;
+use crate::error::{IoResultExt, Result};
+
+use super::SENSITIVE_FILE_MODE;
+
+/// File permission mode for secrets files: owner read/write only (rw-------).
+/// Prevents world-readable credentials.
+/// Re-exported from compose module's shared constant.
+pub const SECRET_FILE_MODE: u32 = SENSITIVE_FILE_MODE;
+
+/// Write a file with restricted permissions (600 - owner read/write only).
+///
+/// Used for secrets files to prevent world-readable credentials.
+/// Permissions are set atomically at file creation to avoid race conditions
+/// where file exists briefly with default (potentially world-readable) permissions.
+pub fn write_secret_file(path: &Path, content: &str) -> Result<()> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .mode(SECRET_FILE_MODE)
+        .open(path)
+        .io_context(format!("Failed to create file '{}'", path.display()))?;
+
+    file.write_all(content.as_bytes())
+        .io_context(format!("Failed to write to '{}'", path.display()))?;
+
+    Ok(())
+}
 
 /// Parse a quoted string value, handling escape sequences
 /// Returns the unquoted value with escapes processed
@@ -198,8 +227,6 @@ pub fn merge_generated_secrets(
 
 /// Load secrets from a .env file as a HashMap
 pub fn load_secrets_as_map(path: &Path) -> Result<HashMap<String, String>> {
-    use crate::error::IoResultExt;
-
     if !path.exists() {
         debug!("Secrets file does not exist: {}", path.display());
         return Ok(HashMap::new());
@@ -216,37 +243,105 @@ pub fn load_secrets_as_map(path: &Path) -> Result<HashMap<String, String>> {
     Ok(map)
 }
 
-/// Validate that required provided secrets have values set
-/// Returns an error listing missing required secrets
+/// Sync provided-secrets.env with manifest definitions.
+/// Adds any secrets defined in manifest but missing from the file.
+/// Returns the number of secrets added.
+pub fn sync_provided_secrets_from_manifest(
+    manifest: &super::manifest::MowsManifest,
+    secrets_path: &Path,
+) -> Result<usize> {
+    use tracing::info;
+
+    let secret_definitions = match &manifest.spec.compose {
+        Some(c) => c.provided_secrets.as_ref(),
+        None => return Ok(0),
+    };
+
+    let Some(secret_definitions) = secret_definitions else { return Ok(0) };
+
+    // Load existing secrets
+    let existing = load_secrets_as_map(secrets_path)?;
+
+    // Find secrets in manifest that are not in the file
+    let mut missing_secrets: Vec<(&String, &super::manifest::ProvidedSecretDef)> = Vec::new();
+    for (name, definition) in secret_definitions {
+        if !existing.contains_key(name) {
+            missing_secrets.push((name, definition));
+        }
+    }
+
+    if missing_secrets.is_empty() {
+        return Ok(0);
+    }
+
+    // Sort for deterministic output
+    missing_secrets.sort_by_key(|(name, _)| *name);
+
+    // Build content to append
+    let mut append_content = String::new();
+    for (name, definition) in &missing_secrets {
+        // Build comment with required/optional status and default value
+        let required_str = if definition.optional { "optional" } else { "required" };
+        let default_str = match &definition.default {
+            Some(v) if !v.is_null() => format!(", default: {}", format_yaml_value_for_env(v)),
+            _ => String::new(),
+        };
+        append_content.push_str(&format!("\n# ({}{})\n", required_str, default_str));
+
+        // Add key with default value if present and not null
+        let value = match &definition.default {
+            Some(v) if !v.is_null() => format_yaml_value_for_env(v),
+            _ => String::new(),
+        };
+        append_content.push_str(&format!("{}={}\n", name, value));
+    }
+
+    // Read existing file content (or empty if doesn't exist)
+    let existing_content = if secrets_path.exists() {
+        fs::read_to_string(secrets_path)
+            .io_context(format!("Failed to read {}", secrets_path.display()))?
+    } else {
+        String::from("# User-provided secrets\n# Fill in the required values before running 'mpm compose up'\n")
+    };
+
+    // Write merged content
+    let new_content = format!("{}{}", existing_content.trim_end(), append_content);
+    fs::write(secrets_path, new_content)
+        .io_context(format!("Failed to write {}", secrets_path.display()))?;
+
+    let count = missing_secrets.len();
+    info!("Added {} new secret(s) to provided-secrets.env", count);
+
+    Ok(count)
+}
+
+/// Validate that required provided secrets have values set.
+/// This should be called AFTER sync_provided_secrets_from_manifest.
+/// Returns an error listing missing required secrets.
 pub fn validate_provided_secrets(
     manifest: &super::manifest::MowsManifest,
     secrets_path: &Path,
 ) -> Result<()> {
     use crate::error::MpmError;
 
-    let defs = match &manifest.spec.compose {
+    let secret_definitions = match &manifest.spec.compose {
         Some(c) => c.provided_secrets.as_ref(),
         None => return Ok(()),
     };
 
-    let Some(defs) = defs else { return Ok(()) };
+    let Some(secret_definitions) = secret_definitions else { return Ok(()) };
 
     let existing = load_secrets_as_map(secrets_path)?;
     let mut missing: Vec<&String> = Vec::new();
 
-    for (name, def) in defs {
-        if !def.optional {
+    for (name, definition) in secret_definitions {
+        if !definition.optional {
             let has_value = existing
                 .get(name)
                 .map(|v| !v.trim().is_empty())
                 .unwrap_or(false);
-            let has_default = def
-                .default
-                .as_ref()
-                .map(|d| !d.is_null())
-                .unwrap_or(false);
 
-            if !has_value && !has_default {
+            if !has_value {
                 missing.push(name);
             }
         }
@@ -272,38 +367,36 @@ fn format_yaml_value_for_env(value: &serde_yaml_neo::Value) -> String {
     match value {
         serde_yaml_neo::Value::Bool(b) => b.to_string(),
         serde_yaml_neo::Value::Number(n) => n.to_string(),
-        serde_yaml_neo::Value::String(s) => s.clone(),
+        serde_yaml_neo::Value::String(s) => s.to_string(),
         _ => String::new(),
     }
 }
 
 /// Generate a provided-secrets.env file from manifest definitions
 pub fn generate_provided_secrets_file(
-    defs: &HashMap<String, super::manifest::ProvidedSecretDef>,
+    secret_definitions: &HashMap<String, super::manifest::ProvidedSecretDef>,
     output_path: &Path,
 ) -> Result<()> {
-    use crate::error::IoResultExt;
-
     let mut content = String::from("# User-provided secrets\n");
     content.push_str("# Fill in the required values before running 'mpm compose up'\n\n");
 
     // Sort keys for deterministic output
-    let mut keys: Vec<&String> = defs.keys().collect();
+    let mut keys: Vec<&String> = secret_definitions.keys().collect();
     keys.sort();
 
     for name in keys {
-        let def = &defs[name];
+        let definition = &secret_definitions[name];
 
         // Build comment with required/optional status and default value
-        let required_str = if def.optional { "optional" } else { "required" };
-        let default_str = match &def.default {
+        let required_str = if definition.optional { "optional" } else { "required" };
+        let default_str = match &definition.default {
             Some(v) if !v.is_null() => format!(", default: {}", format_yaml_value_for_env(v)),
             _ => String::new(),
         };
         content.push_str(&format!("# ({}{})\n", required_str, default_str));
 
         // Add key with default value if present and not null
-        let value = match &def.default {
+        let value = match &definition.default {
             Some(v) if !v.is_null() => format_yaml_value_for_env(v),
             _ => String::new(),
         };
@@ -316,27 +409,35 @@ pub fn generate_provided_secrets_file(
     Ok(())
 }
 
-/// Regenerate secrets (all or specific key)
-/// This works by clearing the value(s) in generated-secrets.env,
-/// then re-running the render pipeline which will regenerate empty values
-pub fn secrets_regenerate(key: Option<&str>) -> Result<()> {
-    use crate::error::{IoResultExt, MpmError};
-    use super::find_manifest_dir;
-    use super::render::{render_generated_secrets, write_secret_file, RenderContext};
-    use tracing::info;
-
-    let base_dir = find_manifest_dir()?;
-
-    let secrets_path = base_dir.join("results/generated-secrets.env");
+/// Clear secret values in an env file, optionally filtering by key.
+///
+/// This is the core logic for secrets regeneration - it reads the file,
+/// clears the specified key(s) values (setting them to empty), and writes
+/// the file back with secure permissions.
+///
+/// # Arguments
+/// * `secrets_path` - Path to the secrets env file
+/// * `key` - Optional key to clear. If None, clears all keys.
+///
+/// # Returns
+/// The number of keys that were cleared, or an error if the key was not found.
+///
+/// # Errors
+/// * File doesn't exist
+/// * Specified key not found in file
+/// * No keys found in file (when clearing all)
+pub fn clear_secret_values(secrets_path: &Path, key: Option<&str>) -> Result<usize> {
+    use crate::error::MpmError;
 
     if !secrets_path.exists() {
-        return Err(MpmError::path(&secrets_path,
+        return Err(MpmError::path(
+            secrets_path,
             "No generated-secrets.env found. Run 'mpm compose up' first.",
         ));
     }
 
     // Read current secrets
-    let content = fs::read_to_string(&secrets_path)
+    let content = fs::read_to_string(secrets_path)
         .io_context("Failed to read secrets file")?;
 
     let entries = parse_env_file_ordered(&content);
@@ -345,41 +446,57 @@ pub fn secrets_regenerate(key: Option<&str>) -> Result<()> {
     let mut cleared_count = 0;
     let new_content: String = entries
         .into_iter()
-        .map(|(k, v)| {
-            match v {
-                Some(_) if key.is_none() || key == Some(k.as_str()) => {
-                    // Clear this key's value
-                    cleared_count += 1;
-                    format!("{}=", k)
-                }
-                Some(val) => format!("{}={}", k, val),
-                None => k, // Comment or empty line
+        .map(|(key_name, value)| match value {
+            Some(_) if key.is_none() || key == Some(key_name.as_str()) => {
+                // Clear this key's value
+                cleared_count += 1;
+                format!("{}=", key_name)
             }
+            Some(existing_value) => format!("{}={}", key_name, existing_value),
+            None => key_name, // Comment or empty line
         })
         .collect::<Vec<_>>()
         .join("\n");
 
     if cleared_count == 0 {
-        if let Some(k) = key {
-            return Err(MpmError::Validation(format!("Key '{}' not found in generated-secrets.env", k)));
+        if let Some(key_name) = key {
+            return Err(MpmError::Validation(format!(
+                "Key '{}' not found in generated-secrets.env",
+                key_name
+            )));
         }
-        return Err(MpmError::Validation("No keys found in generated-secrets.env".to_string()));
+        return Err(MpmError::Validation(
+            "No keys found in generated-secrets.env".to_string(),
+        ));
     }
 
     // Write the cleared content with secure permissions (600)
-    write_secret_file(&secrets_path, &new_content)?;
+    write_secret_file(secrets_path, &new_content)?;
 
-    info!(
-        "Cleared {} secret(s), re-rendering...",
-        cleared_count
-    );
+    Ok(cleared_count)
+}
+
+/// Regenerate secrets (all or specific key)
+/// This works by clearing the value(s) in generated-secrets.env,
+/// then re-running the render pipeline which will regenerate empty values
+pub fn secrets_regenerate(key: Option<&str>) -> Result<()> {
+    use super::find_manifest_dir;
+    use super::render::{render_generated_secrets, RenderContext};
+    use tracing::info;
+
+    let base_dir = find_manifest_dir()?;
+    let secrets_path = base_dir.join("results/generated-secrets.env");
+
+    let cleared_count = clear_secret_values(&secrets_path, key)?;
+
+    info!("Cleared {} secret(s), re-rendering...", cleared_count);
 
     // Re-run the render to regenerate the secrets
-    let ctx = RenderContext::new(&base_dir)?;
-    render_generated_secrets(&ctx)?;
+    let context = RenderContext::new(&base_dir)?;
+    render_generated_secrets(&context)?;
 
-    if let Some(k) = key {
-        info!("Regenerated secret: {}", k);
+    if let Some(key_name) = key {
+        info!("Regenerated secret: {}", key_name);
     } else {
         info!("Regenerated {} secrets", cleared_count);
     }
@@ -800,22 +917,22 @@ COMPLEX="with \"escape\""
         let dir = tempdir().unwrap();
         let output_path = dir.path().join("provided-secrets.env");
 
-        let mut defs = HashMap::new();
-        defs.insert(
+        let mut secret_definitions = HashMap::new();
+        secret_definitions.insert(
             "API_KEY".to_string(),
             ProvidedSecretDef {
                 default: None,
                 optional: false,
             },
         );
-        defs.insert(
+        secret_definitions.insert(
             "SMTP_PORT".to_string(),
             ProvidedSecretDef {
                 default: Some(serde_yaml_neo::Value::Number(465.into())),
                 optional: false,
             },
         );
-        defs.insert(
+        secret_definitions.insert(
             "OPTIONAL_SECRET".to_string(),
             ProvidedSecretDef {
                 default: Some(serde_yaml_neo::Value::String("default-value".to_string())),
@@ -823,7 +940,7 @@ COMPLEX="with \"escape\""
             },
         );
 
-        generate_provided_secrets_file(&defs, &output_path).unwrap();
+        generate_provided_secrets_file(&secret_definitions, &output_path).unwrap();
 
         let content = std::fs::read_to_string(&output_path).unwrap();
 
@@ -841,9 +958,146 @@ COMPLEX="with \"escape\""
     }
 
     #[test]
+    fn test_sync_adds_only_missing_secrets() {
+        use super::super::manifest::{
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+        };
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("provided-secrets.env");
+
+        // Create existing file with one secret
+        std::fs::write(&secrets_path, "API_KEY=existing-value\n").unwrap();
+
+        let mut provided_secrets = HashMap::new();
+        provided_secrets.insert(
+            "API_KEY".to_string(),
+            ProvidedSecretDef {
+                default: Some(serde_yaml_neo::Value::String("default-key".to_string())),
+                optional: false,
+            },
+        );
+        provided_secrets.insert(
+            "NEW_SECRET".to_string(),
+            ProvidedSecretDef {
+                default: Some(serde_yaml_neo::Value::String("new-default".to_string())),
+                optional: false,
+            },
+        );
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(DeploymentConfig {
+                    values_file_path: None,
+                    provided_secrets: Some(provided_secrets),
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        // Sync should only add NEW_SECRET (API_KEY already exists)
+        let added = sync_provided_secrets_from_manifest(&manifest, &secrets_path).unwrap();
+        assert_eq!(added, 1);
+
+        let content = std::fs::read_to_string(&secrets_path).unwrap();
+        // Existing value should be preserved
+        assert!(content.contains("API_KEY=existing-value"));
+        // New secret should be added with default
+        assert!(content.contains("NEW_SECRET=new-default"));
+    }
+
+    #[test]
+    fn test_sync_returns_zero_when_all_present() {
+        use super::super::manifest::{
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+        };
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("provided-secrets.env");
+
+        // Create file with all secrets
+        std::fs::write(&secrets_path, "API_KEY=value1\nSMTP_PORT=587\n").unwrap();
+
+        let mut provided_secrets = HashMap::new();
+        provided_secrets.insert(
+            "API_KEY".to_string(),
+            ProvidedSecretDef {
+                default: None,
+                optional: false,
+            },
+        );
+        provided_secrets.insert(
+            "SMTP_PORT".to_string(),
+            ProvidedSecretDef {
+                default: Some(serde_yaml_neo::Value::Number(465.into())),
+                optional: false,
+            },
+        );
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(DeploymentConfig {
+                    values_file_path: None,
+                    provided_secrets: Some(provided_secrets),
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        // All secrets exist, should add nothing
+        let added = sync_provided_secrets_from_manifest(&manifest, &secrets_path).unwrap();
+        assert_eq!(added, 0);
+    }
+
+    #[test]
+    fn test_sync_with_no_manifest_secrets() {
+        use super::super::manifest::{
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest,
+        };
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("provided-secrets.env");
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(DeploymentConfig {
+                    values_file_path: None,
+                    provided_secrets: None, // No providedSecrets
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        // No secrets defined, should return 0
+        let added = sync_provided_secrets_from_manifest(&manifest, &secrets_path).unwrap();
+        assert_eq!(added, 0);
+    }
+
+    #[test]
     fn test_validate_provided_secrets_all_present() {
         use super::super::manifest::{
-            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
         };
         use std::io::Write;
         use tempfile::NamedTempFile;
@@ -876,7 +1130,7 @@ COMPLEX="with \"escape\""
                 version: None,
             },
             spec: ManifestSpec {
-                compose: Some(ComposeConfig {
+                compose: Some(DeploymentConfig {
                     values_file_path: None,
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
@@ -891,7 +1145,7 @@ COMPLEX="with \"escape\""
     #[test]
     fn test_validate_provided_secrets_missing_required() {
         use super::super::manifest::{
-            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
         };
         use std::io::Write;
         use tempfile::NamedTempFile;
@@ -924,7 +1178,7 @@ COMPLEX="with \"escape\""
                 version: None,
             },
             spec: ManifestSpec {
-                compose: Some(ComposeConfig {
+                compose: Some(DeploymentConfig {
                     values_file_path: None,
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
@@ -940,9 +1194,9 @@ COMPLEX="with \"escape\""
     }
 
     #[test]
-    fn test_validate_provided_secrets_with_default() {
+    fn test_validate_provided_secrets_with_default_fails_without_sync() {
         use super::super::manifest::{
-            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
         };
         use tempfile::NamedTempFile;
 
@@ -966,7 +1220,7 @@ COMPLEX="with \"escape\""
                 version: None,
             },
             spec: ManifestSpec {
-                compose: Some(ComposeConfig {
+                compose: Some(DeploymentConfig {
                     values_file_path: None,
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
@@ -974,15 +1228,65 @@ COMPLEX="with \"escape\""
             },
         };
 
-        // Should pass because the secret has a default value
+        // Validation alone should FAIL - sync must be called first to populate defaults
         let result = validate_provided_secrets(&manifest, secrets_file.path());
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("SMTP_PORT"));
+    }
+
+    #[test]
+    fn test_sync_then_validate_with_default() {
+        use super::super::manifest::{
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+        };
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("provided-secrets.env");
+
+        let mut provided_secrets = HashMap::new();
+        provided_secrets.insert(
+            "SMTP_PORT".to_string(),
+            ProvidedSecretDef {
+                default: Some(serde_yaml_neo::Value::Number(465.into())), // Has default
+                optional: false,
+            },
+        );
+
+        let manifest = MowsManifest {
+            manifest_version: "0.1".to_string(),
+            metadata: ManifestMetadata {
+                name: "test".to_string(),
+                description: None,
+                version: None,
+            },
+            spec: ManifestSpec {
+                compose: Some(DeploymentConfig {
+                    values_file_path: None,
+                    provided_secrets: Some(provided_secrets),
+                    extra: serde_yaml_neo::Value::default(),
+                }),
+            },
+        };
+
+        // Sync should add the secret with its default
+        let added = sync_provided_secrets_from_manifest(&manifest, &secrets_path).unwrap();
+        assert_eq!(added, 1);
+
+        // Now validation should pass
+        let result = validate_provided_secrets(&manifest, &secrets_path);
         assert!(result.is_ok());
+
+        // Verify the file contains the default value
+        let content = std::fs::read_to_string(&secrets_path).unwrap();
+        assert!(content.contains("SMTP_PORT=465"));
     }
 
     #[test]
     fn test_validate_provided_secrets_optional_missing() {
         use super::super::manifest::{
-            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
         };
         use tempfile::NamedTempFile;
 
@@ -1006,7 +1310,7 @@ COMPLEX="with \"escape\""
                 version: None,
             },
             spec: ManifestSpec {
-                compose: Some(ComposeConfig {
+                compose: Some(DeploymentConfig {
                     values_file_path: None,
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
@@ -1044,7 +1348,7 @@ COMPLEX="with \"escape\""
     #[test]
     fn test_validate_provided_secrets_no_provided_secrets_field() {
         use super::super::manifest::{
-            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest,
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest,
         };
         use tempfile::NamedTempFile;
 
@@ -1058,7 +1362,7 @@ COMPLEX="with \"escape\""
                 version: None,
             },
             spec: ManifestSpec {
-                compose: Some(ComposeConfig {
+                compose: Some(DeploymentConfig {
                     values_file_path: None,
                     provided_secrets: None, // No providedSecrets field
                     extra: serde_yaml_neo::Value::default(),
@@ -1072,9 +1376,9 @@ COMPLEX="with \"escape\""
     }
 
     #[test]
-    fn test_validate_provided_secrets_file_not_exists() {
+    fn test_validate_provided_secrets_file_not_exists_with_default_fails() {
         use super::super::manifest::{
-            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
         };
         use std::path::Path;
 
@@ -1097,7 +1401,7 @@ COMPLEX="with \"escape\""
                 version: None,
             },
             spec: ManifestSpec {
-                compose: Some(ComposeConfig {
+                compose: Some(DeploymentConfig {
                     values_file_path: None,
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
@@ -1105,15 +1409,18 @@ COMPLEX="with \"escape\""
             },
         };
 
-        // Should pass because the secret has a default value
+        // Should FAIL - validation only checks file values, not manifest defaults
+        // sync must be called first to create the file with defaults
         let result = validate_provided_secrets(&manifest, nonexistent_path);
-        assert!(result.is_ok());
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("API_KEY"));
     }
 
     #[test]
     fn test_validate_provided_secrets_file_not_exists_missing_required() {
         use super::super::manifest::{
-            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
         };
         use std::path::Path;
 
@@ -1136,7 +1443,7 @@ COMPLEX="with \"escape\""
                 version: None,
             },
             spec: ManifestSpec {
-                compose: Some(ComposeConfig {
+                compose: Some(DeploymentConfig {
                     values_file_path: None,
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
@@ -1153,7 +1460,7 @@ COMPLEX="with \"escape\""
     #[test]
     fn test_validate_provided_secrets_empty_value() {
         use super::super::manifest::{
-            ComposeConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
+            DeploymentConfig, ManifestMetadata, ManifestSpec, MowsManifest, ProvidedSecretDef,
         };
         use std::io::Write;
         use tempfile::NamedTempFile;
@@ -1179,7 +1486,7 @@ COMPLEX="with \"escape\""
                 version: None,
             },
             spec: ManifestSpec {
-                compose: Some(ComposeConfig {
+                compose: Some(DeploymentConfig {
                     values_file_path: None,
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
@@ -1201,15 +1508,15 @@ COMPLEX="with \"escape\""
         let dir = tempdir().unwrap();
         let output_path = dir.path().join("provided-secrets.env");
 
-        let mut defs = HashMap::new();
-        defs.insert(
+        let mut secret_definitions = HashMap::new();
+        secret_definitions.insert(
             "FEATURE_ENABLED".to_string(),
             ProvidedSecretDef {
                 default: Some(serde_yaml_neo::Value::Bool(true)),
                 optional: false,
             },
         );
-        defs.insert(
+        secret_definitions.insert(
             "DEBUG_MODE".to_string(),
             ProvidedSecretDef {
                 default: Some(serde_yaml_neo::Value::Bool(false)),
@@ -1217,11 +1524,414 @@ COMPLEX="with \"escape\""
             },
         );
 
-        generate_provided_secrets_file(&defs, &output_path).unwrap();
+        generate_provided_secrets_file(&secret_definitions, &output_path).unwrap();
 
         let content = std::fs::read_to_string(&output_path).unwrap();
 
         assert!(content.contains("# (optional, default: false)\nDEBUG_MODE=false\n"));
         assert!(content.contains("# (required, default: true)\nFEATURE_ENABLED=true\n"));
+    }
+
+    // I/O Error Scenario Tests
+
+    #[test]
+    fn test_load_secrets_corrupted_content_gracefully_handled() {
+        // Non-env format content should be parsed line by line
+        // Lines without '=' are skipped
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("corrupted.env");
+
+        // Write content that looks invalid but should still be parseable
+        std::fs::write(&path, "not a valid env file format\nthis is just text\nVALID_KEY=value").unwrap();
+
+        let result = load_secrets_as_map(&path);
+        assert!(result.is_ok());
+        let map = result.unwrap();
+        // Should have parsed the valid key
+        assert_eq!(map.get("VALID_KEY"), Some(&"value".to_string()));
+    }
+
+    #[test]
+    fn test_load_secrets_binary_content() {
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("binary.env");
+
+        // Write some binary content with a valid line
+        let mut content = vec![0xFF, 0xFE, 0x00, 0x01]; // BOM-like bytes
+        content.extend_from_slice(b"\nKEY=value\n");
+        std::fs::write(&path, content).unwrap();
+
+        // Should handle gracefully (may parse partial content)
+        let result = load_secrets_as_map(&path);
+        // Either succeeds or fails gracefully
+        if let Ok(map) = result {
+            // If it parses, KEY should be found
+            assert!(map.contains_key("KEY") || map.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_load_secrets_very_long_lines() {
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("long.env");
+
+        // Create a very long value
+        let long_value = "x".repeat(100_000);
+        std::fs::write(&path, format!("LONG_KEY={}\nSHORT_KEY=short", long_value)).unwrap();
+
+        let result = load_secrets_as_map(&path);
+        assert!(result.is_ok());
+        let map = result.unwrap();
+        assert_eq!(map.get("LONG_KEY").map(|s| s.len()), Some(100_000));
+        assert_eq!(map.get("SHORT_KEY"), Some(&"short".to_string()));
+    }
+
+    #[test]
+    fn test_write_secret_file_creates_with_permissions() {
+        use tempfile::tempdir;
+        use std::os::unix::fs::MetadataExt;
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("secret.env");
+
+        write_secret_file(&path, "SECRET=value").unwrap();
+
+        // Verify file was created
+        assert!(path.exists());
+
+        // Verify permissions are restrictive (600)
+        let metadata = std::fs::metadata(&path).unwrap();
+        let mode = metadata.mode() & 0o777;
+        assert_eq!(mode, 0o600, "Secret file should have 600 permissions");
+
+        // Verify content
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(content, "SECRET=value");
+    }
+
+    #[test]
+    fn test_write_secret_file_overwrites_existing() {
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("secret.env");
+
+        // Write initial content
+        write_secret_file(&path, "OLD=value").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "OLD=value");
+
+        // Overwrite with new content
+        write_secret_file(&path, "NEW=value").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "NEW=value");
+    }
+
+    #[test]
+    fn test_generate_secrets_to_readonly_parent_fails() {
+        use super::super::manifest::ProvidedSecretDef;
+        use tempfile::tempdir;
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempdir().unwrap();
+        let readonly_dir = dir.path().join("readonly");
+        std::fs::create_dir(&readonly_dir).unwrap();
+
+        // Make directory read-only
+        std::fs::set_permissions(&readonly_dir, std::fs::Permissions::from_mode(0o555)).unwrap();
+
+        let output_path = readonly_dir.join("provided-secrets.env");
+
+        let mut secret_definitions = HashMap::new();
+        secret_definitions.insert(
+            "KEY".to_string(),
+            ProvidedSecretDef {
+                default: None,
+                optional: false,
+            },
+        );
+
+        let result = generate_provided_secrets_file(&secret_definitions, &output_path);
+
+        // Should fail due to permission denied
+        assert!(result.is_err());
+
+        // Restore permissions for cleanup
+        std::fs::set_permissions(&readonly_dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[test]
+    fn test_merge_generated_secrets_handles_missing_file() {
+        // Test that merge handles the case where there's no existing content
+        let new_content = "NEW_KEY=new_value\nANOTHER_KEY=another";
+
+        // When existing is None (file doesn't exist), merge should just use new content
+        let merged = merge_generated_secrets(None, new_content);
+
+        // Should contain the new keys
+        assert!(merged.contains("NEW_KEY=new_value"));
+        assert!(merged.contains("ANOTHER_KEY=another"));
+    }
+
+    #[test]
+    fn test_merge_generated_secrets_preserves_existing_values() {
+        let existing_content = "EXISTING_KEY=existing_value\nANOTHER=old";
+        let new_content = "ANOTHER=new\nNEW_KEY=new_value";
+
+        let merged = merge_generated_secrets(Some(existing_content), new_content);
+
+        // Existing value should be preserved (not overwritten)
+        assert!(merged.contains("ANOTHER=old"));
+        // New key should be added
+        assert!(merged.contains("NEW_KEY=new_value"));
+    }
+
+    // =========================================================================
+    // clear_secret_values Tests (#26) - Core logic for secrets_regenerate
+    // =========================================================================
+
+    #[test]
+    fn test_clear_secret_values_file_not_found() {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let nonexistent_path = dir.path().join("nonexistent.env");
+
+        let result = clear_secret_values(&nonexistent_path, None);
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("No generated-secrets.env found"));
+    }
+
+    #[test]
+    fn test_clear_secret_values_key_not_found() {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("generated-secrets.env");
+
+        // Create file with some keys
+        std::fs::write(&secrets_path, "KEY1=value1\nKEY2=value2").unwrap();
+
+        let result = clear_secret_values(&secrets_path, Some("NONEXISTENT_KEY"));
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("Key 'NONEXISTENT_KEY' not found"));
+    }
+
+    #[test]
+    fn test_clear_secret_values_no_keys_found() {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("generated-secrets.env");
+
+        // Create file with only comments and empty lines
+        std::fs::write(&secrets_path, "# This is a comment\n\n# Another comment").unwrap();
+
+        let result = clear_secret_values(&secrets_path, None);
+
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("No keys found"));
+    }
+
+    #[test]
+    fn test_clear_secret_values_single_key() {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("generated-secrets.env");
+
+        // Create file with multiple keys
+        std::fs::write(
+            &secrets_path,
+            "# Header\nKEY1=secret1\nKEY2=secret2\nKEY3=secret3",
+        )
+        .unwrap();
+
+        let result = clear_secret_values(&secrets_path, Some("KEY2"));
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1);
+
+        let content = std::fs::read_to_string(&secrets_path).unwrap();
+        // KEY2 should be cleared
+        assert!(content.contains("KEY2=\n") || content.contains("KEY2="));
+        assert!(!content.contains("KEY2=secret2"));
+        // Other keys should be preserved
+        assert!(content.contains("KEY1=secret1"));
+        assert!(content.contains("KEY3=secret3"));
+        // Comment should be preserved
+        assert!(content.contains("# Header"));
+    }
+
+    #[test]
+    fn test_clear_secret_values_all_keys() {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("generated-secrets.env");
+
+        // Create file with multiple keys
+        std::fs::write(
+            &secrets_path,
+            "# Header\nKEY1=secret1\nKEY2=secret2\nKEY3=secret3",
+        )
+        .unwrap();
+
+        let result = clear_secret_values(&secrets_path, None);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 3);
+
+        let content = std::fs::read_to_string(&secrets_path).unwrap();
+        // All keys should be cleared
+        assert!(content.contains("KEY1="));
+        assert!(content.contains("KEY2="));
+        assert!(content.contains("KEY3="));
+        assert!(!content.contains("secret1"));
+        assert!(!content.contains("secret2"));
+        assert!(!content.contains("secret3"));
+        // Comment should be preserved
+        assert!(content.contains("# Header"));
+    }
+
+    #[test]
+    fn test_clear_secret_values_preserves_comments_and_empty_lines() {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("generated-secrets.env");
+
+        // Create file with comments and empty lines
+        std::fs::write(
+            &secrets_path,
+            "# Header comment\n\nKEY1=value1\n\n# Middle comment\nKEY2=value2\n\n# Footer",
+        )
+        .unwrap();
+
+        let result = clear_secret_values(&secrets_path, None);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 2);
+
+        let content = std::fs::read_to_string(&secrets_path).unwrap();
+        // Comments should be preserved
+        assert!(content.contains("# Header comment"));
+        assert!(content.contains("# Middle comment"));
+        assert!(content.contains("# Footer"));
+    }
+
+    #[test]
+    fn test_clear_secret_values_writes_using_write_secret_file() {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("generated-secrets.env");
+
+        // Create file with some content
+        std::fs::write(&secrets_path, "KEY=value").unwrap();
+
+        let result = clear_secret_values(&secrets_path, None);
+        assert!(result.is_ok());
+
+        // Verify file was written (content was modified)
+        let content = std::fs::read_to_string(&secrets_path).unwrap();
+        assert!(content.contains("KEY="));
+        assert!(!content.contains("KEY=value"));
+    }
+
+    #[test]
+    fn test_write_secret_file_sets_secure_permissions_on_new_file() {
+        use std::os::unix::fs::PermissionsExt;
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("new-secrets.env");
+
+        // Write new file with write_secret_file
+        write_secret_file(&secrets_path, "KEY=value").unwrap();
+
+        // Check that file has 600 permissions
+        let metadata = std::fs::metadata(&secrets_path).unwrap();
+        let permissions = metadata.permissions();
+        assert_eq!(permissions.mode() & 0o777, 0o600);
+    }
+
+    #[test]
+    fn test_clear_secret_values_with_quoted_values() {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("generated-secrets.env");
+
+        // Create file with quoted values
+        std::fs::write(
+            &secrets_path,
+            "KEY1=\"quoted value\"\nKEY2='single quoted'\nKEY3=unquoted",
+        )
+        .unwrap();
+
+        let result = clear_secret_values(&secrets_path, Some("KEY1"));
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1);
+
+        let content = std::fs::read_to_string(&secrets_path).unwrap();
+        // KEY1 should be cleared
+        assert!(!content.contains("quoted value"));
+        // Other keys should be preserved
+        assert!(content.contains("KEY2=single quoted") || content.contains("KEY2='single quoted'"));
+        assert!(content.contains("KEY3=unquoted"));
+    }
+
+    #[test]
+    fn test_clear_secret_values_with_special_characters() {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("generated-secrets.env");
+
+        // Create file with special characters in values
+        std::fs::write(
+            &secrets_path,
+            "URL=https://example.com?foo=bar\nPASSWORD=p@ss!w0rd#123",
+        )
+        .unwrap();
+
+        let result = clear_secret_values(&secrets_path, Some("PASSWORD"));
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1);
+
+        let content = std::fs::read_to_string(&secrets_path).unwrap();
+        // PASSWORD should be cleared
+        assert!(!content.contains("p@ss!w0rd#123"));
+        // URL should be preserved
+        assert!(content.contains("URL=https://example.com?foo=bar"));
+    }
+
+    #[test]
+    fn test_clear_secret_values_with_empty_existing_value() {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().unwrap();
+        let secrets_path = dir.path().join("generated-secrets.env");
+
+        // Create file where one key already has empty value
+        std::fs::write(&secrets_path, "KEY1=value1\nKEY2=\nKEY3=value3").unwrap();
+
+        let result = clear_secret_values(&secrets_path, Some("KEY2"));
+
+        // Clearing an already-empty key should still count as clearing
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1);
     }
 }

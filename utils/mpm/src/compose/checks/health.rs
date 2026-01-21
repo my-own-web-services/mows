@@ -18,6 +18,14 @@ const HTTP_REQUEST_TIMEOUT: Duration = Duration::from_secs(2);
 /// Timeout for establishing TCP connections during health checks.
 const TCP_CONNECT_TIMEOUT: Duration = Duration::from_secs(2);
 
+/// Retry delays (in milliseconds) for TCP connection attempts.
+/// Services often take a moment to start accepting connections after container startup.
+const TCP_RETRY_DELAYS_MS: [u64; 3] = [100, 300, 600];
+
+/// Maximum number of log errors to collect per container.
+/// Prevents unbounded memory growth from chatty error logs.
+const MAX_LOG_ERRORS_PER_CONTAINER: usize = 50;
+
 /// Health information for a Docker container.
 ///
 /// Contains the container's running state, health check status, recent log errors,
@@ -167,7 +175,9 @@ fn collect_container_logs(client: &dyn DockerClient, project_name: &str, contain
                     for container in containers.iter_mut() {
                         // Log format is usually "container_name  | log message"
                         if line.contains(&container.name) || line.starts_with(&container.name) {
-                            container.log_errors.push(line.to_string());
+                            if container.log_errors.len() < MAX_LOG_ERRORS_PER_CONTAINER {
+                                container.log_errors.push(line.to_string());
+                            }
                             break;
                         }
                     }
@@ -220,12 +230,12 @@ fn collect_port_status(client: &dyn DockerClient, project_name: &str, containers
                 }
             }
 
-            // Check all ports in parallel
+            // Check all ports in parallel (using into_par_iter to avoid cloning names)
             let results: Vec<(String, u16, bool)> = port_checks
-                .par_iter()
+                .into_par_iter()
                 .map(|(name, url, port)| {
-                    let responding = check_http_endpoint(url).unwrap_or(false);
-                    (name.clone(), *port, responding)
+                    let responding = check_http_endpoint(&url).unwrap_or(false);
+                    (name, port, responding)
                 })
                 .collect();
 
@@ -522,10 +532,7 @@ fn check_http_endpoint(url: &str) -> Option<bool> {
     let addr = parse_socket_addr(url)?;
 
     // Retry a few times with increasing delays
-    // Services often take a moment to start accepting connections
-    let retries = [100, 300, 600]; // ms delays before each retry
-
-    for (attempt, delay_ms) in retries.iter().enumerate() {
+    for (attempt, delay_ms) in TCP_RETRY_DELAYS_MS.iter().enumerate() {
         if attempt > 0 {
             sleep(Duration::from_millis(*delay_ms));
         }
@@ -1145,5 +1152,154 @@ services:
         assert!(!is_localhost_host("localhost.example.com"));
         assert!(!is_localhost_host("my-localhost.com"));
         assert!(!is_localhost_host("128.0.0.1")); // Not 127.x.x.x
+    }
+
+    // =========================================================================
+    // check_containers_ready Tests (#27) - Container readiness checking
+    // =========================================================================
+
+    #[test]
+    fn test_check_containers_ready_all_healthy() {
+        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+
+        let mock = ConfigurableMockClient {
+            compose_ps: MockResponse::ok("Up 5 minutes\thealthy\nUp 3 minutes\thealthy"),
+            ..Default::default()
+        };
+
+        let result = check_containers_ready(&mock, "test-project");
+
+        assert!(result.all_ready);
+        assert_eq!(result.total, 2);
+        assert_eq!(result.running, 2);
+        assert_eq!(result.starting, 0);
+    }
+
+    #[test]
+    fn test_check_containers_ready_some_starting() {
+        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+
+        let mock = ConfigurableMockClient {
+            compose_ps: MockResponse::ok("Up 5 minutes\thealthy\nUp 10 seconds\tstarting"),
+            ..Default::default()
+        };
+
+        let result = check_containers_ready(&mock, "test-project");
+
+        assert!(!result.all_ready);
+        assert_eq!(result.total, 2);
+        assert_eq!(result.running, 2);
+        assert_eq!(result.starting, 1);
+    }
+
+    #[test]
+    fn test_check_containers_ready_some_not_running() {
+        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+
+        let mock = ConfigurableMockClient {
+            compose_ps: MockResponse::ok("Up 5 minutes\thealthy\nExited (1) 2 minutes ago\t"),
+            ..Default::default()
+        };
+
+        let result = check_containers_ready(&mock, "test-project");
+
+        assert!(!result.all_ready);
+        assert_eq!(result.total, 2);
+        assert_eq!(result.running, 1);
+        assert_eq!(result.starting, 0);
+    }
+
+    #[test]
+    fn test_check_containers_ready_no_healthcheck() {
+        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+
+        // Containers without healthcheck have empty health field
+        let mock = ConfigurableMockClient {
+            compose_ps: MockResponse::ok("Up 5 minutes\t\nUp 3 minutes\t"),
+            ..Default::default()
+        };
+
+        let result = check_containers_ready(&mock, "test-project");
+
+        // Containers without healthcheck should be considered ready if running
+        assert!(result.all_ready);
+        assert_eq!(result.total, 2);
+        assert_eq!(result.running, 2);
+        assert_eq!(result.starting, 0);
+    }
+
+    #[test]
+    fn test_check_containers_ready_empty_output() {
+        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+
+        let mock = ConfigurableMockClient {
+            compose_ps: MockResponse::ok(""),
+            ..Default::default()
+        };
+
+        let result = check_containers_ready(&mock, "test-project");
+
+        // Empty output means no containers found - considered not ready
+        // (may indicate containers haven't started yet)
+        assert!(!result.all_ready);
+        assert_eq!(result.total, 0);
+        assert_eq!(result.running, 0);
+        assert_eq!(result.starting, 0);
+    }
+
+    #[test]
+    fn test_check_containers_ready_compose_ps_failure() {
+        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+
+        let mock = ConfigurableMockClient {
+            compose_ps: MockResponse::err("no configuration file provided"),
+            ..Default::default()
+        };
+
+        let result = check_containers_ready(&mock, "test-project");
+
+        // On error, return empty/not ready state
+        assert!(!result.all_ready);
+        assert_eq!(result.total, 0);
+        assert_eq!(result.running, 0);
+        assert_eq!(result.starting, 0);
+    }
+
+    #[test]
+    fn test_check_containers_ready_mixed_states() {
+        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+
+        let mock = ConfigurableMockClient {
+            compose_ps: MockResponse::ok(
+                "Up 10 minutes\thealthy\nUp 30 seconds\tstarting\nExited (0) 1 minute ago\t",
+            ),
+            ..Default::default()
+        };
+
+        let result = check_containers_ready(&mock, "test-project");
+
+        assert!(!result.all_ready);
+        assert_eq!(result.total, 3);
+        assert_eq!(result.running, 2); // First two have "Up"
+        assert_eq!(result.starting, 1);
+    }
+
+    #[test]
+    fn test_check_containers_ready_unhealthy() {
+        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+
+        let mock = ConfigurableMockClient {
+            compose_ps: MockResponse::ok("Up 5 minutes\tunhealthy\nUp 3 minutes\thealthy"),
+            ..Default::default()
+        };
+
+        let result = check_containers_ready(&mock, "test-project");
+
+        // Unhealthy containers are running but not "starting", so should be ready
+        // (the health check failed, but container is up - this is a health issue, not readiness)
+        assert!(result.all_ready);
+        assert_eq!(result.total, 2);
+        assert_eq!(result.running, 2);
+        assert_eq!(result.starting, 0);
     }
 }

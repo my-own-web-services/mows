@@ -558,6 +558,8 @@ fn parse_container_names(json: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+    use tempfile::tempdir;
 
     #[test]
     fn test_has_traefik_labels() {
@@ -628,5 +630,545 @@ networks:
         let err = CheckResult::error("test", "Error message");
         assert!(!err.passed);
         assert_eq!(err.severity, Severity::Error);
+    }
+
+    #[test]
+    fn test_run_debug_checks_no_issues() {
+        let dir = tempdir().unwrap();
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient::default();
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        // No traefik labels, no ofelia/watchtower, no volume issues
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_run_debug_checks_traefik_missing() {
+        let dir = tempdir().unwrap();
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    labels:
+      traefik.enable: "true"
+"#,
+        )
+        .unwrap();
+
+        // Empty container list means traefik not running
+        let client = ConfigurableMockClient {
+            list_containers: MockResponse::ok("[]"),
+            ..Default::default()
+        };
+
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "traefik");
+        assert!(!results[0].passed);
+        assert_eq!(results[0].severity, Severity::Warning);
+        assert!(results[0].message.contains("no traefik container is running"));
+    }
+
+    #[test]
+    fn test_run_debug_checks_traefik_running_same_network() {
+        let dir = tempdir().unwrap();
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    labels:
+      traefik.enable: "true"
+"#,
+        )
+        .unwrap();
+
+        // Traefik container exists
+        let client = ConfigurableMockClient {
+            list_containers: MockResponse::ok(r#"[{"Names": ["/traefik"]}]"#),
+            inspect_container: MockResponse::ok(
+                r#"{"NetworkSettings": {"Networks": {"test-project_default": {}}}}"#,
+            ),
+            ..Default::default()
+        };
+
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "traefik");
+        assert!(results[0].passed);
+        assert!(results[0].message.contains("found on shared network"));
+    }
+
+    #[test]
+    fn test_run_debug_checks_traefik_different_network() {
+        let dir = tempdir().unwrap();
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    labels:
+      traefik.enable: "true"
+"#,
+        )
+        .unwrap();
+
+        // Traefik on different network
+        let client = ConfigurableMockClient {
+            list_containers: MockResponse::ok(r#"[{"Names": ["/traefik"]}]"#),
+            inspect_container: MockResponse::ok(
+                r#"{"NetworkSettings": {"Networks": {"other_network": {}}}}"#,
+            ),
+            ..Default::default()
+        };
+
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "traefik-network");
+        assert!(!results[0].passed);
+        assert_eq!(results[0].severity, Severity::Warning);
+        assert!(results[0].message.contains("not on the same network"));
+    }
+
+    #[test]
+    fn test_run_debug_checks_ofelia_missing() {
+        let dir = tempdir().unwrap();
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  worker:
+    image: worker
+    labels:
+      ofelia.job-exec.cleanup.schedule: "@daily"
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient {
+            list_containers: MockResponse::ok("[]"),
+            ..Default::default()
+        };
+
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "ofelia");
+        assert!(!results[0].passed);
+        assert!(results[0].message.contains("no ofelia container is running"));
+    }
+
+    #[test]
+    fn test_run_debug_checks_watchtower_missing() {
+        let dir = tempdir().unwrap();
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  app:
+    image: myapp
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient {
+            list_containers: MockResponse::ok("[]"),
+            ..Default::default()
+        };
+
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "watchtower");
+        assert!(!results[0].passed);
+        assert!(results[0].message.contains("no watchtower container is running"));
+    }
+
+    #[test]
+    fn test_run_debug_checks_volume_mount_missing() {
+        let dir = tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("results")).unwrap();
+
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    volumes:
+      - ./config:/etc/nginx/config
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient::default();
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        assert_eq!(results.len(), 1);
+        assert!(results[0].name.contains("volume"));
+        assert!(!results[0].passed);
+        assert!(results[0].message.contains("does not exist"));
+    }
+
+    #[test]
+    fn test_run_debug_checks_volume_mount_exists() {
+        let dir = tempdir().unwrap();
+        let results_dir = dir.path().join("results");
+        std::fs::create_dir_all(&results_dir).unwrap();
+        std::fs::create_dir_all(results_dir.join("config")).unwrap();
+
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    volumes:
+      - ./config:/etc/nginx/config
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient::default();
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        // Volume exists, no warnings
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_run_debug_checks_named_volume_skipped() {
+        let dir = tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("results")).unwrap();
+
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  db:
+    image: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient::default();
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        // Named volumes should be skipped
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_parse_volume_entry_short_syntax() {
+        let volume = serde_yaml_neo::Value::String("./data:/app/data".to_string());
+        let mount = parse_volume_entry(&volume).unwrap();
+        assert_eq!(mount.host_path, "./data");
+        assert!(mount.volume_type.is_none());
+    }
+
+    #[test]
+    fn test_parse_volume_entry_long_syntax() {
+        let volume: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+type: bind
+source: ./config
+target: /app/config
+"#,
+        )
+        .unwrap();
+        let mount = parse_volume_entry(&volume).unwrap();
+        assert_eq!(mount.host_path, "./config");
+        assert_eq!(mount.volume_type, Some("bind".to_string()));
+    }
+
+    #[test]
+    fn test_should_skip_volume_tmpfs() {
+        let mount = VolumeMount {
+            host_path: "".to_string(),
+            volume_type: Some("tmpfs".to_string()),
+        };
+        assert!(should_skip_volume(&mount));
+    }
+
+    #[test]
+    fn test_should_skip_volume_named() {
+        let mount = VolumeMount {
+            host_path: "mydata".to_string(),
+            volume_type: None,
+        };
+        assert!(should_skip_volume(&mount));
+    }
+
+    #[test]
+    fn test_should_not_skip_volume_bind() {
+        let mount = VolumeMount {
+            host_path: "./config".to_string(),
+            volume_type: Some("bind".to_string()),
+        };
+        assert!(!should_skip_volume(&mount));
+    }
+
+    #[test]
+    fn test_parse_container_names() {
+        let json = r#"[{"Names": ["/container1"]}, {"Names": ["/container2", "/alias"]}]"#;
+        let names = parse_container_names(json);
+        assert_eq!(names.len(), 3);
+        assert!(names.contains(&"container1".to_string()));
+        assert!(names.contains(&"container2".to_string()));
+        assert!(names.contains(&"alias".to_string()));
+    }
+
+    #[test]
+    fn test_check_traefik_docker_error() {
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    labels:
+      traefik.enable: "true"
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient {
+            list_containers: MockResponse::err("Docker daemon not responding"),
+            ..Default::default()
+        };
+
+        let results = check_traefik(&client, &compose, "test-project");
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "traefik");
+        assert!(!results[0].passed);
+        assert_eq!(results[0].severity, Severity::Error);
+        assert!(results[0].message.contains("Failed to check"));
+    }
+
+    // =========================================================================
+    // Edge Case Tests (#35) - Volume checks
+    // =========================================================================
+
+    #[test]
+    fn test_volume_mount_with_parent_dir_segments() {
+        let dir = tempdir().unwrap();
+        let results_dir = dir.path().join("results");
+        std::fs::create_dir_all(&results_dir).unwrap();
+
+        // Create a directory outside results but still within project
+        std::fs::create_dir_all(dir.path().join("shared")).unwrap();
+
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    volumes:
+      - ../shared:/app/shared
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient::default();
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        // Path resolves to existing directory, no warnings
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_volume_mount_file_not_directory() {
+        let dir = tempdir().unwrap();
+        let results_dir = dir.path().join("results");
+        std::fs::create_dir_all(&results_dir).unwrap();
+
+        // Create a file (not a directory)
+        std::fs::write(results_dir.join("nginx.conf"), "server {}").unwrap();
+
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient::default();
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        // File mount exists, no warnings
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_volume_mount_missing_file() {
+        let dir = tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("results")).unwrap();
+
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient::default();
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        // File doesn't exist, should warn
+        assert_eq!(results.len(), 1);
+        assert!(results[0].name.contains("volume"));
+        assert!(!results[0].passed);
+    }
+
+    #[test]
+    fn test_volume_long_syntax_with_read_only() {
+        let dir = tempdir().unwrap();
+        let results_dir = dir.path().join("results");
+        std::fs::create_dir_all(&results_dir).unwrap();
+        std::fs::create_dir_all(results_dir.join("config")).unwrap();
+
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  web:
+    image: nginx
+    volumes:
+      - type: bind
+        source: ./config
+        target: /etc/nginx/conf.d
+        read_only: true
+"#,
+        )
+        .unwrap();
+
+        let client = ConfigurableMockClient::default();
+        let results = run_debug_checks(&client, &compose, dir.path(), "test-project");
+
+        // Directory exists, no warnings (read_only doesn't affect existence check)
+        assert!(results.is_empty());
+    }
+
+    // =========================================================================
+    // Edge Case Tests (#36) - File permission checks
+    // =========================================================================
+
+    #[test]
+    fn test_check_file_permissions_world_writable_file() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempdir().unwrap();
+        let results_dir = dir.path().join("results");
+        std::fs::create_dir_all(&results_dir).unwrap();
+
+        // Create a world-writable file
+        let config_file = results_dir.join("config.yml");
+        std::fs::write(&config_file, "key: value").unwrap();
+        std::fs::set_permissions(&config_file, std::fs::Permissions::from_mode(0o666)).unwrap();
+
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  app:
+    image: myapp
+    volumes:
+      - ./config.yml:/app/config.yml
+"#,
+        )
+        .unwrap();
+
+        let results = check_file_permissions(&compose, dir.path());
+
+        assert_eq!(results.len(), 1);
+        assert!(results[0].name.contains("perms"));
+        assert!(!results[0].passed);
+        assert!(results[0].message.contains("world-writable"));
+    }
+
+    #[test]
+    fn test_check_file_permissions_dir_not_world_readable() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempdir().unwrap();
+        let results_dir = dir.path().join("results");
+        std::fs::create_dir_all(&results_dir).unwrap();
+
+        // Create a directory without world-read permission
+        let data_dir = results_dir.join("data");
+        std::fs::create_dir_all(&data_dir).unwrap();
+        std::fs::set_permissions(&data_dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  app:
+    image: myapp
+    volumes:
+      - ./data:/app/data
+"#,
+        )
+        .unwrap();
+
+        let results = check_file_permissions(&compose, dir.path());
+
+        assert_eq!(results.len(), 1);
+        assert!(results[0].message.contains("not be readable"));
+    }
+
+    #[test]
+    fn test_check_file_permissions_nonexistent_path() {
+        let dir = tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("results")).unwrap();
+
+        let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
+            r#"
+services:
+  app:
+    image: myapp
+    volumes:
+      - ./nonexistent:/app/data
+"#,
+        )
+        .unwrap();
+
+        let results = check_file_permissions(&compose, dir.path());
+
+        // Nonexistent paths are handled by check_volume_mounts, not permissions check
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_normalize_path_removes_dot_segments() {
+        let path = std::path::Path::new("/foo/./bar/../baz");
+        let normalized = normalize_path(path);
+        assert_eq!(normalized, std::path::PathBuf::from("/foo/baz"));
+    }
+
+    #[test]
+    fn test_normalize_path_relative() {
+        let path = std::path::Path::new("results/../shared/./config");
+        let normalized = normalize_path(path);
+        assert_eq!(normalized, std::path::PathBuf::from("shared/config"));
     }
 }

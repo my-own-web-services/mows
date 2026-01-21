@@ -26,6 +26,10 @@ use walkdir::WalkDir;
 use crate::error::{IoResultExt, MpmError, Result};
 use crate::utils::find_git_root;
 
+/// File permission mode for sensitive files (config, secrets).
+/// Restricts access to owner only (read/write for owner, no access for group/others).
+pub(crate) const SENSITIVE_FILE_MODE: u32 = 0o600;
+
 /// Find the first mows-manifest.yaml/yml file in a directory tree
 /// Searches up to 5 levels deep, skipping hidden directories
 pub(crate) fn find_manifest_in_repo(repo_dir: &Path) -> Result<PathBuf> {
