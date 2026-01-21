@@ -63,27 +63,27 @@ fi
 # Verbose Flag Tests
 # ============================================================================
 
-log_test "cli: -V enables verbose output"
+log_test "cli: -v enables verbose output"
 TEST_DIR=$(create_test_dir "verbose")
 cd "$TEST_DIR"
 # Create minimal project
 create_git_repo "$TEST_DIR" "verbose-test"
-OUTPUT=$($MPM_BIN -V compose init "test" 2>&1 || true)
+OUTPUT=$($MPM_BIN -v compose init "test" 2>&1 || true)
 # Verbose output should contain more detail (debug/info level logs)
 if echo "$OUTPUT" | grep -qi "debug\|info\|trace\|initialized\|found\|git\|creating"; then
-    pass_test "-V enables verbose output"
+    pass_test "-v enables verbose output"
 else
-    pass_test "-V flag accepted"
+    pass_test "-v flag accepted"
 fi
 cd - > /dev/null
 
-log_test "cli: --verbose is alias for -V"
+log_test "cli: --verbose is alias for -v"
 OUTPUT=$($MPM_BIN --verbose --help 2>&1 || true)
 pass_test "--verbose flag accepted"
 
 log_test "cli: verbose flag is global"
 # Should work before subcommand
-OUTPUT=$($MPM_BIN -V compose --help 2>&1)
+OUTPUT=$($MPM_BIN -v compose --help 2>&1)
 if [[ $? -eq 0 ]]; then
     pass_test "Verbose flag works globally"
 else
@@ -289,7 +289,7 @@ OUTPUT=$($MPM_BIN compose cd "project-with-special_chars.v2" 2>&1 || true)
 pass_test "Handles special characters in arguments"
 
 log_test "cli: multiple flags work together"
-OUTPUT=$($MPM_BIN -V compose --help 2>&1)
+OUTPUT=$($MPM_BIN -v compose --help 2>&1)
 if [[ $? -eq 0 ]]; then
     pass_test "Multiple flags work together"
 else

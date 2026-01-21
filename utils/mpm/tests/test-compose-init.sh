@@ -348,7 +348,7 @@ log_test "compose init: verbose mode"
 TEST_DIR=$(create_test_dir "init-verbose")
 create_git_repo "$TEST_DIR" "verbose-test"
 cd "$TEST_DIR"
-if $MPM_BIN -V compose init "verbose-project" 2>&1; then
+if $MPM_BIN -v compose init "verbose-project" 2>&1; then
     pass_test "Verbose mode works"
 else
     fail_test "compose init verbose mode failed"
