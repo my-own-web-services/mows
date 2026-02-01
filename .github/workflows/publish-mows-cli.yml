@@ -7,12 +7,12 @@ on:
     paths:
       - 'utils/mpm/**'
       - 'utils/mows-common-rust/**'
-      - '.github/workflows/publish-mows.yml'
+      - '.github/workflows/publish-mows-cli.yml'
   pull_request:
     paths:
       - 'utils/mpm/**'
       - 'utils/mows-common-rust/**'
-      - '.github/workflows/publish-mows.yml'
+      - '.github/workflows/publish-mows-cli.yml'
   workflow_dispatch:
     inputs:
       dry_run:
