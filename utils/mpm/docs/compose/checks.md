@@ -1,6 +1,6 @@
 # Deployment Checks
 
-mpm compose runs automatic checks before and after deployment to catch common issues early.
+mows package-manager compose runs automatic checks before and after deployment to catch common issues early.
 
 ## Pre-Deployment Checks
 
@@ -8,7 +8,7 @@ These checks run after templates are rendered but before `docker compose up`:
 
 ### Traefik Integration
 
-When your docker-compose uses Traefik labels, mpm checks:
+When your docker-compose uses Traefik labels, mows checks:
 
 | Check | Description |
 |-------|-------------|
@@ -51,7 +51,7 @@ When using Ofelia (cron) or Watchtower (auto-update):
 
 ## Post-Deployment Checks
 
-These checks run after `docker compose up` completes. mpm polls for up to 30 seconds waiting for containers to be ready before displaying health status.
+These checks run after `docker compose up` completes. mows polls for up to 30 seconds waiting for containers to be ready before displaying health status.
 
 ### Container Health
 
@@ -92,7 +92,7 @@ Health Checks
 
 ### Traefik URL Checks
 
-If a container has Traefik labels with `Host()` rules but no exposed ports, mpm will check if the Traefik URL is reachable:
+If a container has Traefik labels with `Host()` rules but no exposed ports, mows will check if the Traefik URL is reachable:
 
 ```
 ✅ 📦 myproject-api
@@ -102,7 +102,7 @@ If a container has Traefik labels with `Host()` rules but no exposed ports, mpm 
     ✅ http://api.localhost reachable
 ```
 
-mpm tries HTTP first, then HTTPS if HTTP fails.
+mows tries HTTP first, then HTTPS if HTTP fails.
 
 ## Check Output
 
@@ -173,7 +173,7 @@ networks:
 ```
 
 **Solutions:**
-1. Check container logs: `mpm compose logs db`
+1. Check container logs: `mows package-manager compose logs db`
 2. Verify healthcheck command in docker-compose
 3. Increase healthcheck timeout if needed
 4. Check application configuration

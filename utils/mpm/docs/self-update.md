@@ -1,11 +1,11 @@
 # Self-Update
 
-mpm can update itself to the latest version with built-in integrity verification.
+mows can update itself to the latest version with built-in integrity verification.
 
 ## Quick Update
 
 ```bash
-mpm self-update
+mows self-update
 ```
 
 This downloads the latest pre-built binary, verifies its checksum, and replaces the current installation.
@@ -17,7 +17,7 @@ This downloads the latest pre-built binary, verifies its checksum, and replaces 
 Downloads a pre-built binary from GitHub releases:
 
 ```bash
-mpm self-update
+mows self-update
 ```
 
 **Process:**
@@ -30,15 +30,15 @@ mpm self-update
 7. Cleans up backup on success
 
 **Supported platforms:**
-- Linux amd64 (`mpm-X.Y.Z-linux-amd64`)
-- Linux arm64 (`mpm-X.Y.Z-linux-arm64`)
+- Linux amd64 (`mows-X.Y.Z-linux-amd64`)
+- Linux arm64 (`mows-X.Y.Z-linux-arm64`)
 
 ### Build from Source
 
 Build and install from source with cryptographic verification:
 
 ```bash
-mpm self-update --build
+mows self-update --build
 ```
 
 **Process:**
@@ -58,19 +58,19 @@ mpm self-update --build
 
 ```bash
 # Binary download
-mpm self-update --version 0.2.0
+mows self-update --version 0.2.0
 
 # Build from source
-mpm self-update --build --version 0.2.0
+mows self-update --build --version 0.2.0
 ```
 
 ## Automatic Update Checks
 
-mpm checks for updates in the background (non-blocking) and notifies you on subsequent runs:
+mows checks for updates in the background (non-blocking) and notifies you on subsequent runs:
 
 ```
-A new version of mpm is available: 0.3.0 (current: 0.2.0)
-Run 'mpm self-update' to update.
+A new version of mows is available: 0.3.0 (current: 0.2.0)
+Run 'mows self-update' to update.
 ```
 
 **Behavior:**
@@ -88,7 +88,7 @@ Run 'mpm self-update' to update.
 Binary downloads are verified using SHA256:
 
 ```
-Downloading mpm v0.3.0...
+Downloading mows v0.3.0...
 Verifying checksum...
 Checksum verified successfully.
 ```
@@ -106,7 +106,7 @@ When building from source, the git tag is verified against a hardcoded trusted k
 
 ```
 Cloning repository...
-Target release tag: mpm-v0.3.0
+Target release tag: mows-cli-v0.3.0
 Verifying SSH signature...
 SSH signature verified successfully.
 Building with Docker...
@@ -120,7 +120,7 @@ Building with Docker...
 ### Backup and Rollback
 
 Before replacement:
-1. Current binary is copied to `mpm.backup`
+1. Current binary is copied to `mows.backup`
 2. New binary is installed
 3. On success, backup is removed
 
@@ -140,7 +140,7 @@ Cannot update: no write permission to /usr/local/bin. Try running with sudo.
 
 ## Configuration
 
-Update state is stored in `~/.config/mows.cloud/mpm.yaml`:
+Update state is stored in `~/.config/mows.cloud/mows.yaml`:
 
 ```yaml
 compose:
@@ -160,7 +160,7 @@ update:
 ## Command Reference
 
 ```bash
-mpm self-update [OPTIONS]
+mows self-update [OPTIONS]
 
 Options:
     --build              Build from source instead of downloading binary
@@ -175,13 +175,13 @@ Options:
 
 ```bash
 # Use sudo for system-wide installation
-sudo mpm self-update
+sudo mows self-update
 
-# Or move mpm to user directory
+# Or move mows to user directory
 mkdir -p ~/.local/bin
-mv /usr/local/bin/mpm ~/.local/bin/
+mv /usr/local/bin/mows ~/.local/bin/
 export PATH="$HOME/.local/bin:$PATH"
-mpm self-update
+mows self-update
 ```
 
 ### Network Issues
@@ -195,7 +195,7 @@ Check your internet connection and try again. For proxied environments:
 ```bash
 export HTTP_PROXY=http://proxy:8080
 export HTTPS_PROXY=http://proxy:8080
-mpm self-update
+mows self-update
 ```
 
 ### Build Failures
@@ -207,7 +207,7 @@ Build failed
 When using `--build`:
 1. Ensure Docker is running: `docker info`
 2. Check Docker has enough resources
-3. Try with verbose mode: `mpm self-update --build -V`
+3. Try with verbose mode: `mows self-update --build -V`
 
 ### Signature Verification Failed
 
@@ -217,7 +217,7 @@ SSH signature verification failed. The tag may have been signed with a different
 
 This means the release tag wasn't signed with the expected maintainer key. This could indicate:
 - A tampered release
-- A new maintainer key (update mpm to get new trusted key)
-- Running a very old mpm version
+- A new maintainer key (update mows to get new trusted key)
+- Running a very old mows version
 
-**Solution:** Use binary download which verifies checksum: `mpm self-update`
+**Solution:** Use binary download which verifies checksum: `mows self-update`

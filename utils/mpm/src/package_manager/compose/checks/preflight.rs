@@ -10,7 +10,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use tracing::{debug, info};
 
-use crate::compose::DockerClient;
+use crate::package_manager::compose::DockerClient;
 
 /// Result of a single check
 #[derive(Debug)]
@@ -558,7 +558,7 @@ fn parse_container_names(json: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+    use crate::package_manager::compose::docker::{ConfigurableMockClient, MockResponse};
     use tempfile::tempdir;
 
     #[test]

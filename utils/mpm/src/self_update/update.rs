@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
-use crate::error::{MpmError, Result};
+use crate::error::{IoResultExt, MowsError, Result};
 
 const GITHUB_API_URL: &str = "https://api.github.com/repos/my-own-web-services/mows/releases";
 const GITHUB_RELEASES_URL: &str = "https://github.com/my-own-web-services/mows/releases/download";
@@ -33,11 +33,16 @@ fn move_file(src: &Path, dst: &Path) -> Result<()> {
         Ok(()) => Ok(()),
         Err(e) if e.raw_os_error() == Some(libc::EXDEV) => {
             // Cross-device link error - fall back to copy + delete
-            fs::copy(src, dst).map_err(|e| MpmError::Message(format!("Failed to copy file: {}", e)))?;
-            fs::remove_file(src).map_err(|e| MpmError::Message(format!("Failed to remove source file: {}", e)))?;
+            fs::copy(src, dst)
+                .io_context(format!("Failed to copy {} to {}", src.display(), dst.display()))?;
+            fs::remove_file(src)
+                .io_context(format!("Failed to remove {}", src.display()))?;
             Ok(())
         }
-        Err(e) => Err(MpmError::Message(format!("Failed to move file: {}", e))),
+        Err(e) => Err(MowsError::io(
+            format!("Failed to move {} to {}", src.display(), dst.display()),
+            e,
+        )),
     }
 }
 
@@ -49,22 +54,20 @@ struct GithubRelease {
 
 /// Create an HTTP client with appropriate timeouts and headers for downloads
 fn create_http_client() -> Result<Client> {
-    Client::builder()
+    Ok(Client::builder()
         .timeout(Duration::from_secs(HTTP_TIMEOUT_SECS))
         .connect_timeout(Duration::from_secs(10))
-        .user_agent(format!("mpm/{}", env!("CARGO_PKG_VERSION")))
-        .build()
-        .map_err(|e| MpmError::Message(format!("Failed to create HTTP client: {}", e)))
+        .user_agent(format!("mows/{}", env!("CARGO_PKG_VERSION")))
+        .build()?)
 }
 
 /// Create an HTTP client with short timeout for background version checking
 fn create_version_check_client() -> Result<Client> {
-    Client::builder()
+    Ok(Client::builder()
         .timeout(Duration::from_secs(VERSION_CHECK_TIMEOUT_SECS))
         .connect_timeout(Duration::from_secs(VERSION_CHECK_TIMEOUT_SECS))
-        .user_agent(format!("mpm/{}", env!("CARGO_PKG_VERSION")))
-        .build()
-        .map_err(|e| MpmError::Message(format!("Failed to create HTTP client: {}", e)))
+        .user_agent(format!("mows/{}", env!("CARGO_PKG_VERSION")))
+        .build()?)
 }
 
 /// Get the current architecture string for binary naming
@@ -72,7 +75,7 @@ fn get_arch() -> Result<&'static str> {
     match std::env::consts::ARCH {
         "x86_64" => Ok("amd64"),
         "aarch64" => Ok("arm64"),
-        arch => Err(MpmError::Message(format!("Unsupported architecture: {}", arch))),
+        arch => Err(MowsError::Message(format!("Unsupported architecture: {}", arch))),
     }
 }
 
@@ -81,11 +84,11 @@ fn get_os() -> Result<&'static str> {
     match std::env::consts::OS {
         "linux" => Ok("linux"),
         "macos" => Ok("darwin"),
-        os => Err(MpmError::Message(format!("Unsupported operating system: {}", os))),
+        os => Err(MowsError::Message(format!("Unsupported operating system: {}", os))),
     }
 }
 
-/// Fetch the latest mpm release version from GitHub API
+/// Fetch the latest mows release version from GitHub API
 fn fetch_latest_version() -> Result<String> {
     fetch_latest_version_with_client(create_http_client()?)
 }
@@ -95,38 +98,43 @@ fn fetch_latest_version_fast() -> Result<String> {
     fetch_latest_version_with_client(create_version_check_client()?)
 }
 
-/// Fetch the latest mpm release version using the provided HTTP client
+/// Fetch the latest mows release version using the provided HTTP client
 fn fetch_latest_version_with_client(client: Client) -> Result<String> {
     let url = format!("{}/latest", GITHUB_API_URL);
 
     let response = client
         .get(&url)
         .header("Accept", "application/vnd.github+json")
-        .send()
-        .map_err(|e| MpmError::Message(format!("Failed to fetch latest release: {}", e)))?;
+        .send()?;
 
     if !response.status().is_success() {
-        return Err(MpmError::Message(format!(
+        return Err(MowsError::Message(format!(
             "Failed to fetch latest release: HTTP {}",
             response.status()
         )));
     }
 
-    let release: GithubRelease = response
-        .json()
-        .map_err(|e| MpmError::Message(format!("Failed to parse GitHub API response: {}", e)))?;
+    let release: GithubRelease = response.json()?;
 
-    // Extract version from tag like "mpm-v0.2.0"
-    release
+    // Extract version from tag like "mows-cli-v0.2.0" and validate semver
+    let version = release
         .tag_name
-        .strip_prefix("mpm-v")
-        .map(|v| v.to_string())
+        .strip_prefix("mows-cli-v")
         .ok_or_else(|| {
-            MpmError::Message(format!(
-                "Unexpected tag format: {} (expected mpm-vX.Y.Z)",
+            MowsError::Message(format!(
+                "Unexpected tag format: {} (expected mows-cli-vX.Y.Z)",
                 release.tag_name
             ))
-        })
+        })?;
+
+    if !is_valid_semver(version) {
+        return Err(MowsError::Message(format!(
+            "Invalid version in tag {}: '{}' is not a valid semver version",
+            release.tag_name, version
+        )));
+    }
+
+    Ok(version.to_string())
 }
 
 /// Fetch release info for a specific version or latest
@@ -139,8 +147,8 @@ fn fetch_release_info(version: Option<&str>) -> Result<(String, String)> {
     let arch = get_arch()?;
     let os = get_os()?;
 
-    let binary_name = format!("mpm-{}-{}-{}", version, os, arch);
-    let download_url = format!("{}/mpm-v{}/{}", GITHUB_RELEASES_URL, version, binary_name);
+    let binary_name = format!("mows-{}-{}-{}", version, os, arch);
+    let download_url = format!("{}/mows-cli-v{}/{}", GITHUB_RELEASES_URL, version, binary_name);
 
     Ok((version, download_url))
 }
@@ -149,35 +157,30 @@ fn fetch_release_info(version: Option<&str>) -> Result<(String, String)> {
 fn download_file(url: &str, dest: &Path) -> Result<()> {
     let client = create_http_client()?;
 
-    let response = client
-        .get(url)
-        .send()
-        .map_err(|e| MpmError::Message(format!("Failed to download {}: {}", url, e)))?;
+    let response = client.get(url).send()?;
 
     if !response.status().is_success() {
-        return Err(MpmError::Message(format!(
+        return Err(MowsError::Message(format!(
             "Failed to download {}: HTTP {}",
             url,
             response.status()
         )));
     }
 
-    let bytes = response
-        .bytes()
-        .map_err(|e| MpmError::Message(format!("Failed to read response body: {}", e)))?;
+    let bytes = response.bytes()?;
 
     let mut file =
-        File::create(dest).map_err(|e| MpmError::Message(format!("Failed to create file {}: {}", dest.display(), e)))?;
+        File::create(dest).io_context(format!("Failed to create file {}", dest.display()))?;
 
     file.write_all(&bytes)
-        .map_err(|e| MpmError::Message(format!("Failed to write file {}: {}", dest.display(), e)))?;
+        .io_context(format!("Failed to write file {}", dest.display()))?;
 
     Ok(())
 }
 
 /// Calculate SHA256 checksum of a file
 fn calculate_checksum(path: &Path) -> Result<String> {
-    let mut file = File::open(path).map_err(|e| MpmError::Message(format!("Failed to open file: {}", e)))?;
+    let mut file = File::open(path).io_context(format!("Failed to open {}", path.display()))?;
 
     let mut hasher = Sha256::new();
     let mut buffer = [0u8; 8192];
@@ -185,7 +188,7 @@ fn calculate_checksum(path: &Path) -> Result<String> {
     loop {
         let bytes_read = file
             .read(&mut buffer)
-            .map_err(|e| MpmError::Message(format!("Failed to read file: {}", e)))?;
+            .io_context(format!("Failed to read {}", path.display()))?;
         if bytes_read == 0 {
             break;
         }
@@ -203,22 +206,24 @@ fn verify_checksum(binary_path: &Path, checksum_url: &str) -> Result<()> {
 
     // Read expected checksum from file (format: "hash  filename")
     let checksum_content =
-        fs::read_to_string(&checksum_path).map_err(|e| MpmError::Message(format!("Failed to read checksum file: {}", e)))?;
+        fs::read_to_string(&checksum_path).io_context("Failed to read checksum file")?;
 
     let expected_checksum = checksum_content
         .split_whitespace()
         .next()
-        .ok_or_else(|| MpmError::Message("Invalid checksum file format".to_string()))?
+        .ok_or_else(|| MowsError::Message("Invalid checksum file format".to_string()))?
         .to_lowercase();
 
     // Clean up checksum file
-    let _ = fs::remove_file(&checksum_path);
+    if let Err(e) = fs::remove_file(&checksum_path) {
+        tracing::warn!("Failed to remove checksum file {}: {}", checksum_path.display(), e);
+    }
 
     // Calculate actual checksum
     let actual_checksum = calculate_checksum(binary_path)?;
 
     if actual_checksum != expected_checksum {
-        return Err(MpmError::Message(format!(
+        return Err(MowsError::Message(format!(
             r#"Checksum verification failed!
 Expected: {}
 Actual:   {}"#,
@@ -231,7 +236,7 @@ Actual:   {}"#,
 
 /// Get the path to the currently running binary
 fn get_current_binary_path() -> Result<PathBuf> {
-    env::current_exe().map_err(|e| MpmError::Message(format!("Failed to get current executable path: {}", e)))
+    env::current_exe().io_context("Failed to get current executable path")
 }
 
 /// Replace the current binary with the new one
@@ -241,24 +246,24 @@ fn replace_binary(new_binary: &Path, current_binary: &Path) -> Result<()> {
 
     // Copy current binary to backup (in case we need to restore)
     fs::copy(current_binary, &backup_path)
-        .map_err(|e| MpmError::Message(format!("Failed to create backup of current binary: {}", e)))?;
+        .io_context(format!("Failed to create backup at {}", backup_path.display()))?;
 
     // Try to replace the binary
     let result = (|| -> Result<()> {
         // Remove the current binary
         fs::remove_file(current_binary)
-            .map_err(|e| MpmError::Message(format!("Failed to remove current binary: {}", e)))?;
+            .io_context(format!("Failed to remove current binary at {}", current_binary.display()))?;
 
         // Move new binary into place (handles cross-device link errors)
         move_file(new_binary, current_binary)?;
 
         // Set executable permissions
         let mut perms = fs::metadata(current_binary)
-            .map_err(|e| MpmError::Message(format!("Failed to get binary metadata: {}", e)))?
+            .io_context(format!("Failed to get metadata for {}", current_binary.display()))?
             .permissions();
         perms.set_mode(0o755);
         fs::set_permissions(current_binary, perms)
-            .map_err(|e| MpmError::Message(format!("Failed to set binary permissions: {}", e)))?;
+            .io_context(format!("Failed to set permissions on {}", current_binary.display()))?;
 
         Ok(())
     })();
@@ -277,7 +282,74 @@ fn replace_binary(new_binary: &Path, current_binary: &Path) -> Result<()> {
     }
 
     // Clean up backup on success
-    let _ = fs::remove_file(&backup_path);
+    if let Err(e) = fs::remove_file(&backup_path) {
+        tracing::warn!("Failed to remove backup file {}: {}", backup_path.display(), e);
+    }
+
+    Ok(())
+}
+
+/// Create an `mpm` symlink alongside the `mows` binary if possible.
+///
+/// Creates a relative symlink `mpm -> mows` in the same directory,
+/// so that `mpm` works as a shorthand alias for `mows package-manager`.
+///
+/// If a real (non-symlink) file already exists at the `mpm` path, this
+/// function logs a warning and skips creation to avoid destroying an
+/// existing binary. Returns Ok(()) in both cases.
+fn create_mpm_symlink_if_possible(mows_binary: &Path) -> Result<()> {
+    let parent = mows_binary
+        .parent()
+        .ok_or_else(|| MowsError::path(mows_binary, "Cannot determine parent directory"))?;
+    let mpm_path = parent.join("mpm");
+
+    let mows_filename = mows_binary
+        .file_name()
+        .ok_or_else(|| MowsError::path(mows_binary, "Cannot determine binary filename"))?;
+
+    // Check existing file at the target path
+    match mpm_path.symlink_metadata() {
+        Ok(meta) if meta.file_type().is_symlink() => {
+            // Remove stale symlink, then recreate below
+            fs::remove_file(&mpm_path)
+                .io_context(format!("Failed to remove old mpm symlink at {}", mpm_path.display()))?;
+        }
+        Ok(_) => {
+            // It's a real file, not a symlink — warn the user and skip
+            tracing::warn!(
+                "Cannot create mpm symlink: {} exists and is not a symlink. \
+                 Remove it manually if you want the mpm alias.",
+                mpm_path.display()
+            );
+            return Ok(());
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            // Path does not exist — proceed to create symlink
+        }
+        Err(e) => {
+            return Err(MowsError::io(format!("Failed to check mpm symlink at {}", mpm_path.display()), e));
+        }
+    }
+
+    std::os::unix::fs::symlink(mows_filename, &mpm_path)
+        .io_context(format!("Failed to create mpm symlink at {}", mpm_path.display()))?;
+
+    // Verify the symlink points to the correct target
+    match fs::read_link(&mpm_path) {
+        Ok(target) if target == Path::new(mows_filename) => {
+            println!("Created mpm symlink: {} -> {}", mpm_path.display(), mows_filename.to_string_lossy());
+        }
+        Ok(target) => {
+            tracing::warn!(
+                "mpm symlink created but points to '{}' instead of '{}'",
+                target.display(),
+                mows_filename.to_string_lossy()
+            );
+        }
+        Err(e) => {
+            tracing::warn!("Could not verify mpm symlink: {}", e);
+        }
+    }
 
     Ok(())
 }
@@ -307,18 +379,18 @@ pub fn update_from_binary(version: Option<&str>) -> Result<()> {
 
     let arch = get_arch()?;
     let os = get_os()?;
-    let binary_name = format!("mpm-{}-{}-{}", new_version, os, arch);
+    let binary_name = format!("mows-{}-{}-{}", new_version, os, arch);
     let checksum_url = format!(
-        "{}/mpm-v{}/{}-checksum-sha256.txt",
+        "{}/mows-cli-v{}/{}-checksum-sha256.txt",
         GITHUB_RELEASES_URL, new_version, binary_name
     );
 
-    println!("Downloading mpm v{}...", new_version);
+    println!("Downloading mows v{}...", new_version);
 
     // Create temp directory for download
     let temp_dir =
-        tempfile::tempdir().map_err(|e| MpmError::Message(format!("Failed to create temp directory: {}", e)))?;
-    let temp_binary = temp_dir.path().join("mpm-new");
+        tempfile::tempdir().io_context("Failed to create temp directory")?;
+    let temp_binary = temp_dir.path().join("mows-new");
 
     // Download the binary
     download_file(&download_url, &temp_binary)?;
@@ -337,7 +409,7 @@ pub fn update_from_binary(version: Option<&str>) -> Result<()> {
             .map(|m| m.permissions().readonly())
             .unwrap_or(true)
         {
-            return Err(MpmError::Message(format!(
+            return Err(MowsError::Message(format!(
                 "Cannot update: no write permission to {}. Try running with sudo.",
                 parent.display()
             )));
@@ -349,9 +421,12 @@ pub fn update_from_binary(version: Option<&str>) -> Result<()> {
     replace_binary(&temp_binary, &current_binary)?;
 
     println!(
-        "Successfully updated mpm from v{} to v{}",
+        "Successfully updated mows from v{} to v{}",
         current_version, new_version
     );
+
+    // Ensure mpm symlink exists alongside the mows binary
+    create_mpm_symlink_if_possible(&current_binary)?;
 
     // Update shell completions and man pages
     println!("Updating shell completions...");
@@ -372,60 +447,60 @@ pub fn update_from_source(version: Option<&str>) -> Result<()> {
     // Check required dependencies
     check_dependencies()?;
 
-    println!("Building mpm from source...");
+    println!("Building mows from source...");
 
     // Create temp directory for the clone
     let temp_dir =
-        tempfile::tempdir().map_err(|e| MpmError::Message(format!("Failed to create temp directory: {}", e)))?;
+        tempfile::tempdir().io_context("Failed to create temp directory")?;
     let repo_path = temp_dir.path().join("mows");
 
     // Clone the repository
     println!("Cloning repository...");
     let repo_path_str = repo_path
         .to_str()
-        .ok_or_else(|| MpmError::Message("Invalid path: contains non-UTF8 characters".to_string()))?;
+        .ok_or_else(|| MowsError::Message("Invalid path: contains non-UTF8 characters".to_string()))?;
 
     let output = Command::new("git")
         .args(["clone", "--depth", "100", REPO_URL, repo_path_str])
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .output()
-        .map_err(|e| MpmError::Message(format!("Failed to clone repository: {}", e)))?;
+        .map_err(|e| MowsError::command("git clone", e.to_string()))?;
 
     if !output.status.success() {
-        return Err(MpmError::Message("Failed to clone repository".to_string()));
+        return Err(MowsError::Message("Failed to clone repository".to_string()));
     }
 
     // Determine which tag to use
     let target_tag = if let Some(v) = version {
         // User specified a version, construct the tag name
-        let tag = format!("mpm-v{}", v);
+        let tag = format!("mows-cli-v{}", v);
 
         // Verify the tag exists
         let output = Command::new("git")
             .args(["tag", "-l", &tag])
             .current_dir(&repo_path)
             .output()
-            .map_err(|e| MpmError::Message(format!("Failed to list tags: {}", e)))?;
+            .map_err(|e| MowsError::command("git tag -l", e.to_string()))?;
 
         let tags = String::from_utf8_lossy(&output.stdout);
         if tags.trim().is_empty() {
-            return Err(MpmError::Message(format!("Version {} not found (tag {} does not exist)", v, tag)));
+            return Err(MowsError::Message(format!("Version {} not found (tag {} does not exist)", v, tag)));
         }
 
         tag
     } else {
-        // Find the latest mpm tag
+        // Find the latest mows tag
         let output = Command::new("git")
-            .args(["tag", "-l", "mpm-v*", "--sort=-v:refname"])
+            .args(["tag", "-l", "mows-cli-v*", "--sort=-v:refname"])
             .current_dir(&repo_path)
             .output()
-            .map_err(|e| MpmError::Message(format!("Failed to list tags: {}", e)))?;
+            .map_err(|e| MowsError::command("git tag -l", e.to_string()))?;
 
         let tags = String::from_utf8_lossy(&output.stdout);
         tags.lines()
             .next()
-            .ok_or_else(|| MpmError::Message("No mpm release tags found in repository".to_string()))?
+            .ok_or_else(|| MowsError::Message("No mows release tags found in repository".to_string()))?
             .to_string()
     };
 
@@ -440,10 +515,10 @@ pub fn update_from_source(version: Option<&str>) -> Result<()> {
         .args(["checkout", &target_tag])
         .current_dir(&repo_path)
         .output()
-        .map_err(|e| MpmError::Message(format!("Failed to checkout tag: {}", e)))?;
+        .map_err(|e| MowsError::command("git checkout", e.to_string()))?;
 
     if !output.status.success() {
-        return Err(MpmError::Message(format!(
+        return Err(MowsError::Message(format!(
             "Failed to checkout tag {}: {}",
             target_tag,
             String::from_utf8_lossy(&output.stderr)
@@ -459,16 +534,16 @@ pub fn update_from_source(version: Option<&str>) -> Result<()> {
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .output()
-        .map_err(|e| MpmError::Message(format!("Failed to run build script: {}", e)))?;
+        .map_err(|e| MowsError::command("build.sh", e.to_string()))?;
 
     if !output.status.success() {
-        return Err(MpmError::Message("Build failed".to_string()));
+        return Err(MowsError::Message("Build failed".to_string()));
     }
 
     // Get the built binary
-    let new_binary = mpm_dir.join("dist/mpm");
+    let new_binary = mpm_dir.join("dist/mows");
     if !new_binary.exists() {
-        return Err(MpmError::Message("Build completed but binary not found at dist/mpm".to_string()));
+        return Err(MowsError::Message("Build completed but binary not found at dist/mows".to_string()));
     }
 
     // Get current binary path
@@ -476,7 +551,12 @@ pub fn update_from_source(version: Option<&str>) -> Result<()> {
     let current_version = env!("CARGO_PKG_VERSION");
 
     // Extract version from tag
-    let new_version = target_tag.strip_prefix("mpm-v").unwrap_or(&target_tag);
+    let new_version = target_tag.strip_prefix("mows-cli-v").ok_or_else(|| {
+        MowsError::Message(format!(
+            "Unexpected tag format: {} (expected mows-cli-vX.Y.Z)",
+            target_tag
+        ))
+    })?;
 
     println!("Current version: {}", current_version);
     println!("Built version:   {}", new_version);
@@ -487,7 +567,7 @@ pub fn update_from_source(version: Option<&str>) -> Result<()> {
             .map(|m| m.permissions().readonly())
             .unwrap_or(true)
         {
-            return Err(MpmError::Message(format!(
+            return Err(MowsError::Message(format!(
                 "Cannot update: no write permission to {}. Try running with sudo.",
                 parent.display()
             )));
@@ -499,9 +579,12 @@ pub fn update_from_source(version: Option<&str>) -> Result<()> {
     replace_binary(&new_binary, &current_binary)?;
 
     println!(
-        "Successfully built and installed mpm v{} from source",
+        "Successfully built and installed mows v{} from source",
         new_version
     );
+
+    // Ensure mpm symlink exists alongside the mows binary
+    create_mpm_symlink_if_possible(&current_binary)?;
 
     // Update shell completions and man pages
     println!("Updating shell completions...");
@@ -519,21 +602,21 @@ pub fn update_from_source(version: Option<&str>) -> Result<()> {
 
 /// Check that required dependencies (git, docker) are available
 fn check_dependencies() -> Result<()> {
-    use crate::compose::default_client;
+    use crate::package_manager::compose::default_client;
 
     // Check git
     Command::new("git")
         .arg("--version")
         .output()
-        .map_err(|_| MpmError::Message("git is not installed or not in PATH".to_string()))?;
+        .map_err(|_| MowsError::Message("git is not installed or not in PATH".to_string()))?;
 
     // Check docker using the DockerClient (which also verifies daemon is running)
     let client = default_client().map_err(|e| {
-        MpmError::Message(format!("Docker is not available: {}", e))
+        MowsError::Message(format!("Docker is not available: {}", e))
     })?;
 
     client.check_daemon().map_err(|e| {
-        MpmError::Message(format!("Docker daemon is not running: {}", e))
+        MowsError::Message(format!("Docker daemon is not running: {}", e))
     })?;
 
     Ok(())
@@ -545,7 +628,7 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<()> {
 
     // Create a temporary allowed_signers file with our trusted key
     let temp_dir =
-        tempfile::tempdir().map_err(|e| MpmError::Message(format!("Failed to create temp directory: {}", e)))?;
+        tempfile::tempdir().io_context("Failed to create temp directory")?;
     let allowed_signers_path = temp_dir.path().join("allowed_signers");
 
     // Format: <principal> <key-type> <key>
@@ -553,9 +636,10 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<()> {
     let allowed_signers_content = format!("* {}\n", TRUSTED_SSH_KEY);
 
     let mut file = File::create(&allowed_signers_path)
-        .map_err(|e| MpmError::Message(format!("Failed to create allowed_signers file: {}", e)))?;
+        .io_context("Failed to create allowed_signers file")?;
     file.write_all(allowed_signers_content.as_bytes())
-        .map_err(|e| MpmError::Message(format!("Failed to write allowed_signers file: {}", e)))?;
+        .io_context("Failed to write allowed_signers file")?;
+    drop(file); // Ensure file is flushed before verification reads it
 
     // Configure git to use our allowed_signers file for this verification
     let output = Command::new("git")
@@ -571,7 +655,7 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<()> {
         ])
         .current_dir(repo_path)
         .output()
-        .map_err(|e| MpmError::Message(format!("Failed to verify tag signature: {}", e)))?;
+        .map_err(|e| MowsError::command("ssh-keygen verify", e.to_string()))?;
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -579,19 +663,19 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<()> {
     if !output.status.success() {
         // Check if it's because the tag isn't signed
         if stderr.contains("error: no signature found") || stderr.contains("no signature") {
-            return Err(MpmError::Message(format!(
+            return Err(MowsError::Message(format!(
                 "Tag {} is not signed. Cannot verify authenticity.",
                 tag
             )));
         }
         // Check for SSH signature format issues
         if stderr.contains("Bad signature") || stderr.contains("Could not verify signature") {
-            return Err(MpmError::Message(format!(
+            return Err(MowsError::Message(format!(
                 "SSH signature verification failed. The tag may have been signed with a different key.\n{}",
                 stderr
             )));
         }
-        return Err(MpmError::Message(format!(
+        return Err(MowsError::Message(format!(
             r#"Signature verification failed:
 {}
 {}"#,
@@ -607,7 +691,7 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<()> {
     let has_good_signature = combined_output.contains(r#"Good "git" signature for"#)
         || combined_output.contains("Good signature from");
     if !has_good_signature {
-        return Err(MpmError::Message(format!(
+        return Err(MowsError::Message(format!(
             r#"Signature verification did not confirm a good signature:
 {}
 {}"#,
@@ -623,13 +707,13 @@ fn verify_ssh_signature(repo_path: &Path, tag: &str) -> Result<()> {
 fn get_self_hash() -> Result<String> {
     let binary_path = get_current_binary_path()?;
     let mut file = File::open(&binary_path)
-        .map_err(|e| MpmError::Message(format!("Failed to open binary: {}", e)))?;
+        .io_context(format!("Failed to open binary at {}", binary_path.display()))?;
 
     let mut hasher = Sha256::new();
     let mut buffer = [0u8; 8192];
     loop {
         let bytes_read = file.read(&mut buffer)
-            .map_err(|e| MpmError::Message(format!("Failed to read binary: {}", e)))?;
+            .io_context(format!("Failed to read binary at {}", binary_path.display()))?;
         if bytes_read == 0 {
             break;
         }
@@ -645,30 +729,25 @@ fn fetch_expected_checksum(version: &str) -> Result<String> {
     let arch = get_arch()?;
     let os = get_os()?;
     let checksum_url = format!(
-        "{}/mpm-v{}/mpm-{}-{}-{}-checksum-sha256.txt",
+        "{}/mows-cli-v{}/mows-{}-{}-{}-checksum-sha256.txt",
         GITHUB_RELEASES_URL, version, version, os, arch
     );
 
     let client = create_version_check_client()?;
-    let response = client
-        .get(&checksum_url)
-        .send()
-        .map_err(|e| MpmError::Message(format!("Failed to fetch checksum: {}", e)))?;
+    let response = client.get(&checksum_url).send()?;
 
     if !response.status().is_success() {
-        return Err(MpmError::Message(format!("Checksum not found for v{}", version)));
+        return Err(MowsError::Message(format!("Checksum not found for v{}", version)));
     }
 
-    let content = response
-        .text()
-        .map_err(|e| MpmError::Message(format!("Failed to read checksum: {}", e)))?;
+    let content = response.text()?;
 
     // Format: "hash  filename" - extract just the hash
     content
         .split_whitespace()
         .next()
         .map(String::from)
-        .ok_or_else(|| MpmError::Message("Invalid checksum format".to_string()))
+        .ok_or_else(|| MowsError::Message("Invalid checksum format".to_string()))
 }
 
 /// Show version information and check for updates
@@ -681,7 +760,7 @@ pub fn show_version() -> Result<()> {
     let self_hash = get_self_hash().unwrap_or_else(|_| "unknown".to_string());
     let short_hash = &self_hash[..12.min(self_hash.len())];
 
-    println!("mpm {} ({} {}) [{}]", current_version, git_hash, git_date, short_hash);
+    println!("mows {} ({} {}) [{}]", current_version, git_hash, git_date, short_hash);
     println!();
 
     // Verify binary integrity against expected checksum
@@ -720,7 +799,7 @@ pub fn show_version() -> Result<()> {
                 println!("{}", "up to date".green().bold());
             } else if is_newer_version(&latest_version, current_version) {
                 println!("{}", format!("v{} available", latest_version).yellow());
-                println!("\nRun 'mpm self-update' to update.");
+                println!("\nRun 'mows self-update' to update.");
             } else {
                 // Current version is newer (dev build or downgrade scenario)
                 println!(
@@ -749,7 +828,7 @@ pub fn self_update(build: bool, version: Option<&str>) -> Result<()> {
 
     // Clear update notification on successful update
     if result.is_ok() {
-        let _ = crate::compose::config::MpmConfig::with_locked(|config| {
+        let _ = crate::package_manager::compose::config::MowsConfig::with_locked(|config| {
             config.clear_update_notification();
             Ok(())
         });
@@ -762,10 +841,10 @@ pub fn self_update(build: bool, version: Option<&str>) -> Result<()> {
 /// This runs after the main command output so users see results immediately,
 /// then we check for updates with a 1-second timeout to avoid delaying exit noticeably.
 pub fn check_for_updates_background() {
-    use crate::compose::config::MpmConfig;
+    use crate::package_manager::compose::config::MowsConfig;
 
     // Load config first to check if we should skip
-    let config = match MpmConfig::load() {
+    let config = match MowsConfig::load() {
         Ok(c) => c,
         Err(_) => return,
     };
@@ -781,7 +860,7 @@ pub fn check_for_updates_background() {
 
 /// Check for updates and save to config
 fn check_and_save_update_info() {
-    use crate::compose::config::MpmConfig;
+    use crate::package_manager::compose::config::MowsConfig;
 
     let current_version = env!("CARGO_PKG_VERSION");
 
@@ -792,7 +871,7 @@ fn check_and_save_update_info() {
     };
 
     // Atomically load, update, and save config
-    let _ = MpmConfig::with_locked(|config| {
+    let _ = MowsConfig::with_locked(|config| {
         // Only notify if there's actually a newer version
         if latest_version != current_version && is_newer_version(&latest_version, current_version) {
             config.set_update_available(latest_version.clone());
@@ -805,33 +884,37 @@ fn check_and_save_update_info() {
     });
 }
 
+/// Parse a semver string like "1.2.3" into (major, minor, patch).
+fn parse_semver(v: &str) -> Option<(u32, u32, u32)> {
+    let mut parts = v.split('.');
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next()?.parse().ok()?;
+    let patch = parts.next()?.parse().ok()?;
+    // Reject if there are extra components
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((major, minor, patch))
+}
+
+/// Check whether a string is a valid semver version.
+fn is_valid_semver(v: &str) -> bool {
+    parse_semver(v).is_some()
+}
+
 /// Compare semantic versions to check if `new` is newer than `current`
 fn is_newer_version(new: &str, current: &str) -> bool {
-    let parse_version = |v: &str| -> Option<(u32, u32, u32)> {
-        let parts: Vec<&str> = v.split('.').collect();
-        if parts.len() != 3 {
-            return None;
-        }
-        Some((
-            parts[0].parse().ok()?,
-            parts[1].parse().ok()?,
-            parts[2].parse().ok()?,
-        ))
-    };
-
-    match (parse_version(new), parse_version(current)) {
-        (Some((new_major, new_minor, new_patch)), Some((cur_major, cur_minor, cur_patch))) => {
-            (new_major, new_minor, new_patch) > (cur_major, cur_minor, cur_patch)
-        }
+    match (parse_semver(new), parse_semver(current)) {
+        (Some(new_ver), Some(cur_ver)) => new_ver > cur_ver,
         _ => false,
     }
 }
 
 /// Check config and print update notification if available
 pub fn notify_if_update_available() {
-    use crate::compose::config::MpmConfig;
+    use crate::package_manager::compose::config::MowsConfig;
 
-    let config = match MpmConfig::load() {
+    let config = match MowsConfig::load() {
         Ok(c) => c,
         Err(_) => return,
     };
@@ -844,12 +927,12 @@ pub fn notify_if_update_available() {
             eprintln!(
                 "{}",
                 format!(
-                    "A new version of mpm is available: {} (current: {})",
+                    "A new version of mows is available: {} (current: {})",
                     update.available_version, current_version
                 )
                 .yellow()
             );
-            eprintln!("{}\n", "Run 'mpm self-update' to update.".yellow());
+            eprintln!("{}\n", "Run 'mows self-update' to update.".yellow());
         }
     }
 }
@@ -964,5 +1047,150 @@ mod tests {
     fn test_create_http_client() {
         let client = create_http_client();
         assert!(client.is_ok());
+    }
+
+    // ========================================================================
+    // move_file tests
+    // ========================================================================
+
+    #[test]
+    fn test_move_file_same_filesystem() {
+        use std::io::Write;
+
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let src = dir.path().join("source.bin");
+        let dst = dir.path().join("dest.bin");
+
+        let mut f = File::create(&src).expect("Failed to create source");
+        f.write_all(b"test content").expect("Failed to write");
+        drop(f);
+
+        move_file(&src, &dst).expect("move_file should succeed");
+
+        assert!(!src.exists(), "Source should not exist after move");
+        assert!(dst.exists(), "Destination should exist after move");
+        assert_eq!(
+            fs::read_to_string(&dst).expect("Failed to read dest"),
+            "test content"
+        );
+    }
+
+    #[test]
+    fn test_move_file_source_not_found() {
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let src = dir.path().join("nonexistent");
+        let dst = dir.path().join("dest");
+
+        let result = move_file(&src, &dst);
+        assert!(result.is_err(), "Should fail when source doesn't exist");
+    }
+
+    // ========================================================================
+    // create_mpm_symlink_if_possible tests
+    // ========================================================================
+
+    #[test]
+    fn test_create_mpm_symlink_if_possible_creates_symlink() {
+        use std::io::Write;
+
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let mows_binary = dir.path().join("mows");
+        let mut f = File::create(&mows_binary).expect("Failed to create fake binary");
+        f.write_all(b"fake binary").expect("Failed to write");
+        drop(f);
+
+        create_mpm_symlink_if_possible(&mows_binary).expect("create_mpm_symlink_if_possible should succeed");
+
+        let mpm_path = dir.path().join("mpm");
+        assert!(mpm_path.symlink_metadata().is_ok(), "mpm symlink should exist");
+        assert!(
+            mpm_path.symlink_metadata().unwrap().file_type().is_symlink(),
+            "mpm should be a symlink"
+        );
+
+        let target = fs::read_link(&mpm_path).expect("Failed to read symlink");
+        assert_eq!(target, Path::new("mows"), "Symlink should point to 'mows'");
+    }
+
+    #[test]
+    fn test_create_mpm_symlink_if_possible_replaces_stale_symlink() {
+        use std::io::Write;
+
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let mows_binary = dir.path().join("mows");
+        let mut f = File::create(&mows_binary).expect("Failed to create fake binary");
+        f.write_all(b"fake binary").expect("Failed to write");
+        drop(f);
+
+        // Create a stale symlink pointing to old_binary
+        let mpm_path = dir.path().join("mpm");
+        std::os::unix::fs::symlink("old_binary", &mpm_path)
+            .expect("Failed to create stale symlink");
+
+        create_mpm_symlink_if_possible(&mows_binary).expect("create_mpm_symlink_if_possible should succeed");
+
+        let target = fs::read_link(&mpm_path).expect("Failed to read symlink");
+        assert_eq!(target, Path::new("mows"), "Symlink should be updated to 'mows'");
+    }
+
+    #[test]
+    fn test_create_mpm_symlink_if_possible_skips_real_file() {
+        use std::io::Write;
+
+        let dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let mows_binary = dir.path().join("mows");
+        let mut f = File::create(&mows_binary).expect("Failed to create fake binary");
+        f.write_all(b"fake binary").expect("Failed to write");
+        drop(f);
+
+        // Create a real file at mpm path
+        let mpm_path = dir.path().join("mpm");
+        let mut f = File::create(&mpm_path).expect("Failed to create mpm file");
+        f.write_all(b"real binary").expect("Failed to write");
+        drop(f);
+
+        // Should succeed (skip gracefully) but NOT replace the real file
+        create_mpm_symlink_if_possible(&mows_binary).expect("Should succeed even with existing real file");
+
+        // Verify the real file is unchanged
+        assert!(
+            !mpm_path.symlink_metadata().unwrap().file_type().is_symlink(),
+            "mpm should still be a real file, not a symlink"
+        );
+        assert_eq!(
+            fs::read_to_string(&mpm_path).expect("Failed to read"),
+            "real binary"
+        );
+    }
+
+    // ========================================================================
+    // parse_semver / is_valid_semver tests
+    // ========================================================================
+
+    #[test]
+    fn test_parse_semver_valid() {
+        assert_eq!(parse_semver("1.2.3"), Some((1, 2, 3)));
+        assert_eq!(parse_semver("0.0.0"), Some((0, 0, 0)));
+        assert_eq!(parse_semver("100.200.300"), Some((100, 200, 300)));
+    }
+
+    #[test]
+    fn test_parse_semver_invalid() {
+        assert_eq!(parse_semver(""), None);
+        assert_eq!(parse_semver("1"), None);
+        assert_eq!(parse_semver("1.2"), None);
+        assert_eq!(parse_semver("1.2.3.4"), None);
+        assert_eq!(parse_semver("a.b.c"), None);
+        assert_eq!(parse_semver("1.2.3-rc1"), None); // Pre-release not supported
+        assert_eq!(parse_semver("-1.0.0"), None);
+    }
+
+    #[test]
+    fn test_is_valid_semver() {
+        assert!(is_valid_semver("0.1.0"));
+        assert!(is_valid_semver("1.0.0"));
+        assert!(!is_valid_semver("foo"));
+        assert!(!is_valid_semver("1.0"));
+        assert!(!is_valid_semver(""));
     }
 }

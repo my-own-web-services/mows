@@ -1,18 +1,18 @@
-name: Publish mpm binary
+name: Publish mows binary
 
 on:
   push:
     tags:
-      - 'mpm-v*'
+      - 'mows-cli-v*'
     paths:
       - 'utils/mpm/**'
       - 'utils/mows-common-rust/**'
-      - '.github/workflows/publish-mpm.yml'
+      - '.github/workflows/publish-mows.yml'
   pull_request:
     paths:
       - 'utils/mpm/**'
       - 'utils/mows-common-rust/**'
-      - '.github/workflows/publish-mpm.yml'
+      - '.github/workflows/publish-mows.yml'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -25,7 +25,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
@@ -33,7 +33,7 @@ jobs:
           toolchain: stable
 
       - name: Cache cargo registry
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v4
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v4
         with:
           path: |
             ~/.cargo/registry
@@ -53,6 +53,10 @@ jobs:
           cd utils/mpm
           cargo build --release
 
+      - name: Create mpm symlink for e2e tests
+        run: |
+          ln -sf mows utils/mpm/target/release/mpm
+
       - name: Run e2e tests
         run: |
           cd utils/mpm/tests
@@ -60,6 +64,7 @@ jobs:
           # Skip test-self-update which requires network access to GitHub API
           SKIP_TESTS="test-self-update" ./run-all.sh
         env:
+          MOWS_BIN: ${{ github.workspace }}/utils/mpm/target/release/mows
           MPM_BIN: ${{ github.workspace }}/utils/mpm/target/release/mpm
           MPM_MOCK_DOCKER: "1"
 
@@ -76,7 +81,7 @@ jobs:
           - arch: arm64
             os_name: linux
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
@@ -102,7 +107,7 @@ jobs:
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             VERSION="${{ github.ref_name }}"
-            VERSION="${VERSION#mpm-v}"
+            VERSION="${VERSION#mows-cli-v}"
           else
             VERSION="dev"
           fi
@@ -111,13 +116,15 @@ jobs:
       - name: Rename binary with version and platform
         run: |
           cd utils/mpm/dist
-          mv mpm mpm-${{ steps.get_version.outputs.version }}-${{ matrix.os_name }}-${{ matrix.arch }}
+          # Remove symlink, keep only the real binary
+          rm -f mpm
+          mv mows mows-${{ steps.get_version.outputs.version }}-${{ matrix.os_name }}-${{ matrix.arch }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
         with:
-          name: mpm-${{ matrix.os_name }}-${{ matrix.arch }}
-          path: utils/mpm/dist/mpm-*
+          name: mows-${{ matrix.os_name }}-${{ matrix.arch }}
+          path: utils/mpm/dist/mows-*
           retention-days: 7
 
   release:
@@ -137,22 +144,22 @@ jobs:
         id: get_version
         run: |
           VERSION="${{ github.ref_name }}"
-          VERSION="${VERSION#mpm-v}"
+          VERSION="${VERSION#mows-cli-v}"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Create checksums
         run: |
           cd artifacts
-          for f in mpm-*; do
+          for f in mows-*; do
             sha256sum "$f" > "${f}-checksum-sha256.txt"
           done
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
         with:
-          name: mpm v${{ steps.get_version.outputs.version }}
+          name: mows v${{ steps.get_version.outputs.version }}
           draft: false
           prerelease: false
           files: |
-            artifacts/mpm-*
+            artifacts/mows-*
           generate_release_notes: true

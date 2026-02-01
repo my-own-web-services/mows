@@ -1,7 +1,7 @@
 use std::path::Path;
 use tracing::debug;
 
-use crate::error::{MpmError, Result};
+use crate::error::{MowsError, Result};
 use crate::utils::{parse_yaml, read_input, write_output};
 
 pub fn jq_command(
@@ -20,16 +20,16 @@ pub fn jq_command(
         json
     } else {
         let yaml: serde_yaml_neo::Value = parse_yaml(&content, input)?;
-        serde_json::to_value(&yaml).map_err(MpmError::JsonSerialize)?
+        serde_json::to_value(&yaml).map_err(MowsError::JsonSerialize)?
     };
 
     // Parse the jq filter
     let (main, errs) = jaq_parse::parse(query, jaq_parse::main());
     if !errs.is_empty() {
         let err_msgs: Vec<String> = errs.iter().map(|e| format!("{:?}", e)).collect();
-        return Err(MpmError::Jq(format!("Failed to parse query: {}", err_msgs.join(", "))));
+        return Err(MowsError::Jq(format!("Failed to parse query: {}", err_msgs.join(", "))));
     }
-    let main = main.ok_or_else(|| MpmError::Jq("Failed to parse query".to_string()))?;
+    let main = main.ok_or_else(|| MowsError::Jq("Failed to parse query".to_string()))?;
 
     // Create filter context (starts with core filters only)
     let mut arena = jaq_interpret::ParseCtx::new(Vec::new());
@@ -37,7 +37,7 @@ pub fn jq_command(
 
     if !arena.errs.is_empty() {
         let err_msgs: Vec<String> = arena.errs.iter().map(|e| format!("{}", e.0)).collect();
-        return Err(MpmError::Jq(format!(
+        return Err(MowsError::Jq(format!(
             "Failed to compile query: {}",
             err_msgs.join(", ")
         )));
@@ -53,7 +53,7 @@ pub fn jq_command(
     let results: Vec<Val> = filter
         .run((ctx, input_val))
         .collect::<std::result::Result<Vec<_>, _>>()
-        .map_err(|e| MpmError::Jq(format!("query error: {}", e)))?;
+        .map_err(|e| MowsError::Jq(format!("query error: {}", e)))?;
 
     // Format output
     let output_str = if results.len() == 1 {
@@ -62,7 +62,7 @@ pub fn jq_command(
         if yaml_output {
             serde_yaml_neo::to_string_with_indent(&result_json, 4)?
         } else {
-            serde_json::to_string_pretty(&result_json).map_err(MpmError::JsonSerialize)?
+            serde_json::to_string_pretty(&result_json).map_err(MowsError::JsonSerialize)?
         }
     } else {
         let results_json: Vec<serde_json::Value> =
@@ -75,7 +75,7 @@ pub fn jq_command(
                 .iter()
                 .map(|v| serde_json::to_string(v))
                 .collect();
-            formatted.map_err(MpmError::JsonSerialize)?.join("\n")
+            formatted.map_err(MowsError::JsonSerialize)?.join("\n")
         }
     };
 

@@ -25,7 +25,7 @@ TEST_DIR=$(create_test_dir "json-to-yaml")
 cat > "$TEST_DIR/input.json" << 'EOF'
 {"name": "test", "count": 42, "nested": {"key": "value"}}
 EOF
-if $MPM_BIN tools json-to-yaml -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.yaml"; then
+if $MOWS_BIN tools json-to-yaml -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.yaml"; then
     if grep -q "name: test" "$TEST_DIR/output.yaml" && \
        grep -q "count: 42" "$TEST_DIR/output.yaml" && \
        grep -q "nested:" "$TEST_DIR/output.yaml"; then
@@ -38,7 +38,7 @@ else
 fi
 
 log_test "tools json-to-yaml: stdin to stdout"
-RESULT=$(echo '{"hello": "world"}' | $MPM_BIN tools json-to-yaml)
+RESULT=$(echo '{"hello": "world"}' | $MOWS_BIN tools json-to-yaml)
 if assert_contains "$RESULT" "hello: world" "YAML output should contain key"; then
     pass_test "JSON to YAML stdin/stdout"
 else
@@ -50,7 +50,7 @@ TEST_DIR=$(create_test_dir "json-to-yaml-arrays")
 cat > "$TEST_DIR/input.json" << 'EOF'
 {"items": [1, 2, 3], "names": ["a", "b"]}
 EOF
-if $MPM_BIN tools json-to-yaml -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.yaml"; then
+if $MOWS_BIN tools json-to-yaml -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.yaml"; then
     if grep -q "items:" "$TEST_DIR/output.yaml"; then
         pass_test "JSON to YAML with arrays"
     else
@@ -61,14 +61,14 @@ else
 fi
 
 log_test "tools json-to-yaml: invalid JSON"
-if echo 'not valid json' | $MPM_BIN tools json-to-yaml 2>&1; then
+if echo 'not valid json' | $MOWS_BIN tools json-to-yaml 2>&1; then
     fail_test "Should fail on invalid JSON"
 else
     pass_test "JSON to YAML rejects invalid JSON"
 fi
 
 log_test "tools json-to-yaml: empty object"
-RESULT=$(echo '{}' | $MPM_BIN tools json-to-yaml)
+RESULT=$(echo '{}' | $MOWS_BIN tools json-to-yaml)
 if [[ "$RESULT" == "{}" ]] || [[ -z "${RESULT// }" ]]; then
     pass_test "JSON to YAML empty object"
 else
@@ -87,7 +87,7 @@ count: 42
 nested:
   key: value
 EOF
-if $MPM_BIN tools yaml-to-json -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.json"; then
+if $MOWS_BIN tools yaml-to-json -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.json"; then
     if grep -q '"name"' "$TEST_DIR/output.json" && \
        grep -q '"count"' "$TEST_DIR/output.json"; then
         pass_test "YAML to JSON basic conversion"
@@ -99,7 +99,7 @@ else
 fi
 
 log_test "tools yaml-to-json: stdin to stdout"
-RESULT=$(echo 'hello: world' | $MPM_BIN tools yaml-to-json)
+RESULT=$(echo 'hello: world' | $MOWS_BIN tools yaml-to-json)
 if assert_contains "$RESULT" '"hello"' "JSON output should contain key"; then
     pass_test "YAML to JSON stdin/stdout"
 else
@@ -113,7 +113,7 @@ description: |
   This is a
   multiline string
 EOF
-if $MPM_BIN tools yaml-to-json -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.json"; then
+if $MOWS_BIN tools yaml-to-json -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.json"; then
     if grep -q '"description"' "$TEST_DIR/output.json"; then
         pass_test "YAML to JSON multiline strings"
     else
@@ -124,7 +124,7 @@ else
 fi
 
 log_test "tools yaml-to-json: invalid YAML"
-if echo '  invalid: yaml: here' | $MPM_BIN tools yaml-to-json 2>&1; then
+if echo '  invalid: yaml: here' | $MOWS_BIN tools yaml-to-json 2>&1; then
     # Some invalid YAML might still parse, so check differently
     pass_test "YAML to JSON handles edge case YAML"
 else
@@ -138,7 +138,7 @@ fi
 log_test "tools prettify-json: minified to pretty"
 TEST_DIR=$(create_test_dir "prettify-json")
 echo '{"a":1,"b":{"c":2}}' > "$TEST_DIR/input.json"
-if $MPM_BIN tools prettify-json -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.json"; then
+if $MOWS_BIN tools prettify-json -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.json"; then
     # Check for indentation (pretty printed)
     if grep -q '  "' "$TEST_DIR/output.json"; then
         pass_test "Prettify JSON adds indentation"
@@ -150,7 +150,7 @@ else
 fi
 
 log_test "tools prettify-json: stdin to stdout"
-RESULT=$(echo '{"x":1}' | $MPM_BIN tools prettify-json)
+RESULT=$(echo '{"x":1}' | $MOWS_BIN tools prettify-json)
 if [[ $(echo "$RESULT" | wc -l) -gt 1 ]]; then
     pass_test "Prettify JSON stdin/stdout multiline output"
 else
@@ -164,14 +164,14 @@ cat > "$TEST_DIR/input.json" << 'EOF'
   "already": "pretty"
 }
 EOF
-if $MPM_BIN tools prettify-json -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.json"; then
+if $MOWS_BIN tools prettify-json -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.json"; then
     pass_test "Prettify JSON handles already pretty JSON"
 else
     fail_test "Prettify JSON failed on already pretty JSON"
 fi
 
 log_test "tools prettify-json: invalid JSON"
-if echo 'not json' | $MPM_BIN tools prettify-json 2>&1; then
+if echo 'not json' | $MOWS_BIN tools prettify-json 2>&1; then
     fail_test "Should fail on invalid JSON"
 else
     pass_test "Prettify JSON rejects invalid JSON"
@@ -187,7 +187,7 @@ cat > "$TEST_DIR/input.yaml" << 'EOF'
 traefik.http.routers.app.rule: "Host(`example.com`)"
 traefik.http.routers.app.entrypoints: web
 EOF
-if $MPM_BIN tools expand-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml"; then
+if $MOWS_BIN tools expand-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml"; then
     if grep -q "traefik:" "$TEST_DIR/output.yaml" && \
        grep -q "http:" "$TEST_DIR/output.yaml" && \
        grep -q "routers:" "$TEST_DIR/output.yaml"; then
@@ -209,7 +209,7 @@ services:
       traefik.enable: "true"
       traefik.http.routers.web.rule: "Host(`web.local`)"
 EOF
-if $MPM_BIN tools expand-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml" -s "services.*.labels"; then
+if $MOWS_BIN tools expand-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml" -s "services.*.labels"; then
     if grep -q "traefik:" "$TEST_DIR/output.yaml"; then
         pass_test "Expand object with selector"
     else
@@ -228,7 +228,7 @@ services:
     labels:
       app.version: "1.0"
 EOF
-if $MPM_BIN tools expand-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml"; then
+if $MOWS_BIN tools expand-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml"; then
     # Should auto-detect docker-compose and use services.*.labels selector
     pass_test "Expand object auto-detects docker-compose"
 else
@@ -242,7 +242,7 @@ cat > "$TEST_DIR/input.yaml" << 'EOF'
 "items[0].value": "1"
 "items[1].name": "second"
 EOF
-if $MPM_BIN tools expand-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml"; then
+if $MOWS_BIN tools expand-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml"; then
     if grep -q "items:" "$TEST_DIR/output.yaml"; then
         pass_test "Expand object handles array notation"
     else
@@ -266,7 +266,7 @@ traefik:
         rule: "Host(`example.com`)"
         entrypoints: web
 EOF
-if $MPM_BIN tools flatten-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml"; then
+if $MOWS_BIN tools flatten-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml"; then
     if grep -q "traefik.http.routers.app.rule" "$TEST_DIR/output.yaml"; then
         pass_test "Flatten object creates dot notation"
     else
@@ -290,7 +290,7 @@ services:
             web:
               rule: "Host(`web.local`)"
 EOF
-if $MPM_BIN tools flatten-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml" -s "services.*.labels"; then
+if $MOWS_BIN tools flatten-object -i "$TEST_DIR/input.yaml" -o "$TEST_DIR/output.yaml" -s "services.*.labels"; then
     if grep -q "traefik.enable" "$TEST_DIR/output.yaml" || grep -q "traefik.http.routers" "$TEST_DIR/output.yaml"; then
         pass_test "Flatten object with selector"
     else
@@ -307,8 +307,8 @@ traefik.http.routers.app.rule: "Host(`example.com`)"
 traefik.http.services.app.port: "8080"
 EOF
 # Expand then flatten
-$MPM_BIN tools expand-object -i "$TEST_DIR/original.yaml" -o "$TEST_DIR/expanded.yaml"
-$MPM_BIN tools flatten-object -i "$TEST_DIR/expanded.yaml" -o "$TEST_DIR/final.yaml"
+$MOWS_BIN tools expand-object -i "$TEST_DIR/original.yaml" -o "$TEST_DIR/expanded.yaml"
+$MOWS_BIN tools flatten-object -i "$TEST_DIR/expanded.yaml" -o "$TEST_DIR/final.yaml"
 if grep -q "traefik.http.routers.app.rule" "$TEST_DIR/final.yaml" && \
    grep -q "traefik.http.services.app.port" "$TEST_DIR/final.yaml"; then
     pass_test "Expand/flatten roundtrip preserves data"
@@ -321,7 +321,7 @@ fi
 # ============================================================================
 
 log_test "tools jq: simple key access"
-RESULT=$(echo '{"name": "test"}' | $MPM_BIN tools jq '.name')
+RESULT=$(echo '{"name": "test"}' | $MOWS_BIN tools jq '.name')
 if assert_contains "$RESULT" "test" "Should extract name"; then
     pass_test "JQ simple key access"
 else
@@ -329,7 +329,7 @@ else
 fi
 
 log_test "tools jq: nested key access"
-RESULT=$(echo '{"outer": {"inner": "value"}}' | $MPM_BIN tools jq '.outer.inner')
+RESULT=$(echo '{"outer": {"inner": "value"}}' | $MOWS_BIN tools jq '.outer.inner')
 if assert_contains "$RESULT" "value" "Should extract nested value"; then
     pass_test "JQ nested key access"
 else
@@ -337,7 +337,7 @@ else
 fi
 
 log_test "tools jq: array access"
-RESULT=$(echo '{"items": [1, 2, 3]}' | $MPM_BIN tools jq '.items[1]')
+RESULT=$(echo '{"items": [1, 2, 3]}' | $MOWS_BIN tools jq '.items[1]')
 if assert_contains "$RESULT" "2" "Should extract array element"; then
     pass_test "JQ array access"
 else
@@ -347,7 +347,7 @@ fi
 log_test "tools jq: with file input"
 TEST_DIR=$(create_test_dir "jq-file")
 echo '{"data": {"id": 123}}' > "$TEST_DIR/input.json"
-RESULT=$($MPM_BIN tools jq '.data.id' -i "$TEST_DIR/input.json")
+RESULT=$($MOWS_BIN tools jq '.data.id' -i "$TEST_DIR/input.json")
 if assert_contains "$RESULT" "123" "Should extract from file"; then
     pass_test "JQ file input"
 else
@@ -357,7 +357,7 @@ fi
 log_test "tools jq: with file output"
 TEST_DIR=$(create_test_dir "jq-output")
 echo '{"key": "value"}' > "$TEST_DIR/input.json"
-$MPM_BIN tools jq '.key' -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.json"
+$MOWS_BIN tools jq '.key' -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.json"
 if grep -q "value" "$TEST_DIR/output.json"; then
     pass_test "JQ file output"
 else
@@ -370,7 +370,7 @@ cat > "$TEST_DIR/input.yaml" << 'EOF'
 name: myapp
 version: 1.0
 EOF
-RESULT=$($MPM_BIN tools jq '.name' -i "$TEST_DIR/input.yaml")
+RESULT=$($MOWS_BIN tools jq '.name' -i "$TEST_DIR/input.yaml")
 if assert_contains "$RESULT" "myapp" "Should handle YAML input"; then
     pass_test "JQ YAML input"
 else
@@ -378,7 +378,7 @@ else
 fi
 
 log_test "tools jq: YAML output"
-RESULT=$(echo '{"name": "test"}' | $MPM_BIN tools jq '.' --yaml)
+RESULT=$(echo '{"name": "test"}' | $MOWS_BIN tools jq '.' --yaml)
 if assert_contains "$RESULT" "name:" "Should output YAML"; then
     pass_test "JQ YAML output"
 else
@@ -387,7 +387,7 @@ fi
 
 log_test "tools jq: filter expression"
 # Note: mpm's jq might not support all jq filters - test a simpler expression
-RESULT=$(echo '{"items": [{"n": 1}, {"n": 2}, {"n": 3}]}' | $MPM_BIN tools jq '.items[0].n' 2>&1 || true)
+RESULT=$(echo '{"items": [{"n": 1}, {"n": 2}, {"n": 3}]}' | $MOWS_BIN tools jq '.items[0].n' 2>&1 || true)
 if assert_contains "$RESULT" "1" "Should access nested array element"; then
     pass_test "JQ filter expression"
 else
@@ -396,7 +396,7 @@ else
 fi
 
 log_test "tools jq: identity filter"
-RESULT=$(echo '{"a": 1}' | $MPM_BIN tools jq '.')
+RESULT=$(echo '{"a": 1}' | $MOWS_BIN tools jq '.')
 if assert_contains "$RESULT" '"a"' "Identity should return input"; then
     pass_test "JQ identity filter"
 else
@@ -442,7 +442,7 @@ serde = { workspace = true }
 EOF
 touch "$TEST_DIR/workspace/app/docker-compose.yml"
 cd "$TEST_DIR/workspace/app"
-if $MPM_BIN tools cargo-workspace-docker; then
+if $MOWS_BIN tools cargo-workspace-docker; then
     if [[ -f "cargo-workspace-docker.toml" ]]; then
         # Verify version is copied from package
         if grep -q 'version = "2.0.0"' cargo-workspace-docker.toml; then
@@ -485,9 +485,9 @@ middle = { workspace = true }
 EOF
 touch "$TEST_DIR/workspace/app/docker-compose.yml"
 cd "$TEST_DIR/workspace/app"
-$MPM_BIN tools cargo-workspace-docker
+$MOWS_BIN tools cargo-workspace-docker
 cp cargo-workspace-docker.toml first.toml
-$MPM_BIN tools cargo-workspace-docker
+$MOWS_BIN tools cargo-workspace-docker
 if diff -q cargo-workspace-docker.toml first.toml > /dev/null; then
     pass_test "workspace-docker output is deterministic"
 else
@@ -518,7 +518,7 @@ version = "1.0.0"
 EOF
 touch "$TEST_DIR/app/docker-compose.yml"
 cd "$TEST_DIR/app"
-if $MPM_BIN tools cargo-workspace-docker 2>&1; then
+if $MOWS_BIN tools cargo-workspace-docker 2>&1; then
     fail_test "Should fail when no workspace root"
 else
     pass_test "workspace-docker fails gracefully without workspace"
@@ -539,7 +539,7 @@ name = "test-app"
 version = "1.0.0"
 EOF
 cd "$TEST_DIR/workspace/app"
-if $MPM_BIN tools cargo-workspace-docker 2>&1; then
+if $MOWS_BIN tools cargo-workspace-docker 2>&1; then
     fail_test "Should fail when no docker-compose"
 else
     pass_test "workspace-docker fails gracefully without docker-compose"
@@ -551,7 +551,7 @@ cd - > /dev/null
 # ============================================================================
 
 log_test "tools: non-existent input file"
-if $MPM_BIN tools json-to-yaml -i "/nonexistent/file.json" 2>&1; then
+if $MOWS_BIN tools json-to-yaml -i "/nonexistent/file.json" 2>&1; then
     fail_test "Should fail on non-existent file"
 else
     pass_test "Handles non-existent input file"
@@ -561,7 +561,7 @@ log_test "tools: output to non-existent directory"
 TEST_DIR=$(create_test_dir "output-dir")
 echo '{}' > "$TEST_DIR/input.json"
 # Should create parent directories or fail gracefully
-if $MPM_BIN tools json-to-yaml -i "$TEST_DIR/input.json" -o "$TEST_DIR/subdir/output.yaml" 2>&1; then
+if $MOWS_BIN tools json-to-yaml -i "$TEST_DIR/input.json" -o "$TEST_DIR/subdir/output.yaml" 2>&1; then
     if [[ -f "$TEST_DIR/subdir/output.yaml" ]]; then
         pass_test "Creates output parent directories"
     else
@@ -572,14 +572,14 @@ else
 fi
 
 log_test "tools: empty input"
-RESULT=$(echo '' | $MPM_BIN tools yaml-to-json 2>&1 || true)
+RESULT=$(echo '' | $MOWS_BIN tools yaml-to-json 2>&1 || true)
 # Empty input might be valid (null) or error - both are acceptable
 pass_test "Handles empty input"
 
 log_test "tools: unicode content"
 TEST_DIR=$(create_test_dir "unicode")
 echo '{"emoji": "Hello"}' > "$TEST_DIR/input.json"
-if $MPM_BIN tools json-to-yaml -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.yaml"; then
+if $MOWS_BIN tools json-to-yaml -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.yaml"; then
     if grep -q "emoji" "$TEST_DIR/output.yaml"; then
         pass_test "Handles unicode content"
     else
@@ -597,7 +597,7 @@ for i in $(seq 1 999); do
     echo "\"key$i\": \"value$i\"," >> "$TEST_DIR/input.json"
 done
 echo '"key1000": "value1000"}' >> "$TEST_DIR/input.json"
-if $MPM_BIN tools json-to-yaml -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.yaml"; then
+if $MOWS_BIN tools json-to-yaml -i "$TEST_DIR/input.json" -o "$TEST_DIR/output.yaml"; then
     if grep -q "key500:" "$TEST_DIR/output.yaml"; then
         pass_test "Handles large files"
     else

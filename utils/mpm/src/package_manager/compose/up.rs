@@ -208,14 +208,14 @@ fn get_compose_content(results_dir: &std::path::Path) -> Option<serde_yaml_neo::
 
 /// Execute docker compose up with the project configuration
 fn run_docker_compose_up(client: &dyn DockerClient, context: &RenderContext) -> Result<()> {
-    use crate::error::MpmError;
+    use crate::error::MowsError;
 
     let project_name = context.manifest.project_name();
     let results_dir = context.base_dir.join("results");
 
     // Find the docker-compose file
     let compose_file = find_compose_file(&results_dir).ok_or_else(|| {
-        MpmError::Docker(
+        MowsError::Docker(
             "No docker-compose.yaml or docker-compose.yml found in results directory".to_string(),
         )
     })?;
@@ -257,7 +257,7 @@ fn run_docker_compose_up(client: &dyn DockerClient, context: &RenderContext) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+    use crate::package_manager::compose::docker::{ConfigurableMockClient, MockResponse};
     use std::fs;
     use tempfile::tempdir;
 

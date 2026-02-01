@@ -1,7 +1,7 @@
 mod cd;
 mod checks;
-pub mod config;
-pub mod docker;
+pub(crate) mod config;
+pub(crate) mod docker;
 mod init;
 mod install;
 mod manifest;
@@ -23,7 +23,7 @@ pub use update::compose_update;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-use crate::error::{IoResultExt, MpmError, Result};
+use crate::error::{IoResultExt, MowsError, Result};
 use crate::utils::find_git_root;
 
 /// File permission mode for sensitive files (config, secrets).
@@ -35,7 +35,7 @@ pub(crate) const SENSITIVE_FILE_MODE: u32 = 0o600;
 pub(crate) fn find_manifest_in_repo(repo_dir: &Path) -> Result<PathBuf> {
     let manifests = find_all_manifests_in_repo(repo_dir);
     manifests.into_iter().next().ok_or_else(|| {
-        MpmError::Manifest(format!("No mows-manifest.yaml found in '{}'", repo_dir.display()))
+        MowsError::Manifest(format!("No mows-manifest.yaml found in '{}'", repo_dir.display()))
     })
 }
 
@@ -111,7 +111,7 @@ pub(crate) fn find_manifest_dir() -> Result<PathBuf> {
     if let Some(manifest_path) = find_manifest_file_from(&current_dir) {
         let manifest_dir = manifest_path
             .parent()
-            .ok_or_else(|| MpmError::path(&manifest_path, "Invalid manifest path"))?
+            .ok_or_else(|| MowsError::path(&manifest_path, "Invalid manifest path"))?
             .to_path_buf();
         return Ok(manifest_dir);
     }
@@ -125,12 +125,12 @@ pub(crate) fn find_manifest_dir() -> Result<PathBuf> {
             1 => {
                 let manifest_dir = manifests[0]
                     .parent()
-                    .ok_or_else(|| MpmError::path(&manifests[0], "Invalid manifest path"))?
+                    .ok_or_else(|| MowsError::path(&manifests[0], "Invalid manifest path"))?
                     .to_path_buf();
                 return Ok(manifest_dir);
             }
             n => {
-                return Err(MpmError::Manifest(format!(
+                return Err(MowsError::Manifest(format!(
                     "Found {} mows-manifest.yaml files in repository. \
                      Please run from the directory containing the manifest you want to use:\n{}",
                     n,
@@ -144,5 +144,5 @@ pub(crate) fn find_manifest_dir() -> Result<PathBuf> {
         }
     }
 
-    Err(MpmError::Manifest("No mows-manifest.yaml found. Run from a project directory or use 'mpm compose install' to add a project.".to_string()))
+    Err(MowsError::Manifest("No mows-manifest.yaml found. Run from a project directory or use 'mows package-manager compose install' (or 'mpm compose install') to add a project.".to_string()))
 }

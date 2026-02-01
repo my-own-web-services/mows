@@ -1,17 +1,17 @@
-use crate::error::{MpmError, Result};
-use super::config::MpmConfig;
+use crate::error::{MowsError, Result};
+use super::config::MowsConfig;
 
 /// Navigate to a project directory (prints the path for shell integration)
 pub fn compose_cd(project: &str, instance: Option<&str>) -> Result<()> {
-    let config = MpmConfig::load()?;
+    let config = MowsConfig::load()?;
 
     // Find matching projects
     let projects = config.find_projects(project);
 
     if projects.is_empty() {
-        return Err(MpmError::Config(format!(
+        return Err(MowsError::Config(format!(
             r#"No project found with name '{}'
-Use 'mpm compose install' to add a project."#,
+Use 'mows package-manager compose install' (or 'mpm compose install') to add a project."#,
             project
         )));
     }
@@ -19,7 +19,7 @@ Use 'mpm compose install' to add a project."#,
     // If instance is specified, find exact match
     if let Some(instance_name) = instance {
         let project_entry = config.find_project(project, Some(instance_name)).ok_or_else(|| {
-            MpmError::Config(format!(
+            MowsError::Config(format!(
                 r#"No instance '{}' found for project '{}'
 Available instances: {}"#,
                 instance_name,
@@ -35,7 +35,7 @@ Available instances: {}"#,
 
         let manifest_dir = project_entry.manifest_dir();
         if !manifest_dir.exists() {
-            return Err(MpmError::path(&manifest_dir, format!(
+            return Err(MowsError::path(&manifest_dir, format!(
                 r#"Project directory no longer exists
 The project may have been moved or deleted."#,
             )));
@@ -51,7 +51,7 @@ The project may have been moved or deleted."#,
         let manifest_dir = project_entry.manifest_dir();
 
         if !manifest_dir.exists() {
-            return Err(MpmError::path(&manifest_dir, format!(
+            return Err(MowsError::path(&manifest_dir, format!(
                 r#"Project directory no longer exists
 The project may have been moved or deleted."#,
             )));
@@ -77,12 +77,12 @@ The project may have been moved or deleted."#,
         ));
     }
 
-    Err(MpmError::Config(format!(
+    Err(MowsError::Config(format!(
         r#"Multiple instances of '{}' found. Please specify an instance with --instance:
 
 {}
 
-Example: mpm compose cd {} --instance <name>"#,
+Example: mows package-manager compose cd {} --instance <name>"#,
         project,
         options.join("\n"),
         project
@@ -96,8 +96,8 @@ mod tests {
     use std::path::PathBuf;
     use tempfile::tempdir;
 
-    fn create_test_config() -> MpmConfig {
-        MpmConfig {
+    fn create_test_config() -> MowsConfig {
+        MowsConfig {
             compose: ComposeConfig {
                 projects: vec![
                     ProjectEntry {
@@ -154,7 +154,7 @@ mod tests {
         let _guard = TestConfigGuard::new();
 
         // Empty config - no projects
-        let config = MpmConfig::default();
+        let config = MowsConfig::default();
         config.save().unwrap();
 
         let result = compose_cd("nonexistent", None);
@@ -172,7 +172,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let project_dir = dir.path().to_path_buf();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "my-project".to_string(),
             instance_name: None,
@@ -189,7 +189,7 @@ mod tests {
     fn test_compose_cd_project_directory_missing() {
         let _guard = TestConfigGuard::new();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "deleted-project".to_string(),
             instance_name: None,
@@ -211,7 +211,7 @@ mod tests {
         let dir1 = tempdir().unwrap();
         let dir2 = tempdir().unwrap();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "multi".to_string(),
             instance_name: None,
@@ -240,7 +240,7 @@ mod tests {
         let dir1 = tempdir().unwrap();
         let dir2 = tempdir().unwrap();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "multi".to_string(),
             instance_name: None,
@@ -265,7 +265,7 @@ mod tests {
 
         let dir = tempdir().unwrap();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "my-project".to_string(),
             instance_name: Some("prod".to_string()),
@@ -288,7 +288,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::fs::create_dir_all(dir.path().join("deployment")).unwrap();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "subdir-project".to_string(),
             instance_name: None,
@@ -311,7 +311,7 @@ mod tests {
 
         let dir = tempdir().unwrap();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "项目-αβγ-日本語".to_string(),
             instance_name: None,
@@ -331,7 +331,7 @@ mod tests {
 
         let dir = tempdir().unwrap();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "my-project".to_string(),
             instance_name: Some("ステージング".to_string()),
@@ -350,7 +350,7 @@ mod tests {
 
         let dir = tempdir().unwrap();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "my project with spaces".to_string(),
             instance_name: None,
@@ -369,7 +369,7 @@ mod tests {
 
         let dir = tempdir().unwrap();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "project_with-special.chars@123".to_string(),
             instance_name: None,
@@ -391,7 +391,7 @@ mod tests {
         let space_dir = base_dir.path().join("path with spaces");
         std::fs::create_dir_all(&space_dir).unwrap();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "space-path-project".to_string(),
             instance_name: None,
@@ -413,7 +413,7 @@ mod tests {
         let unicode_dir = base_dir.path().join("日本語フォルダ");
         std::fs::create_dir_all(&unicode_dir).unwrap();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "unicode-path-project".to_string(),
             instance_name: None,

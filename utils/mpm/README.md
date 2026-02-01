@@ -1,6 +1,6 @@
-# mpm - MOWS Package Manager
+# mows - MOWS Package Manager
 
-mpm is a deployment tool that brings Helm-like templating to Docker Compose. Manage containerized applications with templated configurations, automatic secret generation, and deployment health checks.
+mows is a busybox-style binary that includes the MOWS Package Manager and related tools. It brings Helm-like templating to Docker Compose, letting you manage containerized applications with templated configurations, automatic secret generation, and deployment health checks.
 
 ## Features
 
@@ -9,7 +9,8 @@ mpm is a deployment tool that brings Helm-like templating to Docker Compose. Man
 - **Project Management** - Track and navigate between multiple deployments
 - **Label Flattening** - Write Traefik labels as nested YAML, auto-converted to dot notation
 - **Deployment Checks** - Pre and post-deployment validation
-- **Self-Update** - Update mpm with checksum and SSH signature verification
+- **Self-Update** - Update mows with checksum and SSH signature verification
+- **Busybox-Style Binary** - Single `mows` binary with subcommands; `mpm` symlink provides shorthand for `mows package-manager`
 
 ## Installation
 
@@ -21,13 +22,15 @@ Pre-built binaries are available for **x86_64 (amd64)** and **aarch64 (arm64)** 
 curl -fsSL https://raw.githubusercontent.com/my-own-web-services/mows/main/utils/mpm/scripts/install.sh | bash
 ```
 
+The install script downloads the `mows` binary and creates an `mpm` symlink that acts as a shorthand for `mows package-manager`.
+
 Options via environment variables:
-- `MPM_VERSION` - Install a specific version (default: latest)
-- `MPM_INSTALL_DIR` - Custom install directory (default: /usr/local/bin or ~/.local/bin)
+- `MOWS_VERSION` - Install a specific version (default: latest)
+- `MOWS_INSTALL_DIR` - Custom install directory (default: /usr/local/bin or ~/.local/bin)
 
 ```bash
 # Example: install specific version to custom directory
-MPM_VERSION=0.3.0 MPM_INSTALL_DIR=~/bin curl -fsSL ... | bash
+MOWS_VERSION=0.3.0 MOWS_INSTALL_DIR=~/bin curl -fsSL ... | bash
 ```
 
 ### From Source
@@ -44,6 +47,8 @@ cargo install --path .
 
 ```bash
 cd your-project
+mows package-manager compose init
+# or using the mpm symlink:
 mpm compose init
 ```
 
@@ -81,6 +86,8 @@ services:
 
 ```bash
 cd deployment
+mows package-manager compose up
+# or using the mpm symlink:
 mpm compose up
 ```
 
@@ -98,39 +105,52 @@ mpm compose up
 ### Other Features
 
 - [Tools Reference](docs/tools/overview.md) - JSON/YAML conversion, jq queries
-- [Self-Update](docs/self-update.md) - Updating mpm
+- [Self-Update](docs/self-update.md) - Updating mows
 - [Configuration](docs/configuration.md) - Config file and environment variables
 - [Development Guide](docs/development.md) - Building, testing, and contributing
 
 ## Command Overview
 
+The `mows` binary uses a busybox-style design. All package manager commands live under `mows package-manager`, and the `mpm` symlink is shorthand for `mows package-manager` (detected via argv[0]).
+
 ```bash
-# Compose commands
-mpm compose init [NAME]              # Initialize new project
-mpm compose up                       # Render and deploy
-mpm compose install <URL>            # Install from git repo
-mpm compose update                   # Update to latest version
-mpm compose cd <PROJECT>             # Get project path
-mpm compose secrets regenerate [KEY] # Regenerate secrets
-mpm compose <docker-compose-cmd>     # Passthrough to docker compose
+# Compose commands (via mows package-manager or mpm symlink)
+mows package-manager compose init [NAME]              # Initialize new project
+mows package-manager compose up                       # Render and deploy
+mows package-manager compose install <URL>            # Install from git repo
+mows package-manager compose update                   # Update to latest version
+mows package-manager compose cd <PROJECT>             # Get project path
+mows package-manager compose secrets regenerate [KEY] # Regenerate secrets
+mows package-manager compose <docker-compose-cmd>     # Passthrough to docker compose
 
 # Tools
-mpm tools json-to-yaml               # Convert JSON to YAML
-mpm tools yaml-to-json               # Convert YAML to JSON
-mpm tools prettify-json              # Format JSON
-mpm tools expand-object              # Dot notation to nested
-mpm tools flatten-object             # Nested to dot notation
-mpm tools jq <FILTER>                # Query JSON/YAML
-mpm tools drives                     # List drives with SMART health status
-mpm tools cargo-workspace-docker           # Generate cargo-workspace-docker.toml
-mpm tools cargo-workspace-docker --all     # Regenerate for all packages
+mows tools json-to-yaml               # Convert JSON to YAML
+mows tools yaml-to-json               # Convert YAML to JSON
+mows tools prettify-json              # Format JSON
+mows tools expand-object              # Dot notation to nested
+mows tools flatten-object             # Nested to dot notation
+mows tools jq <FILTER>                # Query JSON/YAML
+mows tools drives                     # List drives with SMART health status
+mows tools cargo-workspace-docker           # Generate cargo-workspace-docker.toml
+mows tools cargo-workspace-docker --all     # Regenerate for all packages
 
 # Template
-mpm template -i <IN> -o <OUT>        # Render Go templates
+mows template -i <IN> -o <OUT>        # Render Go templates
 
 # Self-update
-mpm self-update                      # Update to latest version
-mpm self-update --build              # Build from source with signature verification
+mows self-update                      # Update to latest version
+mows self-update --build              # Build from source with signature verification
+
+# Other
+mows version                          # Print version information
+mows shell-init                       # Print shell initialization script
+```
+
+Using the `mpm` symlink, you can omit the `pm` subcommand:
+
+```bash
+mpm compose init [NAME]              # Equivalent to: mows package-manager compose init [NAME]
+mpm compose up                       # Equivalent to: mows package-manager compose up
 ```
 
 ## Example: Full Project Setup
@@ -138,7 +158,7 @@ mpm self-update --build              # Build from source with signature verifica
 ```bash
 # Initialize in a git repository
 cd my-webapp
-mpm compose init
+mows package-manager compose init
 
 # Edit configuration
 cd deployment
@@ -150,13 +170,13 @@ vim provided-secrets.env
 vim templates/generated-secrets.env
 
 # Deploy
-mpm compose up
+mows package-manager compose up
 
 # View logs
-mpm compose logs -f
+mows package-manager compose logs -f
 
 # Navigate back later
-cd $(mpm compose cd my-webapp)
+cd $(mows package-manager compose cd my-webapp)
 ```
 
 ## Template Features
@@ -220,30 +240,30 @@ Full list in [Values and Templating](docs/compose/values-and-templating.md). Hig
 
 ## Self-Update
 
-Update mpm to the latest version:
+Update mows to the latest version:
 
 ```bash
 # Binary download with checksum verification
-mpm self-update
+mows self-update
 
 # Build from source with SSH signature verification
-mpm self-update --build
+mows self-update --build
 ```
 
-mpm automatically checks for updates in the background and notifies you when a new version is available.
+mows automatically checks for updates in the background and notifies you when a new version is available.
 
 ## Verbose Mode
 
 Enable debug logging with `-V` or `--verbose`:
 
 ```bash
-mpm -V compose up
+mows -V package-manager compose up
 ```
 
 For trace-level logging:
 
 ```bash
-RUST_LOG=trace mpm compose up
+RUST_LOG=trace mows package-manager compose up
 ```
 
 ## License

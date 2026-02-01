@@ -1,6 +1,6 @@
-# Getting Started with mpm compose
+# Getting Started with mows package-manager compose
 
-mpm compose is a deployment tool that brings Helm-like templating to Docker Compose. It allows you to manage containerized applications with templated configurations, automatic secret generation, and deployment checks.
+mows package-manager compose is a deployment tool that brings Helm-like templating to Docker Compose. It allows you to manage containerized applications with templated configurations, automatic secret generation, and deployment checks. The `mpm` binary is provided as a shorthand for `mows package-manager`.
 
 ## Quick Start
 
@@ -9,7 +9,7 @@ mpm compose is a deployment tool that brings Helm-like templating to Docker Comp
 Navigate to your project's git repository and run:
 
 ```bash
-mpm compose init
+mows package-manager compose init    # or: mpm compose init
 ```
 
 This creates a `deployment/` directory with the following structure:
@@ -66,7 +66,7 @@ services:
 ### 4. Deploy
 
 ```bash
-mpm compose up
+mows package-manager compose up    # or: mpm compose up
 ```
 
 This command:
@@ -81,7 +81,8 @@ This command:
 To install a project from a git repository:
 
 ```bash
-mpm compose install https://github.com/user/project.git
+mows package-manager compose install https://github.com/user/project.git
+# or: mpm compose install https://github.com/user/project.git
 ```
 
 This clones the repository, finds the manifest, and registers the project in your local config.
@@ -92,10 +93,13 @@ Once you have multiple projects installed, quickly navigate to them:
 
 ```bash
 # Navigate to a project
-cd $(mpm compose cd my-project)
+cd $(mows package-manager compose cd my-project)
 
 # If you have multiple instances with the same name
-cd $(mpm compose cd my-project --instance production)
+cd $(mows package-manager compose cd my-project --instance production)
+
+# Or using the mpm shorthand:
+cd $(mpm compose cd my-project)
 ```
 
 ## Next Steps

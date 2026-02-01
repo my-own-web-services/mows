@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, info};
 
-use crate::error::{IoResultExt, MpmError, Result};
-use super::config::{MpmConfig, ProjectEntry};
+use crate::error::{IoResultExt, MowsError, Result};
+use super::config::{MowsConfig, ProjectEntry};
 use super::find_manifest_in_repo;
 use super::manifest::MowsManifest;
 
@@ -13,7 +13,7 @@ fn validate_git_url(url: &str) -> Result<()> {
 
     // Check for empty URL
     if url.is_empty() {
-        return Err(MpmError::Validation("URL cannot be empty".to_string()));
+        return Err(MowsError::Validation("URL cannot be empty".to_string()));
     }
 
     // Only allow secure URL schemes to prevent MITM attacks
@@ -25,7 +25,7 @@ fn validate_git_url(url: &str) -> Result<()> {
     let has_secure_scheme = secure_schemes.iter().any(|s| url.starts_with(s));
 
     if !has_secure_scheme {
-        return Err(MpmError::Validation(format!(
+        return Err(MowsError::Validation(format!(
             "Insecure URL scheme. For security, URL must start with one of: {}",
             secure_schemes.join(", ")
         )));
@@ -34,7 +34,7 @@ fn validate_git_url(url: &str) -> Result<()> {
     // Check for shell injection characters
     let dangerous_chars = ['`', '$', '(', ')', ';', '&', '|', '\n', '\r'];
     if url.chars().any(|c| dangerous_chars.contains(&c)) {
-        return Err(MpmError::Validation("URL contains invalid characters".to_string()));
+        return Err(MowsError::Validation("URL contains invalid characters".to_string()));
     }
 
     Ok(())
@@ -47,12 +47,12 @@ fn sanitize_repo_name(name: &str) -> Result<String> {
 
     // Reject empty names
     if name.is_empty() {
-        return Err(MpmError::Validation("Repository name cannot be empty".to_string()));
+        return Err(MowsError::Validation("Repository name cannot be empty".to_string()));
     }
 
     // Reject path traversal attempts
     if name.contains("..") || name.starts_with('/') || name.starts_with('\\') {
-        return Err(MpmError::Validation("Invalid repository name: path traversal detected".to_string()));
+        return Err(MowsError::Validation("Invalid repository name: path traversal detected".to_string()));
     }
 
     // Only allow safe characters: alphanumeric, dash, underscore, dot
@@ -62,18 +62,18 @@ fn sanitize_repo_name(name: &str) -> Result<String> {
         .collect();
 
     if sanitized.is_empty() {
-        return Err(MpmError::Validation("Repository name contains no valid characters".to_string()));
+        return Err(MowsError::Validation("Repository name contains no valid characters".to_string()));
     }
 
     // Don't allow names that are just dots
     if sanitized.chars().all(|c| c == '.') {
-        return Err(MpmError::Validation("Invalid repository name".to_string()));
+        return Err(MowsError::Validation("Invalid repository name".to_string()));
     }
 
     Ok(sanitized)
 }
 
-/// Install a mpm repo from a URL
+/// Install a mows compose project from a URL
 pub fn compose_install(url: &str, target: Option<&Path>) -> Result<()> {
     // Validate URL before doing anything
     validate_git_url(url)?;
@@ -90,7 +90,7 @@ pub fn compose_install(url: &str, target: Option<&Path>) -> Result<()> {
     let clone_dir = target_dir.join(&repo_name);
 
     if clone_dir.exists() {
-        return Err(MpmError::path(&clone_dir,
+        return Err(MowsError::path(&clone_dir,
             "Directory already exists. Remove it first or choose a different target.",
         ));
     }
@@ -137,7 +137,7 @@ pub fn compose_install(url: &str, target: Option<&Path>) -> Result<()> {
     };
     let project_name_owned = project_name.to_string();
 
-    MpmConfig::with_locked(|config| {
+    MowsConfig::with_locked(|config| {
         config.upsert_project(ProjectEntry {
             project_name: project_name_owned,
             instance_name: None,
@@ -172,7 +172,7 @@ fn extract_repo_name(url: &str) -> Result<String> {
         .or_else(|| url.rsplit(':').next())
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
-        .ok_or_else(|| MpmError::Validation(format!("Could not extract repository name from URL: {}", url)))
+        .ok_or_else(|| MowsError::Validation(format!("Could not extract repository name from URL: {}", url)))
 }
 
 /// Clone a repository (keeps .git for updates via git pull)
@@ -183,11 +183,11 @@ fn clone_repo(url: &str, target: &Path) -> Result<()> {
         .args(["clone", url])
         .arg(target)
         .output()
-        .map_err(|e| MpmError::command("git clone", e.to_string()))?;
+        .map_err(|e| MowsError::command("git clone", e.to_string()))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(MpmError::Git(format!("git clone failed: {}", stderr.trim())));
+        return Err(MowsError::Git(format!("git clone failed: {}", stderr.trim())));
     }
 
     // Disable git hooks to prevent arbitrary code execution from cloned repos.
@@ -196,11 +196,11 @@ fn clone_repo(url: &str, target: &Path) -> Result<()> {
         .args(["config", "core.hooksPath", "/dev/null"])
         .current_dir(target)
         .output()
-        .map_err(|e| MpmError::Git(format!("Failed to disable git hooks: {}", e)))?;
+        .map_err(|e| MowsError::Git(format!("Failed to disable git hooks: {}", e)))?;
 
     if !hook_output.status.success() {
         let stderr = String::from_utf8_lossy(&hook_output.stderr);
-        return Err(MpmError::Git(format!(
+        return Err(MowsError::Git(format!(
             "Failed to disable git hooks (security measure): {}",
             stderr.trim()
         )));

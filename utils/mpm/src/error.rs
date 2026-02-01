@@ -1,4 +1,4 @@
-//! Error types for mpm.
+//! Error types for mows-cli.
 //!
 //! This module provides a unified error type for the entire application,
 //! enabling proper error handling, context preservation, and pattern matching.
@@ -6,9 +6,9 @@
 use std::path::PathBuf;
 use thiserror::Error;
 
-/// The main error type for mpm operations.
+/// The main error type for mows operations.
 #[derive(Debug, Error)]
-pub enum MpmError {
+pub enum MowsError {
     /// I/O error with context about what operation failed.
     #[error("{context}: {source}")]
     Io {
@@ -98,10 +98,10 @@ pub enum MpmError {
     Message(String),
 }
 
-/// Result type alias for mpm operations.
-pub type Result<T> = std::result::Result<T, MpmError>;
+/// Result type alias for mows operations.
+pub type Result<T> = std::result::Result<T, MowsError>;
 
-impl MpmError {
+impl MowsError {
     /// Create an I/O error with context.
     pub fn io(context: impl Into<String>, source: std::io::Error) -> Self {
         Self::Io {
@@ -159,7 +159,7 @@ pub trait IoResultExt<T> {
 
 impl<T> IoResultExt<T> for std::result::Result<T, std::io::Error> {
     fn io_context(self, context: impl Into<String>) -> Result<T> {
-        self.map_err(|e| MpmError::io(context, e))
+        self.map_err(|e| MowsError::io(context, e))
     }
 }
 
@@ -171,7 +171,7 @@ pub trait YamlResultExt<T> {
 
 impl<T> YamlResultExt<T> for std::result::Result<T, serde_yaml_neo::Error> {
     fn yaml_context(self, path: impl Into<String>) -> Result<T> {
-        self.map_err(|e| MpmError::yaml_parse(path, e))
+        self.map_err(|e| MowsError::yaml_parse(path, e))
     }
 }
 
@@ -183,7 +183,7 @@ pub trait TomlResultExt<T> {
 
 impl<T> TomlResultExt<T> for std::result::Result<T, toml::de::Error> {
     fn toml_context(self, path: impl Into<String>) -> Result<T> {
-        self.map_err(|e| MpmError::toml_parse(path, e))
+        self.map_err(|e| MowsError::toml_parse(path, e))
     }
 }
 
@@ -195,18 +195,18 @@ pub trait JsonResultExt<T> {
 
 impl<T> JsonResultExt<T> for std::result::Result<T, serde_json::Error> {
     fn json_context(self, context: impl Into<String>) -> Result<T> {
-        self.map_err(|e| MpmError::json_parse(context, e))
+        self.map_err(|e| MowsError::json_parse(context, e))
     }
 }
 
 // Allow converting from String for backwards compatibility during migration
-impl From<String> for MpmError {
+impl From<String> for MowsError {
     fn from(s: String) -> Self {
         Self::Message(s)
     }
 }
 
-impl From<&str> for MpmError {
+impl From<&str> for MowsError {
     fn from(s: &str) -> Self {
         Self::Message(s.to_string())
     }
@@ -222,11 +222,11 @@ mod tests {
         let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
         let result: std::result::Result<(), std::io::Error> = Err(io_error);
 
-        let mpm_result = result.io_context("Reading config file");
-        assert!(mpm_result.is_err());
+        let mows_result = result.io_context("Reading config file");
+        assert!(mows_result.is_err());
 
-        let err = mpm_result.unwrap_err();
-        assert!(matches!(err, MpmError::Io { .. }));
+        let err = mows_result.unwrap_err();
+        assert!(matches!(err, MowsError::Io { .. }));
 
         // Verify error message contains context
         let msg = err.to_string();
@@ -240,8 +240,8 @@ mod tests {
     #[test]
     fn test_io_result_ext_success_passes_through() {
         let result: std::result::Result<i32, std::io::Error> = Ok(42);
-        let mpm_result = result.io_context("Should not appear");
-        assert_eq!(mpm_result.unwrap(), 42);
+        let mows_result = result.io_context("Should not appear");
+        assert_eq!(mows_result.unwrap(), 42);
     }
 
     #[test]
@@ -250,11 +250,11 @@ mod tests {
         let yaml_result: std::result::Result<serde_yaml_neo::Value, _> =
             serde_yaml_neo::from_str("invalid: yaml: content:");
 
-        let mpm_result = yaml_result.yaml_context("/path/to/file.yaml");
-        assert!(mpm_result.is_err());
+        let mows_result = yaml_result.yaml_context("/path/to/file.yaml");
+        assert!(mows_result.is_err());
 
-        let err = mpm_result.unwrap_err();
-        assert!(matches!(err, MpmError::YamlParse { .. }));
+        let err = mows_result.unwrap_err();
+        assert!(matches!(err, MowsError::YamlParse { .. }));
 
         // Verify error message contains path
         let msg = err.to_string();
@@ -269,8 +269,8 @@ mod tests {
         let yaml_result: std::result::Result<serde_yaml_neo::Value, _> =
             serde_yaml_neo::from_str("key: value");
 
-        let mpm_result = yaml_result.yaml_context("/path/to/file.yaml");
-        assert!(mpm_result.is_ok());
+        let mows_result = yaml_result.yaml_context("/path/to/file.yaml");
+        assert!(mows_result.is_ok());
     }
 
     #[test]
@@ -278,11 +278,11 @@ mod tests {
         // Create a TOML parse error
         let toml_result: std::result::Result<toml::Value, _> = toml::from_str("invalid = [");
 
-        let mpm_result = toml_result.toml_context("/path/to/Cargo.toml");
-        assert!(mpm_result.is_err());
+        let mows_result = toml_result.toml_context("/path/to/Cargo.toml");
+        assert!(mows_result.is_err());
 
-        let err = mpm_result.unwrap_err();
-        assert!(matches!(err, MpmError::TomlParse { .. }));
+        let err = mows_result.unwrap_err();
+        assert!(matches!(err, MowsError::TomlParse { .. }));
 
         // Verify error message contains path
         let msg = err.to_string();
@@ -296,8 +296,8 @@ mod tests {
     fn test_toml_result_ext_success_passes_through() {
         let toml_result: std::result::Result<toml::Value, _> = toml::from_str("key = \"value\"");
 
-        let mpm_result = toml_result.toml_context("/path/to/Cargo.toml");
-        assert!(mpm_result.is_ok());
+        let mows_result = toml_result.toml_context("/path/to/Cargo.toml");
+        assert!(mows_result.is_ok());
     }
 
     #[test]
@@ -308,11 +308,11 @@ mod tests {
         let json_result: std::result::Result<serde_json::Value, _> =
             serde_json::from_str("{ invalid json }");
 
-        let mpm_result = json_result.json_context("/path/to/data.json");
-        assert!(mpm_result.is_err());
+        let mows_result = json_result.json_context("/path/to/data.json");
+        assert!(mows_result.is_err());
 
-        let err = mpm_result.unwrap_err();
-        assert!(matches!(err, MpmError::JsonParse { .. }));
+        let err = mows_result.unwrap_err();
+        assert!(matches!(err, MowsError::JsonParse { .. }));
 
         // Verify error message contains context
         let msg = err.to_string();
@@ -329,39 +329,39 @@ mod tests {
         let json_result: std::result::Result<serde_json::Value, _> =
             serde_json::from_str(r#"{"key": "value"}"#);
 
-        let mpm_result = json_result.json_context("/path/to/data.json");
-        assert!(mpm_result.is_ok());
+        let mows_result = json_result.json_context("/path/to/data.json");
+        assert!(mows_result.is_ok());
     }
 
     #[test]
     fn test_mpm_error_constructors() {
         // Test io constructor
-        let io_err = MpmError::io(
+        let io_err = MowsError::io(
             "Reading file",
             std::io::Error::new(std::io::ErrorKind::PermissionDenied, "access denied"),
         );
-        assert!(matches!(io_err, MpmError::Io { .. }));
+        assert!(matches!(io_err, MowsError::Io { .. }));
         assert!(io_err.to_string().contains("Reading file"));
 
         // Test path constructor
-        let path_err = MpmError::path("/some/path", "Path does not exist");
-        assert!(matches!(path_err, MpmError::Path { .. }));
+        let path_err = MowsError::path("/some/path", "Path does not exist");
+        assert!(matches!(path_err, MowsError::Path { .. }));
         assert!(path_err.to_string().contains("/some/path"));
 
         // Test command constructor
-        let cmd_err = MpmError::command("git clone", "repository not found");
-        assert!(matches!(cmd_err, MpmError::Command { .. }));
+        let cmd_err = MowsError::command("git clone", "repository not found");
+        assert!(matches!(cmd_err, MowsError::Command { .. }));
         assert!(cmd_err.to_string().contains("git clone"));
     }
 
     #[test]
     fn test_string_conversions() {
-        let err1: MpmError = "Simple error message".into();
-        assert!(matches!(err1, MpmError::Message(_)));
+        let err1: MowsError = "Simple error message".into();
+        assert!(matches!(err1, MowsError::Message(_)));
         assert_eq!(err1.to_string(), "Simple error message");
 
-        let err2: MpmError = String::from("Another error").into();
-        assert!(matches!(err2, MpmError::Message(_)));
+        let err2: MowsError = String::from("Another error").into();
+        assert!(matches!(err2, MowsError::Message(_)));
         assert_eq!(err2.to_string(), "Another error");
     }
 }

@@ -1,7 +1,7 @@
 use std::path::Path;
 use tracing::debug;
 
-use crate::error::{MpmError, Result};
+use crate::error::{MowsError, Result};
 use crate::utils::{parse_yaml, read_input, write_output};
 
 use super::selector::{find_matching_paths, get_value_at_path_mut, is_docker_compose};
@@ -80,7 +80,7 @@ pub fn expand_object_command(
     if effective_selector.is_empty() {
         // Transform the entire document
         let tree = mows_common_rust::labels::labels_to_tree(value)
-            .map_err(|e| MpmError::Message(format!("Failed to expand: {}", e)))?;
+            .map_err(|e| MowsError::Message(format!("Failed to expand: {}", e)))?;
         let yaml = serde_yaml_neo::to_string_with_indent(&tree, indent)?;
         write_output(output, &yaml)
     } else {
@@ -97,7 +97,7 @@ pub fn expand_object_command(
         for path in matching_paths {
             if let Some(target) = get_value_at_path_mut(&mut value, &path) {
                 let transformed = mows_common_rust::labels::labels_to_tree(target.clone())
-                    .map_err(|e| MpmError::Message(format!("Failed to expand at path {:?}: {}", path, e)))?;
+                    .map_err(|e| MowsError::Message(format!("Failed to expand at path {:?}: {}", path, e)))?;
                 *target = transformed;
             }
         }
@@ -138,7 +138,7 @@ pub fn flatten_object_command(
     if effective_selector.is_empty() {
         // Transform the entire document
         let labels = mows_common_rust::labels::tree_to_labels(value)
-            .map_err(|e| MpmError::Message(format!("Failed to flatten: {}", e)))?;
+            .map_err(|e| MowsError::Message(format!("Failed to flatten: {}", e)))?;
         let yaml = serde_yaml_neo::to_string_with_indent(&labels, indent)?;
         write_output(output, &yaml)
     } else {
@@ -155,7 +155,7 @@ pub fn flatten_object_command(
         for path in matching_paths {
             if let Some(target) = get_value_at_path_mut(&mut value, &path) {
                 let transformed = mows_common_rust::labels::tree_to_labels(target.clone())
-                    .map_err(|e| MpmError::Message(format!("Failed to flatten at path {:?}: {}", path, e)))?;
+                    .map_err(|e| MowsError::Message(format!("Failed to flatten at path {:?}: {}", path, e)))?;
                 *target = transformed;
             }
         }

@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, info};
 
-use super::config::{MpmConfig, ProjectEntry};
-use crate::error::{IoResultExt, MpmError, Result};
+use super::config::{MowsConfig, ProjectEntry};
+use crate::error::{IoResultExt, MowsError, Result};
 use crate::utils::find_git_root;
 
 /// Information about a detected Dockerfile
@@ -39,10 +39,10 @@ fn get_git_repo_name() -> Result<String> {
     let output = Command::new("git")
         .args(["rev-parse", "--show-toplevel"])
         .output()
-        .map_err(|e| MpmError::command("git rev-parse", e.to_string()))?;
+        .map_err(|e| MowsError::command("git rev-parse", e.to_string()))?;
 
     if !output.status.success() {
-        return Err(MpmError::Git("Not in a git repository".to_string()));
+        return Err(MowsError::Git("Not in a git repository".to_string()));
     }
 
     let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -50,7 +50,7 @@ fn get_git_repo_name() -> Result<String> {
         .file_name()
         .and_then(|n| n.to_str())
         .map(|s| s.to_string())
-        .ok_or_else(|| MpmError::Git("Could not determine repository name".to_string()))
+        .ok_or_else(|| MowsError::Git("Could not determine repository name".to_string()))
 }
 
 /// Extract repository name from a git URL
@@ -219,6 +219,7 @@ fn generate_gitignore() -> &'static str {
 results
 data
 provided-secrets.env
+values.yaml
 "#
 }
 
@@ -244,7 +245,7 @@ fn generate_generated_secrets_template() -> &'static str {
 "#
 }
 
-/// Initialize a new mpm compose project
+/// Initialize a new mows compose project
 pub fn compose_init(name: Option<&str>) -> Result<()> {
     // Determine project name
     let project_name = match name {
@@ -252,7 +253,7 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
         None => get_git_repo_name()?,
     };
 
-    info!("Initializing mpm compose project: {}", project_name);
+    info!("Initializing mows compose project: {}", project_name);
 
     // Get git root to find Dockerfiles
     let git_root = find_git_root()?;
@@ -272,7 +273,7 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
 
     // Check if deployment directory already exists
     if deployment_dir.exists() {
-        return Err(MpmError::path(&deployment_dir, "deployment directory already exists"));
+        return Err(MowsError::path(&deployment_dir, "deployment directory already exists"));
     }
 
     let templates_dir = deployment_dir.join("templates");
@@ -362,7 +363,7 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
         .io_context("Failed to get absolute path for repo")?;
     let project_name_owned = project_name.clone();
 
-    MpmConfig::with_locked(|config| {
+    MowsConfig::with_locked(|config| {
         config.upsert_project(ProjectEntry {
             project_name: project_name_owned,
             instance_name: None,
@@ -377,7 +378,7 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
     info!("  1. cd deployment");
     info!("  2. Edit values.yaml with your configuration");
     info!("  3. Edit templates/docker-compose.yaml as needed");
-    info!("  4. Run: mpm compose up");
+    info!("  4. Run: mows package-manager compose up (or: mpm compose up)");
 
     Ok(())
 }
@@ -425,6 +426,7 @@ mod tests {
         assert!(gitignore.contains("results"));
         assert!(gitignore.contains("data"));
         assert!(gitignore.contains("provided-secrets.env"));
+        assert!(gitignore.contains("values.yaml"));
     }
 
     #[test]

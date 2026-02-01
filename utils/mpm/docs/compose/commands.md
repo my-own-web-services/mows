@@ -1,13 +1,13 @@
 # Commands Reference
 
-Complete reference for all `mpm compose` commands.
+Complete reference for all `mows package-manager compose` commands. All compose commands can also be run via the `mpm` shorthand (e.g., `mpm compose up`).
 
-## mpm compose up
+## mows package-manager compose up
 
 Render templates and deploy the application.
 
 ```bash
-mpm compose up
+mows package-manager compose up    # or: mpm compose up
 ```
 
 **What it does:**
@@ -28,16 +28,16 @@ mpm compose up
 - Env files are automatically passed: `--env-file results/generated-secrets.env --env-file results/provided-secrets.env`
 - Build context paths are relative to `results/` directory
 
-## mpm compose init
+## mows package-manager compose init
 
-Initialize a new mpm compose project.
+Initialize a new compose project.
 
 ```bash
 # Use git repo name as project name
-mpm compose init
+mows package-manager compose init    # or: mpm compose init
 
 # Specify a custom project name
-mpm compose init my-project
+mows package-manager compose init my-project
 ```
 
 **What it does:**
@@ -48,7 +48,7 @@ mpm compose init my-project
 5. Generates `values.yaml` with detected services
 6. Generates `templates/docker-compose.yaml` with service templates
 7. Creates placeholder secret files
-8. Registers project in global config (`~/.config/mows.cloud/mpm.yaml`)
+8. Registers project in global config (`~/.config/mows.cloud/mows.yaml`)
 
 **Auto-detection:**
 When Dockerfiles are found, generates appropriate service definitions:
@@ -71,16 +71,17 @@ services:
 
 **Skipped directories:** `.git`, `node_modules`, `target`, `vendor`, `dist`, `build`, `deployment`
 
-## mpm compose install
+## mows package-manager compose install
 
 Install a project from a git repository.
 
 ```bash
 # Install to current directory
-mpm compose install https://github.com/user/project.git
+mows package-manager compose install https://github.com/user/project.git
+# or: mpm compose install https://github.com/user/project.git
 
 # Install to specific directory
-mpm compose install https://github.com/user/project.git --target /path/to/install
+mows package-manager compose install https://github.com/user/project.git --target /path/to/install
 ```
 
 **What it does:**
@@ -97,12 +98,12 @@ mpm compose install https://github.com/user/project.git --target /path/to/instal
 
 **Output:** Prints `cd <path>` instruction for easy navigation.
 
-## mpm compose update
+## mows package-manager compose update
 
 Update an installed project to the latest version.
 
 ```bash
-mpm compose update
+mows package-manager compose update    # or: mpm compose update
 ```
 
 **What it does:**
@@ -115,19 +116,22 @@ mpm compose update
 4. Preserves `generated-secrets.env` and `provided-secrets.env`
 5. Updates global config if manifest path changed
 
-## mpm compose cd
+## mows package-manager compose cd
 
 Get the path to a project's manifest directory.
 
 ```bash
 # Get path to project
-mpm compose cd my-project
+mows package-manager compose cd my-project
 
 # Use with cd command
-cd $(mpm compose cd my-project)
+cd $(mows package-manager compose cd my-project)
 
 # When multiple instances exist
-mpm compose cd my-project --instance production
+mows package-manager compose cd my-project --instance production
+
+# Or using the mpm shorthand:
+cd $(mpm compose cd my-project)
 ```
 
 **Behavior:**
@@ -135,16 +139,17 @@ mpm compose cd my-project --instance production
 - If multiple instances of a project exist, you must specify `--instance`
 - Errors if project not found in config
 
-## mpm compose secrets regenerate
+## mows package-manager compose secrets regenerate
 
 Regenerate generated secrets.
 
 ```bash
 # Regenerate all secrets
-mpm compose secrets regenerate
+mows package-manager compose secrets regenerate
+# or: mpm compose secrets regenerate
 
 # Regenerate a specific secret
-mpm compose secrets regenerate DB_PASSWORD
+mows package-manager compose secrets regenerate DB_PASSWORD
 ```
 
 **What it does:**
@@ -158,19 +163,19 @@ mpm compose secrets regenerate DB_PASSWORD
 - Compromised secret replacement
 - Reset to new random values
 
-## mpm compose [passthrough]
+## mows package-manager compose [passthrough]
 
 Any unrecognized command is passed to `docker compose` with project context.
 
 ```bash
 # These are passed through to docker compose:
-mpm compose logs
-mpm compose logs -f web
-mpm compose ps
-mpm compose stop
-mpm compose down
-mpm compose exec web bash
-mpm compose restart web
+mows package-manager compose logs         # or: mpm compose logs
+mows package-manager compose logs -f web
+mows package-manager compose ps
+mows package-manager compose stop
+mows package-manager compose down
+mows package-manager compose exec web bash
+mows package-manager compose restart web
 ```
 
 **Automatic arguments added:**
@@ -183,16 +188,16 @@ mpm compose restart web
 **Examples:**
 ```bash
 # View logs
-mpm compose logs -f
+mows package-manager compose logs -f
 
 # Execute command in container
-mpm compose exec web sh
+mows package-manager compose exec web sh
 
 # Stop all services
-mpm compose stop
+mows package-manager compose stop
 
 # Remove everything
-mpm compose down -v
+mows package-manager compose down -v
 ```
 
 ## Global Options
@@ -207,7 +212,8 @@ Available on all commands:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MPM_CONFIG_PATH` | Override config file location | `~/.config/mows.cloud/mpm.yaml` |
+| `MOWS_CONFIG_PATH` | Override config file location | `~/.config/mows.cloud/mows.yaml` |
+| `MPM_CONFIG_PATH` | Legacy override (fallback) | `~/.config/mows.cloud/mows.yaml` |
 
 ## Exit Codes
 

@@ -1,7 +1,7 @@
 use mows_common_rust::error_display::{check_yaml_indentation_error, format_file_error};
 use std::path::Path;
 
-use crate::error::{MpmError, Result};
+use crate::error::{MowsError, Result};
 
 /// Parse YAML content with proper error formatting (including indentation error detection).
 /// If a path is provided, errors will include a code frame showing the error location.
@@ -9,7 +9,7 @@ pub fn parse_yaml<T: serde::de::DeserializeOwned>(
     content: &str,
     path: Option<&Path>,
 ) -> Result<T> {
-    serde_yaml_neo::from_str(content).map_err(|e| MpmError::Message(format_yaml_error(content, path, &e)))
+    serde_yaml_neo::from_str(content).map_err(|e| MowsError::Message(format_yaml_error(content, path, &e)))
 }
 
 /// Extract "while parsing... at line X column Y" from YAML error messages.

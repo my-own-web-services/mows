@@ -6,34 +6,26 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use tracing::{debug, info};
 
-use crate::error::{IoResultExt, MpmError, Result};
+use crate::error::{IoResultExt, MowsError, Result};
 
 use super::SENSITIVE_FILE_MODE;
 
-/// Environment variable to override the config file path.
-///
-/// # Testing
-///
-/// **IMPORTANT**: All tests that interact with `MpmConfig` MUST set this environment
-/// variable to a temporary file path to avoid modifying the user's actual config file
-/// at `~/.config/mows.cloud/mpm.yaml`.
-///
-/// Example:
-/// ```ignore
-/// use tempfile::NamedTempFile;
-/// use std::env;
-///
-/// let temp_config = NamedTempFile::new().unwrap();
-/// env::set_var("MPM_CONFIG_PATH", temp_config.path());
-/// // ... run test ...
-/// env::remove_var("MPM_CONFIG_PATH");
-/// ```
+/// Primary environment variable to override the config file path.
+pub const MOWS_CONFIG_PATH_ENV: &str = "MOWS_CONFIG_PATH";
+
+/// Legacy environment variable (checked as fallback for backward compatibility).
 pub const MPM_CONFIG_PATH_ENV: &str = "MPM_CONFIG_PATH";
 
-/// Global mpm configuration stored at ~/.config/mows.cloud/mpm.yaml
-/// Can be overridden by setting the MPM_CONFIG_PATH environment variable
+/// Legacy config filename (auto-migrated to `mows.yaml` on first access).
+const LEGACY_CONFIG_FILENAME: &str = "mpm.yaml";
+
+/// Current config filename.
+const CONFIG_FILENAME: &str = "mows.yaml";
+
+/// Global mows configuration stored at ~/.config/mows.cloud/mows.yaml
+/// Can be overridden by setting the MOWS_CONFIG_PATH (or legacy MPM_CONFIG_PATH) environment variable
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct MpmConfig {
+pub struct MowsConfig {
     #[serde(default)]
     pub compose: ComposeConfig,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -80,22 +72,44 @@ impl ProjectEntry {
     }
 }
 
-impl MpmConfig {
-    /// Get the config file path
+impl MowsConfig {
+    /// Get the config file path.
     ///
-    /// Checks the MPM_CONFIG_PATH environment variable first.
-    /// Falls back to ~/.config/mows.cloud/mpm.yaml if not set.
+    /// Resolution order:
+    /// 1. `MOWS_CONFIG_PATH` environment variable (primary)
+    /// 2. `MPM_CONFIG_PATH` environment variable (legacy fallback)
+    /// 3. `~/.config/mows.cloud/mows.yaml` (default; auto-migrates from `mpm.yaml` if present)
     pub fn config_path() -> Result<PathBuf> {
-        // Check for environment variable override first
+        // Check primary env var first
+        if let Ok(path) = std::env::var(MOWS_CONFIG_PATH_ENV) {
+            debug!("Using config path from {}: {}", MOWS_CONFIG_PATH_ENV, path);
+            return Ok(PathBuf::from(path));
+        }
+
+        // Check legacy env var
         if let Ok(path) = std::env::var(MPM_CONFIG_PATH_ENV) {
             debug!("Using config path from {}: {}", MPM_CONFIG_PATH_ENV, path);
             return Ok(PathBuf::from(path));
         }
 
-        // Default to ~/.config/mows.cloud/mpm.yaml
         let home = std::env::var("HOME")
-            .map_err(|_| MpmError::Config("HOME environment variable not set".to_string()))?;
-        Ok(PathBuf::from(home).join(".config/mows.cloud/mpm.yaml"))
+            .map_err(|_| MowsError::Config("HOME environment variable not set".to_string()))?;
+        let config_dir = PathBuf::from(home).join(".config/mows.cloud");
+        let new_path = config_dir.join(CONFIG_FILENAME);
+        let legacy_path = config_dir.join(LEGACY_CONFIG_FILENAME);
+
+        // Auto-migrate legacy config file if it exists and new one doesn't
+        if !new_path.exists() && legacy_path.exists() {
+            debug!("Migrating config from {} to {}", legacy_path.display(), new_path.display());
+            if let Err(e) = fs::rename(&legacy_path, &new_path) {
+                // Non-fatal: fall back to legacy path if rename fails
+                debug!("Config migration failed ({}), using legacy path", e);
+                return Ok(legacy_path);
+            }
+            info!("Migrated config file from {} to {}", LEGACY_CONFIG_FILENAME, CONFIG_FILENAME);
+        }
+
+        Ok(new_path)
     }
 
     /// Get the lock file path for concurrent access protection
@@ -151,7 +165,7 @@ impl MpmConfig {
             .io_context(format!("Failed to read config file '{}'", path.display()))?;
 
         serde_yaml_neo::from_str(&content)
-            .map_err(|e| MpmError::Config(format!("Failed to parse config file '{}': {}", path.display(), e)))
+            .map_err(|e| MowsError::Config(format!("Failed to parse config file '{}': {}", path.display(), e)))
     }
 
     /// Execute a read-modify-write operation atomically under a lock.
@@ -168,7 +182,7 @@ impl MpmConfig {
     ///
     /// # Example
     /// ```ignore
-    /// MpmConfig::with_locked(|config| {
+    /// MowsConfig::with_locked(|config| {
     ///     config.upsert_project(entry);
     ///     Ok(())
     /// })?;
@@ -197,6 +211,7 @@ impl MpmConfig {
     ///
     /// This method acquires an exclusive lock, writes the config, then releases
     /// the lock. Uses a temporary file + rename for crash safety.
+    #[cfg(test)]
     pub fn save(&self) -> Result<()> {
         // Acquire exclusive lock for the write operation
         let _lock_file = Self::acquire_lock()?;
@@ -208,7 +223,7 @@ impl MpmConfig {
         let path = Self::config_path()?;
 
         // Create parent directories
-        let parent = path.parent().ok_or_else(|| MpmError::Config("Invalid config path".to_string()))?;
+        let parent = path.parent().ok_or_else(|| MowsError::Config("Invalid config path".to_string()))?;
         fs::create_dir_all(parent)
             .io_context("Failed to create config directory")?;
 
@@ -323,7 +338,7 @@ impl MpmConfig {
 // Test utilities for config isolation - exported for use by other test modules
 #[cfg(test)]
 pub mod test_utils {
-    use super::MPM_CONFIG_PATH_ENV;
+    use super::{MOWS_CONFIG_PATH_ENV, MPM_CONFIG_PATH_ENV};
     use std::sync::Mutex;
     use tempfile::NamedTempFile;
 
@@ -336,25 +351,8 @@ pub mod test_utils {
     /// This guard:
     /// 1. Acquires a mutex to prevent concurrent config tests
     /// 2. Creates a temporary file for the config
-    /// 3. Sets `MPM_CONFIG_PATH` to the temp file path
+    /// 3. Sets `MOWS_CONFIG_PATH` to the temp file path
     /// 4. Automatically cleans up when dropped
-    ///
-    /// # Example
-    /// ```ignore
-    /// use crate::compose::config::test_utils::TestConfigGuard;
-    ///
-    /// #[test]
-    /// fn test_config_persistence() {
-    ///     let _guard = TestConfigGuard::new();
-    ///
-    ///     let mut config = MpmConfig::default();
-    ///     config.set_update_available("1.0.0".to_string());
-    ///     config.save().unwrap();
-    ///
-    ///     let loaded = MpmConfig::load().unwrap();
-    ///     assert_eq!(loaded.update.unwrap().available_version, "1.0.0");
-    /// }
-    /// ```
     pub struct TestConfigGuard {
         _temp_file: NamedTempFile,
         _lock: std::sync::MutexGuard<'static, ()>,
@@ -364,7 +362,10 @@ pub mod test_utils {
         pub fn new() -> Self {
             let lock = CONFIG_TEST_MUTEX.lock().unwrap_or_else(|e| e.into_inner());
             let temp_file = NamedTempFile::new().expect("Failed to create temp config file");
-            std::env::set_var(MPM_CONFIG_PATH_ENV, temp_file.path());
+            // Use primary env var for test isolation
+            std::env::set_var(MOWS_CONFIG_PATH_ENV, temp_file.path());
+            // Clear legacy var to avoid interference
+            std::env::remove_var(MPM_CONFIG_PATH_ENV);
             Self {
                 _temp_file: temp_file,
                 _lock: lock,
@@ -374,6 +375,7 @@ pub mod test_utils {
 
     impl Drop for TestConfigGuard {
         fn drop(&mut self) {
+            std::env::remove_var(MOWS_CONFIG_PATH_ENV);
             std::env::remove_var(MPM_CONFIG_PATH_ENV);
         }
     }
@@ -384,7 +386,7 @@ mod tests {
     //! # Test Guidelines
     //!
     //! These tests operate on in-memory config structs only and do NOT touch the filesystem.
-    //! If you add tests that call `MpmConfig::load()` or `MpmConfig::save()`, you MUST use
+    //! If you add tests that call `MowsConfig::load()` or `MowsConfig::save()`, you MUST use
     //! the `TestConfigGuard` helper to ensure proper isolation.
     //! See the documentation on `MPM_CONFIG_PATH_ENV` for details.
 
@@ -393,7 +395,7 @@ mod tests {
 
     #[test]
     fn test_config_serialization() {
-        let config = MpmConfig {
+        let config = MowsConfig {
             compose: ComposeConfig {
                 projects: vec![
                     ProjectEntry {
@@ -414,7 +416,7 @@ mod tests {
         };
 
         let yaml = serde_yaml_neo::to_string(&config).unwrap();
-        let parsed: MpmConfig = serde_yaml_neo::from_str(&yaml).unwrap();
+        let parsed: MowsConfig = serde_yaml_neo::from_str(&yaml).unwrap();
 
         assert_eq!(parsed.compose.projects.len(), 2);
         assert_eq!(parsed.compose.projects[0].project_name, "test-project");
@@ -427,7 +429,7 @@ mod tests {
 
     #[test]
     fn test_find_projects() {
-        let config = MpmConfig {
+        let config = MowsConfig {
             compose: ComposeConfig {
                 projects: vec![
                     ProjectEntry {
@@ -467,7 +469,7 @@ mod tests {
 
     #[test]
     fn test_upsert_project() {
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
 
         config.upsert_project(ProjectEntry {
             project_name: "test".to_string(),
@@ -493,7 +495,7 @@ mod tests {
 
     #[test]
     fn test_set_update_available() {
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         assert!(config.update.is_none());
 
         config.set_update_available("1.2.3".to_string());
@@ -506,7 +508,7 @@ mod tests {
 
     #[test]
     fn test_clear_update_notification() {
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.set_update_available("1.2.3".to_string());
         assert!(config.update.is_some());
 
@@ -516,7 +518,7 @@ mod tests {
 
     #[test]
     fn test_should_check_for_updates_no_previous_check() {
-        let config = MpmConfig::default();
+        let config = MowsConfig::default();
         // Should check when no previous update info exists
         assert!(config.should_check_for_updates());
     }
@@ -530,7 +532,7 @@ mod tests {
             .unwrap()
             .as_secs();
 
-        let config = MpmConfig {
+        let config = MowsConfig {
             compose: ComposeConfig::default(),
             update: Some(UpdateNotification {
                 available_version: "1.0.0".to_string(),
@@ -551,7 +553,7 @@ mod tests {
             .unwrap()
             .as_secs();
 
-        let config = MpmConfig {
+        let config = MowsConfig {
             compose: ComposeConfig::default(),
             update: Some(UpdateNotification {
                 available_version: "1.0.0".to_string(),
@@ -573,7 +575,7 @@ mod tests {
             .as_secs();
 
         // Exactly at the 1-hour boundary
-        let config = MpmConfig {
+        let config = MowsConfig {
             compose: ComposeConfig::default(),
             update: Some(UpdateNotification {
                 available_version: "1.0.0".to_string(),
@@ -585,7 +587,7 @@ mod tests {
         assert!(!config.should_check_for_updates());
 
         // Just past the boundary
-        let config = MpmConfig {
+        let config = MowsConfig {
             compose: ComposeConfig::default(),
             update: Some(UpdateNotification {
                 available_version: "1.0.0".to_string(),
@@ -605,7 +607,7 @@ mod tests {
     fn test_config_save_and_load_roundtrip() {
         let _guard = TestConfigGuard::new();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "test-project".to_string(),
             instance_name: Some("production".to_string()),
@@ -616,7 +618,7 @@ mod tests {
 
         config.save().expect("Failed to save config");
 
-        let loaded = MpmConfig::load().expect("Failed to load config");
+        let loaded = MowsConfig::load().expect("Failed to load config");
 
         assert_eq!(loaded.compose.projects.len(), 1);
         assert_eq!(loaded.compose.projects[0].project_name, "test-project");
@@ -633,7 +635,7 @@ mod tests {
         let _guard = TestConfigGuard::new();
 
         // The temp file exists but is empty, so load should return default
-        let config = MpmConfig::load().expect("Failed to load config");
+        let config = MowsConfig::load().expect("Failed to load config");
 
         assert!(config.compose.projects.is_empty());
         assert!(config.update.is_none());
@@ -645,10 +647,10 @@ mod tests {
 
         let _guard = TestConfigGuard::new();
 
-        let config = MpmConfig::default();
+        let config = MowsConfig::default();
         config.save().expect("Failed to save config");
 
-        let path = MpmConfig::config_path().expect("Failed to get config path");
+        let path = MowsConfig::config_path().expect("Failed to get config path");
         let metadata = std::fs::metadata(&path).expect("Failed to get file metadata");
         let mode = metadata.permissions().mode() & 0o777;
 
@@ -657,20 +659,117 @@ mod tests {
     }
 
     #[test]
-    fn test_config_path_uses_env_var() {
+    fn test_config_path_uses_primary_env_var() {
         let _guard = TestConfigGuard::new();
 
-        let path = MpmConfig::config_path().expect("Failed to get config path");
-        let env_path = std::env::var(MPM_CONFIG_PATH_ENV).expect("Env var not set");
+        let path = MowsConfig::config_path().expect("Failed to get config path");
+        let env_path = std::env::var(MOWS_CONFIG_PATH_ENV).expect("MOWS_CONFIG_PATH env var not set");
 
         assert_eq!(path.to_str().unwrap(), env_path);
+    }
+
+    #[test]
+    fn test_config_path_falls_back_to_legacy_env_var() {
+        let _guard = TestConfigGuard::new();
+
+        // Remove primary, set legacy
+        let temp = tempfile::NamedTempFile::new().unwrap();
+        std::env::remove_var(MOWS_CONFIG_PATH_ENV);
+        std::env::set_var(MPM_CONFIG_PATH_ENV, temp.path());
+
+        let path = MowsConfig::config_path().expect("Failed to get config path");
+        assert_eq!(path, temp.path());
+    }
+
+    #[test]
+    fn test_config_migration_from_legacy_file() {
+        let _guard = TestConfigGuard::new();
+
+        // Create a temporary HOME directory with legacy config
+        let tmp_home = tempfile::tempdir().unwrap();
+        let config_dir = tmp_home.path().join(".config/mows.cloud");
+        fs::create_dir_all(&config_dir).unwrap();
+
+        let legacy_path = config_dir.join(LEGACY_CONFIG_FILENAME);
+        let new_path = config_dir.join(CONFIG_FILENAME);
+
+        // Write a valid config to the legacy path
+        fs::write(
+            &legacy_path,
+            "compose:\n  projects:\n    - projectName: migrated\n      repoPath: /migrated\n      manifestPath: .\n",
+        )
+        .unwrap();
+
+        // Remove env var overrides so config_path() exercises the migration logic
+        std::env::remove_var(MOWS_CONFIG_PATH_ENV);
+        std::env::remove_var(MPM_CONFIG_PATH_ENV);
+        std::env::set_var("HOME", tmp_home.path());
+
+        let resolved = MowsConfig::config_path().unwrap();
+
+        // Migration should have renamed legacy -> new
+        assert_eq!(resolved, new_path);
+        assert!(new_path.exists(), "New config file should exist after migration");
+        assert!(!legacy_path.exists(), "Legacy config file should be gone after migration");
+
+        // Verify content survived the migration
+        let content = fs::read_to_string(&new_path).unwrap();
+        assert!(content.contains("migrated"));
+    }
+
+    #[test]
+    fn test_config_migration_skipped_when_new_file_exists() {
+        let _guard = TestConfigGuard::new();
+
+        let tmp_home = tempfile::tempdir().unwrap();
+        let config_dir = tmp_home.path().join(".config/mows.cloud");
+        fs::create_dir_all(&config_dir).unwrap();
+
+        let legacy_path = config_dir.join(LEGACY_CONFIG_FILENAME);
+        let new_path = config_dir.join(CONFIG_FILENAME);
+
+        // Both files exist - migration should NOT overwrite the new one
+        fs::write(&legacy_path, "compose:\n  projects: []\n").unwrap();
+        fs::write(&new_path, "compose:\n  projects:\n    - projectName: keep-me\n      repoPath: /keep\n      manifestPath: .\n").unwrap();
+
+        std::env::remove_var(MOWS_CONFIG_PATH_ENV);
+        std::env::remove_var(MPM_CONFIG_PATH_ENV);
+        std::env::set_var("HOME", tmp_home.path());
+
+        let resolved = MowsConfig::config_path().unwrap();
+
+        assert_eq!(resolved, new_path);
+        // Legacy file should still exist (not removed)
+        assert!(legacy_path.exists(), "Legacy file should not be touched");
+        // New file should have original content
+        let content = fs::read_to_string(&new_path).unwrap();
+        assert!(content.contains("keep-me"));
+    }
+
+    #[test]
+    fn test_config_no_migration_when_no_legacy_file() {
+        let _guard = TestConfigGuard::new();
+
+        let tmp_home = tempfile::tempdir().unwrap();
+        let config_dir = tmp_home.path().join(".config/mows.cloud");
+        fs::create_dir_all(&config_dir).unwrap();
+
+        let new_path = config_dir.join(CONFIG_FILENAME);
+
+        // Neither file exists - should just return new path
+        std::env::remove_var(MOWS_CONFIG_PATH_ENV);
+        std::env::remove_var(MPM_CONFIG_PATH_ENV);
+        std::env::set_var("HOME", tmp_home.path());
+
+        let resolved = MowsConfig::config_path().unwrap();
+        assert_eq!(resolved, new_path);
     }
 
     #[test]
     fn test_config_multiple_projects_roundtrip() {
         let _guard = TestConfigGuard::new();
 
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
 
         // Add multiple projects with various configurations
         config.upsert_project(ProjectEntry {
@@ -694,7 +793,7 @@ mod tests {
 
         config.save().expect("Failed to save config");
 
-        let loaded = MpmConfig::load().expect("Failed to load config");
+        let loaded = MowsConfig::load().expect("Failed to load config");
 
         assert_eq!(loaded.compose.projects.len(), 3);
 
@@ -711,7 +810,7 @@ mod tests {
         let _guard = TestConfigGuard::new();
 
         // Start with empty config
-        MpmConfig::default().save_without_lock().unwrap();
+        MowsConfig::default().save_without_lock().unwrap();
 
         let num_threads = 4;
         let iterations = 10;
@@ -720,7 +819,7 @@ mod tests {
                 thread::spawn(move || {
                     for i in 0..iterations {
                         // Use with_locked to ensure atomic read-modify-write
-                        MpmConfig::with_locked(|config| {
+                        MowsConfig::with_locked(|config| {
                             config.upsert_project(ProjectEntry {
                                 project_name: format!("project-{}-{}", thread_id, i),
                                 instance_name: None,
@@ -741,7 +840,7 @@ mod tests {
         }
 
         // Verify all entries were preserved (no data loss)
-        let final_config = MpmConfig::load().expect("Failed to load final config");
+        let final_config = MowsConfig::load().expect("Failed to load final config");
         let expected_count = num_threads * iterations;
         assert_eq!(
             final_config.compose.projects.len(),
@@ -758,7 +857,7 @@ mod tests {
         let _guard = TestConfigGuard::new();
 
         // Create a config with multiple projects
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         for i in 0..10 {
             config.upsert_project(ProjectEntry {
                 project_name: format!("project-{}", i),
@@ -775,7 +874,7 @@ mod tests {
             .map(|_| {
                 thread::spawn(move || {
                     for _ in 0..iterations {
-                        let config = MpmConfig::load().expect("Concurrent load failed");
+                        let config = MowsConfig::load().expect("Concurrent load failed");
                         // Verify we can read the config correctly
                         assert_eq!(config.compose.projects.len(), 10);
                     }
@@ -797,7 +896,7 @@ mod tests {
         let _guard = TestConfigGuard::new();
 
         // Start with a config
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "original".to_string(),
             instance_name: None,
@@ -817,7 +916,7 @@ mod tests {
                     barrier.wait();
 
                     // Perform a read-modify-write operation
-                    let mut config = MpmConfig::load().unwrap();
+                    let mut config = MowsConfig::load().unwrap();
                     config.upsert_project(ProjectEntry {
                         project_name: format!("thread-{}", thread_id),
                         instance_name: None,
@@ -835,7 +934,7 @@ mod tests {
         }
 
         // Verify file is not corrupted - should parse correctly
-        let final_config = MpmConfig::load().expect("Config file corrupted");
+        let final_config = MowsConfig::load().expect("Config file corrupted");
         // Original project should still exist
         assert!(final_config.find_project("original", None).is_some());
         // At least one thread's project should exist (others may have been overwritten)
@@ -853,7 +952,7 @@ mod tests {
         let _guard = TestConfigGuard::new();
 
         // Initial save with a project
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "initial".to_string(),
             instance_name: None,
@@ -863,7 +962,7 @@ mod tests {
         config.save().unwrap();
 
         // Use with_locked to atomically update
-        MpmConfig::with_locked(|config| {
+        MowsConfig::with_locked(|config| {
             config.upsert_project(ProjectEntry {
                 project_name: "added-via-with-locked".to_string(),
                 instance_name: None,
@@ -875,19 +974,19 @@ mod tests {
         .expect("with_locked should succeed");
 
         // Verify both projects exist
-        let loaded = MpmConfig::load().expect("Failed to load config");
+        let loaded = MowsConfig::load().expect("Failed to load config");
         assert!(loaded.find_project("initial", None).is_some());
         assert!(loaded.find_project("added-via-with-locked", None).is_some());
     }
 
     #[test]
     fn test_with_locked_error_does_not_save() {
-        use crate::error::MpmError;
+        use crate::error::MowsError;
 
         let _guard = TestConfigGuard::new();
 
         // Initial save with a project
-        let mut config = MpmConfig::default();
+        let mut config = MowsConfig::default();
         config.upsert_project(ProjectEntry {
             project_name: "initial".to_string(),
             instance_name: None,
@@ -897,20 +996,20 @@ mod tests {
         config.save().unwrap();
 
         // Use with_locked but return an error - changes should NOT be saved
-        let result = MpmConfig::with_locked(|config| {
+        let result = MowsConfig::with_locked(|config| {
             config.upsert_project(ProjectEntry {
                 project_name: "should-not-persist".to_string(),
                 instance_name: None,
                 repo_path: PathBuf::from("/path/to/new"),
                 manifest_path: PathBuf::from("."),
             });
-            Err(MpmError::Validation("Intentional error".to_string()))
+            Err(MowsError::Validation("Intentional error".to_string()))
         });
 
         assert!(result.is_err());
 
         // Verify the new project was NOT saved (due to error)
-        let loaded = MpmConfig::load().expect("Failed to load config");
+        let loaded = MowsConfig::load().expect("Failed to load config");
         assert!(loaded.find_project("initial", None).is_some());
         assert!(
             loaded.find_project("should-not-persist", None).is_none(),

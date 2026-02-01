@@ -1,9 +1,9 @@
-use clap::{Parser, Subcommand};
+use clap::{Command, CommandFactory, Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "mpm")]
-#[command(about = "mpm - MOWS Package Manager for Docker Compose deployments", long_about = None)]
+#[command(name = "mows")]
+#[command(about = "mows - MOWS CLI toolkit", long_about = None)]
 #[command(disable_version_flag = true)]
 pub struct Cli {
     /// Enable verbose output (debug logging)
@@ -16,14 +16,15 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Docker Compose deployment management
+    /// Package manager for Docker Compose deployments
     ///
-    /// Commands for managing mpm-style Docker Compose deployments with
+    /// Commands for managing mows-style Docker Compose deployments with
     /// templated configuration, automatic secrets generation, and
     /// health monitoring.
-    Compose {
+    #[command(name = "package-manager")]
+    PackageManager {
         #[command(subcommand)]
-        command: ComposeCommands,
+        command: PackageManagerCommands,
     },
     /// Data transformation utilities
     ///
@@ -56,9 +57,9 @@ pub enum Commands {
     /// the standard completion directory with --install.
     ///
     /// Standard locations:
-    ///   Bash: ~/.local/share/bash-completion/completions/mpm
-    ///   Zsh:  ~/.zsh/completions/_mpm (or ~/.oh-my-zsh/completions/_mpm)
-    ///   Fish: ~/.config/fish/completions/mpm.fish
+    ///   Bash: ~/.local/share/bash-completion/completions/mows
+    ///   Zsh:  ~/.zsh/completions/_mows (or ~/.oh-my-zsh/completions/_mows)
+    ///   Fish: ~/.config/fish/completions/mows.fish
     #[command(name = "shell-init")]
     ShellInit {
         /// Install completions to standard directory
@@ -67,7 +68,7 @@ pub enum Commands {
     },
     /// Show version information
     ///
-    /// Displays the current mpm version and checks for available updates.
+    /// Displays the current mows version and checks for available updates.
     Version,
     /// Generate man pages
     ///
@@ -78,7 +79,7 @@ pub enum Commands {
         #[arg(long)]
         install: bool,
     },
-    /// Update mpm to the latest version
+    /// Update mows to the latest version
     ///
     /// By default, downloads the latest pre-built binary from GitHub releases
     /// and verifies its SHA256 checksum before installation.
@@ -105,6 +106,19 @@ pub enum Commands {
 }
 
 #[derive(Subcommand)]
+pub enum PackageManagerCommands {
+    /// Docker Compose deployment management
+    ///
+    /// Commands for managing mows-style Docker Compose deployments with
+    /// templated configuration, automatic secrets generation, and
+    /// health monitoring.
+    Compose {
+        #[command(subcommand)]
+        command: ComposeCommands,
+    },
+}
+
+#[derive(Subcommand)]
 pub enum ComposeCommands {
     /// Render templates and start the deployment
     ///
@@ -118,9 +132,9 @@ pub enum ComposeCommands {
     /// Templates use Go template syntax with Helm-compatible functions.
     /// Secrets are auto-generated based on patterns in mows-manifest.yaml.
     Up,
-    /// Initialize a new mpm compose project
+    /// Initialize a new mows compose project
     ///
-    /// Creates the standard mpm project structure:
+    /// Creates the standard mows project structure:
     /// - mows-manifest.yaml: Project configuration and secrets definitions
     /// - values.yaml: Template variables (gitignored)
     /// - templates/: Directory for Go templates
@@ -133,13 +147,13 @@ pub enum ComposeCommands {
         /// Project name (defaults to git repository name)
         name: Option<String>,
     },
-    /// Clone and install a mpm project from a git URL
+    /// Clone and install a mows project from a git URL
     ///
-    /// Clones the repository and registers it with mpm for easy navigation.
+    /// Clones the repository and registers it with mows for easy navigation.
     /// Only HTTPS and SSH URLs are allowed for security.
     ///
-    /// After installation, use 'mpm compose cd <project>' to navigate to it,
-    /// then 'mpm compose up' to deploy.
+    /// After installation, use 'mows package-manager compose cd <project>' to navigate to it,
+    /// then 'mows package-manager compose up' to deploy.
     Install {
         /// Git repository URL (https:// or git@)
         url: String,
@@ -161,9 +175,9 @@ pub enum ComposeCommands {
     ///
     /// Prints the absolute path to a project's directory, useful for
     /// shell navigation. Projects are registered when installed or
-    /// when 'mpm compose up' is run.
+    /// when 'mows package-manager compose up' is run.
     ///
-    /// Usage with cd: cd $(mpm compose cd myproject)
+    /// Usage with cd: cd $(mows package-manager compose cd myproject)
     ///
     /// If multiple instances of a project exist (same project installed
     /// in different locations), use --instance to specify which one.
@@ -177,7 +191,7 @@ pub enum ComposeCommands {
     /// Manage deployment secrets
     ///
     /// Secrets are defined in mows-manifest.yaml and stored in secrets/.env.
-    /// They are auto-generated on first 'mpm compose up' and can be
+    /// They are auto-generated on first 'mows package-manager compose up' and can be
     /// regenerated with this command.
     Secrets {
         #[command(subcommand)]
@@ -187,10 +201,10 @@ pub enum ComposeCommands {
     ///
     /// Any unrecognized subcommand is passed directly to docker compose
     /// with the project's compose file. Useful for commands like:
-    ///   mpm compose logs -f
-    ///   mpm compose ps
-    ///   mpm compose down
-    ///   mpm compose exec service_name bash
+    ///   mows package-manager compose logs -f
+    ///   mows package-manager compose ps
+    ///   mows package-manager compose down
+    ///   mows package-manager compose exec service_name bash
     #[command(external_subcommand)]
     Passthrough(Vec<String>),
 }
@@ -217,8 +231,8 @@ pub enum ToolCommands {
     ///
     /// Reads JSON input and outputs equivalent YAML with 4-space indentation.
     ///
-    /// Example: mpm tools json-to-yaml -i config.json -o config.yaml
-    /// Example: cat data.json | mpm tools json-to-yaml > data.yaml
+    /// Example: mows tools json-to-yaml -i config.json -o config.yaml
+    /// Example: cat data.json | mows tools json-to-yaml > data.yaml
     #[command(name = "json-to-yaml")]
     JsonToYaml {
         /// Input file (reads from stdin if not provided)
@@ -232,8 +246,8 @@ pub enum ToolCommands {
     ///
     /// Reads YAML input and outputs pretty-printed JSON.
     ///
-    /// Example: mpm tools yaml-to-json -i config.yaml -o config.json
-    /// Example: cat data.yaml | mpm tools yaml-to-json > data.json
+    /// Example: mows tools yaml-to-json -i config.yaml -o config.json
+    /// Example: cat data.yaml | mows tools yaml-to-json > data.json
     #[command(name = "yaml-to-json")]
     YamlToJson {
         /// Input file (reads from stdin if not provided)
@@ -248,7 +262,7 @@ pub enum ToolCommands {
     /// Reads JSON and outputs with consistent indentation and formatting.
     /// Useful for normalizing JSON files or making them human-readable.
     ///
-    /// Example: mpm tools prettify-json -i messy.json -o clean.json
+    /// Example: mows tools prettify-json -i messy.json -o clean.json
     #[command(name = "prettify-json")]
     PrettifyJson {
         /// Input file (reads from stdin if not provided)
@@ -266,7 +280,7 @@ pub enum ToolCommands {
     /// For Docker Compose files, automatically targets services.*.labels.
     /// Use --selector to specify a different path or apply to entire document.
     ///
-    /// Example: mpm tools expand-object -i compose.yaml -o expanded.yaml
+    /// Example: mows tools expand-object -i compose.yaml -o expanded.yaml
     #[command(name = "expand-object")]
     ExpandObject {
         /// Input file (reads from stdin if not provided)
@@ -287,7 +301,7 @@ pub enum ToolCommands {
     ///
     /// For Docker Compose files, automatically targets services.*.labels.
     ///
-    /// Example: mpm tools flatten-object -i expanded.yaml -o compose.yaml
+    /// Example: mows tools flatten-object -i expanded.yaml -o compose.yaml
     #[command(name = "flatten-object")]
     FlattenObject {
         /// Input file (reads from stdin if not provided)
@@ -306,8 +320,8 @@ pub enum ToolCommands {
     /// core filters. Input can be JSON or YAML; output defaults to JSON
     /// but can be YAML with --yaml.
     ///
-    /// Example: mpm tools jq '.services | keys' -i compose.yaml
-    /// Example: cat data.json | mpm tools jq '.items[] | .name'
+    /// Example: mows tools jq '.services | keys' -i compose.yaml
+    /// Example: cat data.json | mows tools jq '.items[] | .name'
     Jq {
         /// jq query/filter to apply (e.g., '.foo.bar', '.[] | select(.x > 1)')
         query: String,
@@ -327,8 +341,8 @@ pub enum ToolCommands {
     /// SMART data requires smartctl to be installed and may need sudo
     /// for some drives.
     ///
-    /// Example: mpm tools drives
-    /// Example: sudo mpm tools drives  # for full SMART access
+    /// Example: mows tools drives
+    /// Example: sudo mows tools drives  # for full SMART access
     Drives,
     /// Generate cargo-workspace-docker.toml for Docker builds
     ///
@@ -339,8 +353,8 @@ pub enum ToolCommands {
     /// Run from a package directory or use --path. Use --all to generate
     /// for all packages in the workspace that have a docker-compose file.
     ///
-    /// Example: mpm tools cargo-workspace-docker
-    /// Example: mpm tools cargo-workspace-docker --all
+    /// Example: mows tools cargo-workspace-docker
+    /// Example: mows tools cargo-workspace-docker --all
     #[command(name = "cargo-workspace-docker")]
     CargoWorkspaceDocker {
         /// Generate for all packages with docker-compose in the workspace
@@ -350,4 +364,42 @@ pub enum ToolCommands {
         #[arg(short, long)]
         path: Option<PathBuf>,
     },
+}
+
+/// Build a clap Command for the `mpm` alias binary.
+///
+/// This extracts the `package-manager` subcommand tree from the full `mows` CLI
+/// and presents it at the top level as `mpm`, so completions and man pages
+/// show `mpm compose ...` rather than `mows package-manager compose ...`.
+///
+/// # Errors
+///
+/// Returns an error if the `package-manager` subcommand is not found in the CLI definition.
+pub fn build_mpm_command() -> crate::error::Result<Command> {
+    let cli_cmd = Cli::command();
+
+    let package_manager_cmd = cli_cmd
+        .get_subcommands()
+        .find(|c| c.get_name() == "package-manager")
+        .ok_or_else(|| crate::error::MowsError::Config(
+            "package-manager subcommand not found in CLI definition (internal error)".to_string(),
+        ))?;
+
+    let mut mpm = Command::new("mpm")
+        .about("mpm - MOWS Package Manager (alias for 'mows package-manager')")
+        .disable_version_flag(true)
+        .arg(
+            clap::Arg::new("verbose")
+                .short('v')
+                .long("verbose")
+                .global(true)
+                .action(clap::ArgAction::SetTrue)
+                .help("Enable verbose output (debug logging)"),
+        );
+
+    for sub in package_manager_cmd.get_subcommands() {
+        mpm = mpm.subcommand(sub.clone());
+    }
+
+    Ok(mpm)
 }

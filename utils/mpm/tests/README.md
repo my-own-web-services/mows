@@ -1,6 +1,6 @@
-# MPM Integration Tests
+# MOWS Integration Tests
 
-End-to-end tests for mpm functionality. These tests run the actual `mpm` binary against real or mocked environments.
+End-to-end tests for mows functionality. These tests run the actual `mows` binary against real or mocked environments.
 
 ## Quick Start
 
@@ -23,13 +23,13 @@ VERBOSE=1 ./run-all.sh
 | Test File | Description |
 |-----------|-------------|
 | `test-cli.sh` | General CLI functionality (version, help, manpage) |
-| `test-compose-cd.sh` | Project navigation (`mpm compose cd`) |
-| `test-compose-init.sh` | Project initialization (`mpm compose init`) |
-| `test-compose-install.sh` | Remote project installation (`mpm compose install`) |
+| `test-compose-cd.sh` | Project navigation (`mows package-manager compose cd`) |
+| `test-compose-init.sh` | Project initialization (`mows package-manager compose init`) |
+| `test-compose-install.sh` | Remote project installation (`mows package-manager compose install`) |
 | `test-compose-secrets.sh` | Secrets generation and management |
 | `test-compose-up.sh` | Compose rendering pipeline |
 | `test-self-update.sh` | Self-update functionality (skipped in CI) |
-| `test-template.sh` | Template rendering (`mpm template`) |
+| `test-template.sh` | Template rendering (`mows template`) |
 | `test-tools.sh` | Tool subcommands (json-to-yaml, jq, expand-object, etc.) |
 
 ### Shared Utilities
@@ -62,7 +62,7 @@ Options:
 | `VERBOSE` | Set to `1` for verbose output |
 | `KEEP_OUTPUT` | Set to `1` to keep output directory |
 | `FAIL_FAST` | Set to `1` to stop on first failure |
-| `MPM_BIN` | Path to mpm binary (default: release build) |
+| `MPM_BIN` | Path to mows binary (default: release build) |
 | `DEBUG` | Set to `1` for debug output in tests |
 | `MPM_MOCK_DOCKER` | Set to `1` to use mock Docker client |
 
@@ -95,7 +95,7 @@ The mock client simulates Docker operations:
 2. Add the standard header:
    ```bash
    #!/usr/bin/env bash
-   # End-to-end tests for mpm <feature>
+   # End-to-end tests for mows <feature>
    # These tests are isolated and can run in parallel
 
    set -euo pipefail

@@ -5,7 +5,7 @@
 
 use colored::Colorize;
 
-use crate::compose::DockerClient;
+use crate::package_manager::compose::DockerClient;
 use super::health::{check_traefik_host, collect_container_health, ContainerHealth};
 use super::preflight::{CheckResult, Severity};
 

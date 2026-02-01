@@ -180,10 +180,10 @@ fi
 # Config Integration Tests
 # ============================================================================
 
-log_test "compose cd: reads from MPM_CONFIG_PATH"
+log_test "compose cd: reads from MOWS_CONFIG_PATH"
 TEST_DIR=$(create_test_dir "cd-config-path")
 mkdir -p "$TEST_DIR/config-test/deployment"
-# Use a custom config path
+# Use a custom config path (override MOWS_CONFIG_PATH which takes priority over MPM_CONFIG_PATH)
 CUSTOM_CONFIG=$(mktemp)
 cat > "$CUSTOM_CONFIG" << EOF
 compose:
@@ -192,10 +192,10 @@ compose:
     repoPath: $TEST_DIR/config-test
     manifestPath: deployment
 EOF
-OUTPUT=$(MPM_CONFIG_PATH="$CUSTOM_CONFIG" $MPM_BIN compose cd "config-path-test" 2>&1)
+OUTPUT=$(MOWS_CONFIG_PATH="$CUSTOM_CONFIG" $MPM_BIN compose cd "config-path-test" 2>&1)
 rm -f "$CUSTOM_CONFIG"
 if assert_contains "$OUTPUT" "config-test" "Should read from custom config"; then
-    pass_test "Reads from MPM_CONFIG_PATH"
+    pass_test "Reads from MOWS_CONFIG_PATH"
 else
     fail_test "Did not read from custom config: $OUTPUT"
 fi
@@ -203,7 +203,7 @@ fi
 log_test "compose cd: handles empty config"
 EMPTY_CONFIG=$(mktemp)
 echo "compose: {}" > "$EMPTY_CONFIG"
-OUTPUT=$(MPM_CONFIG_PATH="$EMPTY_CONFIG" $MPM_BIN compose cd "any-project" 2>&1 || true)
+OUTPUT=$(MOWS_CONFIG_PATH="$EMPTY_CONFIG" $MPM_BIN compose cd "any-project" 2>&1 || true)
 rm -f "$EMPTY_CONFIG"
 if echo "$OUTPUT" | grep -qi "not found\|no project"; then
     pass_test "Handles empty config"
@@ -213,7 +213,7 @@ fi
 
 log_test "compose cd: handles missing config"
 MISSING_CONFIG="/tmp/nonexistent-config-$(date +%s).yaml"
-OUTPUT=$(MPM_CONFIG_PATH="$MISSING_CONFIG" $MPM_BIN compose cd "any-project" 2>&1 || true)
+OUTPUT=$(MOWS_CONFIG_PATH="$MISSING_CONFIG" $MPM_BIN compose cd "any-project" 2>&1 || true)
 if echo "$OUTPUT" | grep -qi "not found\|no project"; then
     pass_test "Handles missing config file"
 else

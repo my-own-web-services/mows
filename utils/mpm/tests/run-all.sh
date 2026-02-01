@@ -61,7 +61,8 @@ Environment Variables:
     VERBOSE             Set to 1 for verbose output
     KEEP_OUTPUT         Set to 1 to keep output directory
     FAIL_FAST           Set to 1 to stop on first failure
-    MPM_BIN             Path to mpm binary (default: uses release build)
+    MOWS_BIN            Path to mows binary (default: uses release build)
+    MPM_BIN             Path to mpm symlink (default: alongside mows binary)
     DEBUG               Set to 1 for debug output in tests
 
 Examples:
@@ -330,22 +331,30 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-log_header "MPM End-to-End Tests"
+log_header "MOWS End-to-End Tests"
 
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
 
-# Ensure mpm is built
-log_info "Ensuring mpm is built..."
+# Ensure mows is built
+log_info "Ensuring mows is built..."
 cd "$PROJECT_ROOT"
 if ! cargo build --release 2>&1 | tail -1; then
-    log_error "Failed to build mpm"
+    log_error "Failed to build mows"
     exit 1
 fi
 cd "$SCRIPT_DIR"
 
-export MPM_BIN="${MPM_BIN:-$PROJECT_ROOT/../../../target/release/mpm}"
-log_info "Using mpm binary: $MPM_BIN"
+export MOWS_BIN="${MOWS_BIN:-$PROJECT_ROOT/../../../target/release/mows}"
+log_info "Using mows binary: $MOWS_BIN"
+
+# Ensure mpm symlink exists
+MPM_SYMLINK="$(dirname "$MOWS_BIN")/mpm"
+if [[ ! -e "$MPM_SYMLINK" ]]; then
+    ln -sf mows "$MPM_SYMLINK" 2>/dev/null || true
+fi
+export MPM_BIN="${MPM_BIN:-$MPM_SYMLINK}"
+log_info "Using mpm symlink: $MPM_BIN"
 
 # Get test files
 IFS=' ' read -ra TEST_FILES <<< "$(get_test_files "$TEST_FILTER")"

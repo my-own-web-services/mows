@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Test script for mpm self-update functionality
+# Test script for mows self-update functionality
 # This script tests both binary download and build-from-source methods
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -34,35 +34,35 @@ log_test() {
 
 pass_test() {
     echo -e "${GREEN}[PASS]${NC} $1"
-    ((TESTS_PASSED++))
+    ((TESTS_PASSED++)) || true
 }
 
 fail_test() {
     echo -e "${RED}[FAIL]${NC} $1"
-    ((TESTS_FAILED++))
+    ((TESTS_FAILED++)) || true
 }
 
 # Build the current version first
-log_info "Building mpm from current source..."
+log_info "Building mows from current source..."
 cd "$SCRIPT_DIR/.."
 cargo build --release 2>&1 || {
-    log_error "Failed to build mpm"
+    log_error "Failed to build mows"
     exit 1
 }
 cd "$SCRIPT_DIR"
 
-MPM_BIN="../../../target/release/mpm"
+MOWS_BIN="../../../target/release/mows"
 
-if [[ ! -x "$MPM_BIN" ]]; then
-    log_error "Built binary not found at $MPM_BIN"
+if [[ ! -x "$MOWS_BIN" ]]; then
+    log_error "Built binary not found at $MOWS_BIN"
     exit 1
 fi
 
-log_info "mpm built successfully"
+log_info "mows built successfully"
 
 # Test 1: Help command
 log_test "self-update --help displays correctly"
-if $MPM_BIN self-update --help | grep -q "Update mpm to the latest version"; then
+if $MOWS_BIN self-update --help | grep -q "Update mows to the latest version"; then
     pass_test "Help message displays correctly"
 else
     fail_test "Help message not displayed correctly"
@@ -70,7 +70,7 @@ fi
 
 # Test 2: --version works with --build (help shows it's allowed)
 log_test "--version can be used with --build"
-if $MPM_BIN self-update --help 2>&1 | grep -q "Works with both binary"; then
+if $MOWS_BIN self-update --help 2>&1 | grep -q "Works with both binary"; then
     pass_test "--version works with both modes"
 else
     fail_test "--version documentation missing"
@@ -78,7 +78,7 @@ fi
 
 # Test 4: Binary download - fetch latest version info
 log_test "Can fetch latest version from GitHub API"
-LATEST_VERSION=$(curl -fsSL https://api.github.com/repos/my-own-web-services/mows/releases/latest 2>&1 | grep -oP '"tag_name":\s*"mpm-v\K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+LATEST_VERSION=$(curl -fsSL https://api.github.com/repos/my-own-web-services/mows/releases/latest 2>&1 | grep -oP '"tag_name":\s*"mows-cli-v\K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
 if [[ -n "$LATEST_VERSION" ]]; then
     pass_test "Latest version fetched: $LATEST_VERSION"
 else
@@ -89,8 +89,8 @@ fi
 log_test "Checksum file available for latest release"
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 OS="linux"
-BINARY_NAME="mpm-${LATEST_VERSION}-${OS}-${ARCH}"
-CHECKSUM_URL="https://github.com/my-own-web-services/mows/releases/download/mpm-v${LATEST_VERSION}/${BINARY_NAME}-checksum-sha256.txt"
+BINARY_NAME="mows-${LATEST_VERSION}-${OS}-${ARCH}"
+CHECKSUM_URL="https://github.com/my-own-web-services/mows/releases/download/mows-cli-v${LATEST_VERSION}/${BINARY_NAME}-checksum-sha256.txt"
 
 if curl -fsSL --head "$CHECKSUM_URL" 2>&1 | grep -q "200"; then
     pass_test "Checksum file exists at $CHECKSUM_URL"
@@ -100,7 +100,7 @@ fi
 
 # Test 6: Binary download - binary file exists
 log_test "Binary file available for latest release"
-BINARY_URL="https://github.com/my-own-web-services/mows/releases/download/mpm-v${LATEST_VERSION}/${BINARY_NAME}"
+BINARY_URL="https://github.com/my-own-web-services/mows/releases/download/mows-cli-v${LATEST_VERSION}/${BINARY_NAME}"
 
 if curl -fsSL --head "$BINARY_URL" 2>&1 | grep -q "200\|302"; then
     pass_test "Binary file exists at $BINARY_URL"
@@ -114,20 +114,20 @@ TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
 
 log_info "Downloading binary to temp directory..."
-if curl -fsSL -o "$TEMP_DIR/mpm-test" "$BINARY_URL" 2>&1; then
+if curl -fsSL -o "$TEMP_DIR/mows-test" "$BINARY_URL" 2>&1; then
     log_info "Downloading checksum..."
     if curl -fsSL -o "$TEMP_DIR/checksum.txt" "$CHECKSUM_URL" 2>&1; then
         log_info "Verifying checksum..."
         EXPECTED_CHECKSUM=$(cat "$TEMP_DIR/checksum.txt" | awk '{print $1}')
-        ACTUAL_CHECKSUM=$(sha256sum "$TEMP_DIR/mpm-test" | awk '{print $1}')
+        ACTUAL_CHECKSUM=$(sha256sum "$TEMP_DIR/mows-test" | awk '{print $1}')
 
         if [[ "$EXPECTED_CHECKSUM" == "$ACTUAL_CHECKSUM" ]]; then
             pass_test "Checksum verification successful"
 
             # Test 8: Downloaded binary is executable
             log_test "Downloaded binary is valid"
-            chmod +x "$TEMP_DIR/mpm-test"
-            if "$TEMP_DIR/mpm-test" --help 2>&1 | grep -q "MOWS Package Manager"; then
+            chmod +x "$TEMP_DIR/mows-test"
+            if "$TEMP_DIR/mows-test" --help 2>&1 | grep -q "MOWS CLI toolkit"; then
                 pass_test "Downloaded binary executes correctly"
             else
                 fail_test "Downloaded binary does not execute correctly"
@@ -158,7 +158,7 @@ fi
 
 # Test 10: Test that self-update detects when already up-to-date
 log_test "Self-update detects already up-to-date (dry run simulation)"
-CURRENT_VERSION=$($MPM_BIN --help 2>&1 | head -1 || echo "unknown")
+CURRENT_VERSION=$($MOWS_BIN --help 2>&1 | head -1 || echo "unknown")
 log_info "Current build version check passed"
 pass_test "Version detection works"
 
@@ -172,7 +172,7 @@ fi
 
 # Test 12: Verify SSH signature verification is mentioned in help
 log_test "SSH signature verification mentioned in help"
-if $MPM_BIN self-update --help 2>&1 | grep -qi "ssh signature"; then
+if $MOWS_BIN self-update --help 2>&1 | grep -qi "ssh signature"; then
     pass_test "SSH signature verification documented"
 else
     fail_test "SSH signature verification not documented in help"
