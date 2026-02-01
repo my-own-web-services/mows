@@ -1,6 +1,6 @@
 # Project Structure
 
-An mpm compose project follows a specific directory structure. Understanding each file's purpose helps you organize your deployments effectively.
+A mows package-manager compose project follows a specific directory structure. Understanding each file's purpose helps you organize your deployments effectively.
 
 ## Directory Layout
 
@@ -40,7 +40,7 @@ spec: {}                     # Reserved for future use
 
 The project name is used as:
 - The Docker Compose project name (`-p my-project`)
-- The identifier for `mpm compose cd my-project`
+- The identifier for `mows package-manager compose cd my-project`
 
 ### values.yaml
 
@@ -141,7 +141,7 @@ API_SECRET_KEY={{ uuidv4 }}
 - First run: All secrets are generated
 - Subsequent runs: Existing non-empty values are preserved
 - Empty values are regenerated each run
-- Use `mpm compose secrets regenerate` to force regeneration
+- Use `mows package-manager compose secrets regenerate` to force regeneration
 
 ### templates/config/
 
@@ -190,7 +190,7 @@ Use for:
 
 ### results/
 
-Generated output directory. Created and populated during `mpm compose up`.
+Generated output directory. Created and populated during `mows package-manager compose up`.
 
 **Contents after render:**
 ```

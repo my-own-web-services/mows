@@ -1,16 +1,16 @@
 # Configuration
 
-mpm uses a YAML configuration file to track installed projects and update state.
+mows uses a YAML configuration file to track installed projects and update state.
 
 ## Config File Location
 
-**Default:** `~/.config/mows.cloud/mpm.yaml`
+**Default:** `~/.config/mows.cloud/mows.yaml`
 
-**Override:** Set `MPM_CONFIG_PATH` environment variable:
+**Override:** Set `MOWS_CONFIG_PATH` environment variable:
 
 ```bash
-export MPM_CONFIG_PATH=/path/to/custom/mpm.yaml
-mpm compose up
+export MOWS_CONFIG_PATH=/path/to/custom/mows.yaml
+mows package-manager compose up    # or: mpm compose up
 ```
 
 This is useful for:
@@ -40,7 +40,7 @@ update:
 
 ## Project Entries
 
-Each project entry tracks an installed mpm compose project:
+Each project entry tracks an installed compose project:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -70,8 +70,11 @@ compose:
 **Usage:**
 ```bash
 # Navigate to specific instance
+cd $(mows package-manager compose cd my-api --instance staging)
+cd $(mows package-manager compose cd my-api --instance production)
+
+# Or using the mpm shorthand:
 cd $(mpm compose cd my-api --instance staging)
-cd $(mpm compose cd my-api --instance production)
 ```
 
 ## Update Tracking
@@ -92,9 +95,9 @@ The `update` section tracks version check state:
 
 ## Automatic Config Management
 
-mpm automatically manages the config file:
+mows automatically manages the config file:
 
-### On `mpm compose init`
+### On `mows package-manager compose init`
 
 Adds new project entry:
 ```yaml
@@ -106,7 +109,7 @@ compose:
       manifestPath: deployment
 ```
 
-### On `mpm compose install`
+### On `mows package-manager compose install`
 
 Adds entry for installed project:
 ```yaml
@@ -118,7 +121,7 @@ compose:
       manifestPath: path/to/manifest
 ```
 
-### On `mpm compose update`
+### On `mows package-manager compose update`
 
 Updates manifest path if it moved:
 ```yaml
@@ -128,7 +131,7 @@ compose:
       manifestPath: new/location    # Updated
 ```
 
-### On `mpm self-update`
+### On `mows self-update`
 
 Clears update notification:
 ```yaml
@@ -173,7 +176,8 @@ compose:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MPM_CONFIG_PATH` | Override config file location | `~/.config/mows.cloud/mpm.yaml` |
+| `MOWS_CONFIG_PATH` | Override config file location | `~/.config/mows.cloud/mows.yaml` |
+| `MPM_CONFIG_PATH` | Legacy override (fallback) | `~/.config/mows.cloud/mows.yaml` |
 
 ## Config File Permissions
 
@@ -183,7 +187,7 @@ The config file is created with standard permissions (644). It doesn't contain s
 
 ### Config Not Found
 
-If config file doesn't exist, mpm creates it with defaults:
+If config file doesn't exist, mows creates it with defaults:
 ```yaml
 compose:
   projects: []
@@ -208,10 +212,10 @@ If config becomes invalid YAML:
 Failed to parse config: invalid YAML
 ```
 
-**Solution:** Fix YAML syntax or delete and let mpm recreate:
+**Solution:** Fix YAML syntax or delete and let mows recreate:
 ```bash
-rm ~/.config/mows.cloud/mpm.yaml
-mpm compose init  # Recreates config
+rm ~/.config/mows.cloud/mows.yaml
+mows package-manager compose init  # Recreates config
 ```
 
 ### Project Not Found
@@ -221,7 +225,7 @@ Project 'my-app' not found in config
 ```
 
 The project isn't registered. Either:
-1. Run `mpm compose init` in the project directory
+1. Run `mows package-manager compose init` in the project directory
 2. Manually add entry to config file
 
 ### Multiple Projects Same Name
@@ -234,5 +238,6 @@ Multiple instances of 'my-app' found. Specify --instance:
 
 Use `--instance` flag:
 ```bash
-mpm compose cd my-app --instance staging
+mows package-manager compose cd my-app --instance staging
+# or: mpm compose cd my-app --instance staging
 ```

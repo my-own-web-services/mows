@@ -1,6 +1,6 @@
 use tracing::info;
 
-use crate::error::{MpmError, Result};
+use crate::error::{MowsError, Result};
 use super::docker::{default_client, ComposePassthroughOptions};
 use super::find_manifest_dir;
 use super::manifest::MowsManifest;
@@ -23,8 +23,8 @@ pub fn compose_passthrough(args: &[String]) -> Result<()> {
     } else if results_dir.join("docker-compose.yml").exists() {
         results_dir.join("docker-compose.yml")
     } else {
-        return Err(MpmError::Docker(
-            "No docker-compose.yaml found in results/. Run 'mpm compose up' first.".to_string(),
+        return Err(MowsError::Docker(
+            "No docker-compose.yaml found in results/. Run 'mows package-manager compose up' (or 'mpm compose up') first.".to_string(),
         ));
     };
 

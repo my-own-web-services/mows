@@ -28,7 +28,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 name: World
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "Hello World!" "$TEST_DIR/output.txt"; then
         pass_test "Simple variable substitution"
     else
@@ -49,7 +49,7 @@ server:
   host: localhost
   port: 8080
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "Server: localhost:8080" "$TEST_DIR/output.txt"; then
         pass_test "Nested variable access"
     else
@@ -67,7 +67,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 myvar: dollar-value
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "Value: dollar-value" "$TEST_DIR/output.txt"; then
         pass_test "Dollar syntax variable"
     else
@@ -90,7 +90,7 @@ EOF
 cat > "$TEST_DIR/input/values.yaml" << 'EOF'
 appName: MyApp
 EOF
-if $MPM_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output"; then
+if $MOWS_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output"; then
     if grep -q "App: MyApp" "$TEST_DIR/output/template.txt"; then
         pass_test "Auto-load values.yaml"
     else
@@ -109,7 +109,7 @@ EOF
 cat > "$TEST_DIR/input/values.yml" << 'EOF'
 appName: MyAppYml
 EOF
-if $MPM_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output"; then
+if $MOWS_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output"; then
     if grep -q "App: MyAppYml" "$TEST_DIR/output/template.txt"; then
         pass_test "Auto-load values.yml"
     else
@@ -128,7 +128,7 @@ EOF
 cat > "$TEST_DIR/input/values.json" << 'EOF'
 {"appName": "MyAppJson"}
 EOF
-if $MPM_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output"; then
+if $MOWS_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output"; then
     if grep -q "App: MyAppJson" "$TEST_DIR/output/template.txt"; then
         pass_test "Auto-load values.json"
     else
@@ -146,7 +146,7 @@ EOF
 cat > "$TEST_DIR/config.yaml" << 'EOF'
 setting: custom-value
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" --variable "config:$TEST_DIR/config.yaml" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" --variable "config:$TEST_DIR/config.yaml" -o "$TEST_DIR/output.txt"; then
     if grep -q "Config: custom-value" "$TEST_DIR/output.txt"; then
         pass_test "Explicit variable file"
     else
@@ -168,7 +168,7 @@ EOF
 cat > "$TEST_DIR/cache.yaml" << 'EOF'
 host: cache.local
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" \
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" \
     --variable "db:$TEST_DIR/db.yaml" \
     --variable "cache:$TEST_DIR/cache.yaml" \
     -o "$TEST_DIR/output.txt"; then
@@ -192,7 +192,7 @@ cat > "$TEST_DIR/config.env" << 'EOF'
 API_KEY=secret123
 DB_HOST=localhost
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" \
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" \
     --variable "env:$TEST_DIR/config.env" \
     -o "$TEST_DIR/output.txt"; then
     if grep -q "API_KEY: secret123" "$TEST_DIR/output.txt" && \
@@ -217,7 +217,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 name: hello
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "HELLO" "$TEST_DIR/output.txt"; then
         pass_test "upper function"
     else
@@ -235,7 +235,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 name: HELLO
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "hello" "$TEST_DIR/output.txt"; then
         pass_test "lower function"
     else
@@ -253,7 +253,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 name: "  spaces  "
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "\[spaces\]" "$TEST_DIR/output.txt"; then
         pass_test "trim function"
     else
@@ -271,7 +271,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 port: ""
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "Port: 8080" "$TEST_DIR/output.txt"; then
         pass_test "default function with empty value"
     else
@@ -289,7 +289,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 port: null
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "Port: 8080" "$TEST_DIR/output.txt"; then
         pass_test "default function with null value"
     else
@@ -307,7 +307,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 # empty
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     SECRET=$(grep "Secret:" "$TEST_DIR/output.txt" | sed 's/Secret: //')
     if [[ ${#SECRET} -eq 16 ]]; then
         pass_test "randAlphaNum function generates correct length"
@@ -326,7 +326,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 # empty
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     UUID=$(grep "ID:" "$TEST_DIR/output.txt" | sed 's/ID: //')
     # Check UUID format (8-4-4-4-12 hex chars)
     if [[ "$UUID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
@@ -354,7 +354,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 enabled: true
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "Feature is enabled" "$TEST_DIR/output.txt"; then
         pass_test "if conditional (true case)"
     else
@@ -376,7 +376,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 enabled: false
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "Feature is disabled" "$TEST_DIR/output.txt"; then
         pass_test "if conditional (false case)"
     else
@@ -398,7 +398,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 env: prod
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "Production mode" "$TEST_DIR/output.txt"; then
         pass_test "eq comparison"
     else
@@ -422,7 +422,7 @@ servers:
   - server2.local
   - server3.local
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "server1.local" "$TEST_DIR/output.txt" && \
        grep -q "server2.local" "$TEST_DIR/output.txt" && \
        grep -q "server3.local" "$TEST_DIR/output.txt"; then
@@ -447,7 +447,7 @@ config:
   host: localhost
   port: 8080
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "host: localhost" "$TEST_DIR/output.txt" && \
        grep -q "port: 8080" "$TEST_DIR/output.txt"; then
         pass_test "range loop over map"
@@ -474,7 +474,7 @@ EOF
 cat > "$TEST_DIR/input/values.yaml" << 'EOF'
 name: TestDir
 EOF
-if $MPM_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output"; then
+if $MOWS_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output"; then
     if grep -q "File1: TestDir" "$TEST_DIR/output/file1.txt" && \
        grep -q "File2: TestDir" "$TEST_DIR/output/subdir/file2.txt"; then
         pass_test "Directory rendering"
@@ -492,7 +492,7 @@ echo "{{ .x }}" > "$TEST_DIR/input/a/b/c/deep.txt"
 cat > "$TEST_DIR/input/values.yaml" << 'EOF'
 x: deep-value
 EOF
-if $MPM_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output"; then
+if $MOWS_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output"; then
     if [[ -f "$TEST_DIR/output/a/b/c/deep.txt" ]] && \
        grep -q "deep-value" "$TEST_DIR/output/a/b/c/deep.txt"; then
         pass_test "Preserves directory structure"
@@ -515,7 +515,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 other: value
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt" 2>&1; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt" 2>&1; then
     # Some template engines allow missing variables (output empty string)
     pass_test "Handles missing variable (permissive)"
 else
@@ -530,14 +530,14 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 name: test
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt" 2>&1; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt" 2>&1; then
     fail_test "Should fail on invalid template syntax"
 else
     pass_test "Errors on invalid template syntax"
 fi
 
 log_test "template: error on non-existent input"
-if $MPM_BIN template -i "/nonexistent/path" -o "/tmp/output" 2>&1; then
+if $MOWS_BIN template -i "/nonexistent/path" -o "/tmp/output" 2>&1; then
     fail_test "Should fail on non-existent input"
 else
     pass_test "Errors on non-existent input"
@@ -548,7 +548,7 @@ TEST_DIR=$(create_test_dir "invalid-var-format")
 cat > "$TEST_DIR/template.txt" << 'EOF'
 {{ .x }}
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" --variable "invalid-format" -o "$TEST_DIR/output.txt" 2>&1; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" --variable "invalid-format" -o "$TEST_DIR/output.txt" 2>&1; then
     fail_test "Should fail on invalid variable format"
 else
     pass_test "Errors on invalid variable format"
@@ -565,7 +565,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 x: test
 EOF
-ERROR_OUTPUT=$($MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt" 2>&1 || true)
+ERROR_OUTPUT=$($MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt" 2>&1 || true)
 # Should contain some indication of where the error is
 if [[ -n "$ERROR_OUTPUT" ]]; then
     pass_test "Provides error output on syntax error"
@@ -583,7 +583,7 @@ touch "$TEST_DIR/template.txt"
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 x: test
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     pass_test "Handles empty template"
 else
     fail_test "Failed on empty template"
@@ -597,7 +597,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 unused: value
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     if grep -q "static content" "$TEST_DIR/output.txt"; then
         pass_test "Handles static content template"
     else
@@ -615,7 +615,7 @@ EOF
 cat > "$TEST_DIR/values.yaml" << 'EOF'
 special: "quotes \"and\" backslashes \\ and newlines"
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     pass_test "Handles special characters in values"
 else
     fail_test "Failed with special characters"
@@ -634,7 +634,7 @@ items:
   - one
   - two
 EOF
-if $MPM_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
+if $MOWS_BIN template -i "$TEST_DIR/template.txt" -o "$TEST_DIR/output.txt"; then
     # Check that trim markers work (no extra blank lines)
     BLANK_LINES=$(grep -c '^$' "$TEST_DIR/output.txt" || echo 0)
     if [[ "$BLANK_LINES" -le 1 ]]; then
@@ -654,7 +654,7 @@ printf '\x00\x01\x02\x03' > "$TEST_DIR/input/binary.bin"
 cat > "$TEST_DIR/input/values.yaml" << 'EOF'
 x: test
 EOF
-if $MPM_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output" 2>&1; then
+if $MOWS_BIN template -i "$TEST_DIR/input" -o "$TEST_DIR/output" 2>&1; then
     # Binary files may or may not be handled well
     pass_test "Handles directory with binary file (may warn)"
 else

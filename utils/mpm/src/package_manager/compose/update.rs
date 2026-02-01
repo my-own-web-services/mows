@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing::{debug, info, warn};
 
-use crate::error::{IoResultExt, MpmError, Result};
-use super::config::MpmConfig;
+use crate::error::{IoResultExt, MowsError, Result};
+use super::config::MowsConfig;
 use super::{find_manifest_dir, find_manifest_file_from, find_manifest_in_repo};
 use super::manifest::MowsManifest;
 
@@ -58,7 +58,7 @@ pub fn compose_update() -> Result<()> {
 
     // Get current manifest location
     let current_manifest_path = find_manifest_file_from(&base_dir)
-        .ok_or_else(|| MpmError::Manifest("No mows-manifest.yaml found".to_string()))?;
+        .ok_or_else(|| MowsError::Manifest("No mows-manifest.yaml found".to_string()))?;
     let current_manifest_dir = current_manifest_path
         .parent()
         .ok_or_else(|| format!("Invalid manifest path: {}", current_manifest_path.display()))?;
@@ -90,7 +90,7 @@ pub fn compose_update() -> Result<()> {
         Err(e) => {
             // Attempt rollback
             if let Err(restore_err) = backup.restore() {
-                return Err(MpmError::Message(format!(
+                return Err(MowsError::Message(format!(
                     "Update failed: {}\nAdditionally, failed to restore previous state: {}",
                     e, restore_err
                 )));
@@ -117,7 +117,7 @@ fn do_update(
         find_manifest_in_repo(repo_root).unwrap_or_default()
     });
     if !new_manifest_path.exists() {
-        return Err(MpmError::Manifest("Manifest not found after update".to_string()));
+        return Err(MowsError::Manifest("Manifest not found after update".to_string()));
     }
     let new_manifest_dir = new_manifest_path
         .parent()
@@ -189,7 +189,7 @@ fn do_update(
             .to_path_buf();
         let project_name = manifest.project_name();
 
-        MpmConfig::with_locked(|config| {
+        MowsConfig::with_locked(|config| {
             if config.update_manifest_path(&project_name, None, &relative_path) {
                 info!("Updated config with new manifest path");
             }
@@ -215,32 +215,21 @@ fn find_repo_root(start: &Path) -> Result<PathBuf> {
         }
 
         if !current.pop() {
-            return Err(MpmError::Git("Not in a git repository".to_string()));
+            return Err(MowsError::Git("Not in a git repository".to_string()));
         }
     }
 }
 
 /// Find the values file in a directory
-fn find_values_file(dir: &Path, manifest: &MowsManifest) -> Result<PathBuf> {
-    // Check if custom values file path is specified in manifest
-    if let Some(compose_config) = &manifest.spec.compose {
-        if let Some(custom_path) = &compose_config.values_file_path {
-            let path = dir.join(custom_path);
-            if path.exists() {
-                return Ok(path);
-            }
-            return Err(MpmError::path(&path, "Custom values file not found"));
-        }
-    }
-
-    // Default behavior: search for standard values files
+fn find_values_file(dir: &Path, _manifest: &MowsManifest) -> Result<PathBuf> {
+    // Search for standard values files
     for name in &["values.yaml", "values.yml", "values.json"] {
         let path = dir.join(name);
         if path.exists() {
             return Ok(path);
         }
     }
-    Err(MpmError::path(dir, "No values file found"))
+    Err(MowsError::path(dir, "No values file found"))
 }
 
 /// Backup a file's content
@@ -258,11 +247,11 @@ fn git_pull(repo_root: &Path) -> Result<()> {
         .args(["pull", "--ff-only"])
         .current_dir(repo_root)
         .output()
-        .map_err(|e| MpmError::command("git pull", e.to_string()))?;
+        .map_err(|e| MowsError::command("git pull", e.to_string()))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(MpmError::Git(format!(
+        return Err(MowsError::Git(format!(
             "git pull failed: {}\nTry resolving conflicts manually.",
             stderr.trim()
         )));
@@ -284,9 +273,9 @@ fn merge_values(old_content: &str, new_content: &str) -> Result<String> {
         .unwrap_or(4);
 
     let old_value: serde_yaml_neo::Value = serde_yaml_neo::from_str(old_content)
-        .map_err(|e| MpmError::yaml_parse("old values", e))?;
+        .map_err(|e| MowsError::yaml_parse("old values", e))?;
     let new_value: serde_yaml_neo::Value = serde_yaml_neo::from_str(new_content)
-        .map_err(|e| MpmError::yaml_parse("new values", e))?;
+        .map_err(|e| MowsError::yaml_parse("new values", e))?;
 
     // Collect all keys from both files
     let old_keys = collect_keys(&old_value, "");

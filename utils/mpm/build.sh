@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-export SERVICE_NAME="mpm"
+export SERVICE_NAME="mows"
 export BUILDX_BAKE_ENTITLEMENTS_FS=0
 export PROFILE="${PROFILE:-release}"
 
@@ -24,15 +24,17 @@ mkdir -p dist
 
 # Regenerate cargo-workspace-docker.toml to ensure correct version and dependencies
 echo "Regenerating cargo-workspace-docker.toml..."
-if command -v mpm >/dev/null 2>&1; then
+if command -v mows >/dev/null 2>&1; then
+    mows tools cargo-workspace-docker
+elif command -v mpm >/dev/null 2>&1; then
     mpm tools cargo-workspace-docker
 else
-    # Fallback: use cargo to run mpm from source (slower but works without mpm installed)
+    # Fallback: use cargo to run from source (slower but works without mows installed)
     cargo run --quiet --release -- tools cargo-workspace-docker
 fi
 
 # Build and export the static binary directly to dist/
-echo "Building mpm static binary (v${SERVICE_VERSION}, profile: ${PROFILE}, arch: ${TARGETARCH}, git: ${GIT_HASH})..."
+echo "Building mows static binary (v${SERVICE_VERSION}, profile: ${PROFILE}, arch: ${TARGETARCH}, git: ${GIT_HASH})..."
 
 # Check if docker buildx is available (required for multi-context builds)
 if ! docker buildx version >/dev/null 2>&1; then
@@ -43,7 +45,7 @@ if ! docker buildx version >/dev/null 2>&1; then
     echo "  - Linux: Install docker-buildx-plugin or use 'docker buildx install'" >&2
     echo "  - NixOS: Add 'docker-buildx' to environment.systemPackages" >&2
     echo "" >&2
-    echo "Alternatively, use 'mpm self-update' (without --build) to download pre-built binaries." >&2
+    echo "Alternatively, use 'mows self-update' (without --build) to download pre-built binaries." >&2
     exit 1
 fi
 
@@ -88,7 +90,10 @@ docker buildx build \
     .
 
 # Make binary executable
-chmod +x dist/mpm
+chmod +x dist/mows
 
-echo "Build complete: dist/mpm"
-ls -lh dist/mpm
+# Create mpm symlink for backward compatibility
+ln -sf mows dist/mpm
+
+echo "Build complete: dist/mows (with mpm symlink)"
+ls -lh dist/mows dist/mpm

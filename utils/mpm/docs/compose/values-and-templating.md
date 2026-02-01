@@ -1,6 +1,6 @@
 # Values and Templating
 
-mpm uses Go templates (via gtmpl) with an extensive function library. This guide covers the template syntax and available functions.
+mows uses Go templates (via gtmpl) with an extensive function library. This guide covers the template syntax and available functions.
 
 ## Template Syntax Basics
 
@@ -35,7 +35,7 @@ Server: {{ $host }}
 Database: {{ $db.host }}:{{ $db.port }}
 ```
 
-**Note:** mpm automatically creates `$varname` shortcuts for all top-level values.
+**Note:** mows automatically creates `$varname` shortcuts for all top-level values.
 
 ### Chart Variables
 
@@ -319,7 +319,7 @@ labels:
 
 ## Error Handling
 
-When a template error occurs, mpm shows:
+When a template error occurs, mows shows:
 - The file and line number
 - Context around the error
 - Available variables at that point

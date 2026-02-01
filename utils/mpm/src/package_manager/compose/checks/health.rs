@@ -9,7 +9,7 @@
 use std::time::Duration;
 use tracing::{debug, warn};
 
-use crate::compose::DockerClient;
+use crate::package_manager::compose::DockerClient;
 
 /// Timeout for HTTP health check requests.
 /// Short timeout to avoid blocking on unresponsive services.
@@ -1160,7 +1160,7 @@ services:
 
     #[test]
     fn test_check_containers_ready_all_healthy() {
-        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+        use crate::package_manager::compose::docker::{ConfigurableMockClient, MockResponse};
 
         let mock = ConfigurableMockClient {
             compose_ps: MockResponse::ok("Up 5 minutes\thealthy\nUp 3 minutes\thealthy"),
@@ -1177,7 +1177,7 @@ services:
 
     #[test]
     fn test_check_containers_ready_some_starting() {
-        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+        use crate::package_manager::compose::docker::{ConfigurableMockClient, MockResponse};
 
         let mock = ConfigurableMockClient {
             compose_ps: MockResponse::ok("Up 5 minutes\thealthy\nUp 10 seconds\tstarting"),
@@ -1194,7 +1194,7 @@ services:
 
     #[test]
     fn test_check_containers_ready_some_not_running() {
-        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+        use crate::package_manager::compose::docker::{ConfigurableMockClient, MockResponse};
 
         let mock = ConfigurableMockClient {
             compose_ps: MockResponse::ok("Up 5 minutes\thealthy\nExited (1) 2 minutes ago\t"),
@@ -1211,7 +1211,7 @@ services:
 
     #[test]
     fn test_check_containers_ready_no_healthcheck() {
-        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+        use crate::package_manager::compose::docker::{ConfigurableMockClient, MockResponse};
 
         // Containers without healthcheck have empty health field
         let mock = ConfigurableMockClient {
@@ -1230,7 +1230,7 @@ services:
 
     #[test]
     fn test_check_containers_ready_empty_output() {
-        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+        use crate::package_manager::compose::docker::{ConfigurableMockClient, MockResponse};
 
         let mock = ConfigurableMockClient {
             compose_ps: MockResponse::ok(""),
@@ -1249,7 +1249,7 @@ services:
 
     #[test]
     fn test_check_containers_ready_compose_ps_failure() {
-        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+        use crate::package_manager::compose::docker::{ConfigurableMockClient, MockResponse};
 
         let mock = ConfigurableMockClient {
             compose_ps: MockResponse::err("no configuration file provided"),
@@ -1267,7 +1267,7 @@ services:
 
     #[test]
     fn test_check_containers_ready_mixed_states() {
-        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+        use crate::package_manager::compose::docker::{ConfigurableMockClient, MockResponse};
 
         let mock = ConfigurableMockClient {
             compose_ps: MockResponse::ok(
@@ -1286,7 +1286,7 @@ services:
 
     #[test]
     fn test_check_containers_ready_unhealthy() {
-        use crate::compose::docker::{ConfigurableMockClient, MockResponse};
+        use crate::package_manager::compose::docker::{ConfigurableMockClient, MockResponse};
 
         let mock = ConfigurableMockClient {
             compose_ps: MockResponse::ok("Up 5 minutes\tunhealthy\nUp 3 minutes\thealthy"),

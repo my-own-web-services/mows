@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use clap::{Command, CommandFactory};
 use clap_mangen::Man;
 
-use crate::cli::Cli;
-use crate::error::{IoResultExt, MpmError, Result};
+use crate::cli::{build_mpm_command, Cli};
+use crate::error::{IoResultExt, MowsError, Result};
 
 /// Get man page installation directory
 /// - If /usr/local/share/man/man1 is writable: use system path (in default MANPATH)
@@ -71,7 +71,13 @@ pub fn manpage(install: bool) -> Result<()> {
     let cmd = Cli::command();
 
     if install {
-        install_all_manpages(&cmd)
+        install_all_manpages(&cmd)?;
+
+        // Also install mpm man pages
+        let mpm_cmd = build_mpm_command()?;
+        install_all_manpages(&mpm_cmd)?;
+
+        Ok(())
     } else {
         // Output main man page to stdout for piping
         let content = generate_manpage(&cmd)?;
@@ -85,7 +91,7 @@ pub fn manpage(install: bool) -> Result<()> {
 /// Install man pages for all commands to the standard directory
 fn install_all_manpages(cmd: &Command) -> Result<()> {
     let man_dir = get_manpage_dir()
-        .ok_or_else(|| MpmError::Message("Could not determine installation path".to_string()))?;
+        .ok_or_else(|| MowsError::Message("Could not determine installation path".to_string()))?;
 
     // Create directory if needed
     fs::create_dir_all(&man_dir)
@@ -104,7 +110,7 @@ fn install_all_manpages(cmd: &Command) -> Result<()> {
         count += 1;
     }
 
-    eprintln!("Installed {} man pages to {}", count, man_dir.display());
+    eprintln!("Installed {} man pages for {} to {}", count, cmd.get_name(), man_dir.display());
 
     // Only show MANPATH instructions for user installations
     let is_system_path = man_dir.starts_with("/usr");

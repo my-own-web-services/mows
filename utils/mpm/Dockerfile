@@ -1,7 +1,7 @@
 ARG PROFILE="release"
-ARG SERVICE_NAME="mpm"
+ARG SERVICE_NAME="mows"
 ARG SERVICE_VERSION="0.0.0-dev"
-ARG BINARY_NAME="mpm"
+ARG BINARY_NAME="mows"
 ARG APP_STAGE_IMAGE="scratch"
 ARG TARGETARCH="amd64"
 
@@ -101,11 +101,13 @@ ARG SERVICE_NAME
 ARG SERVICE_VERSION
 ARG BINARY_NAME
 WORKDIR /app
-COPY --from=builder /${BINARY_NAME} ./mpm
+COPY --from=builder /${BINARY_NAME} ./${BINARY_NAME}
 ENV SERVICE_NAME=${SERVICE_NAME}
 ENV SERVICE_VERSION=${SERVICE_VERSION}
 STOPSIGNAL SIGTERM
 # Healthcheck verifies the binary is functional (uses exec form for scratch compatibility)
-# Note: On scratch images, exec form runs directly without a shell
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD ["./mpm", "--help"]
-ENTRYPOINT ["./mpm"]
+# Note: On scratch images there is no shell, so we must use exec form with literal values.
+# Docker does not expand ARG/ENV variables inside exec-form JSON arrays for CMD/ENTRYPOINT.
+# BINARY_NAME is used in COPY above (where Docker does expand it), but must be literal here.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD ["./mows", "--help"]
+ENTRYPOINT ["./mows"]

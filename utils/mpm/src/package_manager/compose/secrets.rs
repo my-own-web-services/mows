@@ -301,7 +301,7 @@ pub fn sync_provided_secrets_from_manifest(
         fs::read_to_string(secrets_path)
             .io_context(format!("Failed to read {}", secrets_path.display()))?
     } else {
-        String::from("# User-provided secrets\n# Fill in the required values before running 'mpm compose up'\n")
+        String::from("# User-provided secrets\n# Fill in the required values before running 'mows package-manager compose up'\n")
     };
 
     // Write merged content
@@ -322,7 +322,7 @@ pub fn validate_provided_secrets(
     manifest: &super::manifest::MowsManifest,
     secrets_path: &Path,
 ) -> Result<()> {
-    use crate::error::MpmError;
+    use crate::error::MowsError;
 
     let secret_definitions = match &manifest.spec.compose {
         Some(c) => c.provided_secrets.as_ref(),
@@ -350,10 +350,10 @@ pub fn validate_provided_secrets(
     if !missing.is_empty() {
         missing.sort();
         let missing_str: Vec<&str> = missing.iter().map(|s| s.as_str()).collect();
-        return Err(MpmError::Validation(format!(
+        return Err(MowsError::Validation(format!(
             "Missing required secrets: {}.\n\
              Edit provided-secrets.env at: {}\n\
-             Then run 'mpm compose up' again.",
+             Then run 'mows package-manager compose up' (or 'mpm compose up') again.",
             missing_str.join(", "),
             secrets_path.display()
         )));
@@ -378,7 +378,7 @@ pub fn generate_provided_secrets_file(
     output_path: &Path,
 ) -> Result<()> {
     let mut content = String::from("# User-provided secrets\n");
-    content.push_str("# Fill in the required values before running 'mpm compose up'\n\n");
+    content.push_str("# Fill in the required values before running 'mows package-manager compose up'\n\n");
 
     // Sort keys for deterministic output
     let mut keys: Vec<&String> = secret_definitions.keys().collect();
@@ -427,12 +427,12 @@ pub fn generate_provided_secrets_file(
 /// * Specified key not found in file
 /// * No keys found in file (when clearing all)
 pub fn clear_secret_values(secrets_path: &Path, key: Option<&str>) -> Result<usize> {
-    use crate::error::MpmError;
+    use crate::error::MowsError;
 
     if !secrets_path.exists() {
-        return Err(MpmError::path(
+        return Err(MowsError::path(
             secrets_path,
-            "No generated-secrets.env found. Run 'mpm compose up' first.",
+            "No generated-secrets.env found. Run 'mows package-manager compose up' (or 'mpm compose up') first.",
         ));
     }
 
@@ -460,12 +460,12 @@ pub fn clear_secret_values(secrets_path: &Path, key: Option<&str>) -> Result<usi
 
     if cleared_count == 0 {
         if let Some(key_name) = key {
-            return Err(MpmError::Validation(format!(
+            return Err(MowsError::Validation(format!(
                 "Key '{}' not found in generated-secrets.env",
                 key_name
             )));
         }
-        return Err(MpmError::Validation(
+        return Err(MowsError::Validation(
             "No keys found in generated-secrets.env".to_string(),
         ));
     }
@@ -995,7 +995,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1051,7 +1051,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1082,7 +1082,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: None, // No providedSecrets
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1131,7 +1131,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1179,7 +1179,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1221,7 +1221,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1263,7 +1263,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1311,7 +1311,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1363,7 +1363,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: None, // No providedSecrets field
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1402,7 +1402,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1444,7 +1444,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
                 }),
@@ -1487,7 +1487,7 @@ COMPLEX="with \"escape\""
             },
             spec: ManifestSpec {
                 compose: Some(DeploymentConfig {
-                    values_file_path: None,
+                    
                     provided_secrets: Some(provided_secrets),
                     extra: serde_yaml_neo::Value::default(),
                 }),

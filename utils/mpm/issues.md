@@ -1,578 +1,365 @@
-# MPM Issues and Improvements - Third Review
+# MOWS Issues and Improvements - Fifth Review (package_manager rename + full review)
 
-Third comprehensive code review conducted 2026-01-20 after addressing issues from second review.
-This review identified new issues from the multi-perspective analysis.
+Fifth comprehensive code review conducted 2026-02-01 after the pm-to-package_manager rename.
+8-perspective parallel review examining 57 files changed, ~1600 lines added, ~11600 removed.
 
 ---
 
 ## Summary
 
-| Perspective   | Critical | Major | Minor | Resolved This Session |
-| ------------- | -------- | ----- | ----- | --------------------- |
-| Security      | 0        | 0     | 2     | 0                     |
-| Rust/Tech     | 0        | 2     | 5     | 4 (#15,#43,#44,#45)   |
-| DevOps        | 0        | 2     | 4     | 5 (#17,#18,#25,#30,#31) |
-| Architecture  | 0        | 2     | 4     | 2 (#5,#49)            |
-| QA            | 0        | 5     | 3     | 17 (#1,#2,#6,#7,#8,#10,#20,#22,#26,#27,#34,#35,#36,#37,#38,#52) |
-| Fine Taste    | 0        | 4     | 1     | 2 (#23,#24)           |
-| Documentation | 0        | 0     | 5     | 5 (#25,#53,#54,#55,#57) |
-| Repository    | 0        | 0     | 2     | 0                     |
+| Perspective      | Critical | Major | Minor |
+|------------------|----------|-------|-------|
+| Security         | 1        | 3     | 5     |
+| Technology/Rust  | 4        | 5     | 5     |
+| DevOps           | 3        | 3     | 6     |
+| Architecture     | 3        | 5     | 7     |
+| QA               | 3        | 6     | 7     |
+| Fine Taste       | 1        | 2     | 5     |
+| Documentation    | 3        | 2     | 2     |
+| Repository       | 4        | 2     | 3     |
+| **TOTAL (raw)**  | **22**   | **28**| **40**|
 
-**Total: 0 Critical, 15 Major, 26 Minor** (35 issues resolved this session)
-
-Previously: 0 Critical, 0 Major, 5 Minor (after second review)
-
----
-
-## Critical Issues
-
-### 26. ~~Missing Tests for secrets_regenerate() Function~~ RESOLVED
-
-**File:** `src/compose/secrets.rs:417-483`
-**Category:** QA
-
-**Resolution:** Extracted core logic into testable `clear_secret_values()` function and added 11 comprehensive tests covering:
-- File not found error
-- Key not found error
-- No keys found (empty file with only comments)
-- Single key cleared
-- All keys cleared
-- Preserves comments and empty lines
-- Secure file permissions on new files
-- Quoted values handling
-- Special characters handling
-- Empty existing values
+**Note:** Many findings overlap across agents. The deduplicated unique issue count is listed below.
 
 ---
 
-### 27. ~~Missing Tests for run_post_deployment_checks() Function~~ RESOLVED
+## Deduplicated Findings
 
-**File:** `src/compose/up.rs:102-181`
-**Category:** QA
+### Critical Issues
 
-**Resolution:** Added 8 tests for the core `check_containers_ready()` function covering:
-- All containers healthy
-- Some containers starting
-- Some containers not running
-- Containers without healthcheck
-- Empty output handling
-- compose_ps failure
-- Mixed container states
-- Unhealthy containers
+#### ❌ C1. Git Staging Mismatch: Files at Wrong Path in Index (Repository)
+
+**File:** Git index vs disk (`src/pm/compose/` in index, `src/package_manager/compose/` on disk)
+
+Git tracks files as renames from `src/compose/` to `src/pm/compose/`, but the actual files on disk are at `src/package_manager/compose/`. The `src/package_manager/` directory shows as untracked (`??`). Committing in this state would produce a broken checkout.
+
+**Fix:** Reset staging for compose files and re-add from `src/package_manager/` path. Stage `src/package_manager/` and unstage stale `src/pm/compose/` references.
 
 ---
 
-## Major Issues
+#### ❌ C2. Untracked Workflow File - CI/CD Pipeline Not Active (DevOps, Repository)
 
-### Rust/Tech
+**File:** `.github/workflows/publish-mows.yml` (untracked `??`)
 
-#### 28. ~~Race Condition in Config File Load/Save~~ RESOLVED
+New workflow file exists on disk but is untracked. Old `publish-mpm.yml` is deleted (`D`). CI/CD won't trigger on `mows-cli-v*` tags until this is committed.
 
-**File:** `src/compose/config.rs:136-200`
-**Category:** Rust/Tech
-
-**Resolution:** Added `with_locked<F>()` method that atomically:
-1. Acquires exclusive file lock
-2. Loads current config
-3. Passes to closure for modification
-4. Saves modified config
-5. Releases lock
-
-Updated all production code call sites (install.rs, init.rs, update.rs, self_update/update.rs) to use `with_locked()` instead of separate load/save calls. Added 2 tests for `with_locked()` behavior.
+**Fix:** Add and commit `publish-mows.yml` before pushing any release tags.
 
 ---
 
-#### 29. Blocking Async Runtime in BollardDockerClient
+#### ❌ C3. TOCTOU Race in `ensure_mpm_symlink()` (Security, Architecture)
 
-**File:** `src/compose/docker.rs:149-155, 183-206`
-**Category:** Rust/Tech
+**File:** `src/self_update/update.rs:304-358`
 
-The `BollardDockerClient` creates a `current_thread` tokio runtime and uses `block_on()` for every operation:
+Between the `symlink_metadata()` check and `symlink()` creation, another process could create a file at the target path. On multi-user systems, an attacker could exploit the window to redirect the `mpm` symlink.
 
-```rust
-let runtime = tokio::runtime::Builder::new_current_thread()
-    .enable_all()
-    .build()?;
-```
+**Exploitability:** Requires local access on a multi-user system. The window is small but real.
 
-**Impact:**
-- Creates overhead for every Docker operation
-- Can cause panic if called from within an async context (nested runtime)
-- The runtime is stored per-client, blocking concurrent calls
-
-**Recommendation:** Make the call chain async, use a shared runtime, or document constraints.
+**Fix:** Use atomic operations or verify the created symlink's target after creation (which the code already does on lines 341-356). The existing post-creation verification mitigates this significantly. Consider also using a temp-name + rename approach for atomicity.
 
 ---
 
-### DevOps
+#### ❌ C4. README.md Verbose Example Has Stale `pm` Reference (Documentation)
 
-#### 30. ~~HEALTHCHECK Ineffective on Scratch Image~~ RESOLVED
+**File:** `README.md:260`
 
-**File:** `Dockerfile:106-108`
-**Category:** DevOps
+Verbose mode example shows `mows -V pm compose up` which uses the old `pm` subcommand name instead of `package-manager`.
 
-**Resolution:** Fixed HEALTHCHECK to use proper exec form on a single line, ensuring Docker correctly parses the array syntax without needing a shell:
-```dockerfile
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD ["./mpm", "--version"]
-```
-Added comments clarifying exec form usage for scratch compatibility.
+**Fix:** Change to `mows -V package-manager compose up`.
 
 ---
 
-#### 31. ~~Cache Scope Prevents Feature Branch Warming~~ RESOLVED
+#### ❌ C5. Documentation Still References `mpm.yaml` Config Filename (Documentation)
 
-**File:** `build.sh:54-58`
-**Category:** DevOps
+**Files:** `docs/configuration.md:7,9,12,179`, `docs/compose/commands.md:51,215`, `docs/self-update.md:143`
 
-**Resolution:** Updated cache logic to read from both branch-specific cache AND main branch cache as fallback. Feature branches now benefit from main branch's cached layers on first build while still writing to their own isolated cache.
+Multiple documentation files reference `~/.config/mows.cloud/mpm.yaml` as the config file path and `MPM_CONFIG_PATH` as the environment variable. The implementation now uses `mows.yaml` as primary with `mpm.yaml` as legacy fallback, and `MOWS_CONFIG_PATH` as primary env var with `MPM_CONFIG_PATH` as legacy.
 
----
-
-### Architecture
-
-#### 32. Naming Confusion: DeploymentConfig vs ComposeConfig
-
-**Files:** `src/compose/manifest.rs:30-45`, `src/compose/config.rs:56-60`
-**Category:** Architecture
-
-Two similarly named types serving different purposes:
-- `DeploymentConfig` in manifest.rs - Configuration within a project's manifest
-- `ComposeConfig` in config.rs - Global mpm config section with project registrations
-
-While comments exist, the naming is still confusing.
-
-**Recommendation:** Consider `ManifestComposeSpec` vs `ProjectRegistry` for clarity.
+**Fix:** Update all docs to show `mows.yaml` as default config file and `MOWS_CONFIG_PATH` as primary env var, noting `MPM_CONFIG_PATH` as legacy fallback.
 
 ---
 
-#### 33. Tight Coupling in secrets.rs
+#### ❌ C6. Inconsistent HTTP Error Handling - Network Errors Use `Message` Variant (Technology, Fine Taste)
 
-**File:** `src/compose/secrets.rs:248-269`
-**Category:** Architecture
+**File:** `src/self_update/update.rs:109,120,166,178,738,746`
 
-The `sync_provided_secrets_from_manifest` and `validate_provided_secrets` functions take `&MowsManifest` directly:
+HTTP errors from reqwest are wrapped in `MowsError::Message(format!("...: {}", e))` instead of using the existing `MowsError::Network(#[from] reqwest::Error)` variant. This loses the original error type and defeats the structured error system.
 
-```rust
-pub fn sync_provided_secrets_from_manifest(
-    manifest: &super::manifest::MowsManifest,
-    secrets_path: &Path,
-) -> Result<usize>
-```
-
-**Impact:** Creates tight coupling between secrets module and manifest module.
-
-**Recommendation:** Accept simpler interface like `Option<&HashMap<String, ProvidedSecretDef>>` or define a trait.
+**Fix:** Use `?` operator to let `#[from]` handle conversion automatically, or add context wrappers. For lines where context is needed (e.g., "Failed to fetch latest release"), consider adding a dedicated error variant or using a wrapper pattern.
 
 ---
 
-### QA
+### Major Issues
 
-#### 34. ~~No Tests for Error Propagation in compose_up()~~ RESOLVED
+#### ❌ M1. Redundant `use crate::error::IoResultExt` in `ensure_mpm_symlink()` (Technology, Fine Taste)
 
-**File:** `src/compose/up.rs`
-**Category:** QA
+**File:** `src/self_update/update.rs:305`
 
-**Resolution:** Added 3 error propagation tests:
-- `test_render_context_fails_with_invalid_manifest` - verifies YAML parse errors propagate
-- `test_render_pipeline_fails_with_invalid_template` - verifies template errors propagate
-- `test_run_docker_compose_up_propagates_client_error` - verifies Docker client errors propagate with original message
+`IoResultExt` is imported inside the function body but is already imported at module level (line 13).
+
+**Fix:** Remove the local import on line 305.
 
 ---
 
-#### 35. ~~Missing Edge Cases in Preflight Volume Checks~~ RESOLVED
+#### ❌ M2. `ensure_mpm_symlink()` Error Handling Doesn't Distinguish Error Types (QA, Security)
 
-**File:** `src/compose/checks/preflight.rs:276-334`
-**Category:** QA
+**File:** `src/self_update/update.rs:333-335`
 
-**Resolution:** Added 4 edge case tests:
-- `test_volume_mount_with_parent_dir_segments` - `..` paths that resolve within project
-- `test_volume_mount_file_not_directory` - file mounts (not directories)
-- `test_volume_mount_missing_file` - missing file detection
-- `test_volume_long_syntax_with_read_only` - long syntax with read_only flag
+The `Err(_)` branch on `symlink_metadata()` catches all errors (ENOENT, EACCES, ENOTDIR, etc.) and treats them all as "path does not exist". Permission errors or filesystem corruption would be silently ignored.
+
+**Fix:** Match on specific error kinds: treat `NotFound` as "proceed to create", propagate other errors.
 
 ---
 
-#### 36. ~~Missing File Permission Tests~~ RESOLVED
+#### ❌ M3. Tests Still Use `MPM_CONFIG_PATH` Instead of `MOWS_CONFIG_PATH` (DevOps, QA)
 
-**File:** `src/compose/checks/preflight.rs:337-405`
-**Category:** QA
+**File:** `tests/lib/common.sh:94,103`
 
-**Resolution:** Added 5 permission tests:
-- `test_check_file_permissions_world_writable_file` - world-writable files
-- `test_check_file_permissions_dir_not_world_readable` - directories not world-readable
-- `test_check_file_permissions_nonexistent_path` - nonexistent paths
-- `test_normalize_path_removes_dot_segments` - path normalization with `.` and `..`
-- `test_normalize_path_relative` - relative path normalization
+Integration tests set `MPM_CONFIG_PATH` (legacy) for config isolation, not `MOWS_CONFIG_PATH` (primary). Tests don't exercise the primary env var path.
+
+**Fix:** Change test setup to use `MOWS_CONFIG_PATH` as the primary variable.
 
 ---
 
-#### 37. ~~Concurrent Config Test Accepts Data Loss~~ RESOLVED
+#### ❌ M4. Missing Config Migration Tests (QA)
 
-**File:** `src/compose/config.rs:666-704`
-**Category:** QA
+**File:** `src/package_manager/compose/config.rs:101-110`
 
-**Resolution:** Updated `test_concurrent_save_operations` to use `with_locked()` pattern instead of separate load/save calls. Test now verifies all 40 entries (4 threads × 10 iterations) are preserved with no data loss.
+Auto-migration from `mpm.yaml` to `mows.yaml` has no dedicated tests:
+- No test for successful migration path
+- No test for migration failure and fallback
+- No test for concurrent access during migration
 
----
-
-#### 38. ~~Missing Non-UTF8 Path Tests for compose_cd~~ RESOLVED
-
-**File:** `src/compose/cd.rs`
-**Category:** QA
-
-**Resolution:** Added 6 unicode/special character tests:
-- `test_compose_cd_project_name_with_unicode` - Chinese/Greek/Japanese in project names
-- `test_compose_cd_instance_name_with_unicode` - Japanese in instance names
-- `test_compose_cd_project_name_with_spaces` - spaces in project names
-- `test_compose_cd_project_name_with_special_chars` - special characters (@, _, .)
-- `test_compose_cd_path_with_spaces` - directories with spaces
-- `test_compose_cd_path_with_unicode` - directories with Japanese characters
+**Fix:** Add unit tests for migration success, failure, and edge cases.
 
 ---
 
-### Fine Taste
+#### ❌ M5. `unwrap_or()` on Tag Version Extraction (Technology)
 
-#### 39. ~~Naming: `ctx` Should Be `context`~~ RESOLVED
+**File:** `src/self_update/update.rs:557`
 
-**Files:** `src/compose/up.rs`, `src/compose/render.rs`, `src/compose/secrets.rs`
-**Category:** Fine Taste
+`target_tag.strip_prefix("mows-cli-v").unwrap_or(&target_tag)` silently falls back to using the full tag name if prefix stripping fails. This masks a logic error.
 
-**Resolution:** Renamed all `ctx` variables and parameters to `context` throughout up.rs, render.rs, and secrets.rs.
-
----
-
-#### 40. ~~Naming: `val` Should Be `value`~~ RESOLVED
-
-**Files:** `src/compose/secrets.rs:450`, `src/compose/docker.rs:475`
-**Category:** Fine Taste
-
-**Resolution:** Renamed `val` to `value` and `msg` to `message` in docker.rs MockResponse methods. Renamed `val` to `existing_value` in secrets.rs.
+**Fix:** Use `.ok_or_else(|| MowsError::Message(...))` to fail explicitly if the tag format is unexpected.
 
 ---
 
-#### 41. ~~Naming: Single-Letter `k` for Key~~ RESOLVED
+#### ❌ M6. Visibility Inconsistency Between Parent and Child Modules (Architecture)
 
-**File:** `src/compose/secrets.rs:443-450, 477`
-**Category:** Fine Taste
+**File:** `src/package_manager/mod.rs:1` and `src/package_manager/compose/mod.rs`
 
-**Resolution:** Renamed `k` to `key_name` in clear_secret_values() closure and secrets_regenerate() function.
+Parent uses `pub(crate) mod compose` but compose internally uses `pub mod config` and `pub mod docker`. This leaks internal types beyond the intended boundary.
 
----
-
-#### 42. ~~Duplicate Compose File Detection Logic~~ RESOLVED
-
-**File:** `src/compose/up.rs:61-68, 185-191, 206-211`
-**Category:** Fine Taste
-
-**Resolution:** Extracted `find_compose_file(dir: &Path) -> Option<PathBuf>` helper function. Updated all 3 call sites to use it. Added 4 tests for the helper function.
+**Fix:** Change `pub mod config` and `pub mod docker` to `pub(crate) mod config` and `pub(crate) mod docker` in compose/mod.rs.
 
 ---
 
-## Minor Issues
+#### ❌ M7. `build_mpm_command()` Uses `MowsError::Message` for Internal Error (Fine Taste)
 
-### Security
+**File:** `src/cli.rs:384-386`
 
-#### 12. SSH Signature Verification Uses String Matching
+An internal structure error (subcommand not found in CLI definition) uses the generic `Message` variant. This should use a more appropriate variant.
 
-**File:** `src/self_update/update.rs:606-616`
-
-Verification relies on string matching against git's output, which is fragile due to localization and version differences.
-
-**Real-world Severity:** LOW - The underlying `git tag -v` does cryptographic validation first.
+**Fix:** Use `MowsError::Config(...)` or a dedicated variant to distinguish internal logic errors from user-facing messages.
 
 ---
 
-#### 13. Hardcoded SSH Key Rotation Concerns
+#### ❌ M8. `issues.md` Has Stale `src/pm/` Path References (Repository)
 
-**File:** `src/self_update/update.rs:20`
+**File:** `issues.md` (this file - previous version)
 
-SSH public key is hardcoded. If rotation is needed, all binaries must be rebuilt.
+Previous issues.md referenced `src/pm/compose/config.rs` and similar paths that no longer exist after the rename to `src/package_manager/`.
 
-**Status:** INFORMATIONAL - Standard practice for self-updating tools.
-
----
-
-### Rust/Tech
-
-#### 14. Tokio Runtime Per BollardDockerClient Instance
-
-**File:** `src/compose/docker.rs:119-123`
-
-Each `BollardDockerClient` creates its own `tokio::runtime::Runtime`. Performance antipattern.
-
-**Recommendation:** Consider shared tokio runtime via `Arc` or lazy_static.
+**Fix:** Resolved by this rewrite.
 
 ---
 
-#### 43. ~~Unnecessary Import Repetition~~ RESOLVED
+### Minor Issues
 
-**File:** `src/compose/secrets.rs:8, 228`
+#### ❌ m1. argv[0] Detection Cannot Be Exploited (Security - Informational)
 
-**Resolution:** Removed 3 duplicate `use crate::error::IoResultExt` imports from functions, keeping only the module-level import.
+**File:** `src/main.rs:59-68`
 
----
-
-#### 44. ~~Unbounded Vector Growth in Health Checks~~ RESOLVED
-
-**File:** `src/compose/checks/health.rs:160-175`
-
-**Resolution:** Added `MAX_LOG_ERRORS_PER_CONTAINER = 50` constant and check before pushing to `log_errors` vector. Prevents unbounded memory growth from chatty error logs.
+`is_mpm_invocation()` trusts argv[0], which can be spoofed. Not exploitable - worst case is wrong help output shown.
 
 ---
 
-#### 45. ~~Magic Numbers in Retry Delays~~ RESOLVED
+#### ❌ m2. Hardcoded SSH Key Without Rotation Plan (Security - Informational)
 
-**File:** `src/compose/checks/health.rs:526`
+**File:** `src/self_update/update.rs:19-20`
 
-**Resolution:** Extracted `TCP_RETRY_DELAYS_MS: [u64; 3] = [100, 300, 600]` constant with documentation explaining the retry strategy for TCP connection attempts.
-
----
-
-#### 46. String Allocation in Hot Path
-
-**File:** `src/compose/checks/health.rs:162-165`
-
-Converting every log line to lowercase for error detection allocates:
-```rust
-let lower = line.to_lowercase();  // Allocates for every line
-```
-
-**Recommendation:** Consider case-insensitive matching in Aho-Corasick directly.
+Standard practice for self-updating tools. Key rotation creates bootstrap problem. No action needed.
 
 ---
 
-### DevOps
+#### ❌ m3. SSH Signature Verification Relies on String Matching (Security)
 
-#### 16. No Supply Chain Security Measures
+**File:** `src/self_update/update.rs:684-698`
 
-**File:** CI/CD pipeline
-
-Missing: SBOM generation, cargo-audit in CI, container image scanning (Trivy), SLSA attestations.
+Verification checks for "Good "git" signature for" in output. Git output format changes could break this. However, the underlying `ssh-keygen` verification is cryptographically sound; the string check is additional defense-in-depth.
 
 ---
 
-#### 19. Version Extraction Regex Fragility
+#### ❌ m4. Cross-Device File Move Race Condition (Security)
 
-**File:** `build.sh:20`, `scripts/install.sh:190`
+**File:** `src/self_update/update.rs:31-46`
 
-Version extraction relies on regex parsing, vulnerable to edge cases.
-
----
-
-#### 47. UPX Verification on Cross-Compiled Binaries
-
-**File:** `Dockerfile:86-89`
-
-When cross-compiling for ARM64 on AMD64, verification step runs ARM64 binary which requires QEMU.
+Between `fs::copy()` and `fs::remove_file()` in the EXDEV fallback, a race window exists. Mitigated by the backup/restore mechanism in `replace_binary()`.
 
 ---
 
-#### 48. Local Cache Rotation Not Handled
+#### ❌ m5. Excessive Cloning in `build_mpm_command()` (Technology)
 
-**File:** `build.sh:59-61`
+**File:** `src/cli.rs:395-401`
 
-Local cache writes to `${BUILDX_CACHE_DIR}-new` but no rotation logic exists.
+Subcommands are cloned from the main CLI tree. Called during `shell_init()` and `manpage()` generation. Not a hot path but adds unnecessary allocations.
 
----
-
-### Architecture
-
-#### 49. ~~Duplicate Permission Constant~~ RESOLVED
-
-**Files:** `src/compose/secrets.rs:12`, `src/compose/config.rs:33`
-
-**Resolution:** Extracted `SENSITIVE_FILE_MODE: u32 = 0o600` to `compose/mod.rs`. Both `secrets.rs` and `config.rs` now import and use this shared constant.
+**Fix:** Cache the result or restructure to build command tree once.
 
 ---
 
-#### 50. Large Test Module in secrets.rs
+#### ❌ m6. Verbose Flag Manually Re-defined in `build_mpm_command()` (Architecture)
 
-**File:** `src/compose/secrets.rs:485-1670`
+**File:** `src/cli.rs:385-391`
 
-Test module is ~1200 lines, making up ~70% of the file.
+Verbose flag is manually constructed in `build_mpm_command()` instead of being derived from the `Cli` struct definition.
 
-**Recommendation:** Consider splitting into separate test file.
-
----
-
-#### 51. Error Type String Variants
-
-**File:** `src/error.rs`
-
-Several error variants use string messages rather than structured data:
-- `Manifest(String)`, `Template(String)`, `Validation(String)`, `Message(String)`
-
-Acceptable for CLI but limits programmatic error handling.
+**Fix:** Extract the verbose arg definition to a shared function.
 
 ---
 
-### QA
+#### ❌ m7. File Removal Uses `let _ =` to Silently Ignore Errors (Technology)
 
-#### 21. run_post_deployment_checks() Untested
+**File:** `src/self_update/update.rs:226,291`
 
-**File:** `src/compose/up.rs:101-180`
+Checksum file and backup file cleanup silently discard errors. Should at least log warnings.
 
-Health check polling logic has no tests. (Elevated to Critical as #27)
-
----
-
-#### 52. ~~Missing JSON Error Extension Trait~~ RESOLVED
-
-**File:** `src/error.rs`
-
-**Resolution:** Added `JsonResultExt` trait with `json_context()` method, `json_parse()` helper, and updated `JsonParse` variant to include context field. Added 2 tests for the new trait. Updated `tools/convert.rs` to use the new trait.
+**Fix:** Use `let _ = fs::remove_file(...).map_err(|e| tracing::warn!("...: {}", e));`
 
 ---
 
-### Documentation
+#### ❌ m8. Missing Integration Test for Symlink Equivalence (QA)
 
-#### 53. ~~Validation Behavior Documentation Mismatch~~ RESOLVED
-
-**File:** `docs/compose/secrets.md:159-172`
-
-**Resolution:** Updated documentation to clarify the two-phase process: sync phase (adds missing secrets with defaults) followed by validation phase (checks required secrets have values).
+Missing end-to-end test verifying that `mpm compose up` and `mows package-manager compose up` produce equivalent behavior.
 
 ---
 
-#### 54. ~~Template Variable Syntax Unclear~~ RESOLVED
+#### ❌ m9. `ensure_mpm_symlink()` Name vs Behavior Mismatch (Architecture)
 
-**File:** `docs/compose/secrets.md:223-238`
+**File:** `src/self_update/update.rs:296-358`
 
-**Resolution:** Verified documentation is correct. In Go templates, `$generatedSecrets` references the root-level `generatedSecrets` variable. The `$` prefix denotes the root context variable, which is the correct syntax. No change needed.
+Function name says "ensure" (implying guarantee) but silently succeeds when it can't create the symlink (existing non-symlink file at path).
 
----
-
-#### 55. ~~Missing secrets_regenerate Behavior Details~~ RESOLVED
-
-**File:** `docs/compose/secrets.md:76-91`
-
-**Resolution:** Added "Important notes" section explaining: (1) only works with generated secrets, (2) requires existing file, (3) error behavior when key not found.
+**Fix:** Rename to `create_mpm_symlink_if_possible()` or change behavior to return error when blocked.
 
 ---
 
-#### 56. CI Test Status Inconsistency
+#### ❌ m10. Hardcoded Network Timeouts (Technology)
 
-**Files:** `docs/development.md:157-167`, `CLAUDE.md:101-107`
+**File:** `src/self_update/update.rs:22-26`
 
-Slight differences in CI test status information between files.
-
----
-
-#### 57. ~~Sync Behavior on Existing File Undocumented~~ RESOLVED
-
-**File:** `docs/compose/secrets.md:138-157`
-
-**Resolution:** Added "Sync behavior" note clarifying that if file exists, missing secrets are appended without removing or overwriting existing entries. Safe for re-running install.
+`HTTP_TIMEOUT_SECS` and `VERSION_CHECK_TIMEOUT_SECS` are hardcoded. No env var override available.
 
 ---
 
-### Repository
+#### ❌ m11. `MowsError::TemplateExec` Auto-Converts Without Context (Technology)
 
-#### 58. Duplicated .env File Parsing Logic
+**File:** `src/error.rs:84`
 
-**Files:** `src/compose/secrets.rs:112-165`, `src/template/variables.rs:29-52`
-
-Two separate implementations for parsing `.env` files with different behavior:
-- `secrets.rs` - Comprehensive with escape sequences
-- `variables.rs` - Simpler without escape handling
-
-**Recommendation:** Consolidate or document intentional differences.
+`#[from]` on template exec errors loses context about which template was being executed.
 
 ---
 
-#### 59. normalize_path Function is Module-Private
+#### ❌ m12. `From<String>` and `From<&str>` for `MowsError` Enable Loose Error Handling (Technology)
 
-**File:** `src/compose/checks/preflight.rs:409-423`
+**File:** `src/error.rs:202-213`
 
-`normalize_path()` is private but could be useful elsewhere.
-
-**Recommendation:** Consider moving to shared utility module.
+These backward-compatibility conversions allow `"string"?` to create generic `MowsError::Message` instead of proper typed errors.
 
 ---
 
-## Previously Resolved Issues
+#### ❌ m13. Dockerfile HEALTHCHECK/ENTRYPOINT Hardcoded (DevOps)
 
-### Resolved This Session
+**File:** `Dockerfile:111-112`
 
-| Issue | Category | Resolution |
-|-------|----------|------------|
-| #1 compose_up() tests | QA | Added 4 tests for run_docker_compose_up() |
-| #2 run_debug_checks() tests | QA | Added 16 tests covering all check functions |
-| #5 Render module boundaries | Architecture | Moved write_secret_file() to secrets.rs |
-| #6 Docker compose_up() error paths | QA | Tests via ConfigurableMockClient |
-| #7 ConfigurableMockClient failures | QA | Added MockResponse error support |
-| #8 compose_cd() tests | QA | Added 7 tests for main function |
-| #10 Config concurrent access | QA | Added 3 thread-based tests |
-| #15 Clone pattern optimization | Rust/Tech | Changed par_iter() to into_par_iter() |
-| #17 Branch-aware cache | DevOps | Added GITHUB_REF_NAME to cache scope |
-| #18 Container healthcheck | DevOps | Added HEALTHCHECK directive |
-| #20 Secrets I/O tests | QA | Added 8 I/O error scenario tests |
-| #22 Error extension traits | QA | Added 8 isolated unit tests |
-| #23 Abbreviated variables | Fine Taste | Renamed defs→secret_definitions |
-| #24 Unnecessary clone | Fine Taste | Changed s.clone() to s.to_string() |
-| #25 CI test status docs | Documentation | Updated development.md |
-| #26 secrets_regenerate() tests | QA | Extracted clear_secret_values() + 11 tests |
-| #27 run_post_deployment_checks() tests | QA | Added 8 tests for check_containers_ready() |
-| #28 Config race condition | Rust/Tech | Added with_locked() atomic pattern |
-| #34 Error propagation tests | QA | Added 3 compose_up error tests |
-| #39-41 Abbreviated names | Fine Taste | Renamed ctx/val/k to full names |
-| #42 Duplicate compose file code | Fine Taste | Extracted find_compose_file() helper |
-| #30 HEALTHCHECK scratch image | DevOps | Fixed exec form, single line for proper parsing |
-| #31 Cache scope fallback | DevOps | Added main branch cache fallback for feature branches |
-| #35 Volume check edge cases | QA | Added 4 tests for parent dir, file mounts, read_only |
-| #36 File permission tests | QA | Added 5 tests for permissions and path normalization |
-| #37 Concurrent config test | QA | Fixed to use with_locked() and verify data integrity |
-| #38 Unicode path tests | QA | Added 6 tests for unicode/special chars in paths |
-| #43 Import repetition | Rust/Tech | Removed duplicate IoResultExt imports |
-| #44 Log errors limit | Rust/Tech | Added MAX_LOG_ERRORS_PER_CONTAINER limit |
-| #45 Retry delay constants | Rust/Tech | Extracted TCP_RETRY_DELAYS_MS constant |
-| #49 Permission constant | Architecture | Extracted SENSITIVE_FILE_MODE to compose/mod.rs |
-| #52 JSON error extension | QA | Added JsonResultExt trait with tests |
-| #53-55,#57 Documentation | Documentation | Updated secrets.md with sync/validation details |
+Uses literal `./mows` instead of `${BINARY_NAME}`. Comment explains Docker doesn't expand ARGs in exec-form JSON, which is correct. This is intentional.
 
-### Previously Resolved (Verified No Regressions)
+---
 
-| Issue | Status | Verification |
-|-------|--------|--------------|
-| Race Condition in Config | RESOLVED | fs2 file locking in config.rs |
-| Unbounded Memory Growth | RESOLVED | MAX_VISITED_DIRECTORIES constant |
-| Missing Drop for PipelineBackup | RESOLVED | Drop impl at render.rs:679 |
-| Hardcoded Dockerfile Version | RESOLVED | Extracted from Cargo.toml |
-| GitHub Actions Not Pinned | RESOLVED | All pinned to SHA + dependabot |
-| Path Traversal | RESOLVED | validate_path_within_dir() |
-| String-Based Error Handling | RESOLVED | MpmError enum in error.rs |
-| YAML Indent Hot Path | RESOLVED | serde_yaml_neo native support |
-| Blocking I/O Health Checks | RESOLVED | rayon parallel processing |
-| Unbounded Dependency Recursion | RESOLVED | MAX_DEPENDENCIES constant |
-| Docker Client Abstraction | RESOLVED | DockerClient trait in docker.rs |
-| LTO Disabled ARM64 | RESOLVED | thin LTO with Zig 0.15.2 |
-| Flaky Tests in CI | RESOLVED | MPM_MOCK_DOCKER=1 |
-| Secrets File Permissions Race | RESOLVED | Atomic permissions at creation |
-| Insecure Git Protocols | RESOLVED | Only https/ssh/git@ allowed |
+#### ❌ m14. Install Script Version Verification Regex Fragility (DevOps)
+
+**File:** `scripts/install.sh:194`
+
+Version verification uses `grep -oP '^mows \K[0-9]+\.[0-9]+\.[0-9]+'` which depends on exact output format of `mows version`.
+
+---
+
+#### ❌ m15. `MockDockerClient` Available in Production Code (Architecture)
+
+**File:** `src/package_manager/compose/docker.rs:350-442`
+
+`MockDockerClient` is always compiled (gated by env var, not `#[cfg(test)]`). This is intentional for CI mock support (`MPM_MOCK_DOCKER=1`) but adds ~60 lines of test infrastructure to the binary.
 
 ---
 
 ## Recommendations Priority
 
-### Remaining Unresolved (Low Priority)
+### Must Fix (Before Merge)
 
-1. **#29** Blocking async runtime in BollardDockerClient - would require API changes
-2. **#32** Naming confusion DeploymentConfig vs ComposeConfig - documentation-only concern
-3. **#33** Tight coupling in secrets.rs - would require API changes
-4. **#58** Consolidate .env parsing logic - intentional differences may exist
-5. **#14** Tokio runtime per instance - related to #29
-6. **#46** String allocation in hot path - micro-optimization
-7. **#16** Supply chain security (cargo-audit, SBOM) - CI/CD enhancement
+1. **C1** - Fix git staging: unstage `src/pm/compose/` and stage `src/package_manager/`
+2. **C2** - Commit `publish-mows.yml` to git
+3. **C4** - Fix stale `pm` reference in README.md:260
+4. **C5** - Update docs to reference `mows.yaml` and `MOWS_CONFIG_PATH`
+5. **M1** - Remove redundant `IoResultExt` import
+6. **M3** - Update tests to use `MOWS_CONFIG_PATH`
+7. **M8** - Resolved by this rewrite
+
+### Should Fix (High Value)
+
+8. **C3** - Improve `ensure_mpm_symlink()` TOCTOU mitigation
+9. **C6** - Standardize HTTP error handling to use `Network` variant or `?`
+10. **M2** - Distinguish error types in `symlink_metadata()` catch-all
+11. **M4** - Add config migration tests
+12. **M5** - Replace `unwrap_or` with explicit error on tag version extraction
+13. **M6** - Fix module visibility inconsistency
+14. **M7** - Use proper error variant in `build_mpm_command()`
+
+### Nice to Have (Low Priority)
+
+15. **m5** - Cache `build_mpm_command()` result
+16. **m6** - Extract verbose flag definition to shared function
+17. **m7** - Log warnings on file removal failures
+18. **m8** - Add symlink equivalence integration test
+19. **m9** - Rename `ensure_mpm_symlink()` to match actual behavior
+
+---
+
+## Previously Resolved Issues (from prior reviews)
+
+The following issues from the fourth review have been resolved:
+
+- **C1 (old)** `.expect()` in `build_mpm_command()` - Replaced with `ok_or_else()` returning `Result`
+- **C2 (old)** Missing unit tests - Tests added for `is_mpm_invocation()`, `build_mpm_command()`, path extraction
+- **C5 (old)** Error type named `MpmError` - Renamed to `MowsError` throughout
+- **C6 (old)** Config filename `mpm.yaml` - Changed to `mows.yaml` with migration
+- **C8 (old)** CLAUDE.md stale path - Updated to `src/package_manager/compose/config.rs`
+- **M1/M2 (old)** Weak error types in `move_file()` and `update.rs` - Improved with `IoResultExt` and proper error constructors
+- **M5 (old)** Silent skip in `ensure_mpm_symlink()` - Now logs at `warn` level
+- **M7 (old)** `#[allow(dead_code)]` suppression - Partially addressed
+- **M8 (old)** Incomplete argv[0] integration tests - Expanded in test-cli.sh
+- **m7 (old)** No symlink target verification - Added post-creation verification
+- **m10 (old)** No version string validation - Added `is_valid_semver()` check
+- **m12 (old)** `MPM_CONFIG_PATH` not aliased - Added `MOWS_CONFIG_PATH` support with fallback
 
 ---
 
 ## Positive Observations
 
-The codebase demonstrates many excellent practices:
-
-1. **Security:** Path traversal protection, git URL validation, secure file permissions (0o600), git hook disabling
-2. **Error Handling:** Proper `thiserror` usage with context preservation and extension traits
-3. **Testing:** Extensive test coverage with ConfigurableMockClient for Docker operations
-4. **Docker Abstraction:** Clean trait-based design enabling comprehensive testing
-5. **File Operations:** Atomic writes with locking, symlink loop detection
-6. **RAII Patterns:** TestConfigGuard, PipelineBackup with proper cleanup on panic
+1. **Clean argv[0] detection** - Simple, correct approach with proper tests
+2. **Backward compatibility** - `mpm` symlink strategy works across build, install, update, and completions
+3. **Consistent tag format** - `mows-cli-v*` used consistently
+4. **Improved error handling** - `IoResultExt` and `MowsError` constructors used throughout
+5. **Dual completion/manpage generation** - Both `mows` and `mpm` completions properly generated
+6. **Config migration** - Automatic migration from `mpm.yaml` to `mows.yaml` with fallback
+7. **Test infrastructure** - Both `$MOWS_BIN` and `$MPM_BIN` properly supported
+8. **Documentation** - All docs comprehensively updated with both invocation forms

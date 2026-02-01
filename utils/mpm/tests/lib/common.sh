@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Common test utilities for mpm e2e tests
+# Common test utilities for mows/mpm e2e tests
 # Source this file in your test scripts
 
 set -euo pipefail
@@ -11,18 +11,35 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Find the mpm binary - check multiple possible locations
-if [[ -n "${MPM_BIN:-}" ]] && [[ -x "$MPM_BIN" ]]; then
-    : # Use provided MPM_BIN
-elif [[ -x "$PROJECT_ROOT/target/release/mpm" ]]; then
-    MPM_BIN="$PROJECT_ROOT/target/release/mpm"
-elif [[ -x "$PROJECT_ROOT/../target/release/mpm" ]]; then
-    MPM_BIN="$PROJECT_ROOT/../target/release/mpm"
-elif [[ -x "$PROJECT_ROOT/../../target/release/mpm" ]]; then
-    MPM_BIN="$PROJECT_ROOT/../../target/release/mpm"
+# Find the mows binary - check multiple possible locations
+if [[ -n "${MOWS_BIN:-}" ]] && [[ -x "$MOWS_BIN" ]]; then
+    : # Use provided MOWS_BIN
+elif [[ -x "$PROJECT_ROOT/target/release/mows" ]]; then
+    MOWS_BIN="$PROJECT_ROOT/target/release/mows"
+elif [[ -x "$PROJECT_ROOT/../target/release/mows" ]]; then
+    MOWS_BIN="$PROJECT_ROOT/../target/release/mows"
+elif [[ -x "$PROJECT_ROOT/../../target/release/mows" ]]; then
+    MOWS_BIN="$PROJECT_ROOT/../../target/release/mows"
 else
     # Default fallback - will be built later
-    MPM_BIN="$PROJECT_ROOT/target/release/mpm"
+    MOWS_BIN="$PROJECT_ROOT/target/release/mows"
+fi
+
+# Ensure mpm symlink exists alongside mows binary
+_ensure_mpm_symlink() {
+    local mows_dir
+    mows_dir="$(dirname "$MOWS_BIN")"
+    local mpm_path="$mows_dir/mpm"
+    if [[ ! -e "$mpm_path" ]]; then
+        ln -sf mows "$mpm_path" 2>/dev/null || true
+    fi
+}
+
+# MPM_BIN is the mpm symlink (for compose tests)
+if [[ -n "${MPM_BIN:-}" ]] && [[ -x "$MPM_BIN" ]]; then
+    : # Use provided MPM_BIN
+else
+    MPM_BIN="$(dirname "$MOWS_BIN")/mpm"
 fi
 
 # Colors for output
@@ -73,18 +90,22 @@ log_debug() {
 # Set up isolated config path for tests
 # This prevents tests from interfering with real deployments
 setup_isolated_config() {
-    local config_dir=$(mktemp -d "/tmp/mpm-test-config-${TEST_ID}-XXXXXX")
-    export MPM_CONFIG_PATH="$config_dir/mpm.yaml"
-    log_debug "Using isolated config: $MPM_CONFIG_PATH"
+    local config_dir=$(mktemp -d "/tmp/mows-test-config-${TEST_ID}-XXXXXX")
+    export MOWS_CONFIG_PATH="$config_dir/mows.yaml"
+    # Also set legacy variable so test scripts can reference $MPM_CONFIG_PATH for direct file access
+    export MPM_CONFIG_PATH="$MOWS_CONFIG_PATH"
+    log_debug "Using isolated config: $MOWS_CONFIG_PATH"
     echo "$config_dir"
 }
 
 # Automatically set up isolated config when sourcing this file
-# unless MPM_CONFIG_PATH is already set (for nested test scenarios)
-if [[ -z "${MPM_CONFIG_PATH:-}" ]]; then
-    _CONFIG_DIR=$(mktemp -d "/tmp/mpm-test-config-${TEST_ID}-XXXXXX")
-    export MPM_CONFIG_PATH="$_CONFIG_DIR/mpm.yaml"
-    log_debug "Using isolated config: $MPM_CONFIG_PATH"
+# unless MOWS_CONFIG_PATH is already set (for nested test scenarios)
+if [[ -z "${MOWS_CONFIG_PATH:-}" ]]; then
+    _CONFIG_DIR=$(mktemp -d "/tmp/mows-test-config-${TEST_ID}-XXXXXX")
+    export MOWS_CONFIG_PATH="$_CONFIG_DIR/mows.yaml"
+    # Also set legacy variable so test scripts can reference $MPM_CONFIG_PATH for direct file access
+    export MPM_CONFIG_PATH="$MOWS_CONFIG_PATH"
+    log_debug "Using isolated config: $MOWS_CONFIG_PATH"
 fi
 
 # ============================================================================
@@ -207,7 +228,7 @@ assert_exit_code() {
 # Create an isolated temporary directory for a test
 create_test_dir() {
     local name="${1:-test}"
-    local dir=$(mktemp -d "/tmp/mpm-test-${name}-${TEST_ID}-XXXXXX")
+    local dir=$(mktemp -d "/tmp/mows-test-${name}-${TEST_ID}-XXXXXX")
     echo "$dir"
 }
 
@@ -232,7 +253,7 @@ create_git_repo() {
     cd - > /dev/null
 }
 
-# Create a minimal mpm project structure
+# Create a minimal mows compose project structure
 create_mpm_project() {
     local dir="$1"
     local name="${2:-test-project}"
@@ -291,8 +312,8 @@ run_in_docker() {
     local cmd="$@"
 
     docker run --rm \
-        -v "$PROJECT_ROOT:/mpm:ro" \
-        -v "$MPM_BIN:/usr/local/bin/mpm:ro" \
+        -v "$PROJECT_ROOT:/mows:ro" \
+        -v "$MOWS_BIN:/usr/local/bin/mows:ro" \
         -w /workspace \
         "$image" \
         sh -c "$cmd"
@@ -302,24 +323,33 @@ run_in_docker() {
 # Build Helpers
 # ============================================================================
 
-# Ensure mpm binary is built
-ensure_mpm_built() {
-    if [[ ! -x "$MPM_BIN" ]]; then
-        log_info "Building mpm..."
+# Ensure mows binary is built
+ensure_mows_built() {
+    if [[ ! -x "$MOWS_BIN" ]]; then
+        log_info "Building mows..."
         cd "$PROJECT_ROOT"
         cargo build --release 2>&1 || {
-            log_error "Failed to build mpm"
+            log_error "Failed to build mows"
             exit 1
         }
         cd - > /dev/null
     fi
 
-    if [[ ! -x "$MPM_BIN" ]]; then
-        log_error "mpm binary not found at: $MPM_BIN"
+    if [[ ! -x "$MOWS_BIN" ]]; then
+        log_error "mows binary not found at: $MOWS_BIN"
         exit 1
     fi
 
-    log_debug "Using mpm binary: $MPM_BIN"
+    # Ensure mpm symlink exists
+    _ensure_mpm_symlink
+
+    log_debug "Using mows binary: $MOWS_BIN"
+    log_debug "Using mpm symlink: $MPM_BIN"
+}
+
+# Backward-compatible alias
+ensure_mpm_built() {
+    ensure_mows_built
 }
 
 # ============================================================================
@@ -347,7 +377,7 @@ cleanup_docker_containers() {
     if docker_available; then
         # Find and stop containers with test ID in their name
         local containers
-        containers=$(docker ps -aq --filter "name=mpm-test-.*-${TEST_ID}" 2>/dev/null || true)
+        containers=$(docker ps -aq --filter "name=mows-test-.*-${TEST_ID}" 2>/dev/null || true)
         if [[ -n "$containers" ]]; then
             log_debug "Removing orphaned test containers"
             echo "$containers" | xargs -r docker rm -f 2>/dev/null || true
@@ -361,7 +391,7 @@ cleanup_test_dirs() {
     cleanup_docker_containers
 
     if [[ "${KEEP_TEST_DIRS:-}" != "1" ]]; then
-        rm -rf /tmp/mpm-test-*-${TEST_ID}-* 2>/dev/null || true
+        rm -rf /tmp/mows-test-*-${TEST_ID}-* 2>/dev/null || true
         # Also clean up config directory
         if [[ -n "${_CONFIG_DIR:-}" ]]; then
             rm -rf "$_CONFIG_DIR" 2>/dev/null || true

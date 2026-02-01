@@ -17,7 +17,7 @@
 use std::process::{Command, Output};
 use tracing::debug;
 
-use crate::error::{MpmError, Result};
+use crate::error::{MowsError, Result};
 
 /// Output from a Docker command execution.
 #[derive(Debug, Clone)]
@@ -134,7 +134,7 @@ impl BollardDockerClient {
         let docker = bollard::Docker::connect_with_local_defaults().map_err(|e| {
             if e.to_string().contains("No such file") || e.to_string().contains("connection refused")
             {
-                MpmError::Docker(format!(
+                MowsError::Docker(format!(
                     r#"Cannot connect to Docker daemon. Is Docker running?
 Try: sudo systemctl start docker
 Or add your user to the docker group: sudo usermod -aG docker $USER
@@ -142,14 +142,14 @@ Error: {}"#,
                     e
                 ))
             } else {
-                MpmError::Docker(format!("Failed to connect to Docker: {}", e))
+                MowsError::Docker(format!("Failed to connect to Docker: {}", e))
             }
         })?;
 
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
-            .map_err(|e| MpmError::Docker(format!("Failed to create tokio runtime: {}", e)))?;
+            .map_err(|e| MowsError::Docker(format!("Failed to create tokio runtime: {}", e)))?;
 
         Ok(Self { docker, runtime })
     }
@@ -164,12 +164,12 @@ Error: {}"#,
             .output()
             .map_err(|e| {
                 if e.kind() == std::io::ErrorKind::NotFound {
-                    MpmError::Docker(
+                    MowsError::Docker(
                         "Docker is not installed or not in PATH. Please install Docker first."
                             .to_string(),
                     )
                 } else {
-                    MpmError::command(&format!("docker {}", full_args.join(" ")), e.to_string())
+                    MowsError::command(&format!("docker {}", full_args.join(" ")), e.to_string())
                 }
             })?;
 
@@ -185,7 +185,7 @@ impl DockerClient for BollardDockerClient {
             self.docker.ping().await.map_err(|e| {
                 let msg = e.to_string();
                 if msg.contains("Cannot connect") || msg.contains("permission denied") {
-                    MpmError::Docker(format!(
+                    MowsError::Docker(format!(
                         r#"Cannot connect to Docker daemon. Is Docker running?
 Try: sudo systemctl start docker
 Or add your user to the docker group: sudo usermod -aG docker $USER
@@ -193,13 +193,13 @@ Error: {}"#,
                         msg
                     ))
                 } else {
-                    MpmError::Docker(format!("Docker daemon check failed: {}", msg))
+                    MowsError::Docker(format!("Docker daemon check failed: {}", msg))
                 }
             })?;
 
             // Get version
             let version = self.docker.version().await.map_err(|e| {
-                MpmError::Docker(format!("Failed to get Docker version: {}", e))
+                MowsError::Docker(format!("Failed to get Docker version: {}", e))
             })?;
 
             Ok(version.version.unwrap_or_else(|| "unknown".to_string()))
@@ -252,10 +252,10 @@ Error: {}"#,
 
         let status = cmd
             .status()
-            .map_err(|e| MpmError::command("docker compose up", e.to_string()))?;
+            .map_err(|e| MowsError::command("docker compose up", e.to_string()))?;
 
         if !status.success() {
-            return Err(MpmError::Docker(format!(
+            return Err(MowsError::Docker(format!(
                 "docker compose up failed with exit code: {}",
                 status.code().unwrap_or(-1)
             )));
@@ -290,10 +290,10 @@ Error: {}"#,
         // Execute with inherited stdio for interactive commands
         let status = cmd
             .status()
-            .map_err(|e| MpmError::command("docker compose", e.to_string()))?;
+            .map_err(|e| MowsError::command("docker compose", e.to_string()))?;
 
         if !status.success() {
-            return Err(MpmError::Docker(format!(
+            return Err(MowsError::Docker(format!(
                 "docker compose failed with exit code: {}",
                 status.code().unwrap_or(-1)
             )));
@@ -309,10 +309,10 @@ Error: {}"#,
                 .docker
                 .inspect_container(container, None::<bollard::query_parameters::InspectContainerOptions>)
                 .await
-                .map_err(|e| MpmError::Docker(format!("Failed to inspect container '{}': {}", container, e)))?;
+                .map_err(|e| MowsError::Docker(format!("Failed to inspect container '{}': {}", container, e)))?;
 
             serde_json::to_string(&info)
-                .map_err(|e| MpmError::Docker(format!("Failed to serialize container info: {}", e)))
+                .map_err(|e| MowsError::Docker(format!("Failed to serialize container info: {}", e)))
         })
     }
 
@@ -339,10 +339,10 @@ Error: {}"#,
                 .docker
                 .list_containers(Some(options))
                 .await
-                .map_err(|e| MpmError::Docker(format!("Failed to list containers: {}", e)))?;
+                .map_err(|e| MowsError::Docker(format!("Failed to list containers: {}", e)))?;
 
             serde_json::to_string(&containers)
-                .map_err(|e| MpmError::Docker(format!("Failed to serialize container list: {}", e)))
+                .map_err(|e| MowsError::Docker(format!("Failed to serialize container list: {}", e)))
         })
     }
 }
@@ -356,7 +356,7 @@ Error: {}"#,
 /// # Example
 /// ```bash
 /// export MPM_MOCK_DOCKER=1
-/// mpm compose up  # Uses mock Docker client
+/// mows package-manager compose up  # Uses mock Docker client
 /// ```
 pub const ENV_MOCK_DOCKER: &str = "MPM_MOCK_DOCKER";
 
@@ -475,7 +475,7 @@ impl MockResponse {
         if let Some(ref value) = self.success_value {
             Ok(value.clone())
         } else if let Some(ref message) = self.error_msg {
-            Err(MpmError::Docker(message.clone()))
+            Err(MowsError::Docker(message.clone()))
         } else {
             Ok(default.to_string())
         }
@@ -485,7 +485,7 @@ impl MockResponse {
         if let Some(ref value) = self.success_value {
             Ok(CommandOutput::success(value.clone()))
         } else if let Some(ref message) = self.error_msg {
-            Err(MpmError::Docker(message.clone()))
+            Err(MowsError::Docker(message.clone()))
         } else {
             Ok(CommandOutput::success(""))
         }
@@ -494,7 +494,7 @@ impl MockResponse {
     /// Convert to a Result<()> for operations that don't return data
     pub fn to_unit_result(&self) -> Result<()> {
         if let Some(ref message) = self.error_msg {
-            Err(MpmError::Docker(message.clone()))
+            Err(MowsError::Docker(message.clone()))
         } else {
             Ok(())
         }

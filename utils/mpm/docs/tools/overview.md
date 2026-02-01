@@ -1,20 +1,20 @@
 # Tools Reference
 
-mpm includes several utility commands for data transformation and processing.
+mows includes several utility commands for data transformation and processing.
 
-## mpm tools json-to-yaml
+## mows tools json-to-yaml
 
 Convert JSON to YAML format.
 
 ```bash
 # From file
-mpm tools json-to-yaml -i input.json -o output.yaml
+mows tools json-to-yaml -i input.json -o output.yaml
 
 # From stdin
-cat data.json | mpm tools json-to-yaml
+cat data.json | mows tools json-to-yaml
 
 # To stdout
-mpm tools json-to-yaml -i input.json
+mows tools json-to-yaml -i input.json
 ```
 
 **Options:**
@@ -23,19 +23,19 @@ mpm tools json-to-yaml -i input.json
 | `-i, --input <FILE>` | Input file (default: stdin) |
 | `-o, --output <FILE>` | Output file (default: stdout) |
 
-## mpm tools yaml-to-json
+## mows tools yaml-to-json
 
 Convert YAML to JSON format.
 
 ```bash
 # From file
-mpm tools yaml-to-json -i input.yaml -o output.json
+mows tools yaml-to-json -i input.yaml -o output.json
 
 # From stdin
-cat data.yaml | mpm tools yaml-to-json
+cat data.yaml | mows tools yaml-to-json
 
 # To stdout
-mpm tools yaml-to-json -i input.yaml
+mows tools yaml-to-json -i input.yaml
 ```
 
 **Options:**
@@ -44,16 +44,16 @@ mpm tools yaml-to-json -i input.yaml
 | `-i, --input <FILE>` | Input file (default: stdin) |
 | `-o, --output <FILE>` | Output file (default: stdout) |
 
-## mpm tools prettify-json
+## mows tools prettify-json
 
 Format JSON with proper indentation.
 
 ```bash
 # Prettify a file
-mpm tools prettify-json -i compact.json -o formatted.json
+mows tools prettify-json -i compact.json -o formatted.json
 
 # From stdin
-echo '{"a":1,"b":2}' | mpm tools prettify-json
+echo '{"a":1,"b":2}' | mows tools prettify-json
 ```
 
 **Output:**
@@ -70,16 +70,16 @@ echo '{"a":1,"b":2}' | mpm tools prettify-json
 | `-i, --input <FILE>` | Input file (default: stdin) |
 | `-o, --output <FILE>` | Output file (default: stdout) |
 
-## mpm tools expand-object
+## mows tools expand-object
 
 Convert flat dot-notation keys to nested objects.
 
 ```bash
 # Expand a file
-mpm tools expand-object -i labels.yaml -o tree.yaml
+mows tools expand-object -i labels.yaml -o tree.yaml
 
 # With selector for specific paths
-mpm tools expand-object -i compose.yaml --selector "services.*.labels"
+mows tools expand-object -i compose.yaml --selector "services.*.labels"
 ```
 
 **Example:**
@@ -118,16 +118,16 @@ traefik:
 
 **Auto-detection:** If input is a Docker Compose file (has `services:` key), automatically uses selector `services.*.labels`.
 
-## mpm tools flatten-object
+## mows tools flatten-object
 
 Convert nested objects to flat dot-notation keys.
 
 ```bash
 # Flatten a file
-mpm tools flatten-object -i tree.yaml -o labels.yaml
+mows tools flatten-object -i tree.yaml -o labels.yaml
 
 # With selector
-mpm tools flatten-object -i compose.yaml --selector "services.*.labels"
+mows tools flatten-object -i compose.yaml --selector "services.*.labels"
 ```
 
 **Example:**
@@ -155,35 +155,35 @@ traefik.http.routers.web.rule: "Host(`example.com`)"
 
 **Note:** This is the inverse of `expand-object`. Useful for converting human-readable configs to Docker label format.
 
-## mpm tools jq
+## mows tools jq
 
 Query and transform JSON/YAML using jq syntax.
 
 ```bash
 # Simple query
-mpm tools jq '.name' -i data.yaml
+mows tools jq '.name' -i data.yaml
 
 # Complex filter
-mpm tools jq '.items[] | select(.active)' -i data.json
+mows tools jq '.items[] | select(.active)' -i data.json
 
 # Multiple files
-cat data.yaml | mpm tools jq '.version'
+cat data.yaml | mows tools jq '.version'
 ```
 
 **Examples:**
 
 ```bash
 # Get specific field
-mpm tools jq '.metadata.name' -i manifest.yaml
+mows tools jq '.metadata.name' -i manifest.yaml
 
 # Filter array
-mpm tools jq '.services | keys' -i docker-compose.yaml
+mows tools jq '.services | keys' -i docker-compose.yaml
 
 # Transform data
-mpm tools jq '.items | map(.name)' -i data.json
+mows tools jq '.items | map(.name)' -i data.json
 
 # Conditional selection
-mpm tools jq '.users[] | select(.role == "admin")' -i users.yaml
+mows tools jq '.users[] | select(.role == "admin")' -i users.yaml
 ```
 
 **Options:**
@@ -194,22 +194,22 @@ mpm tools jq '.users[] | select(.role == "admin")' -i users.yaml
 
 **Note:** Uses jaq (Rust jq implementation). Most jq filters are supported.
 
-## mpm template
+## mows template
 
 Render Go templates with variable files.
 
 ```bash
 # Basic usage
-mpm template -i template.yaml -o output.yaml
+mows template -i template.yaml -o output.yaml
 
 # With variables file
-mpm template -i template.yaml -o output.yaml --var values.yaml
+mows template -i template.yaml -o output.yaml --var values.yaml
 
 # With inline variables
-mpm template -i template.yaml -o output.yaml --set hostname=example.com --set port=8080
+mows template -i template.yaml -o output.yaml --set hostname=example.com --set port=8080
 
 # Directory rendering
-mpm template -i templates/ -o output/
+mows template -i templates/ -o output/
 ```
 
 **Options:**
@@ -237,7 +237,7 @@ port: 3000
 
 Command:
 ```bash
-mpm template -i config.yaml.tmpl -o config.yaml --var values.yaml
+mows template -i config.yaml.tmpl -o config.yaml --var values.yaml
 ```
 
 Output (`config.yaml`):
@@ -247,7 +247,7 @@ server:
   port: 3000
 ```
 
-## mpm tools cargo-workspace-docker
+## mows tools cargo-workspace-docker
 
 Generate minimal `cargo-workspace-docker.toml` files for Dockerized Rust builds. This creates workspace configuration files containing only the dependencies needed for a specific package, enabling efficient Docker layer caching.
 
@@ -278,13 +278,13 @@ The file is deterministic, so regenerating when nothing changed produces identic
 
 ```bash
 # Generate for current package (finds nearest Cargo.toml with docker-compose)
-mpm tools cargo-workspace-docker
+mows tools cargo-workspace-docker
 
 # Generate for all packages with docker-compose files in the workspace
-mpm tools cargo-workspace-docker --all
+mows tools cargo-workspace-docker --all
 
 # Generate for a specific path
-mpm tools cargo-workspace-docker --path /path/to/package
+mows tools cargo-workspace-docker --path /path/to/package
 ```
 
 **Options:**
@@ -302,7 +302,7 @@ mpm tools cargo-workspace-docker --path /path/to/package
 
 ### Example Output
 
-In Docker builds using cargo-chef, each package needs a minimal workspace with only its required dependencies. Running `mpm tools cargo-workspace-docker` generates this file automatically:
+In Docker builds using cargo-chef, each package needs a minimal workspace with only its required dependencies. Running `mows tools cargo-workspace-docker` generates this file automatically:
 
 ```toml
 # cargo-workspace-docker.toml (generated)
@@ -326,7 +326,7 @@ Add to your `build.sh`:
 #!/bin/bash
 set -euo pipefail
 
-mpm tools cargo-workspace-docker  # Regenerate before Docker build
+mows tools cargo-workspace-docker  # Regenerate before Docker build
 
 docker buildx bake ${BAKE_ARGS:-default}
 ```
@@ -337,14 +337,14 @@ Combine tools for complex transformations:
 
 ```bash
 # Convert YAML to pretty JSON
-cat data.yaml | mpm tools yaml-to-json | mpm tools prettify-json
+cat data.yaml | mows tools yaml-to-json | mows tools prettify-json
 
 # Query YAML with jq
-mpm tools yaml-to-json -i config.yaml | mpm tools jq '.services | keys'
+mows tools yaml-to-json -i config.yaml | mows tools jq '.services | keys'
 
 # Expand labels in compose file then query
-cat compose.yaml | mpm tools expand-object | mpm tools jq '.services.web.labels.traefik'
+cat compose.yaml | mows tools expand-object | mows tools jq '.services.web.labels.traefik'
 
 # Template and validate
-mpm template -i template.yaml --var values.yaml | mpm tools yaml-to-json > /dev/null && echo "Valid YAML"
+mows template -i template.yaml --var values.yaml | mows tools yaml-to-json > /dev/null && echo "Valid YAML"
 ```

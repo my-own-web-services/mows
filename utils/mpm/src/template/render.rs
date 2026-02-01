@@ -4,13 +4,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::{debug, info, trace};
 
-use crate::error::{MpmError, Result};
+use crate::error::{MowsError, Result};
 use super::error::format_template_error;
 use super::variables::load_variables_with_defaults;
 
 /// Renders a template string with variables, returning rendered content.
 ///
-/// This is the core template rendering function used by both the `mpm template render`
+/// This is the core template rendering function used by both the `mows template`
 /// command and compose rendering. It:
 /// - Sets up gtmpl with all template functions
 /// - Generates a preamble that defines `$varname` shortcuts for each variable
@@ -80,16 +80,16 @@ fn render_single_file(input: &Path, output: &Path, values: &gtmpl::Value) -> Res
     );
 
     let template_content = fs::read_to_string(input)
-        .map_err(|e| MpmError::Message(format!("Failed to read template file '{}': {}", input.display(), e)))?;
+        .map_err(|e| MowsError::Message(format!("Failed to read template file '{}': {}", input.display(), e)))?;
 
     let rendered = render_template_string(&template_content, values).map_err(|(error, preamble_lines)| {
-        MpmError::Template(format_template_error(input, &template_content, &error, preamble_lines, 6, Some(values)))
+        MowsError::Template(format_template_error(input, &template_content, &error, preamble_lines, 6, Some(values)))
     })?;
 
     // Create parent directories if they don't exist
     if let Some(parent) = output.parent() {
         fs::create_dir_all(parent).map_err(|e| {
-            MpmError::Message(format!(
+            MowsError::Message(format!(
                 "Failed to create output directory '{}': {}",
                 parent.display(),
                 e
@@ -98,7 +98,7 @@ fn render_single_file(input: &Path, output: &Path, values: &gtmpl::Value) -> Res
     }
 
     fs::write(output, rendered)
-        .map_err(|e| MpmError::Message(format!("Failed to write output file '{}': {}", output.display(), e)))?;
+        .map_err(|e| MowsError::Message(format!("Failed to write output file '{}': {}", output.display(), e)))?;
 
     trace!("Finished rendering file: {}", input.display());
     Ok(())
@@ -108,12 +108,12 @@ fn render_directory(input: &Path, output: &Path, values: &gtmpl::Value) -> Resul
     debug!("Rendering directory: {}", input.display());
 
     if !input.is_dir() {
-        return Err(MpmError::path(input, "not a directory"));
+        return Err(MowsError::path(input, "not a directory"));
     }
 
     // Create output directory
     fs::create_dir_all(output).map_err(|e| {
-        MpmError::Message(format!(
+        MowsError::Message(format!(
             "Failed to create output directory '{}': {}",
             output.display(),
             e
@@ -124,9 +124,9 @@ fn render_directory(input: &Path, output: &Path, values: &gtmpl::Value) -> Resul
 
     // Walk the directory tree
     for entry in fs::read_dir(input)
-        .map_err(|e| MpmError::Message(format!("Failed to read directory '{}': {}", input.display(), e)))?
+        .map_err(|e| MowsError::Message(format!("Failed to read directory '{}': {}", input.display(), e)))?
     {
-        let entry = entry.map_err(|e| MpmError::Message(format!("Failed to read directory entry: {}", e)))?;
+        let entry = entry.map_err(|e| MowsError::Message(format!("Failed to read directory entry: {}", e)))?;
         let path = entry.path();
         let file_name = entry.file_name();
         let output_path = output.join(&file_name);
@@ -164,7 +164,7 @@ pub fn render_template_command(
         debug!("Input is a directory");
         render_directory(input, output, &variables)
     } else {
-        Err(MpmError::path(input, "not a file or directory"))
+        Err(MowsError::path(input, "not a file or directory"))
     }
 }
 

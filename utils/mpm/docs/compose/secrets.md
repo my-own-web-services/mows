@@ -1,6 +1,6 @@
 # Secrets Management
 
-mpm compose handles two types of secrets: generated secrets (auto-created from templates) and provided secrets (user-supplied credentials).
+mows package-manager compose handles two types of secrets: generated secrets (auto-created from templates) and provided secrets (user-supplied credentials).
 
 ## Overview
 
@@ -44,7 +44,7 @@ RABBITMQ_PASSWORD={{ randAlphaNum 24 }}
 
 ### Merge Behavior
 
-When `mpm compose up` runs:
+When `mows package-manager compose up` runs:
 
 1. Template is rendered with random values
 2. Existing `results/generated-secrets.env` is read
@@ -79,10 +79,10 @@ To regenerate specific secrets or all secrets:
 
 ```bash
 # Regenerate a single secret
-mpm compose secrets regenerate DB_PASSWORD
+mows package-manager compose secrets regenerate DB_PASSWORD
 
 # Regenerate all secrets
-mpm compose secrets regenerate
+mows package-manager compose secrets regenerate
 ```
 
 This:
@@ -92,7 +92,7 @@ This:
 
 **Important notes:**
 - Only works with **generated secrets** (`results/generated-secrets.env`), not provided secrets
-- Requires an existing `results/generated-secrets.env` file (run `mpm compose up` first)
+- Requires an existing `results/generated-secrets.env` file (run `mows package-manager compose up` first)
 - If a specific key is not found, displays an error with available keys
 
 ## Provided Secrets
@@ -140,13 +140,13 @@ spec:
 
 ### Automatic File Generation
 
-When you run `mpm compose install`, a `provided-secrets.env` file is automatically generated from the manifest definition.
+When you run `mows package-manager compose install`, a `provided-secrets.env` file is automatically generated from the manifest definition.
 
 **Sync behavior:** If the file already exists, missing secrets from the manifest are **appended** without removing or overwriting existing entries. This allows safe re-running of install.
 
 ```bash
 # User-provided secrets
-# Fill in the required values before running 'mpm compose up'
+# Fill in the required values before running 'mows package-manager compose up'
 
 # (required)
 STRIPE_SECRET_KEY=
@@ -165,7 +165,7 @@ Each entry includes a comment showing whether it's required/optional and its def
 
 ### Validation on Deploy
 
-When you run `mpm compose up`, the tool first syncs and then validates secrets:
+When you run `mows package-manager compose up`, the tool first syncs and then validates secrets:
 
 1. **Sync phase:** Any secrets defined in the manifest but missing from `provided-secrets.env` are added with their default values (or empty if no default)
 
@@ -177,12 +177,12 @@ When you run `mpm compose up`, the tool first syncs and then validates secrets:
    ```
    Error: Missing required secrets: STRIPE_SECRET_KEY, AWS_ACCESS_KEY_ID.
    Edit provided-secrets.env at: /path/to/deployment/provided-secrets.env
-   Then run 'mpm compose up' again.
+   Then run 'mows package-manager compose up' again.
    ```
 
 ### Creating the File Manually
 
-If you didn't use `mpm compose install`, create `provided-secrets.env` manually:
+If you didn't use `mows package-manager compose install`, create `provided-secrets.env` manually:
 
 ```bash
 # External API credentials
@@ -223,7 +223,7 @@ services:
       - DATABASE_URL=postgres://user:${DB_PASSWORD}@db:5432/app
 ```
 
-**Implicit behavior:** mpm adds these flags to docker compose:
+**Implicit behavior:** mows adds these flags to docker compose:
 ```
 --env-file results/generated-secrets.env
 --env-file results/provided-secrets.env
@@ -289,13 +289,13 @@ If a secret isn't regenerating, check if it has a non-empty value:
 cat results/generated-secrets.env | grep KEY_NAME
 ```
 
-Non-empty values are preserved. Use `mpm compose secrets regenerate KEY_NAME` to force regeneration.
+Non-empty values are preserved. Use `mows package-manager compose secrets regenerate KEY_NAME` to force regeneration.
 
 ### Secrets Not Available in Container
 
 1. Check env file exists: `ls -la results/*.env`
 2. Check permissions: `stat results/generated-secrets.env`
-3. Check docker compose logs: `mpm compose logs`
+3. Check docker compose logs: `mows package-manager compose logs`
 4. Verify variable name matches exactly (case-sensitive)
 
 ### Permission Denied

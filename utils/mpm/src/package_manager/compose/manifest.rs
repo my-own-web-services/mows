@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 use tracing::debug;
 
-use crate::error::{IoResultExt, MpmError, Result};
+use crate::error::{IoResultExt, MowsError, Result};
 use crate::utils::parse_yaml;
 
 /// Metadata section of the mows-manifest.yaml
@@ -30,12 +30,10 @@ pub struct ProvidedSecretDef {
 /// Deployment-specific configuration in the manifest's spec.compose section.
 ///
 /// Note: This is different from `config::ComposeConfig` which stores project
-/// registrations in the global mpm config file.
+/// registrations in the global mows config file.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct DeploymentConfig {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub values_file_path: Option<String>,
     /// User-provided secrets definitions (key = secret name)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provided_secrets: Option<HashMap<String, ProvidedSecretDef>>,
@@ -78,7 +76,7 @@ impl MowsManifest {
             }
         }
 
-        Err(MpmError::Manifest(format!(
+        Err(MowsError::Manifest(format!(
             "No mows-manifest.yaml or mows-manifest.yml found in {}",
             dir.display()
         )))
@@ -161,32 +159,6 @@ spec:
         println!("Deserialize own output: {:?}", result);
         assert!(result.is_ok());
         assert!(result.unwrap().compose.is_some());
-    }
-
-    #[test]
-    fn test_spec_with_values_file_path() {
-        let spec = ManifestSpec {
-            compose: Some(DeploymentConfig {
-                values_file_path: Some("values/development.yaml".to_string()),
-                provided_secrets: None,
-                extra: serde_yaml_neo::Value::default(),
-            }),
-        };
-        let yaml = serde_yaml_neo::to_string(&spec).unwrap();
-        println!("Serialized spec with valuesFilePath:\n{}", yaml);
-
-        assert!(yaml.contains("compose:"));
-        assert!(yaml.contains("valuesFilePath:"));
-        assert!(yaml.contains("values/development.yaml"));
-
-        // Test deserialization
-        let deserialized: ManifestSpec = serde_yaml_neo::from_str(&yaml).unwrap();
-        assert!(deserialized.compose.is_some());
-        let compose = deserialized.compose.unwrap();
-        assert_eq!(
-            compose.values_file_path,
-            Some("values/development.yaml".to_string())
-        );
     }
 
     #[test]

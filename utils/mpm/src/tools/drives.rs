@@ -6,7 +6,7 @@ use comfy_table::{presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ContentA
 use serde::Deserialize;
 use tracing::debug;
 
-use crate::error::{MpmError, Result};
+use crate::error::{MowsError, Result};
 
 /// Result of SMART health check
 #[derive(Debug, Clone)]
@@ -120,15 +120,15 @@ fn get_block_devices() -> Result<Vec<BlockDevice>> {
     let output = Command::new("lsblk")
         .args(["--json", "-o", "NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,FSUSE%,MODEL"])
         .output()
-        .map_err(|e| MpmError::command("lsblk", e.to_string()))?;
+        .map_err(|e| MowsError::command("lsblk", e.to_string()))?;
 
     if !output.status.success() {
-        return Err(MpmError::command("lsblk", "command failed"));
+        return Err(MowsError::command("lsblk", "command failed"));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let parsed: LsblkOutput =
-        serde_json::from_str(&stdout).map_err(|e| MpmError::command("lsblk", format!("failed to parse JSON output: {}", e)))?;
+        serde_json::from_str(&stdout).map_err(|e| MowsError::command("lsblk", format!("failed to parse JSON output: {}", e)))?;
 
     let disks: Vec<BlockDevice> = parsed
         .blockdevices

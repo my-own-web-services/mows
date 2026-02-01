@@ -1,7 +1,11 @@
 [package]
-name = "mpm"
+name = "mows-cli"
 version = "0.6.0"
 edition = { workspace = true }
+
+[[bin]]
+name = "mows"
+path = "src/main.rs"
 
 [dependencies]
 mows-common-rust = { workspace = true }

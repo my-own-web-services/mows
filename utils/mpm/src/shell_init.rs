@@ -5,31 +5,27 @@ use std::path::PathBuf;
 use clap::CommandFactory;
 use clap_complete::aot::{generate, Shell};
 
-use crate::cli::Cli;
+use crate::cli::{build_mpm_command, Cli};
 use crate::error::{IoResultExt, Result};
 
 /// Standard completion directories for each shell
-fn get_completion_path(shell: Shell) -> Option<PathBuf> {
+fn get_completion_path(shell: Shell, binary_name: &str) -> Option<PathBuf> {
     let home = std::env::var("HOME").ok()?;
 
     match shell {
         Shell::Bash => {
-            // ~/.local/share/bash-completion/completions/mpm
-            Some(PathBuf::from(home).join(".local/share/bash-completion/completions/mpm"))
+            Some(PathBuf::from(home).join(format!(".local/share/bash-completion/completions/{}", binary_name)))
         }
         Shell::Zsh => {
-            // ~/.zsh/completions/_mpm (user needs to add to fpath)
-            // Or ~/.oh-my-zsh/completions/_mpm if oh-my-zsh is installed
             let omz_dir = PathBuf::from(&home).join(".oh-my-zsh/completions");
             if omz_dir.exists() {
-                Some(omz_dir.join("_mpm"))
+                Some(omz_dir.join(format!("_{}", binary_name)))
             } else {
-                Some(PathBuf::from(home).join(".zsh/completions/_mpm"))
+                Some(PathBuf::from(home).join(format!(".zsh/completions/_{}", binary_name)))
             }
         }
         Shell::Fish => {
-            // ~/.config/fish/completions/mpm.fish
-            Some(PathBuf::from(home).join(".config/fish/completions/mpm.fish"))
+            Some(PathBuf::from(home).join(format!(".config/fish/completions/{}.fish", binary_name)))
         }
         _ => None,
     }
@@ -49,32 +45,63 @@ fn detect_shell() -> Option<Shell> {
     None
 }
 
-/// Generate completions for a shell
-fn generate_completions(shell: Shell) -> Vec<u8> {
+/// Generate completions for the mows binary
+fn generate_mows_completions(shell: Shell) -> Vec<u8> {
     let mut cmd = Cli::command();
     let mut buf = Vec::new();
-    generate(shell, &mut cmd, "mpm", &mut buf);
+    generate(shell, &mut cmd, "mows", &mut buf);
     buf
 }
 
-/// Output shell completions to stdout
+/// Generate completions for the mpm alias binary
+fn generate_mpm_completions(shell: Shell) -> Result<Vec<u8>> {
+    let mut cmd = build_mpm_command()?;
+    let mut buf = Vec::new();
+    generate(shell, &mut cmd, "mpm", &mut buf);
+    Ok(buf)
+}
+
+/// Output shell completions to stdout or install them
 pub fn shell_init(install: bool) -> Result<()> {
     let shell = detect_shell().unwrap_or(Shell::Bash);
 
     if install {
         install_completions(shell)
     } else {
-        // Output to stdout for piping
-        let completions = generate_completions(shell);
+        // Output mows completions to stdout for piping
+        let completions = generate_mows_completions(shell);
         io::Write::write_all(&mut io::stdout(), &completions)
             .io_context("Failed to write completions")?;
         Ok(())
     }
 }
 
-/// Install completions to the standard directory for the detected shell
+/// Install completions for both mows and mpm to the standard directory
 fn install_completions(shell: Shell) -> Result<()> {
-    let path = get_completion_path(shell)
+    // Install mows completions
+    install_completions_for(shell, "mows", generate_mows_completions(shell))?;
+    // Install mpm completions
+    install_completions_for(shell, "mpm", generate_mpm_completions(shell)?)?;
+
+    // Print additional instructions for zsh if not using oh-my-zsh
+    if shell == Shell::Zsh {
+        let path = get_completion_path(shell, "mows");
+        if let Some(p) = path {
+            if !p.to_string_lossy().contains("oh-my-zsh") {
+                eprintln!();
+                eprintln!("Add this to your ~/.zshrc if not already present:");
+                eprintln!("  fpath=(~/.zsh/completions $fpath)");
+                eprintln!("  autoload -Uz compinit && compinit");
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Install completions for a specific binary name
+fn install_completions_for(shell: Shell, binary_name: &str, completions: Vec<u8>) -> Result<()> {
+    let path = get_completion_path(shell, binary_name)
         .ok_or_else(|| format!("Unsupported shell for automatic installation: {}", shell))?;
 
     // Create parent directory if needed
@@ -83,20 +110,10 @@ fn install_completions(shell: Shell) -> Result<()> {
             .io_context(format!("Failed to create directory {}", parent.display()))?;
     }
 
-    // Generate and write completions
-    let completions = generate_completions(shell);
     fs::write(&path, completions)
         .io_context(format!("Failed to write completions to {}", path.display()))?;
 
-    eprintln!("Installed {} completions to {}", shell, path.display());
-
-    // Print additional instructions for zsh if not using oh-my-zsh
-    if shell == Shell::Zsh && !path.to_string_lossy().contains("oh-my-zsh") {
-        eprintln!();
-        eprintln!("Add this to your ~/.zshrc if not already present:");
-        eprintln!("  fpath=(~/.zsh/completions $fpath)");
-        eprintln!("  autoload -Uz compinit && compinit");
-    }
+    eprintln!("Installed {} completions for {} to {}", shell, binary_name, path.display());
 
     Ok(())
 }

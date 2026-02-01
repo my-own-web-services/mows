@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide covers building, testing, and contributing to mpm.
+This guide covers building, testing, and contributing to mows.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ For quick iteration during development:
 
 ```bash
 cargo build
-# Binary at: target/debug/mpm
+# Binary at: target/debug/mows
 ```
 
 ### Release Build (Local)
@@ -25,7 +25,7 @@ Build an optimized binary without Docker:
 
 ```bash
 cargo build --release
-# Binary at: target/release/mpm
+# Binary at: target/release/mows
 ```
 
 ### Static Binary Build (Docker)
@@ -34,7 +34,7 @@ Build a fully static, release-optimized binary using Docker:
 
 ```bash
 bash build.sh
-# Binary at: dist/mpm
+# Binary at: dist/mows
 ```
 
 The Docker build:
@@ -64,7 +64,7 @@ TARGETARCH=arm64 bash build.sh
 PROFILE=dev bash build.sh
 
 # With local cache directory
-BUILDX_CACHE_DIR=/tmp/mpm-cache bash build.sh
+BUILDX_CACHE_DIR=/tmp/mows-cache bash build.sh
 ```
 
 ### Cross-Compilation
@@ -98,7 +98,7 @@ cargo test -- --nocapture
 
 ### Integration Tests (E2E)
 
-Integration tests are bash scripts in `tests/` that test the full mpm binary.
+Integration tests are bash scripts in `tests/` that test the full mows binary.
 
 Run all integration tests:
 
@@ -135,7 +135,7 @@ All tests use isolated configuration via `MPM_CONFIG_PATH`. See the Testing Guid
 
 ## CI/CD Pipeline
 
-The CI pipeline runs on GitHub Actions (`.github/workflows/publish-mpm.yml`).
+The CI pipeline runs on GitHub Actions (`.github/workflows/publish-mows.yml`).
 
 ### Pipeline Stages
 
@@ -169,15 +169,15 @@ The `test-self-update` test should be run locally before submitting PRs that aff
 ### Triggering Builds
 
 - **PRs:** Automatically run tests on changes to `utils/mpm/**`
-- **Tags:** Create a tag like `mpm-v0.5.4` to trigger a release build
+- **Tags:** Create a tag like `mows-cli-v0.5.4` to trigger a release build
 - **Manual:** Use "Run workflow" in GitHub Actions for manual builds
 
 ## Release Process
 
 1. Update version in `Cargo.toml`
 2. Update `CHANGELOG.md` (if exists)
-3. Commit: `git commit -m "chore(mpm): Bump version to X.Y.Z"`
-4. Tag: `git tag mpm-vX.Y.Z`
+3. Commit: `git commit -m "chore(mows): Bump version to X.Y.Z"`
+4. Tag: `git tag mows-cli-vX.Y.Z`
 5. Push: `git push && git push --tags`
 
 The CI pipeline will automatically:
@@ -190,17 +190,18 @@ The CI pipeline will automatically:
 ```
 utils/mpm/
 ├── src/
-│   ├── main.rs              # Entry point and CLI routing
+│   ├── main.rs              # Entry point, argv[0] detection, CLI routing
 │   ├── cli.rs               # CLI argument definitions (clap)
-│   ├── compose/             # Docker Compose functionality
-│   │   ├── config.rs        # Global mpm config (~/.config/mows.cloud/mpm.yaml)
-│   │   ├── manifest.rs      # Project manifest (mows-manifest.yaml)
-│   │   ├── render.rs        # Template rendering pipeline
-│   │   ├── up.rs            # compose up command
-│   │   ├── install.rs       # compose install command
-│   │   ├── update.rs        # compose update command
-│   │   ├── secrets.rs       # Secrets management
-│   │   └── checks/          # Pre/post deployment checks
+│   ├── package_manager/     # Package manager (mows package-manager / mpm alias)
+│   │   └── compose/         # Docker Compose functionality
+│   │       ├── config.rs    # Global config (~/.config/mows.cloud/mows.yaml)
+│   │       ├── manifest.rs  # Project manifest (mows-manifest.yaml)
+│   │       ├── render.rs    # Template rendering pipeline
+│   │       ├── up.rs        # compose up command
+│   │       ├── install.rs   # compose install command
+│   │       ├── update.rs    # compose update command
+│   │       ├── secrets.rs   # Secrets management
+│   │       └── checks/      # Pre/post deployment checks
 │   ├── template/            # Standalone template rendering
 │   ├── tools/               # Utility tools (jq, convert, etc.)
 │   └── self_update/         # Self-update functionality
@@ -219,8 +220,8 @@ utils/mpm/
 ### Enable Debug Logging
 
 ```bash
-RUST_LOG=debug mpm compose up
-RUST_LOG=mpm=trace mpm compose up  # Even more verbose
+RUST_LOG=debug mows package-manager compose up
+RUST_LOG=mows=trace mows package-manager compose up  # Even more verbose
 ```
 
 ### Inspect Rendered Templates
@@ -228,11 +229,11 @@ RUST_LOG=mpm=trace mpm compose up  # Even more verbose
 Use `--dry-run` to see what would be rendered without executing:
 
 ```bash
-mpm compose up --dry-run
+mows package-manager compose up --dry-run
 ```
 
 Or render templates directly:
 
 ```bash
-mpm template ./templates/docker-compose.yaml -v values.yaml
+mows template ./templates/docker-compose.yaml -v values.yaml
 ```
