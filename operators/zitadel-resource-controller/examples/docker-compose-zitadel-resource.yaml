@@ -1,0 +1,110 @@
+# Docker Compose example showing how to configure Zitadel resources via Docker labels.
+# This is equivalent to the Kubernetes CRD in zitadel-resource.yaml.
+#
+# Labels use the `zrc.` prefix with dot-separated paths.
+# Arrays use numeric indices (0, 1, 2, ...).
+# Enums use external tagging via dot path (e.g., method.oidc, clientDataTarget.file).
+
+services:
+  # The zitadel-resource-controller itself, running in Docker provider mode
+  zitadel-resource-controller:
+    image: ghcr.io/my-own-web-services/zitadel-resource-controller:latest
+    environment:
+      # Provider mode is auto-detected (Docker socket present = Docker mode),
+      # but can be set explicitly:
+      # PROVIDER_MODE: docker
+      ZITADEL_API_ENDPOINT: https://zitadel.example.com
+      ZITADEL_TLS_DOMAIN_NAME: zitadel.example.com
+      ZITADEL_EXTERNAL_ORIGIN: https://zitadel.example.com
+      ZITADEL_PA_TOKEN: ${ZITADEL_PA_TOKEN}
+      CA_CERTIFICATE_PEM: ${CA_CERTIFICATE_PEM}
+      VAULT_AUTH_METHOD: token
+      VAULT_URL: https://vault.example.com
+      # Use a .env file for secrets, never commit tokens to version control
+      VAULT_TOKEN: ${VAULT_TOKEN}
+    volumes:
+      # Docker socket access grants significant host control - use with caution
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "8080:8080"
+
+  # Example application container with Zitadel resource labels.
+  # When this container starts, the controller will create the corresponding
+  # Zitadel project, roles, and OIDC application. When it stops, the
+  # resources will be cleaned up.
+  argocd:
+    image: quay.io/argoproj/argocd:latest
+    labels:
+      # Resource identity
+      zrc.name: argocd-oidc
+      zrc.scope: mows-core-auth
+
+      # Project settings
+      zrc.resource.project.projectRoleAssertion: "true"
+      zrc.resource.project.projectRoleCheck: "true"
+
+      # Roles (array with numeric indices)
+      zrc.resource.project.roles.0.key: argocd_administrators
+      zrc.resource.project.roles.0.displayName: Administrators
+      zrc.resource.project.roles.0.group: argocd_administrators
+      zrc.resource.project.roles.1.key: argocd_users
+      zrc.resource.project.roles.1.displayName: Users
+      zrc.resource.project.roles.1.group: argocd_users
+
+      # Admin roles (string array)
+      zrc.resource.project.adminRoles.0: argocd_administrators
+      zrc.resource.project.adminRoles.1: argocd_users
+
+      # Application
+      zrc.resource.project.applications.0.name: argocd
+
+      # Credential target - file-based (writes JSON to a path)
+      zrc.resource.project.applications.0.clientDataTarget.file.path: /data/credentials/argocd.json
+
+      # OIDC method configuration
+      zrc.resource.project.applications.0.method.oidc.redirectUris.0: https://argocd.example.com/auth/callback
+      zrc.resource.project.applications.0.method.oidc.responseTypes.0: code
+      zrc.resource.project.applications.0.method.oidc.grantTypes.0: authorizationCode
+      zrc.resource.project.applications.0.method.oidc.postLogoutRedirectUris.0: https://argocd.example.com
+      zrc.resource.project.applications.0.method.oidc.appType: web
+      zrc.resource.project.applications.0.method.oidc.authenticationMethod: basic
+      zrc.resource.project.applications.0.method.oidc.accessTokenType: bearer
+      zrc.resource.project.applications.0.method.oidc.idTokenRoleAssertion: "true"
+      zrc.resource.project.applications.0.method.oidc.idTokenUserinfoAssertion: "true"
+
+      # Action flow - groups claim action
+      zrc.resource.actionFlow.actions.groupsClaim.allowedToFail: "true"
+      zrc.resource.actionFlow.actions.groupsClaim.timeoutSeconds: "10"
+      zrc.resource.actionFlow.actions.groupsClaim.script: |
+        /**
+         * sets the roles an additional claim in the token with roles as value an project as key
+         *
+         * Flow: Complement token, Triggers: Pre Userinfo creation, Pre access token creation
+         *
+         * @param ctx
+         * @param api
+         */
+        function groupsClaim(ctx, api) {
+            if (ctx.v1.user.grants === undefined || ctx.v1.user.grants.count == 0) {
+                return;
+            }
+
+            let grants = [];
+            ctx.v1.user.grants.grants.forEach((claim) => {
+                claim.roles.forEach((role) => {
+                    grants.push(role);
+                });
+            });
+
+            api.v1.claims.setClaim("groups", grants);
+        }
+
+      # Flow triggers
+      zrc.resource.actionFlow.flow.complementToken.preUserinfoCreation.0: groupsClaim
+      zrc.resource.actionFlow.flow.complementToken.preAccessTokenCreation.0: groupsClaim
+
+    volumes:
+      - argocd-credentials:/data/credentials
+
+volumes:
+  argocd-credentials:
