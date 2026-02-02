@@ -1,12 +1,10 @@
-#![allow(unused_imports, unused_variables)]
 use actix_web::{get, middleware, web::Data, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use anyhow::Context;
 use mows_common_rust::{get_current_config_cloned, observability::init_observability};
-use prometheus_client::metrics::info;
 use tracing::info;
 use tracing_actix_web::TracingLogger;
-use zitadel::api::zitadel::management::v1::{GetIamRequest, GetMyOrgRequest};
-use zitadel_resource_controller::config::config;
+use zitadel::api::zitadel::management::v1::GetIamRequest;
+use zitadel_resource_controller::config::{config, ProviderMode};
+use zitadel_resource_controller::provider::DockerProvider;
 use zitadel_resource_controller::zitadel_client::ZitadelClient;
 use zitadel_resource_controller::{self, ControllerWebServerSharedState};
 
@@ -33,30 +31,69 @@ async fn index(c: Data<ControllerWebServerSharedState>, _req: HttpRequest) -> im
 async fn main() -> anyhow::Result<()> {
     init_observability().await;
 
-    // Initialize Kubernetes controller state
-    let state = ControllerWebServerSharedState::default();
-    let controller = zitadel_resource_controller::run(state.clone());
+    let cfg = get_current_config_cloned!(config());
 
+    // Test Zitadel connection (shared by both providers)
     let mut zitadel_client = ZitadelClient::new().await?.management_client(None).await?;
-
     zitadel_client.get_iam(GetIamRequest {}).await?;
-
     info!("Zitadel connection successful");
 
-    // Start web server
-    let server = HttpServer::new(move || {
-        App::new()
-            .app_data(Data::new(state.clone()))
-            .wrap(TracingLogger::default())
-            .wrap(middleware::Logger::default().exclude("/health"))
-            .service(index)
-            .service(health)
-            .service(metrics)
-    })
-    .bind("0.0.0.0:8080")?
-    .shutdown_timeout(5);
+    match cfg.provider_mode {
+        ProviderMode::Kubernetes => {
+            info!(
+                "Starting in Kubernetes provider mode (detected via service account token at '{}')",
+                cfg.service_account_token_path
+            );
 
-    // Both runtimes implements graceful shutdown, so poll until both are done
-    tokio::join!(controller, server.run()).1?;
+            let state = ControllerWebServerSharedState::default();
+            let controller = zitadel_resource_controller::run(state.clone());
+
+            let server = HttpServer::new(move || {
+                App::new()
+                    .app_data(Data::new(state.clone()))
+                    .wrap(TracingLogger::default())
+                    .wrap(middleware::Logger::default().exclude("/health"))
+                    .service(index)
+                    .service(health)
+                    .service(metrics)
+            })
+            .bind("0.0.0.0:8080")?
+            .shutdown_timeout(5);
+
+            tokio::join!(controller, server.run()).1?;
+        }
+        ProviderMode::Docker => {
+            info!(
+                "Starting in Docker provider mode (detected via Docker socket at '{}')",
+                cfg.docker_socket_path
+            );
+
+            let docker_provider = DockerProvider::new(
+                &cfg.docker_socket_path,
+                cfg.reconcile_interval_seconds,
+                cfg.docker_label_prefix.clone(),
+            )?;
+
+            let server = HttpServer::new(move || {
+                App::new()
+                    .wrap(TracingLogger::default())
+                    .wrap(middleware::Logger::default().exclude("/health"))
+                    .service(health)
+            })
+            .bind("0.0.0.0:8080")?
+            .shutdown_timeout(5);
+
+            let docker_result = tokio::select! {
+                result = docker_provider.run() => result,
+                result = server.run() => {
+                    result.map_err(|e| anyhow::anyhow!("Web server error: {}", e))?;
+                    Ok(())
+                }
+            };
+
+            docker_result?;
+        }
+    }
+
     Ok(())
 }

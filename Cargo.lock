@@ -9885,6 +9885,7 @@ version = "0.14.0"
 dependencies = [
  "actix-web",
  "anyhow",
+ "bollard",
  "chrono",
  "futures",
  "itertools 0.14.0",
