@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use handlers::raw::ZitadelResourceRawError;
 use mows_common_rust::reqwest_middleware;
 use thiserror::Error;
@@ -79,8 +77,6 @@ impl From<anyhow::Error> for ControllerError {
 pub mod controller;
 pub use crate::controller::*;
 
-/// Log and trace integrations
-
 /// Metrics
 mod metrics;
 pub use metrics::Metrics;
@@ -88,8 +84,70 @@ pub mod handlers {
     pub mod raw;
 }
 pub mod config;
+pub mod credential_targets;
 pub mod crd;
-pub mod macros;
+pub mod provider;
+pub mod resource_types;
 pub mod utils;
-pub mod vault;
 pub mod zitadel_client;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_metric_label_generic_error() {
+        let err = ControllerError::GenericError("test error".to_string());
+        let label = err.metric_label();
+        assert!(label.contains("genericerror"), "Expected lowercase variant name in metric label, got '{}'", label);
+    }
+
+    #[test]
+    fn test_metric_label_tonic_error() {
+        let err = ControllerError::TonicStatusError(tonic::Status::internal("oops"));
+        let label = err.metric_label();
+        assert!(label.contains("tonicstatuserror"), "Expected lowercase variant name in metric label, got '{}'", label);
+    }
+
+    #[test]
+    fn test_from_tonic_status() {
+        let status = tonic::Status::permission_denied("forbidden");
+        let err: ControllerError = status.into();
+        assert!(matches!(err, ControllerError::TonicStatusError(_)));
+        assert!(err.to_string().contains("forbidden"));
+    }
+
+    #[test]
+    fn test_from_anyhow_error() {
+        let anyhow_err = anyhow::anyhow!("something broke");
+        let err: ControllerError = anyhow_err.into();
+        assert!(matches!(err, ControllerError::GenericError(_)));
+        assert!(err.to_string().contains("something broke"));
+    }
+
+    #[test]
+    fn test_from_vault_error() {
+        let vault_err = vaultrs::error::ClientError::APIError {
+            code: 403,
+            errors: vec!["permission denied".to_string()],
+        };
+        let err: ControllerError = vault_err.into();
+        assert!(matches!(err, ControllerError::VaultError(_)));
+    }
+
+    #[test]
+    fn test_error_display_generic() {
+        let err = ControllerError::GenericError("detail message".to_string());
+        let display = format!("{}", err);
+        assert_eq!(display, "Generic: detail message");
+    }
+
+    #[test]
+    fn test_error_display_serialization() {
+        let serde_err = serde_json::from_str::<String>("bad").unwrap_err();
+        let msg = serde_err.to_string();
+        let err = ControllerError::SerializationError(serde_err);
+        let display = format!("{}", err);
+        assert!(display.contains(&msg));
+    }
+}

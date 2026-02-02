@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
-use crate::crd::{
+use crate::credential_targets::handle_client_data_target;
+use crate::resource_types::{
     api_auth_method_type_to_zitadel, duration_to_zitadel, RawZitadelAction, RawZitadelActionFlow,
     RawZitadelApplicationApi, RawZitadelApplicationClientDataTarget, RawZitadelApplicationOidc,
+    RawZitadelProjectRole,
 };
-use crate::vault::handle_vault_target;
 use crate::ControllerError;
-use crate::{config::config, crd::RawZitadelProjectRole};
+use crate::config::config;
 use mows_common_rust::get_current_config_cloned;
 use serde_json::json;
 use tonic::{service::interceptor::InterceptedService, transport::Channel};
@@ -38,7 +39,7 @@ pub struct ZitadelClient {
 }
 
 impl ZitadelClient {
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip_all)]
     pub async fn new() -> anyhow::Result<ZitadelClient> {
         let config = get_current_config_cloned!(config());
 
@@ -49,7 +50,7 @@ impl ZitadelClient {
         })
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn management_client(&self, org_id: Option<&str>) -> anyhow::Result<ManagementClient> {
         let client_builder =
             ClientBuilder::new(&self.api_endpoint).with_access_token_and_org(&self.pa_token.trim(), org_id);
@@ -64,7 +65,7 @@ impl ZitadelClient {
             .map_err(|e| anyhow::anyhow!("Failed to create client: {}", e))
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn admin_client(&self, org_id: Option<&str>) -> anyhow::Result<AdminClient> {
         let client_builder =
             ClientBuilder::new(&self.api_endpoint).with_access_token_and_org(&self.pa_token.trim(), org_id);
@@ -79,7 +80,7 @@ impl ZitadelClient {
             .map_err(|e| anyhow::anyhow!("Failed to create client: {}", e))
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn user_client(&self, org_id: Option<&str>) -> anyhow::Result<UserClient> {
         let client_builder =
             ClientBuilder::new(&self.api_endpoint).with_access_token_and_org(&self.pa_token.trim(), org_id);
@@ -94,7 +95,7 @@ impl ZitadelClient {
             .map_err(|e| anyhow::anyhow!("Failed to create client: {}", e))
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn apply_org(&self, org_name: &str) -> anyhow::Result<String> {
         use zitadel::api::zitadel::admin::v1::ListOrgsRequest;
         use zitadel::api::zitadel::org::v1::org_query::Query::NameQuery;
@@ -142,7 +143,7 @@ impl ZitadelClient {
         Ok(org_id)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn apply_project(
         &self,
         org_id: &str,
@@ -197,7 +198,7 @@ impl ZitadelClient {
         Ok(project_id)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn apply_project_roles(
         &self,
         org_id: &str,
@@ -209,18 +210,17 @@ impl ZitadelClient {
 
         let mut management_client = self.management_client(Some(org_id)).await?;
 
-        let mut project_role_list = management_client
+        let project_role_list: Vec<_> = management_client
             .list_project_roles(ListProjectRolesRequest {
                 project_id: project_id.to_string(),
                 ..Default::default()
             })
             .await?
             .into_inner()
-            .result
-            .into_iter();
+            .result;
 
         for resource_role in resource_roles.iter() {
-            if project_role_list.find(|role| role.key == resource_role.key.clone()) == None {
+            if !project_role_list.iter().any(|role| role.key == resource_role.key) {
                 management_client
                     .add_project_role(AddProjectRoleRequest {
                         project_id: project_id.to_string(),
@@ -229,13 +229,13 @@ impl ZitadelClient {
                         group: resource_role.group.clone(),
                     })
                     .await?;
-            };
+            }
         }
 
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn get_admin_org(&self) -> anyhow::Result<Org> {
         use zitadel::api::zitadel::admin::v1::ListOrgsRequest;
         use zitadel::api::zitadel::org::v1::org_query::Query::NameQuery;
@@ -269,7 +269,7 @@ impl ZitadelClient {
         Ok(org)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn apply_admin_org_project_grant(
         &self,
         project_org_id: &str,
@@ -330,7 +330,7 @@ impl ZitadelClient {
         Ok(project_grant_id)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn get_admin_user(&self, admin_org: &Org) -> anyhow::Result<User> {
         use zitadel::api::zitadel::user::v2::search_query::Query;
         use zitadel::api::zitadel::user::v2::ListUsersRequest;
@@ -366,7 +366,7 @@ impl ZitadelClient {
         Ok(admin_user)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn apply_admin_grant(
         &self,
         project_org_id: &str,
@@ -414,7 +414,7 @@ impl ZitadelClient {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn get_project_applications(
         &self,
         project_org_id: &str,
@@ -436,10 +436,10 @@ impl ZitadelClient {
         Ok(apps.into_inner().result)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn apply_api_application(
         &self,
-        resource_namespace: &str,
+        resource_scope: &str,
         project_org_id: &str,
         project_id: &str,
         application_name: &str,
@@ -451,18 +451,12 @@ impl ZitadelClient {
         let mut management_client = self.management_client(Some(project_org_id)).await?;
 
         // check if we can create the client data target
-        match client_data_target {
-            RawZitadelApplicationClientDataTarget::Vault(vault_target) => {
-                handle_vault_target(
-                    vault_target,
-                    resource_namespace,
-                    json!({
-                        "test": "test",
-                    }),
-                )
-                .await?;
-            }
-        }
+        handle_client_data_target(
+            client_data_target,
+            resource_scope,
+            json!({"test": "test"}),
+        )
+        .await?;
 
         let api_app = management_client
             .add_api_app(AddApiAppRequest {
@@ -475,74 +469,64 @@ impl ZitadelClient {
             .await?
             .into_inner();
 
-        // create client data target
-        match client_data_target {
-            RawZitadelApplicationClientDataTarget::Vault(vault) => {
-                if let Err(e) = handle_vault_target(
-                    vault,
-                    resource_namespace,
-                    json!({
-                        "clientId": api_app.client_id,
-                        "clientSecret": api_app.client_secret
-                    }),
-                )
+        // store credentials in the configured target
+        if let Err(e) = handle_client_data_target(
+            client_data_target,
+            resource_scope,
+            json!({
+                "clientId": api_app.client_id,
+                "clientSecret": api_app.client_secret
+            }),
+        )
+        .await
+        {
+            // if credential storage fails we need to remove the app to not leave it in an inconsistent state
+            if let Err(remove_err) = management_client
+                .remove_app(zitadel::api::zitadel::management::v1::RemoveAppRequest {
+                    app_id: api_app.app_id.clone(),
+                    project_id: project_id.to_string(),
+                })
                 .await
-                {
-                    // if vault creation fails we need to remove the app to not leave it in an inconsistent state
-                    if let Err(e) = management_client
-                        .remove_app(zitadel::api::zitadel::management::v1::RemoveAppRequest {
-                            app_id: api_app.app_id.clone(),
-                            project_id: project_id.to_string(),
-                        })
-                        .await
-                    {
-                        tracing::error!(
-                            "INCOSISTENCY: Failed to remove app after vault creation failed: {}",
-                            e
-                        );
-                    }
-
-                    return Err(e.into());
-                }
+            {
+                tracing::error!(
+                    "INCONSISTENCY: Failed to remove app after credential storage failed: {}",
+                    remove_err
+                );
             }
+
+            return Err(e.into());
         }
 
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn apply_oidc_application(
         &self,
-        resource_namespace: &str,
+        resource_scope: &str,
         project_org_id: &str,
         project_id: &str,
         application_name: &str,
         oidc_config: &RawZitadelApplicationOidc,
         client_data_target: &RawZitadelApplicationClientDataTarget,
     ) -> anyhow::Result<()> {
-        use crate::crd::oidc_access_token_type_to_zitadel;
-        use crate::crd::oidc_app_type_to_zitadel;
-        use crate::crd::oidc_auth_method_type_to_zitadel;
-        use crate::crd::oidc_grant_type_to_zitadel;
-        use crate::crd::oidc_response_type_to_zitadel;
+        use crate::resource_types::oidc_access_token_type_to_zitadel;
+        use crate::resource_types::oidc_app_type_to_zitadel;
+        use crate::resource_types::oidc_auth_method_type_to_zitadel;
+        use crate::resource_types::oidc_grant_type_to_zitadel;
+        use crate::resource_types::oidc_response_type_to_zitadel;
         use zitadel::api::zitadel::management::v1::AddOidcAppRequest;
         use zitadel::api::zitadel::management::v1::RemoveAppRequest;
 
-        // check if we can create the client data target
         let mut management_client = self.management_client(Some(project_org_id)).await?;
 
-        match client_data_target {
-            RawZitadelApplicationClientDataTarget::Vault(vault_target) => {
-                handle_vault_target(
-                    vault_target,
-                    resource_namespace,
-                    json!({
-                        "test": "test",
-                    }),
-                )
-                .await?;
-            }
-        }
+        // check if we can create the client data target
+        handle_client_data_target(
+            client_data_target,
+            resource_scope,
+            json!({"test": "test"}),
+        )
+        .await?;
 
         let oidc_app = management_client
             .add_oidc_app(AddOidcAppRequest {
@@ -564,10 +548,9 @@ impl ZitadelClient {
                 auth_method_type: oidc_auth_method_type_to_zitadel(&oidc_config.authentication_method),
                 post_logout_redirect_uris: oidc_config.post_logout_redirect_uris.clone(),
                 access_token_type: oidc_access_token_type_to_zitadel(&oidc_config.access_token_type),
-                id_token_role_assertion: oidc_config.id_token_role_assertion.clone().unwrap_or_default(),
+                id_token_role_assertion: oidc_config.id_token_role_assertion.unwrap_or_default(),
                 id_token_userinfo_assertion: oidc_config
                     .id_token_userinfo_assertion
-                    .clone()
                     .unwrap_or_default(),
                 dev_mode: oidc_config.dev_mode.unwrap_or(false),
 
@@ -576,42 +559,38 @@ impl ZitadelClient {
             .await?
             .into_inner();
 
-        // create client data target
-        match client_data_target {
-            RawZitadelApplicationClientDataTarget::Vault(vault) => {
-                if let Err(e) = handle_vault_target(
-                    vault,
-                    resource_namespace,
-                    json!({
-                        "clientId": oidc_app.client_id,
-                        "clientSecret": oidc_app.client_secret
-                    }),
-                )
+        // store credentials in the configured target
+        if let Err(e) = handle_client_data_target(
+            client_data_target,
+            resource_scope,
+            json!({
+                "clientId": oidc_app.client_id,
+                "clientSecret": oidc_app.client_secret
+            }),
+        )
+        .await
+        {
+            // if credential storage fails we need to remove the app to not leave it in an inconsistent state
+            if let Err(remove_err) = management_client
+                .remove_app(RemoveAppRequest {
+                    app_id: oidc_app.app_id.clone(),
+                    project_id: project_id.to_string(),
+                })
                 .await
-                {
-                    // if vault creation fails we need to remove the app to not leave it in an inconsistent state
-                    if let Err(e) = management_client
-                        .remove_app(RemoveAppRequest {
-                            app_id: oidc_app.app_id.clone(),
-                            project_id: project_id.to_string(),
-                        })
-                        .await
-                    {
-                        tracing::error!(
-                            "INCOSISTENCY: Failed to remove app after vault creation failed: {}",
-                            e
-                        );
-                    }
-
-                    return Err(e.into());
-                }
+            {
+                tracing::error!(
+                    "INCONSISTENCY: Failed to remove app after credential storage failed: {}",
+                    remove_err
+                );
             }
+
+            return Err(e.into());
         }
 
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn apply_actions(
         &self,
         project_org_id: &str,
@@ -627,7 +606,7 @@ impl ZitadelClient {
         Ok(action_ids)
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn apply_action(
         &self,
         project_org_id: &str,
@@ -680,25 +659,25 @@ impl ZitadelClient {
         )
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn apply_flow(
         &self,
         project_org_id: &str,
         flow_to_apply: &RawZitadelActionFlow,
         action_names_and_ids: &HashMap<String, String>,
     ) -> anyhow::Result<()> {
-        use crate::crd::RawZitadelActionFlowComplementTokenEnum;
-        use crate::crd::RawZitadelActionFlowEnum;
+        use crate::resource_types::RawZitadelActionFlowComplementTokenEnum;
+        use crate::resource_types::RawZitadelActionFlowEnum;
         use crate::zitadel_client::management::v1::GetFlowRequest;
 
         let mut management_client = self.management_client(Some(project_org_id)).await?;
 
         if let Some(complement_token_flow) = flow_to_apply.complement_token.as_ref() {
-            let flow_type = RawZitadelActionFlowEnum::ComplementToken.to_string();
+            let flow_type = RawZitadelActionFlowEnum::ComplementToken.as_zitadel_id();
 
             if let Some(current_flow) = management_client
                 .get_flow(GetFlowRequest {
-                    r#type: flow_type.clone(),
+                    r#type: flow_type.to_string(),
                 })
                 .await?
                 .into_inner()
@@ -706,15 +685,15 @@ impl ZitadelClient {
             {
                 if let Some(pre_userinfo_creation) = &complement_token_flow.pre_userinfo_creation {
                     let pre_userinfo_creation_exists =
-                        current_flow.trigger_actions.iter().find(|trigger_action| {
+                        current_flow.trigger_actions.iter().any(|trigger_action| {
                             trigger_action.trigger_type.as_ref().map(|trigger_type| {
                                 trigger_type.id
                                     == RawZitadelActionFlowComplementTokenEnum::PreUserinfoCreation
-                                        .to_string()
+                                        .as_zitadel_id()
                             }) == Some(true)
                         });
 
-                    if pre_userinfo_creation_exists.is_none() {
+                    if !pre_userinfo_creation_exists {
                         debug!("Applying trigger actions for pre_userinfo_creation");
 
                         let action_ids = action_names_and_ids
@@ -731,8 +710,9 @@ impl ZitadelClient {
                         management_client
                             .set_trigger_actions(SetTriggerActionsRequest {
                                 trigger_type: RawZitadelActionFlowComplementTokenEnum::PreUserinfoCreation
+                                    .as_zitadel_id()
                                     .to_string(),
-                                flow_type: flow_type.clone(),
+                                flow_type: flow_type.to_string(),
                                 action_ids,
                             })
                             .await?;
@@ -741,15 +721,15 @@ impl ZitadelClient {
 
                 if let Some(pre_access_token_creation) = &complement_token_flow.pre_access_token_creation {
                     let pre_access_token_creation_exists =
-                        current_flow.trigger_actions.iter().find(|trigger_action| {
+                        current_flow.trigger_actions.iter().any(|trigger_action| {
                             trigger_action.trigger_type.as_ref().map(|trigger_type| {
                                 trigger_type.id
                                     == RawZitadelActionFlowComplementTokenEnum::PreAccessTokenCreation
-                                        .to_string()
+                                        .as_zitadel_id()
                             }) == Some(true)
                         });
 
-                    if pre_access_token_creation_exists.is_none() {
+                    if !pre_access_token_creation_exists {
                         debug!("Applying trigger actions for pre_access_token_creation");
 
                         let action_ids = action_names_and_ids
@@ -766,8 +746,9 @@ impl ZitadelClient {
                         management_client
                             .set_trigger_actions(SetTriggerActionsRequest {
                                 trigger_type: RawZitadelActionFlowComplementTokenEnum::PreAccessTokenCreation
+                                    .as_zitadel_id()
                                     .to_string(),
-                                flow_type: flow_type.clone(),
+                                flow_type: flow_type.to_string(),
                                 action_ids,
                             })
                             .await?;
@@ -779,7 +760,7 @@ impl ZitadelClient {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn delete_org(&self, org_id: &str) -> anyhow::Result<()> {
         use zitadel::api::zitadel::admin::v1::RemoveOrgRequest;
         let mut admin_client = self.admin_client(None).await?;
@@ -793,7 +774,7 @@ impl ZitadelClient {
         Ok(())
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub async fn get_org_by_name(&self, org_name: &str) -> anyhow::Result<Org> {
         use zitadel::api::zitadel::admin::v1::ListOrgsRequest;
         use zitadel::api::zitadel::org::v1::org_query::Query::NameQuery;
