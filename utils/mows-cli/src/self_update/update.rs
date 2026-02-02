@@ -527,7 +527,7 @@ pub fn update_from_source(version: Option<&str>) -> Result<()> {
 
     // Build using Docker
     println!("Building with Docker...");
-    let mpm_dir = repo_path.join("utils/mpm");
+    let mpm_dir = repo_path.join("utils/mows-cli");
 
     let output = Command::new("./build.sh")
         .current_dir(&mpm_dir)

@@ -12,14 +12,14 @@ updates:
       - "dependencies"
       - "github-actions"
 
-  # Rust dependencies for mpm - monthly updates
+  # Rust dependencies for mows-cli - monthly updates
   # Security updates are always created regardless of schedule
   - package-ecosystem: "cargo"
-    directory: "/utils/mpm"
+    directory: "/utils/mows-cli"
     schedule:
       interval: "monthly"
     commit-message:
-      prefix: "deps(mpm)"
+      prefix: "deps(mows-cli)"
     labels:
       - "dependencies"
       - "rust"

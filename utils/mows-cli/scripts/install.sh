@@ -3,7 +3,7 @@
 # mows installer - https://github.com/my-own-web-services/mows
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/my-own-web-services/mows/main/utils/mpm/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/my-own-web-services/mows/main/utils/mows-cli/scripts/install.sh | bash
 #
 # Options (via environment variables):
 #   MOWS_INSTALL_DIR  - Installation directory (default: /usr/local/bin or ~/.local/bin)
