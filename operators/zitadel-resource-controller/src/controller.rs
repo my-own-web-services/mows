@@ -1,7 +1,8 @@
 use crate::{
     config::config,
-    crd::{ZitadelResource, ZitadelResourceSpec, ZitadelResourceStatus},
+    crd::{ZitadelResource, ZitadelResourceStatus},
     handlers::raw::{apply_raw, cleanup_raw},
+    resource_types::RawZitadelResource,
     utils::get_error_type,
     ControllerError, Metrics, Result,
 };
@@ -27,62 +28,49 @@ use tracing::*;
 
 pub static FINALIZER: &str = "zitadel.k8s.mows.cloud";
 
-#[instrument(skip(kube_client))]
+/// Extract the raw resource, scope, and name from a ZitadelResource, then apply it.
+#[instrument]
 pub async fn apply_resource(
     zitadel_resource: &ZitadelResource,
-    kube_client: &kube::Client,
 ) -> Result<(), ControllerError> {
-    let resource_namespace = zitadel_resource
-        .metadata
-        .namespace
-        .as_deref()
-        .unwrap_or("default");
-
-    let resource_name = match zitadel_resource.metadata.name.as_deref() {
-        Some(v) => v,
-        None => {
-            return Err(ControllerError::GenericError(
-                "Failed to get resource name from ZitadelResource metadata".to_string(),
-            ))
-        }
-    };
-
-    match &zitadel_resource.spec {
-        ZitadelResourceSpec::Raw(raw_resource) => {
-            apply_raw(resource_namespace, resource_name, raw_resource).await?
-        }
-    }
-
+    let (resource_scope, resource_name, raw_resource) = extract_resource_parts(zitadel_resource)?;
+    apply_raw(resource_scope, resource_name, raw_resource).await?;
     Ok(())
 }
 
-#[instrument(skip(kube_client)level = "trace")]
+/// Extract the raw resource, scope, and name from a ZitadelResource, then clean it up.
+#[instrument(level = "trace")]
 pub async fn cleanup_resource(
     zitadel_resource: &ZitadelResource,
-    kube_client: &kube::Client,
 ) -> Result<(), ControllerError> {
-    let resource_namespace = zitadel_resource
+    let (resource_scope, resource_name, raw_resource) = extract_resource_parts(zitadel_resource)?;
+    cleanup_raw(resource_scope, resource_name, raw_resource).await?;
+    Ok(())
+}
+
+/// Extract scope (namespace), name, and the raw resource from a ZitadelResource.
+fn extract_resource_parts(
+    zitadel_resource: &ZitadelResource,
+) -> Result<(&str, &str, &RawZitadelResource), ControllerError> {
+    let resource_scope = zitadel_resource
         .metadata
         .namespace
         .as_deref()
         .unwrap_or("default");
 
-    let resource_name = match zitadel_resource.metadata.name.as_deref() {
-        Some(v) => v,
-        None => {
-            return Err(ControllerError::GenericError(
+    let resource_name = zitadel_resource
+        .metadata
+        .name
+        .as_deref()
+        .ok_or_else(|| {
+            ControllerError::GenericError(
                 "Failed to get resource name from ZitadelResource metadata".to_string(),
-            ))
-        }
-    };
+            )
+        })?;
 
-    match &zitadel_resource.spec {
-        ZitadelResourceSpec::Raw(raw_resource) => {
-            cleanup_raw(resource_namespace, resource_name, raw_resource).await?
-        }
-    }
+    let crate::crd::ZitadelResourceSpec::Raw(raw_resource) = &zitadel_resource.spec;
 
-    Ok(())
+    Ok((resource_scope, resource_name, raw_resource))
 }
 
 // Context for our reconciler
@@ -148,7 +136,7 @@ impl ZitadelResource {
         let name = self.name_any();
         let zitadel_resource_api: Api<ZitadelResource> = Api::namespaced(kube_client.clone(), &ns);
 
-        match apply_resource(self, &kube_client).await {
+        match apply_resource(self).await {
             Ok(_) => {
                 info!("Reconcile successful");
                 let new_status = Patch::Apply(json!({
@@ -221,25 +209,27 @@ impl ZitadelResource {
 
     // Finalizer cleanup (the object was deleted, ensure nothing is orphaned)
     async fn cleanup(&self, controller_context: Arc<ControllerContext>) -> Result<Action> {
+        let kube_client = controller_context.client.clone();
         let recorder = controller_context
             .diagnostics
             .read()
             .await
-            .recorder(controller_context.client.clone(), self);
+            .recorder(kube_client.clone(), self);
 
-        // Document doesn't have any real cleanup, so we just publish an event
-        let res = recorder
+        cleanup_resource(self).await?;
+
+        if let Err(e) = recorder
             .publish(Event {
                 type_: EventType::Normal,
-                reason: "DeleteRequested".into(),
-                note: Some(format!("Delete `{}`", self.name_any())),
+                reason: "DeleteCompleted".into(),
+                note: Some(format!("Cleaned up `{}`", self.name_any())),
                 action: "Deleting".into(),
                 secondary: None,
             })
             .await
-            .map_err(ControllerError::KubeError);
-
-        error!("Failed to publish event: {:?}", res);
+        {
+            error!("Failed to publish cleanup event: {:?}", e);
+        }
 
         Ok(Action::await_change())
     }
