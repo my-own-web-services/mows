@@ -19,7 +19,7 @@ mows is a busybox-style binary that includes the MOWS Package Manager and relate
 Pre-built binaries are available for **x86_64 (amd64)** and **aarch64 (arm64)** architectures.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/my-own-web-services/mows/main/utils/mpm/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/my-own-web-services/mows/main/utils/mows-cli/scripts/install.sh | bash
 ```
 
 The install script downloads the `mows` binary and creates an `mpm` symlink that acts as a shorthand for `mows package-manager`.

@@ -168,7 +168,7 @@ The `test-self-update` test should be run locally before submitting PRs that aff
 
 ### Triggering Builds
 
-- **PRs:** Automatically run tests on changes to `utils/mpm/**`
+- **PRs:** Automatically run tests on changes to `utils/mows-cli/**`
 - **Tags:** Create a tag like `mows-cli-v0.5.4` to trigger a release build
 - **Manual:** Use "Run workflow" in GitHub Actions for manual builds
 
@@ -188,7 +188,7 @@ The CI pipeline will automatically:
 ## Project Structure
 
 ```
-utils/mpm/
+utils/mows-cli/
 ├── src/
 │   ├── main.rs              # Entry point, argv[0] detection, CLI routing
 │   ├── cli.rs               # CLI argument definitions (clap)

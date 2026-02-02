@@ -5,12 +5,12 @@ on:
     tags:
       - 'mows-cli-v*'
     paths:
-      - 'utils/mpm/**'
+      - 'utils/mows-cli/**'
       - 'utils/mows-common-rust/**'
       - '.github/workflows/publish-mows-cli.yml'
   pull_request:
     paths:
-      - 'utils/mpm/**'
+      - 'utils/mows-cli/**'
       - 'utils/mows-common-rust/**'
       - '.github/workflows/publish-mows-cli.yml'
   workflow_dispatch:
@@ -38,34 +38,34 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            utils/mpm/target
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('utils/mpm/Cargo.lock') }}
+            utils/mows-cli/target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('utils/mows-cli/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-test-
 
       - name: Run unit tests
         run: |
-          cd utils/mpm
+          cd utils/mows-cli
           cargo test --release
 
       - name: Build release binary for e2e tests
         run: |
-          cd utils/mpm
+          cd utils/mows-cli
           cargo build --release
 
       - name: Create mpm symlink for e2e tests
         run: |
-          ln -sf mows utils/mpm/target/release/mpm
+          ln -sf mows utils/mows-cli/target/release/mpm
 
       - name: Run e2e tests
         run: |
-          cd utils/mpm/tests
+          cd utils/mows-cli/tests
           # Use mock Docker client for tests that would otherwise need Docker daemon
           # Skip test-self-update which requires network access to GitHub API
           SKIP_TESTS="test-self-update" ./run-all.sh
         env:
-          MOWS_BIN: ${{ github.workspace }}/utils/mpm/target/release/mows
-          MPM_BIN: ${{ github.workspace }}/utils/mpm/target/release/mpm
+          MOWS_BIN: ${{ github.workspace }}/utils/mows-cli/target/release/mows
+          MPM_BIN: ${{ github.workspace }}/utils/mows-cli/target/release/mpm
           MPM_MOCK_DOCKER: "1"
 
   build:
@@ -99,7 +99,7 @@ jobs:
           TARGETARCH: ${{ matrix.arch }}
           BUILDX_CACHE: gha
         run: |
-          cd utils/mpm
+          cd utils/mows-cli
           bash build.sh
 
       - name: Get version from tag
@@ -115,7 +115,7 @@ jobs:
 
       - name: Rename binary with version and platform
         run: |
-          cd utils/mpm/dist
+          cd utils/mows-cli/dist
           # Remove symlink, keep only the real binary
           rm -f mpm
           mv mows mows-${{ steps.get_version.outputs.version }}-${{ matrix.os_name }}-${{ matrix.arch }}
@@ -124,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
         with:
           name: mows-${{ matrix.os_name }}-${{ matrix.arch }}
-          path: utils/mpm/dist/mows-*
+          path: utils/mows-cli/dist/mows-*
           retention-days: 7
 
   release:
