@@ -21,7 +21,7 @@ pub enum Commands {
     /// Commands for managing mows-style Docker Compose deployments with
     /// templated configuration, automatic secrets generation, and
     /// health monitoring.
-    #[command(name = "package-manager")]
+    #[command(name = "package-manager", visible_alias = "pm")]
     PackageManager {
         #[command(subcommand)]
         command: PackageManagerCommands,
