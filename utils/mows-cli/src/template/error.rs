@@ -49,6 +49,24 @@ fn find_similar_field(missing: &str, available: &[String]) -> Option<String> {
     best_match.map(|(s, _)| s.to_string())
 }
 
+/// Find the position of a field access pattern (e.g., ".data") ensuring it's not
+/// part of a larger identifier (e.g., ".database"). Returns the position of the dot.
+fn find_field_access(haystack: &str, pattern: &str) -> Option<usize> {
+    let mut start = 0;
+    while let Some(pos) = haystack[start..].find(pattern) {
+        let absolute_pos = start + pos;
+        let end_pos = absolute_pos + pattern.len();
+        // Check that the character after the pattern (if any) is not alphanumeric or underscore
+        let next_char = haystack[end_pos..].chars().next();
+        if next_char.is_none_or(|c| !c.is_alphanumeric() && c != '_') {
+            return Some(absolute_pos);
+        }
+        // Continue searching after this match
+        start = absolute_pos + 1;
+    }
+    None
+}
+
 /// Extract the missing field name from error message like "no field `foo`"
 fn extract_missing_field(message: &str) -> Option<&str> {
     if let Some(start) = message.find("no field `") {
@@ -117,9 +135,12 @@ pub fn format_template_error(
     // Try to find "did you mean" suggestion for missing field errors
     if let Some(missing_field) = extract_missing_field(&message) {
         // Try to adjust col/len to point to the actual missing field in the line
+        // Search for ".field" pattern followed by a non-alphanumeric char to avoid
+        // matching substrings (e.g., ".data" in ".database")
         if let Some(line_content) = content.lines().nth(line.saturating_sub(1)) {
-            if let Some(field_pos) = line_content.find(missing_field) {
-                col = field_pos + 1; // 1-based
+            let search_pattern = format!(".{}", missing_field);
+            if let Some(pos) = find_field_access(line_content, &search_pattern) {
+                col = pos + 2; // +1 for 1-based, +1 to skip the leading dot
                 len = missing_field.len();
             }
         }
@@ -215,5 +236,55 @@ fn extract_message(error: &str) -> &str {
         rest.trim()
     } else {
         error
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_find_field_access_avoids_substring_matches() {
+        // ".data" should not match ".database"
+        let line = ".services.api.database.storage.volumeName .services.api.data.storage";
+        let result = find_field_access(line, ".data");
+        // ".data" is at position 55 (after the second ".api")
+        assert_eq!(result, Some(55));
+    }
+
+    #[test]
+    fn test_find_field_access_matches_at_end_of_string() {
+        let line = ".services.api.data";
+        let result = find_field_access(line, ".data");
+        assert_eq!(result, Some(13));
+    }
+
+    #[test]
+    fn test_find_field_access_matches_followed_by_dot() {
+        let line = ".foo.data.bar";
+        let result = find_field_access(line, ".data");
+        assert_eq!(result, Some(4));
+    }
+
+    #[test]
+    fn test_find_field_access_matches_followed_by_space() {
+        let line = ".foo.data .bar";
+        let result = find_field_access(line, ".data");
+        assert_eq!(result, Some(4));
+    }
+
+    #[test]
+    fn test_find_field_access_no_match_when_only_substring() {
+        let line = ".services.database";
+        let result = find_field_access(line, ".data");
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_find_field_access_with_underscore_continuation() {
+        // ".data_extra" should not match ".data"
+        let line = ".services.data_extra .services.data";
+        let result = find_field_access(line, ".data");
+        assert_eq!(result, Some(30));
     }
 }
