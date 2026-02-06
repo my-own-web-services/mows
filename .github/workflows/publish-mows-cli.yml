@@ -42,24 +42,19 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            utils/mows-cli/target
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('utils/mows-cli/Cargo.lock') }}
+            target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-test-
 
       - name: Run unit tests
-        run: |
-          cd utils/mows-cli
-          cargo test --release
+        run: cargo test -p mows-cli --release
 
       - name: Build release binary for e2e tests
-        run: |
-          cd utils/mows-cli
-          cargo build --release
+        run: cargo build -p mows-cli --release
 
       - name: Create mpm symlink for e2e tests
-        run: |
-          ln -sf mows utils/mows-cli/target/release/mpm
+        run: ln -sf mows target/release/mpm
 
       - name: Run e2e tests
         run: |
@@ -68,8 +63,8 @@ jobs:
           # Skip test-self-update which requires network access to GitHub API
           SKIP_TESTS="test-self-update" ./run-all.sh
         env:
-          MOWS_BIN: ${{ github.workspace }}/utils/mows-cli/target/release/mows
-          MPM_BIN: ${{ github.workspace }}/utils/mows-cli/target/release/mpm
+          MOWS_BIN: ${{ github.workspace }}/target/release/mows
+          MPM_BIN: ${{ github.workspace }}/target/release/mpm
           MPM_MOCK_DOCKER: "1"
 
   build:
