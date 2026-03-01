@@ -120,7 +120,7 @@ jobs:
           mv mows mows-${{ steps.get_version.outputs.version }}-${{ matrix.os_name }}-${{ matrix.arch }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v4
         with:
           name: mows-${{ matrix.os_name }}-${{ matrix.arch }}
           path: utils/mows-cli/dist/mows-*
