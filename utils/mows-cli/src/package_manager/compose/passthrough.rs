@@ -15,7 +15,7 @@ pub fn compose_passthrough(args: &[String]) -> Result<()> {
     // Load manifest to get project name
     let manifest = MowsManifest::load(&base_dir)?;
     let project_name = manifest.project_name();
-    let results_dir = base_dir.join("results");
+    let results_dir = base_dir.join(super::RESULTS_DIR_NAME);
 
     // Find docker-compose file
     let compose_file = if results_dir.join("docker-compose.yaml").exists() {
@@ -24,7 +24,7 @@ pub fn compose_passthrough(args: &[String]) -> Result<()> {
         results_dir.join("docker-compose.yml")
     } else {
         return Err(MowsError::Docker(
-            "No docker-compose.yaml found in results/. Run 'mows package-manager compose up' (or 'mpm compose up') first.".to_string(),
+            format!("No docker-compose.yaml found in {}/. Run 'mows package-manager compose up' (or 'mpm compose up') first.", super::RESULTS_DIR_NAME),
         ));
     };
 

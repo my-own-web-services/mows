@@ -214,13 +214,18 @@ spec:
 }
 
 /// Generate the .gitignore content
-fn generate_gitignore() -> &'static str {
-    r#"admin-infos.yaml
-results
+fn generate_gitignore() -> String {
+    format!(
+        r#"admin-infos.yaml
+{}
+{}-staging
 data
 provided-secrets.env
 values.yaml
-"#
+"#,
+        super::RESULTS_DIR_NAME,
+        super::RESULTS_DIR_NAME,
+    )
 }
 
 /// Generate the provided-secrets.env content
@@ -279,14 +284,14 @@ pub fn compose_init(name: Option<&str>) -> Result<()> {
     let templates_dir = deployment_dir.join("templates");
     let config_dir = templates_dir.join("config");
     let data_dir = deployment_dir.join("data");
-    let results_dir = deployment_dir.join("results");
+    let results_dir = deployment_dir.join(super::RESULTS_DIR_NAME);
 
     fs::create_dir_all(&config_dir)
         .io_context("Failed to create deployment/templates/config")?;
     fs::create_dir_all(&data_dir)
         .io_context("Failed to create deployment/data")?;
     fs::create_dir_all(&results_dir)
-        .io_context("Failed to create deployment/results")?;
+        .io_context(format!("Failed to create deployment/{}", super::RESULTS_DIR_NAME))?;
 
     let manifest_path = deployment_dir.join("mows-manifest.yaml");
     if !manifest_path.exists() {

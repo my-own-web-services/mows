@@ -29,7 +29,7 @@ impl UpdateBackup {
 
         // Restore secrets if they existed
         if let Some(secrets) = self.generated_secrets {
-            let path = self.manifest_dir.join("results/generated-secrets.env");
+            let path = self.manifest_dir.join(super::RESULTS_DIR_NAME).join("generated-secrets.env");
             if let Some(parent) = path.parent() {
                 let _ = fs::create_dir_all(parent);
             }
@@ -77,7 +77,7 @@ pub fn compose_update() -> Result<()> {
         values_content: values_backup.clone(),
         values_path: values_path.clone(),
         generated_secrets: backup_file(
-            &current_manifest_dir.join("results"),
+            &current_manifest_dir.join(super::RESULTS_DIR_NAME),
             "generated-secrets.env",
         ).ok(),
         provided_secrets: backup_file(current_manifest_dir, "provided-secrets.env").ok(),
@@ -147,13 +147,13 @@ fn do_update(
 
     // If manifest moved, copy secrets to new location
     if manifest_moved {
-        let new_results_dir = new_manifest_dir.join("results");
+        let new_results_dir = new_manifest_dir.join(super::RESULTS_DIR_NAME);
         fs::create_dir_all(&new_results_dir)
             .io_context(format!("Failed to create results directory '{}'", new_results_dir.display()))?;
 
         // Re-read secrets from current location (they were backed up before git pull)
         let generated_secrets = backup_file(
-            &current_manifest_dir.join("results"),
+            &current_manifest_dir.join(super::RESULTS_DIR_NAME),
             "generated-secrets.env",
         ).ok();
         let provided_secrets = backup_file(current_manifest_dir, "provided-secrets.env").ok();
