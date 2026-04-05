@@ -10,6 +10,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use tracing::{debug, info};
 
+use crate::error::{MowsError, Result};
 use crate::package_manager::compose::DockerClient;
 
 /// Result of a single check
@@ -276,7 +277,7 @@ fn check_scheduled_handlers(client: &dyn DockerClient, compose: &serde_yaml_neo:
 /// Check if volume mount paths exist
 fn check_volume_mounts(compose: &serde_yaml_neo::Value, base_dir: &Path) -> Vec<CheckResult> {
     let mut results = Vec::new();
-    let results_dir = base_dir.join("results");
+    let results_dir = base_dir.join(crate::package_manager::compose::RESULTS_DIR_NAME);
 
     let services = match compose.get("services") {
         Some(serde_yaml_neo::Value::Mapping(m)) => m,
@@ -338,7 +339,7 @@ fn check_file_permissions(compose: &serde_yaml_neo::Value, base_dir: &Path) -> V
     use std::os::unix::fs::MetadataExt;
 
     let mut results = Vec::new();
-    let results_dir = base_dir.join("results");
+    let results_dir = base_dir.join(crate::package_manager::compose::RESULTS_DIR_NAME);
 
     let services = match compose.get("services") {
         Some(serde_yaml_neo::Value::Mapping(m)) => m,
@@ -420,6 +421,83 @@ fn normalize_path(path: &Path) -> std::path::PathBuf {
         }
     }
     normalized
+}
+
+/// Validate that all bind mounts in the compose file only reference allowed paths.
+///
+/// Bind mounts are resolved relative to the results directory (where the rendered
+/// docker-compose.yaml lives). Only the following source paths are allowed:
+/// - `./config/...` — rendered configuration files
+/// - `./data/...` (or the data symlink) — persistent data directory
+/// - Absolute paths outside the results directory (e.g. `/var/run/docker.sock`)
+/// - Named volumes (no path separator, e.g. `mydata`)
+///
+/// This prevents Docker from auto-creating directories inside `results/` as root,
+/// which would break the render pipeline's ability to manage that directory.
+///
+/// Returns `Ok(())` if all mounts are valid, or an error listing the violations.
+pub fn validate_volume_mounts(compose: &serde_yaml_neo::Value, base_dir: &Path) -> Result<()> {
+    let results_dir = base_dir.join(crate::package_manager::compose::RESULTS_DIR_NAME);
+
+    let services = match compose.get("services") {
+        Some(serde_yaml_neo::Value::Mapping(m)) => m,
+        _ => return Ok(()),
+    };
+
+    let mut violations: Vec<(String, String)> = Vec::new();
+
+    for (service_name, service) in services {
+        let service_name = service_name.as_str().unwrap_or("unknown");
+
+        let volumes = match service.get("volumes") {
+            Some(serde_yaml_neo::Value::Sequence(v)) => v,
+            _ => continue,
+        };
+
+        for volume in volumes {
+            let mount = match parse_volume_entry(volume) {
+                Some(m) => m,
+                None => continue,
+            };
+
+            if should_skip_volume(&mount) {
+                continue;
+            }
+
+            // Absolute paths outside results dir are fine (e.g. /var/run/docker.sock)
+            if mount.host_path.starts_with('/') {
+                continue;
+            }
+
+            // Resolve the relative path from results dir and normalize ../ segments
+            let resolved = normalize_path(&results_dir.join(&mount.host_path));
+
+            // The resolved path must be within ./config/ or ./data/ under results
+            let config_dir = normalize_path(&results_dir.join("config"));
+            let data_dir = normalize_path(&results_dir.join("data"));
+
+            if !resolved.starts_with(&config_dir) && !resolved.starts_with(&data_dir) {
+                violations.push((
+                    service_name.to_string(),
+                    mount.host_path.clone(),
+                ));
+            }
+        }
+    }
+
+    if violations.is_empty() {
+        Ok(())
+    } else {
+        let mut msg = String::from("Invalid bind mounts in docker-compose.yaml\n\n");
+        for (service, path) in &violations {
+            msg.push_str(&format!("  - service '{}' mounts '{}'\n", service, path));
+        }
+        msg.push_str("\nBind mounts inside the rendered output directory must use ./config/ or ./data/.\n");
+        msg.push_str("Other paths would be auto-created by Docker as root-owned directories.\n\n");
+        msg.push_str("Fix: move the mounted files into templates/config/ (rendered automatically)\n");
+        msg.push_str("     or into the data/ directory.");
+        Err(MowsError::Docker(msg))
+    }
 }
 
 fn has_traefik_labels(compose: &serde_yaml_neo::Value) -> bool {
@@ -800,7 +878,7 @@ services:
     #[test]
     fn test_run_debug_checks_volume_mount_missing() {
         let dir = tempdir().unwrap();
-        std::fs::create_dir_all(dir.path().join("results")).unwrap();
+        std::fs::create_dir_all(dir.path().join(crate::package_manager::compose::RESULTS_DIR_NAME)).unwrap();
 
         let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
@@ -825,7 +903,7 @@ services:
     #[test]
     fn test_run_debug_checks_volume_mount_exists() {
         let dir = tempdir().unwrap();
-        let results_dir = dir.path().join("results");
+        let results_dir = dir.path().join(crate::package_manager::compose::RESULTS_DIR_NAME);
         std::fs::create_dir_all(&results_dir).unwrap();
         std::fs::create_dir_all(results_dir.join("config")).unwrap();
 
@@ -850,7 +928,7 @@ services:
     #[test]
     fn test_run_debug_checks_named_volume_skipped() {
         let dir = tempdir().unwrap();
-        std::fs::create_dir_all(dir.path().join("results")).unwrap();
+        std::fs::create_dir_all(dir.path().join(crate::package_manager::compose::RESULTS_DIR_NAME)).unwrap();
 
         let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
@@ -966,7 +1044,7 @@ services:
     #[test]
     fn test_volume_mount_with_parent_dir_segments() {
         let dir = tempdir().unwrap();
-        let results_dir = dir.path().join("results");
+        let results_dir = dir.path().join(crate::package_manager::compose::RESULTS_DIR_NAME);
         std::fs::create_dir_all(&results_dir).unwrap();
 
         // Create a directory outside results but still within project
@@ -993,7 +1071,7 @@ services:
     #[test]
     fn test_volume_mount_file_not_directory() {
         let dir = tempdir().unwrap();
-        let results_dir = dir.path().join("results");
+        let results_dir = dir.path().join(crate::package_manager::compose::RESULTS_DIR_NAME);
         std::fs::create_dir_all(&results_dir).unwrap();
 
         // Create a file (not a directory)
@@ -1020,7 +1098,7 @@ services:
     #[test]
     fn test_volume_mount_missing_file() {
         let dir = tempdir().unwrap();
-        std::fs::create_dir_all(dir.path().join("results")).unwrap();
+        std::fs::create_dir_all(dir.path().join(crate::package_manager::compose::RESULTS_DIR_NAME)).unwrap();
 
         let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
@@ -1045,7 +1123,7 @@ services:
     #[test]
     fn test_volume_long_syntax_with_read_only() {
         let dir = tempdir().unwrap();
-        let results_dir = dir.path().join("results");
+        let results_dir = dir.path().join(crate::package_manager::compose::RESULTS_DIR_NAME);
         std::fs::create_dir_all(&results_dir).unwrap();
         std::fs::create_dir_all(results_dir.join("config")).unwrap();
 
@@ -1079,7 +1157,7 @@ services:
         use std::os::unix::fs::PermissionsExt;
 
         let dir = tempdir().unwrap();
-        let results_dir = dir.path().join("results");
+        let results_dir = dir.path().join(crate::package_manager::compose::RESULTS_DIR_NAME);
         std::fs::create_dir_all(&results_dir).unwrap();
 
         // Create a world-writable file
@@ -1111,7 +1189,7 @@ services:
         use std::os::unix::fs::PermissionsExt;
 
         let dir = tempdir().unwrap();
-        let results_dir = dir.path().join("results");
+        let results_dir = dir.path().join(crate::package_manager::compose::RESULTS_DIR_NAME);
         std::fs::create_dir_all(&results_dir).unwrap();
 
         // Create a directory without world-read permission
@@ -1139,7 +1217,7 @@ services:
     #[test]
     fn test_check_file_permissions_nonexistent_path() {
         let dir = tempdir().unwrap();
-        std::fs::create_dir_all(dir.path().join("results")).unwrap();
+        std::fs::create_dir_all(dir.path().join(crate::package_manager::compose::RESULTS_DIR_NAME)).unwrap();
 
         let compose: serde_yaml_neo::Value = serde_yaml_neo::from_str(
             r#"
