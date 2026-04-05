@@ -226,13 +226,7 @@ RUST_LOG=mows=trace mows package-manager compose up  # Even more verbose
 
 ### Inspect Rendered Templates
 
-Use `--dry-run` to see what would be rendered without executing:
-
-```bash
-mows package-manager compose up --dry-run
-```
-
-Or render templates directly:
+Render templates directly to see the output without deploying:
 
 ```bash
 mows template ./templates/docker-compose.yaml -v values.yaml

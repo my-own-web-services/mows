@@ -20,7 +20,7 @@ Build script modifies source tree, violates build hermeticity.
 
 # multiple docker volumes locations
 
-# ensure drives are not spammed with logs that noone reads
+# ensure drives are not spammed with logs that no one reads
 
 # add mpm compose edit or add
 
@@ -31,6 +31,34 @@ Build script modifies source tree, violates build hermeticity.
 
 # create new projects from templates
 
-# mpm compose watch
+# ~~mpm compose watch~~ (done: `mpm compose up --watch`)
 
 # dev container vms mit config und auto dependency setup, also good for testing and everything else, devpod
+
+# Develop/Build
+
+- Secrets need to be provided
+    - API keys for agents
+
+## Building
+
+- Local dependencies
+- Minimal amount of dependencies to build or rebuild
+- Reusable Code
+
+- Reproducible builds
+- Common dependencies
+
+## Environments
+
+### Developer/Agent
+
+- May need docker socket themselves so VM is needed
+- May want to run testing vms
+- For other arch/os vms are also required
+
+### Testing/Building
+
+- May need docker socket for testing so VM is needed
+
+# add line numbers to errors not only mark them red

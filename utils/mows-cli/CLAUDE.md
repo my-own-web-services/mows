@@ -107,6 +107,7 @@ export MPM_MOCK_DOCKER=1
 
 The mock client (`MPM_MOCK_DOCKER=1`) simulates Docker operations:
 - `compose up` succeeds immediately
+- `compose build` succeeds immediately (prints `mock: compose_build project=<name> no_cache=<bool>` to stdout for test verification)
 - `compose ps` returns containers as running and healthy
 - `compose logs` returns empty logs
 - Container inspections return minimal mock data
@@ -119,7 +120,7 @@ This allows testing the full mows workflow without a Docker daemon.
 |------|--------|
 | `test-self-update` | Network-dependent, requires GitHub API |
 
-Note: `test-compose-up` now runs in CI using `MPM_MOCK_DOCKER=1`.
+Note: `test-compose-up` and `test-compose-watch` now run in CI using `MPM_MOCK_DOCKER=1`.
 
 ## Building
 

@@ -124,7 +124,7 @@ fn handle_package_manager_command(command: PackageManagerCommands) -> error::Res
 
 fn handle_compose_command(command: ComposeCommands) -> error::Result<()> {
     match command {
-        ComposeCommands::Up => compose_up(),
+        ComposeCommands::Up { watch, debounce_ms } => compose_up(watch, debounce_ms),
         ComposeCommands::Init { name } => compose_init(name.as_deref()),
         ComposeCommands::Install { url, target } => compose_install(&url, target.as_deref()),
         ComposeCommands::Update => compose_update(),

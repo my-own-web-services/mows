@@ -123,7 +123,7 @@ pub enum ComposeCommands {
     /// Render templates and start the deployment
     ///
     /// Executes the full deployment pipeline:
-    /// 1. Renders Go templates in the templates/ directory using values.yaml
+    /// 1. Renders Go templates in the templates/ directory using values files
     /// 2. Generates any missing secrets defined in mows-manifest.yaml
     /// 3. Flattens nested Traefik labels to dot-notation format
     /// 4. Runs docker compose up -d
@@ -131,7 +131,19 @@ pub enum ComposeCommands {
     ///
     /// Templates use Go template syntax with Helm-compatible functions.
     /// Secrets are auto-generated based on patterns in mows-manifest.yaml.
-    Up,
+    ///
+    /// With --watch, after the initial deployment, continuously monitors source
+    /// files (templates, values, manifest, provided-secrets, build contexts) for
+    /// changes and automatically re-runs the full pipeline on each change.
+    Up {
+        /// Watch source files and re-deploy on changes
+        #[arg(short, long)]
+        watch: bool,
+
+        /// Debounce interval in milliseconds for file change detection
+        #[arg(long, default_value = "500")]
+        debounce_ms: u64,
+    },
     /// Initialize a new mows compose project
     ///
     /// Creates the standard mows project structure:

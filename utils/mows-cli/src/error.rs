@@ -93,6 +93,10 @@ pub enum MowsError {
     #[error("jq error: {0}")]
     Jq(String),
 
+    /// File watch error.
+    #[error("Watch error: {0}")]
+    Watch(String),
+
     /// User-facing error message (for simple cases).
     #[error("{0}")]
     Message(String),

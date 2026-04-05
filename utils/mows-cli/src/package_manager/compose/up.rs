@@ -5,8 +5,11 @@ use tracing::{debug, info};
 use crate::error::Result;
 use super::checks::{
     check_containers_ready, print_check_results, run_and_print_health_checks, run_debug_checks,
+    validate_volume_mounts,
 };
-use super::docker::{default_client, ComposeUpOptions, DockerClient};
+use colored::Colorize;
+
+use super::docker::{default_client, ComposeBuildOptions, ComposeUpOptions, DockerClient};
 use super::find_manifest_dir;
 use super::render::{run_render_pipeline, RenderContext};
 use crate::utils::parse_yaml;
@@ -25,7 +28,7 @@ const CONTAINER_STARTUP_DELAY: Duration = Duration::from_secs(1);
 ///
 /// Looks for `docker-compose.yaml` first, then `docker-compose.yml`.
 /// Returns `None` if neither file exists.
-fn find_compose_file(dir: &std::path::Path) -> Option<std::path::PathBuf> {
+pub(super) fn find_compose_file(dir: &std::path::Path) -> Option<std::path::PathBuf> {
     let yaml_path = dir.join("docker-compose.yaml");
     if yaml_path.exists() {
         return Some(yaml_path);
@@ -39,8 +42,11 @@ fn find_compose_file(dir: &std::path::Path) -> Option<std::path::PathBuf> {
     None
 }
 
-/// Run compose up: render templates and run docker compose up
-pub fn compose_up() -> Result<()> {
+/// Run compose up: render templates and run docker compose up.
+///
+/// When `watch` is true, after the initial deployment the process stays alive
+/// and monitors source files for changes, re-running the full pipeline on each change.
+pub fn compose_up(watch: bool, debounce_ms: u64) -> Result<()> {
     let base_dir = find_manifest_dir()?;
 
     info!("Running compose up in: {}", base_dir.display());
@@ -48,8 +54,39 @@ pub fn compose_up() -> Result<()> {
     // Create Docker client (also checks Docker is available)
     let client = default_client()?;
 
+    if watch {
+        // In watch mode, a failed initial deploy is not fatal — print the
+        // error and enter the watch loop so the user can fix & save.
+        if let Err(e) = run_deploy_cycle(&base_dir, client.as_ref(), false) {
+            eprintln!(
+                "\n{} Initial deploy failed: {}\n       Fix the issue and save to retry.",
+                "watch:".red().bold(),
+                e
+            );
+        }
+        super::watch::run_watch_loop(&base_dir, client.as_ref(), debounce_ms)?;
+    } else {
+        run_deploy_cycle(&base_dir, client.as_ref(), false)?;
+    }
+
+    Ok(())
+}
+
+/// Execute the full deploy cycle: render, validate, compose up, health checks.
+///
+/// This is the core pipeline extracted so it can be called both for the initial
+/// deploy and for each re-deploy triggered by the watch loop.
+///
+/// When `build_context_changed` is `true`, Docker build cache is skipped
+/// (`--no-cache`) to ensure source file changes inside build contexts are
+/// picked up by the image rebuild.
+pub(super) fn run_deploy_cycle(
+    base_dir: &std::path::Path,
+    client: &dyn DockerClient,
+    build_context_changed: bool,
+) -> Result<()> {
     // Create render context
-    let context = RenderContext::new(&base_dir)?;
+    let context = RenderContext::new(base_dir)?;
 
     // Sync and validate provided secrets
     let secrets_path = base_dir.join("provided-secrets.env");
@@ -60,20 +97,48 @@ pub fn compose_up() -> Result<()> {
     run_render_pipeline(&context)?;
 
     // Run pre-deployment debug checks
-    run_pre_deployment_checks(client.as_ref(), &context);
+    run_pre_deployment_checks(client, &context);
+
+    // Validate volume mounts before Docker can create root-owned directories
+    validate_rendered_volume_mounts(&context)?;
 
     // Run docker compose up
-    run_docker_compose_up(client.as_ref(), &context)?;
+    run_docker_compose_up(client, &context, build_context_changed)?;
 
     // Run post-deployment health checks
-    run_post_deployment_checks(client.as_ref(), &context);
+    run_post_deployment_checks(client, &context);
 
     Ok(())
 }
 
-/// Run pre-deployment debug checks
+/// Validate that bind mounts in the rendered compose file only use allowed paths.
+///
+/// This is a fatal check — if any bind mount resolves to a path outside
+/// `./config/` or `./data/`, the deploy is aborted before Docker runs.
+fn validate_rendered_volume_mounts(context: &RenderContext) -> Result<()> {
+    let results_dir = context.base_dir.join(super::RESULTS_DIR_NAME);
+
+    let compose_path = match find_compose_file(&results_dir) {
+        Some(path) => path,
+        None => return Ok(()),
+    };
+
+    let content = fs::read_to_string(&compose_path)
+        .map_err(|e| crate::error::MowsError::io("Failed to read docker-compose for mount validation", e))?;
+
+    let compose_value: serde_yaml_neo::Value = parse_yaml(&content, Some(&compose_path))?;
+
+    validate_volume_mounts(&compose_value, &context.base_dir)
+}
+
+/// Run pre-deployment debug checks against the rendered docker-compose file.
+///
+/// Loads the rendered compose file from the results directory, parses it,
+/// and runs diagnostic checks (e.g., port conflicts, missing images).
+/// Failures here are non-fatal — they produce warnings but do not abort
+/// the deployment.
 fn run_pre_deployment_checks(client: &dyn DockerClient, context: &RenderContext) {
-    let results_dir = context.base_dir.join("results");
+    let results_dir = context.base_dir.join(super::RESULTS_DIR_NAME);
 
     // Find and parse the docker-compose file
     let compose_path = match find_compose_file(&results_dir) {
@@ -115,40 +180,28 @@ fn run_pre_deployment_checks(client: &dyn DockerClient, context: &RenderContext)
 /// - No containers with "starting" health status
 ///
 /// Shows progress feedback while waiting, then runs full health checks.
-/// Handles Ctrl+C gracefully by clearing the progress line before exit.
+/// Does not register its own Ctrl+C handler — the caller (or default OS
+/// signal handling) is responsible for clean shutdown. This avoids conflicts
+/// with the watch loop's `ctrlc::set_handler` (which can only be set once).
 fn run_post_deployment_checks(client: &dyn DockerClient, context: &RenderContext) {
     use std::io::{self, Write};
-    use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::Arc;
     use std::time::Instant;
 
     let project_name = context.manifest.project_name();
-    let results_dir = context.base_dir.join("results");
+    let results_dir = context.base_dir.join(super::RESULTS_DIR_NAME);
 
     let start = Instant::now();
-
-    // Track whether we're showing a progress line that needs clearing
-    let showing_progress = Arc::new(AtomicBool::new(false));
-    let showing_progress_handler = Arc::clone(&showing_progress);
-
-    // Set up Ctrl+C handler to clear progress line before exit
-    let _ = ctrlc::set_handler(move || {
-        if showing_progress_handler.load(Ordering::SeqCst) {
-            print!("\r\x1b[K");
-            let _ = io::stdout().flush();
-        }
-        std::process::exit(130); // Standard exit code for SIGINT
-    });
+    let mut showing_progress = false;
 
     // Initial short wait for containers to appear
     std::thread::sleep(CONTAINER_STARTUP_DELAY);
 
     // Poll until ready or timeout
-    let interrupted = loop {
+    loop {
         let readiness = check_containers_ready(client, &project_name);
 
         if readiness.all_ready {
-            break false;
+            break;
         }
 
         if start.elapsed() >= CONTAINER_READY_TIMEOUT {
@@ -156,7 +209,7 @@ fn run_post_deployment_checks(client: &dyn DockerClient, context: &RenderContext
                 "Container readiness timeout: {}/{} running, {} starting",
                 readiness.running, readiness.total, readiness.starting
             );
-            break false;
+            break;
         }
 
         // Show progress
@@ -175,20 +228,15 @@ fn run_post_deployment_checks(client: &dyn DockerClient, context: &RenderContext
         };
         print!("\r{}", status);
         let _ = io::stdout().flush();
-        showing_progress.store(true, Ordering::SeqCst);
+        showing_progress = true;
 
         std::thread::sleep(CONTAINER_POLL_INTERVAL);
     };
 
     // Clear progress line before continuing
-    if showing_progress.load(Ordering::SeqCst) {
+    if showing_progress {
         print!("\r\x1b[K");
         let _ = io::stdout().flush();
-        showing_progress.store(false, Ordering::SeqCst);
-    }
-
-    if interrupted {
-        return;
     }
 
     // Load compose content for traefik URL detection
@@ -206,12 +254,26 @@ fn get_compose_content(results_dir: &std::path::Path) -> Option<serde_yaml_neo::
         .and_then(|content| serde_yaml_neo::from_str(&content).ok())
 }
 
-/// Execute docker compose up with the project configuration
-fn run_docker_compose_up(client: &dyn DockerClient, context: &RenderContext) -> Result<()> {
+/// Execute docker compose up with the project configuration.
+///
+/// Always runs `docker compose build` followed by `docker compose up -d`.
+/// Separating the build and deploy steps (rather than using `up --build`)
+/// ensures Docker properly rebuilds images when source files change —
+/// particularly important for multi-stage builds like cargo-chef where
+/// `up --build` may not always invalidate the layer cache correctly.
+///
+/// When `build_context_changed` is `true`, the build runs with `--no-cache`
+/// to force a complete rebuild, ensuring source file changes inside build
+/// contexts are picked up.
+fn run_docker_compose_up(
+    client: &dyn DockerClient,
+    context: &RenderContext,
+    build_context_changed: bool,
+) -> Result<()> {
     use crate::error::MowsError;
 
     let project_name = context.manifest.project_name();
-    let results_dir = context.base_dir.join("results");
+    let results_dir = context.base_dir.join(super::RESULTS_DIR_NAME);
 
     // Find the docker-compose file
     let compose_file = find_compose_file(&results_dir).ok_or_else(|| {
@@ -237,13 +299,31 @@ fn run_docker_compose_up(client: &dyn DockerClient, context: &RenderContext) -> 
         env_files.push(provided_secrets);
     }
 
+    let env_file_refs: Vec<&std::path::Path> = env_files.iter().map(|p| p.as_path()).collect();
+
+    // Always run an explicit `docker compose build` before `docker compose up`.
+    // Using `up --build` alone relies on Docker's inline build which may not
+    // properly invalidate cache in all scenarios (e.g. multi-stage cargo-chef
+    // builds). A separate build step is more reliable and gives clearer errors.
+    // When build_context_changed is true, pass --no-cache to force a full
+    // rebuild; otherwise use Docker's layer cache (fast if nothing changed).
+    let build_options = ComposeBuildOptions {
+        project: &project_name,
+        compose_file: &compose_file,
+        project_dir: &results_dir,
+        env_files: env_file_refs.clone(),
+        working_dir: &context.base_dir,
+        no_cache: build_context_changed,
+    };
+    client.compose_build(&build_options)?;
+
     let options = ComposeUpOptions {
         project: &project_name,
         compose_file: &compose_file,
         project_dir: &results_dir,
-        env_files: env_files.iter().map(|p| p.as_path()).collect(),
+        env_files: env_file_refs,
         working_dir: &context.base_dir,
-        build: true,
+        build: false,
         detach: true,
         remove_orphans: true,
     };
@@ -297,7 +377,7 @@ spec:
         assert!(result.is_ok());
 
         // Verify results were created
-        assert!(dir.path().join("results/docker-compose.yaml").exists());
+        assert!(dir.path().join(super::super::RESULTS_DIR_NAME).join("docker-compose.yaml").exists());
     }
 
     #[test]
@@ -307,10 +387,10 @@ spec:
 
         let context = RenderContext::new(dir.path()).unwrap();
         // Create results dir but no docker-compose file
-        fs::create_dir_all(dir.path().join("results")).unwrap();
+        fs::create_dir_all(dir.path().join(super::super::RESULTS_DIR_NAME)).unwrap();
 
         let client = ConfigurableMockClient::default();
-        let result = run_docker_compose_up(&client, &context);
+        let result = run_docker_compose_up(&client, &context, false);
 
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
@@ -332,7 +412,7 @@ spec:
             ..Default::default()
         };
 
-        let result = run_docker_compose_up(&client, &context);
+        let result = run_docker_compose_up(&client, &context, false);
 
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
@@ -349,7 +429,7 @@ spec:
         run_render_pipeline(&context).unwrap();
 
         let client = ConfigurableMockClient::default();
-        let result = run_docker_compose_up(&client, &context);
+        let result = run_docker_compose_up(&client, &context, false);
 
         assert!(result.is_ok());
     }
@@ -363,14 +443,84 @@ spec:
         run_render_pipeline(&context).unwrap();
 
         // Create env files that should be included
-        let results_dir = dir.path().join("results");
+        let results_dir = dir.path().join(super::super::RESULTS_DIR_NAME);
         fs::write(results_dir.join("generated-secrets.env"), "SECRET=value").unwrap();
         fs::write(results_dir.join("provided-secrets.env"), "API_KEY=key").unwrap();
 
         let client = ConfigurableMockClient::default();
-        let result = run_docker_compose_up(&client, &context);
+        let result = run_docker_compose_up(&client, &context, false);
 
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_run_docker_compose_up_always_builds() {
+        use crate::package_manager::compose::docker::{
+            CommandOutput, ComposeBuildOptions, ComposePassthroughOptions,
+        };
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
+
+        let dir = tempdir().unwrap();
+        create_minimal_project(dir.path());
+
+        let context = RenderContext::new(dir.path()).unwrap();
+        run_render_pipeline(&context).unwrap();
+
+        let build_called = Arc::new(AtomicBool::new(false));
+        let no_cache_used = Arc::new(AtomicBool::new(false));
+        let bc = Arc::clone(&build_called);
+        let nc = Arc::clone(&no_cache_used);
+
+        struct TrackingMock {
+            build_called: Arc<AtomicBool>,
+            no_cache_used: Arc<AtomicBool>,
+        }
+        impl DockerClient for TrackingMock {
+            fn check_daemon(&self) -> crate::error::Result<String> {
+                Ok("24.0.0".to_string())
+            }
+            fn compose_ps(&self, _: &str, _: &str) -> crate::error::Result<CommandOutput> {
+                Ok(CommandOutput::success(""))
+            }
+            fn compose_logs(&self, _: &str, _: Option<&str>) -> crate::error::Result<CommandOutput> {
+                Ok(CommandOutput::success(""))
+            }
+            fn compose_up(&self, options: &ComposeUpOptions) -> crate::error::Result<()> {
+                assert!(!options.build, "compose_up should not use --build when compose_build is called separately");
+                Ok(())
+            }
+            fn compose_build(&self, options: &ComposeBuildOptions) -> crate::error::Result<()> {
+                self.build_called.store(true, Ordering::SeqCst);
+                self.no_cache_used.store(options.no_cache, Ordering::SeqCst);
+                Ok(())
+            }
+            fn compose_passthrough(&self, _: &ComposePassthroughOptions) -> crate::error::Result<()> {
+                Ok(())
+            }
+            fn inspect_container(&self, _: &str) -> crate::error::Result<String> {
+                Ok("{}".to_string())
+            }
+            fn list_containers(&self, _: &[(&str, &str)]) -> crate::error::Result<String> {
+                Ok("[]".to_string())
+            }
+        }
+
+        // Test with build_context_changed=false: build with cache
+        let client = TrackingMock { build_called: Arc::clone(&build_called), no_cache_used: Arc::clone(&no_cache_used) };
+        let result = run_docker_compose_up(&client, &context, false);
+        assert!(result.is_ok());
+        assert!(build_called.load(Ordering::SeqCst), "compose_build should always be called");
+        assert!(!no_cache_used.load(Ordering::SeqCst), "no_cache should be false for normal deploys");
+
+        // Reset and test with build_context_changed=true: build without cache
+        build_called.store(false, Ordering::SeqCst);
+        no_cache_used.store(false, Ordering::SeqCst);
+        let client = TrackingMock { build_called: bc, no_cache_used: nc };
+        let result = run_docker_compose_up(&client, &context, true);
+        assert!(result.is_ok());
+        assert!(build_called.load(Ordering::SeqCst), "compose_build should be called");
+        assert!(no_cache_used.load(Ordering::SeqCst), "no_cache should be true when build context changed");
     }
 
     // =========================================================================
@@ -457,7 +607,7 @@ spec:
             ..Default::default()
         };
 
-        let result = run_docker_compose_up(&client, &context);
+        let result = run_docker_compose_up(&client, &context, false);
 
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();

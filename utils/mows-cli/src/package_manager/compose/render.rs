@@ -26,6 +26,9 @@ pub struct RenderContext {
     pub values: gtmpl::Value,
     /// The base directory (where mows-manifest.yaml is located)
     pub base_dir: std::path::PathBuf,
+    /// The directory where rendered output is written.
+    /// Defaults to `base_dir/.results` but can be overridden to a staging dir.
+    pub results_dir: std::path::PathBuf,
 }
 
 impl RenderContext {
@@ -39,8 +42,19 @@ impl RenderContext {
         Ok(RenderContext {
             manifest,
             values,
+            results_dir: dir.join(super::RESULTS_DIR_NAME),
             base_dir: dir.to_path_buf(),
         })
+    }
+
+    /// Create a copy of this context that renders into a different output directory.
+    fn with_results_dir(&self, results_dir: PathBuf) -> Self {
+        RenderContext {
+            manifest: self.manifest.clone(),
+            values: self.values.clone(),
+            base_dir: self.base_dir.clone(),
+            results_dir,
+        }
     }
 
     /// Get combined variables for template rendering
@@ -267,7 +281,7 @@ fn render_template_directory_inner(
 /// Render generated-secrets.env with merge logic
 pub fn render_generated_secrets(context: &RenderContext) -> Result<()> {
     let template_path = context.base_dir.join("templates/generated-secrets.env");
-    let results_dir = context.base_dir.join("results");
+    let results_dir = &context.results_dir;
     let output_path = results_dir.join("generated-secrets.env");
 
     if !template_path.exists() {
@@ -318,7 +332,7 @@ pub fn render_generated_secrets(context: &RenderContext) -> Result<()> {
 /// Copy provided-secrets.env to results with secure permissions
 pub fn copy_provided_secrets(context: &RenderContext) -> Result<()> {
     let source_path = context.base_dir.join("provided-secrets.env");
-    let results_dir = context.base_dir.join("results");
+    let results_dir = &context.results_dir;
     let output_path = results_dir.join("provided-secrets.env");
 
     if !source_path.exists() {
@@ -344,7 +358,7 @@ pub fn copy_provided_secrets(context: &RenderContext) -> Result<()> {
 /// Render the templates/config directory
 pub fn render_config_templates(context: &RenderContext) -> Result<()> {
     let config_dir = context.base_dir.join("templates/config");
-    let output_dir = context.base_dir.join("results/config");
+    let output_dir = context.results_dir.join("config");
 
     if !config_dir.exists() {
         debug!("No templates/config directory found");
@@ -373,7 +387,7 @@ pub fn render_docker_compose(context: &RenderContext) -> Result<()> {
         });
     };
 
-    let output_path = context.base_dir.join("results").join(
+    let output_path = context.results_dir.join(
         template_path
             .file_name()
             .unwrap_or_default()
@@ -423,7 +437,7 @@ pub fn render_docker_compose(context: &RenderContext) -> Result<()> {
 /// Setup the data directory symlink
 pub fn setup_data_directory(context: &RenderContext) -> Result<()> {
     let data_dir = context.base_dir.join("data");
-    let results_dir = context.base_dir.join("results");
+    let results_dir = &context.results_dir;
     let symlink_path = results_dir.join("data");
 
     // Create data directory if it doesn't exist
@@ -497,158 +511,141 @@ pub fn render_admin_infos(context: &RenderContext) -> Result<()> {
 
     info!("Rendering admin-infos.yaml");
 
-    // Load secrets
-    let generated_secrets = load_secrets_as_map(&context.base_dir.join("results/generated-secrets.env"))?;
-    let provided_secrets = load_secrets_as_map(&context.base_dir.join("results/provided-secrets.env"))?;
+    // Load secrets from the results directory (may be staging)
+    let generated_secrets = load_secrets_as_map(&context.results_dir.join("generated-secrets.env"))?;
+    let provided_secrets = load_secrets_as_map(&context.results_dir.join("provided-secrets.env"))?;
 
     let variables = context.get_template_variables_with_secrets(&generated_secrets, &provided_secrets);
     render_template_file(&template_path, &output_path, &variables)
 }
 
-/// Backup state for rollback on pipeline failure.
-///
-/// Implements `Drop` to auto-restore on panic, ensuring the backup directory
-/// is not leaked even if the pipeline fails unexpectedly.
-struct PipelineBackup {
-    /// Path to backup directory (if results existed)
-    backup_dir: Option<PathBuf>,
-    /// Path to results directory
-    results_dir: PathBuf,
-    /// Whether the backup has been finalized (committed or restored)
-    finalized: bool,
+/// Guard that cleans up the staging directory on drop (unless committed).
+struct StagingGuard {
+    staging_dir: PathBuf,
+    committed: bool,
 }
 
-impl PipelineBackup {
-    /// Create a backup of the current state by renaming results to a backup location
-    fn create(results_dir: &Path) -> Result<Self> {
-        let backup_dir = if results_dir.exists() {
-            let backup_path = results_dir.with_file_name(".results.backup");
-            // Remove any existing backup
-            if backup_path.exists() {
-                fs::remove_dir_all(&backup_path)
-                    .io_context("Failed to remove old backup directory")?;
-            }
-            // Rename results to backup
-            debug!("Backing up results directory to {}", backup_path.display());
-            fs::rename(results_dir, &backup_path)
-                .io_context("Failed to backup results directory")?;
-
-            // Create fresh results directory
-            fs::create_dir_all(results_dir)
-                .io_context("Failed to create fresh results directory")?;
-
-            // Copy generated-secrets.env back for merge logic
-            let backup_secrets = backup_path.join("generated-secrets.env");
-            if backup_secrets.exists() {
-                let new_secrets = results_dir.join("generated-secrets.env");
-                fs::copy(&backup_secrets, &new_secrets)
-                    .io_context("Failed to copy generated-secrets.env for merge")?;
-            }
-
-            Some(backup_path)
-        } else {
-            None
-        };
-
-        Ok(PipelineBackup {
-            backup_dir,
-            results_dir: results_dir.to_path_buf(),
-            finalized: false,
-        })
-    }
-
-    /// Restore from backup on failure
-    fn restore(mut self) -> Result<()> {
-        self.finalized = true;
-        self.do_restore()
-    }
-
-    /// Internal restore logic (used by both restore() and Drop)
-    fn do_restore(&self) -> Result<()> {
-        warn!("Pipeline failed, attempting to restore previous state");
-
-        // Remove the partially-created results directory
-        if self.results_dir.exists() {
-            debug!("Removing partial results directory");
-            fs::remove_dir_all(&self.results_dir)
-                .io_context("Failed to remove partial results directory")?;
-        }
-
-        // Restore from backup if we had one
-        if let Some(ref backup_path) = self.backup_dir {
-            debug!("Restoring results from backup");
-            fs::rename(backup_path, &self.results_dir)
-                .io_context("Failed to restore results from backup")?;
-        }
-
-        Ok(())
-    }
-
-    /// Commit the changes by removing the backup (called on success)
-    fn commit(mut self) -> Result<()> {
-        self.finalized = true;
-        if let Some(ref backup_path) = self.backup_dir {
-            debug!("Removing backup directory after successful pipeline");
-            fs::remove_dir_all(backup_path)
-                .io_context("Failed to remove backup directory")?;
-        }
-        Ok(())
-    }
-}
-
-impl Drop for PipelineBackup {
+impl Drop for StagingGuard {
     fn drop(&mut self) {
-        // If not finalized (panic occurred), attempt to restore
-        if !self.finalized {
-            warn!("PipelineBackup dropped without finalization, attempting auto-restore");
-            // Ignore errors in Drop - we can't do much about them
-            if let Err(e) = self.do_restore() {
-                warn!("Failed to auto-restore on drop: {}", e);
+        if !self.committed {
+            if self.staging_dir.exists() {
+                debug!("Cleaning up staging directory: {}", self.staging_dir.display());
+                if let Err(e) = fs::remove_dir_all(&self.staging_dir) {
+                    warn!("Failed to clean up staging directory: {}", e);
+                }
             }
         }
     }
 }
 
-/// Run the full render pipeline with cleanup on failure
+/// Run the full render pipeline using a staging directory.
+///
+/// Renders into a temporary `.results-staging` directory first.
+/// On success, deletes the results dir and renames staging into its place.
+/// On failure, the staging dir is removed and the results dir is untouched.
+///
+/// The `data` symlink inside results points to the real data directory
+/// and is recreated by the pipeline — `remove_dir_all` only removes
+/// the symlink, not its target.
 pub fn run_render_pipeline(context: &RenderContext) -> Result<()> {
-    let results_dir = context.base_dir.join("results");
+    let results_dir = &context.results_dir;
+    let staging_dir = results_dir.with_file_name(".results-staging");
 
     info!(
         "Starting render pipeline for project: {}",
         context.manifest.project_name()
     );
 
-    // Create backup for potential rollback
-    let backup = PipelineBackup::create(&results_dir)?;
-
-    // Run the pipeline, rolling back on failure
-    match run_render_pipeline_inner(context, &results_dir) {
-        Ok(()) => {
-            info!("Render pipeline completed successfully");
-            // Remove backup on success
-            backup.commit()?;
-            Ok(())
-        }
-        Err(e) => {
-            // Attempt to restore previous state
-            if let Err(restore_err) = backup.restore() {
-                // If restoration also fails, report both errors
-                return Err(MowsError::Message(format!(
-                    "Pipeline failed: {}\nAdditionally, failed to restore previous state: {}",
-                    e, restore_err
-                )));
-            }
-            Err(e)
-        }
+    // Clean up any leftover staging directory from a previous crash
+    if staging_dir.exists() {
+        fs::remove_dir_all(&staging_dir)
+            .io_context("Failed to remove leftover staging directory")?;
     }
+
+    fs::create_dir_all(&staging_dir)
+        .io_context("Failed to create staging directory")?;
+
+    let mut guard = StagingGuard {
+        staging_dir: staging_dir.clone(),
+        committed: false,
+    };
+
+    // Copy existing generated-secrets.env into staging for merge logic
+    let existing_secrets = results_dir.join("generated-secrets.env");
+    if existing_secrets.exists() {
+        fs::copy(&existing_secrets, staging_dir.join("generated-secrets.env"))
+            .io_context("Failed to copy generated-secrets.env into staging")?;
+    }
+
+    // Create a context that renders into the staging directory
+    let staging_context = context.with_results_dir(staging_dir.clone());
+
+    // Run the pipeline into staging
+    run_render_pipeline_inner(&staging_context)?;
+
+    // Success — replace results with staging.
+    // Try the clean path first: delete results entirely, rename staging in.
+    // If that fails (e.g. root-owned files from Docker bind mounts), fall
+    // back to clearing what we can and moving entries individually.
+    guard.committed = true;
+    if results_dir.exists() {
+        if fs::remove_dir_all(results_dir).is_ok() {
+            // Clean path: directory gone, just rename staging
+            fs::rename(&staging_dir, results_dir)
+                .io_context("Failed to move staged results into place")?;
+        } else {
+            // Fallback: some entries couldn't be deleted (permission denied).
+            // Remove what we can, then move staging entries over.
+            warn!("Could not fully delete results dir (likely root-owned files from Docker), using fallback sync");
+            if let Ok(entries) = fs::read_dir(results_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    let removed = if path.is_dir() && !path.is_symlink() {
+                        fs::remove_dir_all(&path)
+                    } else {
+                        fs::remove_file(&path)
+                    };
+                    if let Err(e) = removed {
+                        debug!("Skipping undeletable entry '{}': {}", path.display(), e);
+                    }
+                }
+            }
+            // Move each staging entry into results
+            for entry in fs::read_dir(&staging_dir)
+                .io_context("Failed to read staging directory")?
+            {
+                let entry = entry.io_context("Failed to read staging entry")?;
+                let dst = results_dir.join(entry.file_name());
+                // Remove dst if it still exists (might be an undeletable dir)
+                if dst.exists() || dst.symlink_metadata().is_ok() {
+                    let _ = if dst.is_dir() && !dst.is_symlink() {
+                        fs::remove_dir_all(&dst)
+                    } else {
+                        fs::remove_file(&dst)
+                    };
+                }
+                fs::rename(entry.path(), &dst).io_context(format!(
+                    "Failed to move '{}' into results",
+                    entry.file_name().to_string_lossy()
+                ))?;
+            }
+            // Clean up empty staging dir
+            let _ = fs::remove_dir(&staging_dir);
+        }
+    } else {
+        fs::rename(&staging_dir, results_dir)
+            .io_context("Failed to move staged results into place")?;
+    }
+
+    info!("Render pipeline completed successfully");
+    Ok(())
 }
 
 /// Inner pipeline implementation
-fn run_render_pipeline_inner(context: &RenderContext, results_dir: &Path) -> Result<()> {
-    // Ensure results directory exists (backup creates it if results existed before,
-    // but we need to create it if this is a fresh project)
-    if !results_dir.exists() {
-        fs::create_dir_all(results_dir)
+fn run_render_pipeline_inner(context: &RenderContext) -> Result<()> {
+    // Ensure results directory exists
+    if !context.results_dir.exists() {
+        fs::create_dir_all(&context.results_dir)
             .io_context("Failed to create results directory")?;
     }
 
@@ -724,88 +721,80 @@ spec:
     }
 
     #[test]
-    fn test_pipeline_backup_restore_with_existing_results() {
+    fn test_staging_guard_cleans_up_on_drop() {
         let dir = tempdir().unwrap();
-        let results_dir = dir.path().join("results");
-        fs::create_dir_all(&results_dir).unwrap();
+        let staging = dir.path().join(".results.staging");
+        fs::create_dir_all(&staging).unwrap();
+        fs::write(staging.join("file.txt"), "content").unwrap();
 
-        // Create files in results
-        let secrets_path = results_dir.join("generated-secrets.env");
-        let compose_path = results_dir.join("docker-compose.yaml");
-        fs::write(&secrets_path, "SECRET=original_value").unwrap();
-        fs::write(&compose_path, "services: {}").unwrap();
+        {
+            let _guard = StagingGuard {
+                staging_dir: staging.clone(),
+                committed: false,
+            };
+        }
 
-        // Create backup (moves results to .results.backup, creates fresh results with secrets)
-        let backup = PipelineBackup::create(&results_dir).unwrap();
-
-        // Results directory should exist with only generated-secrets.env copied back
-        assert!(results_dir.exists());
-        assert!(secrets_path.exists());
-        assert!(!compose_path.exists()); // compose was not copied back
-
-        // Simulate pipeline creating new results
-        fs::write(&secrets_path, "SECRET=modified_value").unwrap();
-        fs::write(&compose_path, "services: {new: true}").unwrap();
-
-        // Restore backup
-        backup.restore().unwrap();
-
-        // Verify original values are restored
-        let secrets_content = fs::read_to_string(&secrets_path).unwrap();
-        assert_eq!(secrets_content, "SECRET=original_value");
-        let compose_content = fs::read_to_string(&compose_path).unwrap();
-        assert_eq!(compose_content, "services: {}");
+        assert!(!staging.exists(), "Staging dir should be cleaned up on drop");
     }
 
     #[test]
-    fn test_pipeline_backup_restore_removes_new_results() {
+    fn test_staging_guard_skips_cleanup_when_committed() {
         let dir = tempdir().unwrap();
-        let results_dir = dir.path().join("results");
+        let staging = dir.path().join(".results.staging");
+        fs::create_dir_all(&staging).unwrap();
 
-        // No results directory initially
-        assert!(!results_dir.exists());
+        {
+            let _guard = StagingGuard {
+                staging_dir: staging.clone(),
+                committed: true,
+            };
+        }
 
-        // Create backup (notes that results didn't exist)
-        let backup = PipelineBackup::create(&results_dir).unwrap();
-
-        // Simulate pipeline creating results
-        fs::create_dir_all(&results_dir).unwrap();
-        fs::write(results_dir.join("docker-compose.yaml"), "services: {}").unwrap();
-
-        // Restore backup
-        backup.restore().unwrap();
-
-        // Verify results directory is removed
-        assert!(!results_dir.exists());
+        assert!(staging.exists(), "Committed staging dir should not be deleted");
     }
 
     #[test]
-    fn test_pipeline_backup_commit_removes_backup() {
+    fn test_staging_replaces_results_on_success() {
         let dir = tempdir().unwrap();
-        let results_dir = dir.path().join("results");
-        let backup_dir = dir.path().join(".results.backup");
-        fs::create_dir_all(&results_dir).unwrap();
-        fs::write(results_dir.join("test.txt"), "original").unwrap();
+        let results = dir.path().join("results");
+        let staging = dir.path().join(".results.staging");
+        fs::create_dir_all(&results).unwrap();
+        fs::create_dir_all(&staging).unwrap();
 
-        // Create backup
-        let backup = PipelineBackup::create(&results_dir).unwrap();
+        fs::write(results.join("old.txt"), "stale").unwrap();
+        fs::write(staging.join("new.txt"), "fresh").unwrap();
 
-        // Backup directory should exist
-        assert!(backup_dir.exists());
-        // Results directory should exist (created fresh by backup)
-        assert!(results_dir.exists());
+        // Simulate the commit: delete results, rename staging
+        fs::remove_dir_all(&results).unwrap();
+        fs::rename(&staging, &results).unwrap();
 
-        // Simulate successful pipeline writing new content
-        fs::write(results_dir.join("test.txt"), "new").unwrap();
+        assert!(!results.join("old.txt").exists(), "Stale file should be gone");
+        assert_eq!(
+            fs::read_to_string(results.join("new.txt")).unwrap(),
+            "fresh"
+        );
+    }
 
-        // Commit (removes backup)
-        backup.commit().unwrap();
+    #[test]
+    fn test_staging_data_symlink_target_survives() {
+        let dir = tempdir().unwrap();
+        let results = dir.path().join("results");
+        let data_dir = dir.path().join("data");
+        fs::create_dir_all(&results).unwrap();
+        fs::create_dir_all(&data_dir).unwrap();
+        fs::write(data_dir.join("important.bin"), "keep me").unwrap();
 
-        // Backup should be gone, new results should remain
-        assert!(!backup_dir.exists());
-        assert!(results_dir.exists());
-        let content = fs::read_to_string(results_dir.join("test.txt")).unwrap();
-        assert_eq!(content, "new");
+        // Create symlink inside results pointing to data
+        std::os::unix::fs::symlink(&data_dir, results.join("data")).unwrap();
+
+        // remove_dir_all removes the symlink, not the target
+        fs::remove_dir_all(&results).unwrap();
+
+        assert!(data_dir.exists(), "Data directory should survive");
+        assert_eq!(
+            fs::read_to_string(data_dir.join("important.bin")).unwrap(),
+            "keep me"
+        );
     }
 
 }

@@ -12,7 +12,7 @@
 //!
 //! The [`BollardDockerClient`] implementation uses:
 //! - `bollard` crate for native Docker API calls (inspect, version, ping)
-//! - CLI fallback for `docker compose` commands (not supported by bollard)
+//! - CLI for `docker compose` commands (not available in the bollard API)
 
 use std::process::{Command, Output};
 use tracing::debug;
@@ -70,6 +70,23 @@ pub struct ComposeUpOptions<'a> {
     pub remove_orphans: bool,
 }
 
+/// Options for running docker compose build.
+#[derive(Debug)]
+pub struct ComposeBuildOptions<'a> {
+    /// Project name (-p)
+    pub project: &'a str,
+    /// Path to compose file (-f)
+    pub compose_file: &'a std::path::Path,
+    /// Project directory (--project-directory)
+    pub project_dir: &'a std::path::Path,
+    /// Environment files (--env-file)
+    pub env_files: Vec<&'a std::path::Path>,
+    /// Working directory for the command
+    pub working_dir: &'a std::path::Path,
+    /// Whether to skip the build cache (--no-cache)
+    pub no_cache: bool,
+}
+
 /// Options for running docker compose passthrough.
 #[derive(Debug)]
 pub struct ComposePassthroughOptions<'a> {
@@ -105,6 +122,9 @@ pub trait DockerClient: Send + Sync {
 
     /// Run docker compose up with full options.
     fn compose_up(&self, options: &ComposeUpOptions) -> Result<()>;
+
+    /// Run docker compose build with options.
+    fn compose_build(&self, options: &ComposeBuildOptions) -> Result<()>;
 
     /// Run arbitrary docker compose command with inherited stdio (for interactive commands).
     fn compose_passthrough(&self, options: &ComposePassthroughOptions) -> Result<()>;
@@ -256,8 +276,47 @@ Error: {}"#,
 
         if !status.success() {
             return Err(MowsError::Docker(format!(
-                "docker compose up failed with exit code: {}",
-                status.code().unwrap_or(-1)
+                "docker compose up failed with exit code {}",
+                status.code().unwrap_or(-1),
+            )));
+        }
+
+        Ok(())
+    }
+
+    fn compose_build(&self, options: &ComposeBuildOptions) -> Result<()> {
+        debug!("Running docker compose build for project: {}", options.project);
+
+        let mut cmd = Command::new("docker");
+        cmd.arg("compose")
+            .arg("-p")
+            .arg(options.project)
+            .arg("--project-directory")
+            .arg(options.project_dir)
+            .arg("-f")
+            .arg(options.compose_file);
+
+        for env_file in &options.env_files {
+            cmd.arg("--env-file").arg(env_file);
+        }
+
+        cmd.arg("build");
+
+        if options.no_cache {
+            cmd.arg("--no-cache");
+        }
+
+        cmd.current_dir(options.working_dir);
+        debug!("Executing: {:?}", cmd);
+
+        let status = cmd
+            .status()
+            .map_err(|e| MowsError::command("docker compose build", e.to_string()))?;
+
+        if !status.success() {
+            return Err(MowsError::Docker(format!(
+                "docker compose build failed with exit code {}",
+                status.code().unwrap_or(-1),
             )));
         }
 
@@ -420,7 +479,16 @@ impl DockerClient for MockDockerClient {
     }
 
     fn compose_up(&self, options: &ComposeUpOptions) -> Result<()> {
-        debug!("Mock: compose_up project={}", options.project);
+        debug!("Mock: compose_up project={} build={}", options.project, options.build);
+        Ok(())
+    }
+
+    fn compose_build(&self, options: &ComposeBuildOptions) -> Result<()> {
+        debug!("Mock: compose_build project={} no_cache={}", options.project, options.no_cache);
+        // Print to stdout so E2E tests can verify the flag was passed
+        use std::io::Write;
+        println!("mock: compose_build project={} no_cache={}", options.project, options.no_cache);
+        let _ = std::io::stdout().flush();
         Ok(())
     }
 
@@ -512,6 +580,7 @@ pub struct ConfigurableMockClient {
     pub compose_ps: MockResponse,
     pub compose_logs: MockResponse,
     pub compose_up: MockResponse,
+    pub compose_build: MockResponse,
     pub compose_passthrough: MockResponse,
     pub inspect_container: MockResponse,
     pub list_containers: MockResponse,
@@ -533,6 +602,10 @@ impl DockerClient for ConfigurableMockClient {
 
     fn compose_up(&self, _options: &ComposeUpOptions) -> Result<()> {
         self.compose_up.to_unit_result()
+    }
+
+    fn compose_build(&self, _options: &ComposeBuildOptions) -> Result<()> {
+        self.compose_build.to_unit_result()
     }
 
     fn compose_passthrough(&self, _options: &ComposePassthroughOptions) -> Result<()> {
@@ -707,6 +780,7 @@ mod tests {
             compose_ps: MockResponse::err("Cannot connect to the Docker daemon"),
             compose_logs: MockResponse::err("Cannot connect to the Docker daemon"),
             compose_up: MockResponse::err("Cannot connect to the Docker daemon"),
+            compose_build: MockResponse::err("Cannot connect to the Docker daemon"),
             compose_passthrough: MockResponse::err("Cannot connect to the Docker daemon"),
             inspect_container: MockResponse::err("Cannot connect to the Docker daemon"),
             list_containers: MockResponse::err("Cannot connect to the Docker daemon"),
