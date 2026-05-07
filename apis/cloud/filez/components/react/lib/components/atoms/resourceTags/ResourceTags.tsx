@@ -12,11 +12,11 @@ import { PureComponent, type CSSProperties } from "react";
 import { IoClose } from "react-icons/io5";
 import { MdOutlineLibraryAdd } from "react-icons/md";
 import { match } from "ts-pattern";
-import { Badge } from "../../ui/badge";
-import { Button } from "../../ui/button";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "../../ui/input-group";
-import { Textarea } from "../../ui/textarea";
-import ButtonSelect from "../buttonSelect/ButtonSelect";
+import { Badge } from "mows-components-react/components/ui/badge";
+import { Button } from "mows-components-react/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "mows-components-react/components/ui/input-group";
+import { Textarea } from "mows-components-react/components/ui/textarea";
+import ButtonSelect from "mows-components-react/components/atoms/buttonSelect/ButtonSelect";
 
 export interface ResourceTagsChangeset {
     resourceIds: string[];

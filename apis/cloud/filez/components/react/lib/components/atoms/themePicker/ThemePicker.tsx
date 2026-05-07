@@ -5,10 +5,10 @@ import {
     CommandInput,
     CommandItem,
     CommandList
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+} from "mows-components-react/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "mows-components-react/components/ui/popover";
 import { useFilez } from "@/lib/filezContext/FilezContext";
-import { type FilezTheme, themes } from "@/lib/themes";
+import { type MowsTheme, themes } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, Monitor, Moon, Sun } from "lucide-react";
 import * as React from "react";
@@ -18,7 +18,7 @@ interface ThemePickerProps {
     readonly className?: string;
     readonly style?: React.CSSProperties;
     readonly defaultOpen?: boolean;
-    readonly onValueChange?: (value?: FilezTheme) => void;
+    readonly onValueChange?: (value?: MowsTheme) => void;
     readonly standalone?: boolean;
 }
 
@@ -59,7 +59,7 @@ const ThemePicker = forwardRef<HTMLDivElement, ThemePickerProps>(
             ? `dark`
             : `light`;
 
-        const handleSelect = (theme: FilezTheme) => {
+        const handleSelect = (theme: MowsTheme) => {
             setOpen(false);
             setTheme(theme);
             onValueChange?.();

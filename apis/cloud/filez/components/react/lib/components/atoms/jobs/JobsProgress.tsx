@@ -1,4 +1,4 @@
-import { Progress } from "@/components/ui/progress";
+import { Progress } from "mows-components-react/components/ui/progress";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
 import { PureComponent, type CSSProperties } from "react";

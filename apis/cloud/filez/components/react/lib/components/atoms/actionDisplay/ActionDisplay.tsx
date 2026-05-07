@@ -1,5 +1,5 @@
 import { FilezContext } from "@/lib/filezContext/FilezContext";
-import { Action } from "@/lib/filezContext/ActionManager";
+import { Action } from "mows-components-react/lib/mowsContext/ActionManager";
 import { cn } from "@/lib/utils";
 import { PureComponent, type CSSProperties } from "react";
 import KeyComboDisplay from "../keyComboDisplay/KeyComboDisplay";

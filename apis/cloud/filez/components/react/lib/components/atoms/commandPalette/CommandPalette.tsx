@@ -1,8 +1,8 @@
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { ActionIds } from "@/lib/defaultActions";
-import type { Action } from "@/lib/filezContext/ActionManager";
-import { ActionVisibility } from "@/lib/filezContext/ActionManager";
-import { log } from "@/lib/logging";
+import type { Action } from "mows-components-react/lib/mowsContext/ActionManager";
+import { ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
+import { log } from "mows-components-react/lib/logging";
 import { PureComponent, type CSSProperties } from "react";
 import {
     CommandDialog,
@@ -11,7 +11,7 @@ import {
     CommandInput,
     CommandItem,
     CommandList
-} from "../../ui/command";
+} from "mows-components-react/components/ui/command";
 import ActionComponent from "../actionDisplay/ActionDisplay";
 
 interface CommandPaletteProps {

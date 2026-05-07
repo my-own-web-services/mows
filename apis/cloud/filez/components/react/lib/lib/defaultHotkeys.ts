@@ -1,5 +1,5 @@
 import { ActionIds } from "./defaultActions";
-import { HotkeyConfig } from "./filezContext/HotkeyManager";
+import { HotkeyConfig } from "mows-components-react/lib/mowsContext/HotkeyManager";
 
 export const defaultHotkeys: HotkeyConfig = {
     [ActionIds.OPEN_COMMAND_PALETTE]: {

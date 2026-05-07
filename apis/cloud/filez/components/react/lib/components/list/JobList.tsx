@@ -4,8 +4,8 @@ import { FilezJob, JobStatus, ListJobsSortBy, SortDirection } from "filez-client
 
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { ActionIds } from "@/lib/defaultActions";
-import { ActionHandler, ActionVisibility } from "@/lib/filezContext/ActionManager";
-import { log } from "@/lib/logging";
+import { ActionHandler, ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
+import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
 import DateTime from "../atoms/dateTime/DateTime";
 import ResourceList from "./ResourceList/ResourceList";

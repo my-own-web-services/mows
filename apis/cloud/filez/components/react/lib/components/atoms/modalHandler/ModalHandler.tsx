@@ -8,7 +8,7 @@ import {
     DialogDescription,
     DialogHeader,
     DialogTitle
-} from "../../ui/dialog";
+} from "mows-components-react/components/ui/dialog";
 import FileGroupCreate from "../fileGroupCreate/FileGroupCreate";
 import KeyboardShortcuts from "../keyboardShortcutEditor/KeyboardShortcutEditor";
 import LanguagePicker from "../languagePicker/LanguagePicker";

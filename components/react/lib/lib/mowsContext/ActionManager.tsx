@@ -1,5 +1,4 @@
 import { JSX } from "react";
-import { FILEZ_MAXIMUM_RECENT_ACTIONS, FILEZ_RECENT_ACTIONS_STORAGE_KEY } from "../constants";
 import { log } from "../logging";
 
 export interface ActionState {
@@ -26,9 +25,7 @@ export class Action {
     id: string;
     category: string;
     actionHandlers: Map<string, ActionHandler>;
-    // If true, this action will be completely hidden in the command palette
     hideInCommandPalette?: boolean;
-    // If true, usage of this action will not be tracked in recent actions
     doNotTrackUsage?: boolean;
 
     constructor(params: ActionConstructorParams) {
@@ -63,9 +60,7 @@ export class Action {
 
 export interface ActionHandler {
     id: string;
-    // The scopes where this action handler is applicable
     scopes?: string[];
-    // The function to execute when the action is triggered
     executeAction?: (event?: KeyboardEvent) => void;
     getState: () => ActionState;
 }
@@ -75,12 +70,19 @@ export interface RecentAction {
     timestamp: number;
 }
 
-// The global Manager to handle the registration of actions
+export interface ActionManagerConfig {
+    recentActionsStorageKey: string;
+    maxRecentActions: number;
+}
+
 export class ActionManager {
     private actions: Map<string, Action> = new Map();
     private recentActions: RecentAction[] = [];
+    private config: ActionManagerConfig;
 
-    constructor() {}
+    constructor(config: ActionManagerConfig) {
+        this.config = config;
+    }
 
     dispatchAction = (actionId: string) => {
         const action = this.actions.get(actionId);
@@ -110,7 +112,6 @@ export class ActionManager {
         return this.actions.get(actionId);
     };
 
-    // Action Management
     defineAction(action: Action): void {
         log.debug(`Defining action: ${action.id}`, action);
         this.actions.set(action.id, action);
@@ -209,13 +210,13 @@ export class ActionManager {
         const updatedCommands = [
             { actionId: action.id, timestamp: now },
             ...recentCommands.filter((cmd) => cmd.actionId !== action.id)
-        ].slice(0, FILEZ_MAXIMUM_RECENT_ACTIONS);
+        ].slice(0, this.config.maxRecentActions);
         this.recentActions = updatedCommands;
         this.saveRecentActions();
     };
 
     loadRecentActions = () => {
-        const stored = localStorage.getItem(FILEZ_RECENT_ACTIONS_STORAGE_KEY);
+        const stored = localStorage.getItem(this.config.recentActionsStorageKey);
         if (stored) {
             try {
                 this.recentActions = JSON.parse(stored) as RecentAction[];
@@ -229,12 +230,15 @@ export class ActionManager {
     };
 
     saveRecentActions = () => {
-        localStorage.setItem(FILEZ_RECENT_ACTIONS_STORAGE_KEY, JSON.stringify(this.recentActions));
+        localStorage.setItem(
+            this.config.recentActionsStorageKey,
+            JSON.stringify(this.recentActions)
+        );
     };
 
     getRecentCommands = (): RecentAction[] => {
         return this.recentActions
             .sort((a, b) => b.timestamp - a.timestamp)
-            .slice(0, FILEZ_MAXIMUM_RECENT_ACTIONS);
+            .slice(0, this.config.maxRecentActions);
     };
 }

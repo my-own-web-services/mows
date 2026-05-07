@@ -4,8 +4,8 @@ import { FileGroupType, FilezFile, ListFilesSortBy, SortDirection } from "filez-
 
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { ActionIds } from "@/lib/defaultActions";
-import { ActionHandler, ActionVisibility } from "@/lib/filezContext/ActionManager";
-import { log } from "@/lib/logging";
+import { ActionHandler, ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
+import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
 import ResourceList from "./ResourceList/ResourceList";
 import {

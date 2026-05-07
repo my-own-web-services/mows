@@ -13,8 +13,8 @@ export { default as FileList } from "./components/list/FileList";
 export { default as JobList } from "./components/list/JobList";
 export { default as LoggingConfig } from "./components/loggingConfig/LoggingConfig";
 export { default as PrimaryMenu } from "./components/PrimaryMenu";
-export * from "./components/ui/sonner";
+export * from "mows-components-react/components/ui/sonner";
 export * from "./lib/filezContext/FilezContext";
-export { Logger, log } from "./lib/logging";
+export { Logger, log } from "mows-components-react/lib/logging";
 
 import "./main.css";

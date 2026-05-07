@@ -5,8 +5,8 @@ import {
     CommandInput,
     CommandItem,
     CommandList
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+} from "mows-components-react/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "mows-components-react/components/ui/popover";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { cn, formatFileSizeToHumanReadable } from "@/lib/utils";
 import { StorageQuota } from "filez-client-typescript";

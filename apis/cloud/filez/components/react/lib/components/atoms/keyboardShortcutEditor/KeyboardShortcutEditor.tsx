@@ -1,19 +1,19 @@
 import { FilezContext } from "@/lib/filezContext/FilezContext";
-import type { Action } from "@/lib/filezContext/ActionManager";
-import { log } from "@/lib/logging";
+import type { Action } from "mows-components-react/lib/mowsContext/ActionManager";
+import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
 import { type CSSProperties, PureComponent } from "react";
 import { MdDelete, MdEdit, MdRestartAlt } from "react-icons/md";
 import { RiResetLeftFill } from "react-icons/ri";
-import { Button } from "../../ui/button";
+import { Button } from "mows-components-react/components/ui/button";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle
-} from "../../ui/dialog";
-import { Input } from "../../ui/input";
+} from "mows-components-react/components/ui/dialog";
+import { Input } from "mows-components-react/components/ui/input";
 import { KeyComboDisplay } from "../keyComboDisplay/KeyComboDisplay";
 
 interface KeyboardShortcutEditorProps {

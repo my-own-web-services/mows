@@ -1,7 +1,7 @@
-import ButtonSelect from "@/components/atoms/buttonSelect/ButtonSelect";
-import { Button } from "@/components/ui/button";
+import ButtonSelect from "mows-components-react/components/atoms/buttonSelect/ButtonSelect";
+import { Button } from "mows-components-react/components/ui/button";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
-import { log } from "@/lib/logging";
+import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
 import { SortDirection } from "filez-client-typescript";
 import update from "immutability-helper";

@@ -5,8 +5,8 @@ import {
     CommandInput,
     CommandItem,
     CommandList
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+} from "mows-components-react/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "mows-components-react/components/ui/popover";
 import { useFilez } from "@/lib/filezContext/FilezContext";
 import { getBrowserLanguage, languages, type Language } from "@/lib/languages";
 import { cn } from "@/lib/utils";

@@ -1,5 +1,5 @@
 import FileViewer from "@/components/fileViewer/FileViewer";
-import { Slider } from "@/components/ui/slider";
+import { Slider } from "mows-components-react/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { FilezFile, SortDirection } from "filez-client-typescript";
 import { CSSProperties, JSX } from "react";

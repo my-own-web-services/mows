@@ -1,10 +1,10 @@
 import { FilezContext } from "@/lib/filezContext/FilezContext";
-import { Action, ActionVisibility } from "@/lib/filezContext/ActionManager";
-import { log } from "@/lib/logging";
+import { Action, ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
+import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { PureComponent, type CSSProperties } from "react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "../../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "mows-components-react/components/ui/dropdown-menu";
 import ActionComponent from "../actionDisplay/ActionDisplay";
 
 interface GlobalContextMenuProps {

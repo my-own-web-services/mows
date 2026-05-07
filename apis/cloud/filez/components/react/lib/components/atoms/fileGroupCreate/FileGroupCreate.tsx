@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "mows-components-react/components/ui/button";
+import { Input } from "mows-components-react/components/ui/input";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
 import { FileGroup, FileGroupType } from "filez-client-typescript";
 import { PureComponent, type CSSProperties } from "react";

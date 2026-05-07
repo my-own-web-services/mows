@@ -1,28 +1,30 @@
 import React from "react";
-import { HOTKEY_CONFIG_LOCAL_STORAGE_KEY } from "../constants";
-import { defaultHotkeys } from "../defaultHotkeys";
 import { log } from "../logging";
 import { ActionManager } from "./ActionManager";
 
 export interface HotkeyConfig {
     [actionId: string]: {
-        // List of key combinations that trigger the action
         keyCombinations?: string[];
     };
+}
+
+export interface HotkeyManagerConfig {
+    configStorageKey: string;
+    defaultHotkeys: HotkeyConfig;
 }
 
 export class HotkeyManager {
     private actionManager: ActionManager;
     private hotkeyConfig: HotkeyConfig;
+    private config: HotkeyManagerConfig;
 
-    constructor(actionManager: ActionManager) {
+    constructor(actionManager: ActionManager, config: HotkeyManagerConfig) {
         this.actionManager = actionManager;
+        this.config = config;
         this.hotkeyConfig = this.loadHotkeyConfig();
         this.mergeWithDefaultHotkeys();
 
-        // capture hotkeys and dispatch actions
         document.addEventListener(`keydown`, (event) => {
-            //log.debug("Keydown event:", event);
             const keyCombo = this.formatKeyCombo(event);
             const actionId = this.getActionByHotkey(keyCombo);
             if (actionId) {
@@ -55,7 +57,7 @@ export class HotkeyManager {
     };
 
     resetActionHotkeysToDefault = (actionId: string): void => {
-        const defaultActionHotkeys = defaultHotkeys[actionId];
+        const defaultActionHotkeys = this.config.defaultHotkeys[actionId];
 
         if (defaultActionHotkeys) {
             this.hotkeyConfig[actionId] = { ...defaultActionHotkeys };
@@ -66,7 +68,7 @@ export class HotkeyManager {
     };
 
     resetAllToDefaults = (): void => {
-        this.hotkeyConfig = { ...defaultHotkeys };
+        this.hotkeyConfig = { ...this.config.defaultHotkeys };
         this.saveHotkeyConfig(this.hotkeyConfig);
     };
 
@@ -77,7 +79,6 @@ export class HotkeyManager {
         if (event.altKey) keys.push(`alt`);
         if (event.shiftKey) keys.push(`shift`);
 
-        // Add the actual key
         let key = event.key.toLowerCase();
         if (![`control`, `alt`, `shift`, `meta`].includes(key)) {
             if (key === `escape`) key = `esc`;
@@ -88,7 +89,6 @@ export class HotkeyManager {
         return keys.join(`+`);
     }
 
-    // Normalize key combo for display
     parseKeyCombo = (combo: string): string => {
         return combo
             .replace(/\s+/g, ``)
@@ -98,17 +98,17 @@ export class HotkeyManager {
     };
 
     mergeWithDefaultHotkeys = (): void => {
-        this.hotkeyConfig = { ...defaultHotkeys, ...this.hotkeyConfig };
+        this.hotkeyConfig = { ...this.config.defaultHotkeys, ...this.hotkeyConfig };
         this.saveHotkeyConfig(this.hotkeyConfig);
     };
 
     private saveHotkeyConfig = (hotkeyConfig: HotkeyConfig): void => {
         log.debug(`Saving custom hotkey config to localStorage:`, hotkeyConfig);
-        localStorage.setItem(HOTKEY_CONFIG_LOCAL_STORAGE_KEY, JSON.stringify(hotkeyConfig));
+        localStorage.setItem(this.config.configStorageKey, JSON.stringify(hotkeyConfig));
     };
 
     private loadHotkeyConfig = (): HotkeyConfig => {
-        const savedConfig = localStorage.getItem(HOTKEY_CONFIG_LOCAL_STORAGE_KEY);
+        const savedConfig = localStorage.getItem(this.config.configStorageKey);
         if (!savedConfig) {
             return {};
         }

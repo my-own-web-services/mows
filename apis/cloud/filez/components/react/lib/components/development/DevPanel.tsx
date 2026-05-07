@@ -1,11 +1,11 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "mows-components-react/components/ui/badge";
+import { Button } from "mows-components-react/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "mows-components-react/components/ui/card";
+import { Input } from "mows-components-react/components/ui/input";
+import { Label } from "mows-components-react/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "mows-components-react/components/ui/radio-group";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
-import { log } from "@/lib/logging";
+import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
 import { Check, Loader2, Play, Search, X } from "lucide-react";
 import { PureComponent, type CSSProperties } from "react";

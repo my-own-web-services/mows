@@ -1,12 +1,8 @@
-import { clsx, type ClassValue } from "clsx";
 import { type FilezFile } from "filez-client-typescript";
 import type { SigninRedirectArgs } from "oidc-client-ts";
-import { twMerge } from "tailwind-merge";
 import { FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY } from "./constants";
 
-export const cn = (...inputs: ClassValue[]) => {
-    return twMerge(clsx(inputs));
-};
+export { cn, formatFileSizeToHumanReadable, generateRandomId } from "mows-components-react/lib/utils";
 
 export const rawFileEndings = [
     `3fr`,
@@ -62,16 +58,6 @@ export const signinRedirectSavePath = async (
     await signinRedirectFunction();
 };
 
-export const formatFileSizeToHumanReadable = (maybe_bigint_bytes: bigint | number): string => {
-    const bytes = Number(maybe_bigint_bytes);
-    const sizes = [`Bytes`, `KiB`, `MiB`, `GiB`, `TiB`];
-    if (bytes === 0) {
-        return `0 Bytes`;
-    }
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return (bytes / Math.pow(1024, i)).toFixed(2) + ` ` + sizes[i];
-};
-
 export const isText = (file: FilezFile): boolean => {
     if (file.mime_type.startsWith(`text/`)) return true;
     if (file.mime_type.startsWith(`application/json`)) return true;
@@ -79,14 +65,4 @@ export const isText = (file: FilezFile): boolean => {
     if (file.mime_type.startsWith(`application/octet-stream`)) return true;
 
     return false;
-};
-
-export const generateRandomId = (length: number = 16): string => {
-    const chars = `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-`;
-    let result = ``;
-    const charactersLength = chars.length;
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * charactersLength));
-    }
-    return result;
 };

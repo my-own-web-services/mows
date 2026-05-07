@@ -1,6 +1,6 @@
-import { Action, ActionVisibility } from "./filezContext/ActionManager";
+import { Action, ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
 import type { FilezClientManagerBase } from "./filezContext/FilezContext";
-import { log } from "./logging";
+import { log } from "mows-components-react/lib/logging";
 import { signinRedirectSavePath } from "./utils";
 
 export const defineApplicationActions = (

@@ -13,18 +13,22 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { type AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
 import {
     CSS_VARIABLE_THEME_PREFIX,
+    FILEZ_MAXIMUM_RECENT_ACTIONS,
     FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY,
+    FILEZ_RECENT_ACTIONS_STORAGE_KEY,
+    HOTKEY_CONFIG_LOCAL_STORAGE_KEY,
     SELECTED_LANGUAGE_LOCAL_STORAGE_KEY,
     THEME_LOCAL_STORAGE_KEY
 } from "../constants";
+import { defaultHotkeys } from "../defaultHotkeys";
 import { defineApplicationActions } from "../defaultActions";
 import { getBrowserLanguage, type Language, type Translation } from "../languages";
 import englishTranslation from "../languages/en-US/default";
-import { log } from "../logging";
-import { type FilezTheme, loadThemeCSS, themes } from "../themes";
+import { log } from "mows-components-react/lib/logging";
+import { type MowsTheme, loadThemeCSS, themes } from "../themes";
 import { signinRedirectSavePath } from "../utils";
-import { ActionManager } from "./ActionManager";
-import { HotkeyManager } from "./HotkeyManager";
+import { ActionManager } from "mows-components-react/lib/mowsContext/ActionManager";
+import { HotkeyManager } from "mows-components-react/lib/mowsContext/HotkeyManager";
 //import { generateDndPreview } from "./components/dragAndDrop/generatePreview";
 
 export interface FilezContextType {
@@ -33,8 +37,8 @@ export interface FilezContextType {
     readonly clientConfig: ClientConfig;
     readonly clientLoading: boolean;
     readonly clientAuthenticated: boolean;
-    readonly setTheme: (theme: FilezTheme) => Promise<void>;
-    readonly currentTheme: FilezTheme;
+    readonly setTheme: (theme: MowsTheme) => Promise<void>;
+    readonly currentTheme: MowsTheme;
     readonly ownFilezUser?: FilezUser | null;
     readonly setLanguage: (language?: Language) => void;
     readonly t: Translation;
@@ -61,7 +65,7 @@ interface FilezClientManagerProps {
 // Undefined means still loading, null means no user, otherwise a user.
 interface FilezClientManagerState {
     readonly filezClient?: FilezClient;
-    readonly currentTheme: FilezTheme;
+    readonly currentTheme: MowsTheme;
     readonly ownUser?: FilezUser | null;
     readonly currentTranslation: Translation;
     readonly currentLanguage?: Language;
@@ -90,8 +94,14 @@ export class FilezClientManagerBase extends Component<
             clientAuthenticated: false
         };
 
-        this.actionManager = new ActionManager();
-        this.hotkeyManager = new HotkeyManager(this.actionManager);
+        this.actionManager = new ActionManager({
+            recentActionsStorageKey: FILEZ_RECENT_ACTIONS_STORAGE_KEY,
+            maxRecentActions: FILEZ_MAXIMUM_RECENT_ACTIONS
+        });
+        this.hotkeyManager = new HotkeyManager(this.actionManager, {
+            configStorageKey: HOTKEY_CONFIG_LOCAL_STORAGE_KEY,
+            defaultHotkeys
+        });
     }
 
     componentDidMount = () => {
@@ -239,7 +249,7 @@ export class FilezClientManagerBase extends Component<
         }
     };
 
-    setTheme = async (theme: FilezTheme) => {
+    setTheme = async (theme: MowsTheme) => {
         const root = window.document.documentElement;
 
         root.classList.forEach((cls) => {

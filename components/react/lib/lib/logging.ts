@@ -1,4 +1,4 @@
-import { FILEZ_LOG_LEVEL_LOCAL_STORAGE_KEY } from "./constants";
+import { MOWS_LOG_LEVEL_LOCAL_STORAGE_KEY } from "./constants";
 
 type LogLevel = `TRACE` | `DEBUG` | `INFO` | `WARN` | `ERROR`;
 
@@ -19,7 +19,7 @@ export class Logger {
 		if (typeof window === `undefined`) return;
 
 		try {
-			const stored = localStorage.getItem(FILEZ_LOG_LEVEL_LOCAL_STORAGE_KEY);
+			const stored = localStorage.getItem(MOWS_LOG_LEVEL_LOCAL_STORAGE_KEY);
 			if (stored) {
 				const config: LogConfig = JSON.parse(stored);
 				Logger.defaultLevel = config.defaultLevel;
@@ -38,7 +38,7 @@ export class Logger {
 				defaultLevel: Logger.defaultLevel,
 				fileFilter: Logger.fileFilter
 			};
-			localStorage.setItem(FILEZ_LOG_LEVEL_LOCAL_STORAGE_KEY, JSON.stringify(config));
+			localStorage.setItem(MOWS_LOG_LEVEL_LOCAL_STORAGE_KEY, JSON.stringify(config));
 		} catch (error) {
 			console.error(`Failed to save logging config to localStorage:`, error);
 		}
@@ -75,14 +75,12 @@ export class Logger {
     };
 
     private shouldLog = (level: LogLevel, file: string): boolean => {
-        // Check for specific file filters first
         for (const [filePattern, minLevel] of Object.entries(Logger.fileFilter)) {
             if (file.includes(filePattern)) {
                 return this.logLevels[level] >= this.logLevels[minLevel];
             }
         }
 
-        // If no specific filter matches, use the default level
         return this.logLevels[level] >= this.logLevels[Logger.defaultLevel];
     };
 
@@ -141,18 +139,16 @@ export class Logger {
 
 export const log = new Logger();
 
-// Load saved configuration from localStorage
 Logger.loadConfig();
 
-// Expose Logger to window for configuration in tests and debugging
 declare global {
 	interface Window {
-		FilezLogger?: typeof Logger;
-		filezLog?: Logger;
+		MowsLogger?: typeof Logger;
+		mowsLog?: Logger;
 	}
 }
 
 if (typeof window !== `undefined`) {
-	window.FilezLogger = Logger;
-	window.filezLog = log;
+	window.MowsLogger = Logger;
+	window.mowsLog = log;
 }

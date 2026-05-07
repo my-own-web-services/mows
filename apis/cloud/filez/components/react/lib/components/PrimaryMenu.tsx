@@ -5,11 +5,11 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "mows-components-react/components/ui/dropdown-menu";
+import { Skeleton } from "mows-components-react/components/ui/skeleton";
 import { ActionIds } from "@/lib/defaultActions";
-import { ActionVisibility } from "@/lib/filezContext/ActionManager";
-import { log } from "@/lib/logging";
+import { ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
+import { log } from "mows-components-react/lib/logging";
 import { cn, signinRedirectSavePath } from "@/lib/utils";
 import { type CSSProperties, PureComponent } from "react";
 import { IoCodeSlashSharp, IoLogOutSharp, IoMenuSharp, IoPersonSharp } from "react-icons/io5";
@@ -18,7 +18,7 @@ import { PiUserSwitchFill } from "react-icons/pi";
 import { match } from "ts-pattern";
 import { FilezContext } from "../lib/filezContext/FilezContext";
 import Avatar from "./atoms/avatar/Avatar";
-import CopyValueButton from "./atoms/copyValueButton/CopyValueButton";
+import CopyValueButton from "mows-components-react/components/atoms/copyValueButton/CopyValueButton";
 import LanguagePicker from "./atoms/languagePicker/LanguagePicker";
 import ThemePicker from "./atoms/themePicker/ThemePicker";
 

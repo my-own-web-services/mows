@@ -1,10 +1,10 @@
 import { PureComponent } from "react";
 import { FilezContext } from "../../lib/filezContext/FilezContext";
-import { Logger } from "../../lib/logging";
-import { Button } from "../ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+import { Logger } from "mows-components-react/lib/logging";
+import { Button } from "mows-components-react/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "mows-components-react/components/ui/card";
+import { Input } from "mows-components-react/components/ui/input";
+import { Label } from "mows-components-react/components/ui/label";
 import LogLevelSlider from "./LogLevelSlider";
 
 type LogLevel = `TRACE` | `DEBUG` | `INFO` | `WARN` | `ERROR`;

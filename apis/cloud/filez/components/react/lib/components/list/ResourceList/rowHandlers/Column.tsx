@@ -1,6 +1,6 @@
-import OptionPicker from "@/components/atoms/optionPicker/OptionPicker";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import OptionPicker from "mows-components-react/components/atoms/optionPicker/OptionPicker";
+import { Checkbox } from "mows-components-react/components/ui/checkbox";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "mows-components-react/components/ui/resizable";
 import { cn } from "@/lib/utils";
 import { SortDirection } from "filez-client-typescript";
 import { LucideColumns3 } from "lucide-react";

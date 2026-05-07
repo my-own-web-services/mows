@@ -4,11 +4,11 @@ import {
     ListResourceResponseBody
 } from "@/components/list/ResourceList/ResourceListTypes";
 import ColumnListRowHandler from "@/components/list/ResourceList/rowHandlers/Column";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "mows-components-react/components/ui/button";
+import { Checkbox } from "mows-components-react/components/ui/checkbox";
+import { Progress } from "mows-components-react/components/ui/progress";
 import { FilezContext } from "@/lib/filezContext/FilezContext";
-import { log } from "@/lib/logging";
+import { log } from "mows-components-react/lib/logging";
 import { cn, formatFileSizeToHumanReadable, generateRandomId } from "@/lib/utils";
 import { FileGroup, SortDirection, StorageQuota } from "filez-client-typescript";
 import { Folder, Upload as UploadIcon } from "lucide-react";
