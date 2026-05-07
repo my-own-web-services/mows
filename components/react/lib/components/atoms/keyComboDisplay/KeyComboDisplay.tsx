@@ -1,4 +1,4 @@
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
 import { cn } from "@/lib/utils";
 import { useContext, type CSSProperties } from "react";
 
@@ -9,8 +9,8 @@ interface KeyComboDisplayProps {
 }
 
 export const KeyComboDisplay = ({ keyCombo, className, style }: KeyComboDisplayProps) => {
-    const filezContext = useContext(FilezContext);
-    const keys = filezContext?.hotkeyManager.parseKeyCombo(keyCombo).split(` + `);
+    const mowsCtx = useContext(MowsContext);
+    const keys = mowsCtx?.hotkeyManager.parseKeyCombo(keyCombo).split(` + `);
     if (!keys || keys.length === 0) {
         return null;
     }

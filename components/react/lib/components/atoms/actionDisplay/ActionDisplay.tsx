@@ -1,5 +1,5 @@
-import { FilezContext } from "@/lib/filezContext/FilezContext";
-import { Action } from "mows-components-react/lib/mowsContext/ActionManager";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
+import { Action } from "@/lib/mowsContext/ActionManager";
 import { cn } from "@/lib/utils";
 import { PureComponent, type CSSProperties } from "react";
 import KeyComboDisplay from "../keyComboDisplay/KeyComboDisplay";
@@ -13,8 +13,8 @@ interface ActionDisplayProps {
 type ActionDisplayState = Record<string, never>;
 
 export default class ActionDisplay extends PureComponent<ActionDisplayProps, ActionDisplayState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: ActionDisplayProps) {
         super(props);

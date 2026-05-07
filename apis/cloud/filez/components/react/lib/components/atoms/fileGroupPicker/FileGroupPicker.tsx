@@ -7,7 +7,8 @@ import {
     CommandList
 } from "mows-components-react/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "mows-components-react/components/ui/popover";
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, Folder } from "lucide-react";
 import { PureComponent, type CSSProperties, type ReactNode } from "react";
@@ -24,6 +25,7 @@ interface FileGroupPickerProps {
     readonly triggerComponent?: ReactNode;
     readonly standalone?: boolean;
     readonly autofocus?: boolean;
+    readonly filez: FilezContextType;
 }
 
 interface FileGroupPickerState {
@@ -33,12 +35,12 @@ interface FileGroupPickerState {
     readonly error: string | null;
 }
 
-export default class FileGroupPicker extends PureComponent<
+class FileGroupPickerBase extends PureComponent<
     FileGroupPickerProps,
     FileGroupPickerState
 > {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: FileGroupPickerProps) {
         super(props);
@@ -70,7 +72,7 @@ export default class FileGroupPicker extends PureComponent<
                 groups = await this.props.getFileGroups();
             } else {
                 // Handle API request ourselves when no prop is provided
-                const res = await this.context?.filezClient.api.listFileGroups({});
+                const res = await this.props.filez.filezClient.api.listFileGroups({});
                 groups = res?.data?.data?.file_groups;
             }
 
@@ -259,3 +261,5 @@ export default class FileGroupPicker extends PureComponent<
         );
     };
 }
+
+export default withFilez(FileGroupPickerBase);

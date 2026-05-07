@@ -7,7 +7,8 @@ import {
     CommandList
 } from "mows-components-react/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "mows-components-react/components/ui/popover";
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { cn, formatFileSizeToHumanReadable } from "@/lib/utils";
 import { StorageQuota } from "filez-client-typescript";
 import { Check, ChevronsUpDown, Database } from "lucide-react";
@@ -24,6 +25,7 @@ interface StorageQuotaPickerProps {
     readonly triggerComponent?: ReactNode;
     readonly standalone?: boolean;
     readonly autofocus?: boolean;
+    readonly filez: FilezContextType;
 }
 
 interface StorageQuotaPickerState {
@@ -33,12 +35,12 @@ interface StorageQuotaPickerState {
     readonly error: string | null;
 }
 
-export default class StorageQuotaPicker extends PureComponent<
+class StorageQuotaPickerBase extends PureComponent<
     StorageQuotaPickerProps,
     StorageQuotaPickerState
 > {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: StorageQuotaPickerProps) {
         super(props);
@@ -70,7 +72,7 @@ export default class StorageQuotaPicker extends PureComponent<
                 quotas = await this.props.getStorageQuotas();
             } else {
                 // Handle API request ourselves when no prop is provided
-                const res = await this.context?.filezClient.api.listStorageQuotas({});
+                const res = await this.props.filez.filezClient.api.listStorageQuotas({});
                 quotas = res?.data?.data?.storage_quotas;
             }
 
@@ -243,3 +245,5 @@ export default class StorageQuotaPicker extends PureComponent<
         );
     };
 }
+
+export default withFilez(StorageQuotaPickerBase);

@@ -2,8 +2,9 @@ import { CSSProperties, PureComponent, createRef } from "react";
 
 import { FileGroupType, FilezFile, ListFilesSortBy, SortDirection } from "filez-client-typescript";
 
-import { FilezContext } from "@/lib/filezContext/FilezContext";
-import { ActionIds } from "@/lib/defaultActions";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
+import { FilezActionIds as ActionIds } from "@/lib/filezActions";
 import { ActionHandler, ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
 import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ interface FileListProps {
     readonly resourceListHandlers?: ResourceListHandlers<FilezFile>;
     readonly handlers?: FileListHandlers;
     readonly listSubType?: FileGroupType;
+    readonly filez: FilezContextType;
 }
 
 export interface FileListHandlers {
@@ -41,9 +43,9 @@ interface FileListState {
     readonly selectedFiles: FilezFile[];
 }
 
-export default class FileList extends PureComponent<FileListProps, FileListState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+class FileListBase extends PureComponent<FileListProps, FileListState> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     resourceListRef = createRef<ResourceList<FilezFile>>();
 
@@ -122,7 +124,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
                 log.debug(`Delete files action triggered for files:`, selectedItems);
                 for (const file of selectedItems) {
                     log.info(`Deleting file: ${file.name} (${file.id})`);
-                    await this.context?.filezClient.api.deleteFile(file.id);
+                    await this.props.filez.filezClient.api.deleteFile(file.id);
                     this.resourceListRef.current?.refreshList();
                 }
             },
@@ -175,17 +177,17 @@ export default class FileList extends PureComponent<FileListProps, FileListState
     getFilesList = async (
         request: ListResourceRequestBody
     ): Promise<ListResourceResponseBody<FilezFile>> => {
-        if (!this.context?.filezClient) {
+        if (!this.props.filez.filezClient) {
             log.warn(`No filezClient available`);
             return { totalCount: 0, items: [] };
         }
 
-        if (!this.context?.clientAuthenticated) {
+        if (!this.props.filez.clientAuthenticated) {
             log.warn(`Client not authenticated`);
             return { totalCount: 0, items: [] };
         }
 
-        const res = await this.context.filezClient.api.listFilesInFileGroup({
+        const res = await this.props.filez.filezClient.api.listFilesInFileGroup({
             file_group_id: this.props.fileGroupId,
             from_index: request.fromIndex,
             limit: request.limit,
@@ -207,7 +209,7 @@ export default class FileList extends PureComponent<FileListProps, FileListState
     };
 
     render = () => {
-        if (!this.context?.clientAuthenticated) {
+        if (!this.props.filez.clientAuthenticated) {
             return <></>;
         }
 
@@ -256,3 +258,5 @@ Open files with
 
 New File
 */
+
+export default withFilez(FileListBase);

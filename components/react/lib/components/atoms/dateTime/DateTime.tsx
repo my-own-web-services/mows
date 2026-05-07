@@ -1,4 +1,4 @@
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
 import { cn } from "@/lib/utils";
 import { PureComponent, type CSSProperties } from "react";
 
@@ -13,8 +13,8 @@ interface DateTimeProps {
 type DateTimeState = Record<string, never>;
 
 export default class DateTime extends PureComponent<DateTimeProps, DateTimeState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: DateTimeProps) {
         super(props);

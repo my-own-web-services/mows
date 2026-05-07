@@ -1,10 +1,10 @@
 import { PureComponent } from "react";
-import { FilezContext } from "../../lib/filezContext/FilezContext";
-import { Logger } from "mows-components-react/lib/logging";
-import { Button } from "mows-components-react/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "mows-components-react/components/ui/card";
-import { Input } from "mows-components-react/components/ui/input";
-import { Label } from "mows-components-react/components/ui/label";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
+import { Logger } from "@/lib/logging";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import LogLevelSlider from "./LogLevelSlider";
 
 type LogLevel = `TRACE` | `DEBUG` | `INFO` | `WARN` | `ERROR`;
@@ -21,8 +21,8 @@ interface LoggingConfigState {
 }
 
 export default class LoggingConfig extends PureComponent<LoggingConfigProps, LoggingConfigState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: LoggingConfigProps) {
         super(props);

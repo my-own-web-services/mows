@@ -1,5 +1,6 @@
 import { Progress } from "mows-components-react/components/ui/progress";
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
 import { PureComponent, type CSSProperties } from "react";
 import type { FilezJob, MowsApp, MowsAppId } from "filez-client-typescript";
@@ -9,6 +10,7 @@ interface JobsProgressProps {
     readonly style?: CSSProperties;
     readonly refreshInterval?: number;
     readonly showOnlyRunning?: boolean;
+    readonly filez: FilezContextType;
 }
 
 interface AppJobProgress {
@@ -28,9 +30,9 @@ interface JobsProgressState {
     readonly loading: boolean;
 }
 
-export default class JobsProgress extends PureComponent<JobsProgressProps, JobsProgressState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+class JobsProgressBase extends PureComponent<JobsProgressProps, JobsProgressState> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     private refreshTimer?: NodeJS.Timeout;
 
@@ -68,7 +70,7 @@ export default class JobsProgress extends PureComponent<JobsProgressProps, JobsP
 
     fetchJobs = async () => {
         try {
-            const { filezClient } = this.context!;
+            const { filezClient } = this.props.filez;
             const response = await filezClient.api.listJobs({
                 from_index: 0,
                 limit: 100
@@ -92,7 +94,7 @@ export default class JobsProgress extends PureComponent<JobsProgressProps, JobsP
 
     fetchAppNames = async (appIds: MowsAppId[]) => {
         try {
-            const { filezClient } = this.context!;
+            const { filezClient } = this.props.filez;
             const response = await filezClient.api.getApps({ app_ids: appIds });
 
             const apps = response.data?.data?.apps || {};
@@ -221,3 +223,5 @@ export default class JobsProgress extends PureComponent<JobsProgressProps, JobsP
         );
     };
 }
+
+export default withFilez(JobsProgressBase);

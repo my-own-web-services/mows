@@ -1,15 +1,11 @@
-import CommandPalette from "@/components/atoms/commandPalette/CommandPalette";
+import CommandPalette from "mows-components-react/components/atoms/commandPalette/CommandPalette";
+import GlobalContextMenu from "mows-components-react/components/atoms/globalContextMenu/GlobalContextMenu";
+import ModalHandler from "mows-components-react/components/atoms/modalHandler/ModalHandler";
+import { Toaster } from "mows-components-react/components/ui/sonner";
 import PrimaryMenu from "@/components/PrimaryMenu";
-import {
-    FileList,
-    FilezContext,
-    GlobalContextMenu,
-    JobList,
-    ModalHandler,
-    Toaster,
-    Upload
-} from "@/main";
+import { FileList, JobList, Upload } from "@/main";
 import { type CSSProperties, PureComponent } from "react";
+
 interface AppProps {
     readonly className?: string;
     readonly style?: CSSProperties;
@@ -18,15 +14,10 @@ interface AppProps {
 interface AppState {}
 
 export default class App extends PureComponent<AppProps, AppState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
-
     constructor(props: AppProps) {
         super(props);
         this.state = {};
     }
-
-    componentDidMount = async () => {};
 
     render = () => {
         return (
@@ -50,17 +41,3 @@ export default class App extends PureComponent<AppProps, AppState> {
         );
     };
 }
-
-/*
-<Upload className="h-[800px] w-full"></Upload>
-<JobsProgress></JobsProgress>
-
-<ResourceTags
-    className="w-[500px] p-4"
-    tagsMap={this.state.tagsMap}
-    resourceType={TagResourceType.File}
-    onCommit={(changes) => {
-        log.debug("Committed changes:", changes);
-    }}
-></ResourceTags>
-*/

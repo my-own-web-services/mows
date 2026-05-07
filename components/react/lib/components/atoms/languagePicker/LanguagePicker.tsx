@@ -5,74 +5,67 @@ import {
     CommandInput,
     CommandItem,
     CommandList
-} from "mows-components-react/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "mows-components-react/components/ui/popover";
-import { useFilez } from "@/lib/filezContext/FilezContext";
-import { type MowsTheme, themes } from "@/lib/themes";
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useMows } from "@/lib/mowsContext/MowsContext";
+import { type Language } from "@/lib/languages";
 import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown, Monitor, Moon, Sun } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import * as React from "react";
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
+import { IoLanguageSharp } from "react-icons/io5";
 
-interface ThemePickerProps {
+interface LanguagePickerProps {
     readonly className?: string;
     readonly style?: React.CSSProperties;
+    readonly value?: string;
+    readonly onValueChange?: (value?: Language) => void;
     readonly defaultOpen?: boolean;
-    readonly onValueChange?: (value?: MowsTheme) => void;
     readonly standalone?: boolean;
+    readonly autofocus?: boolean;
 }
 
-const getThemeIcon = (themeId: string) => {
-    switch (themeId) {
-        case `light`:
-            return <Sun className={`h-4 w-4`} />;
-        case `dark`:
-            return <Moon className={`h-4 w-4`} />;
-        case `system`:
-        default:
-            return <Monitor className={`h-4 w-4`} />;
-    }
-};
-
-const ThemePicker = forwardRef<HTMLDivElement, ThemePickerProps>(
+const LanguagePicker = forwardRef<HTMLDivElement, LanguagePickerProps>(
     (
         {
             className,
             style,
-            defaultOpen = false,
+            value: _value,
             onValueChange,
+            defaultOpen = false,
             standalone = false,
+            autofocus = false,
             ...props
-        }: ThemePickerProps,
+        }: LanguagePickerProps,
         ref
     ) => {
         const [open, setOpen] = useState(defaultOpen);
+        const _triggerRef = useRef<HTMLButtonElement>(null);
 
         useEffect(() => {
             setOpen(defaultOpen);
         }, [defaultOpen]);
-        const { t } = useFilez();
-        const { currentTheme, setTheme } = useFilez();
 
-        // Get system's preferred theme
-        const systemTheme = window.matchMedia(`(prefers-color-scheme: dark)`).matches
-            ? `dark`
-            : `light`;
+        const { setLanguage, t, currentLanguage, languages } = useMows();
 
-        const handleSelect = (theme: MowsTheme) => {
+        const browserLanguage =
+            navigator.language ?? navigator.languages?.[0] ?? `en-US`;
+
+        const handleSelect = (language: Language) => {
             setOpen(false);
-            setTheme(theme);
+            setLanguage(language);
             onValueChange?.();
         };
 
-        const filterThemes = (value: string, search: string) => {
-            const theme = themes.find((theme) => theme.id === value);
-            if (!theme) return 0;
+        const filterLanguages = (value: string, search: string) => {
+            const language = languages.find((lang) => lang.code === value);
+            if (!language) return 0;
 
             const searchLower = search.toLowerCase();
-            const nameMatch = theme.name.toLowerCase().includes(searchLower);
+            const englishMatch = language.englishName.toLowerCase().includes(searchLower);
+            const originalMatch = language.originalName.toLowerCase().includes(searchLower);
 
-            return nameMatch ? 1 : 0;
+            return englishMatch || originalMatch ? 1 : 0;
         };
 
         const handleOpenChange = (newOpen: boolean) => {
@@ -86,39 +79,45 @@ const ThemePicker = forwardRef<HTMLDivElement, ThemePickerProps>(
         if (standalone) {
             return (
                 <div {...props} ref={ref} className={cn(className, `w-full`)} style={style}>
-                    <Command filter={filterThemes}>
-                        <CommandInput placeholder={t.themePicker.selectTheme} autoFocus />
+                    <Command filter={filterLanguages}>
+                        <CommandInput
+                            placeholder={t.languagePicker.selectLanguage}
+                            autoFocus={autofocus}
+                        />
                         <CommandList>
                             <CommandEmpty className={`py-6 text-center text-sm select-none`}>
-                                {t.themePicker.noThemeFound}
+                                {t.languagePicker.noLanguageFound}
                             </CommandEmpty>
                             <CommandGroup>
-                                {themes.map((theme) => (
+                                {languages.map((language) => (
                                     <CommandItem
-                                        key={theme.id}
-                                        value={theme.id}
+                                        key={language.code}
+                                        value={language.code}
                                         className={`cursor-pointer`}
-                                        onSelect={() => handleSelect(theme)}
+                                        onSelect={() => handleSelect(language)}
                                     >
                                         <div className={`flex items-center gap-2`}>
-                                            {getThemeIcon(theme.id)}
+                                            <span className={`text-lg`}>{language.emoji}</span>
                                             <div className={`flex flex-col`}>
                                                 <div className={`flex items-center gap-2`}>
                                                     <span className={`font-medium`}>
-                                                        {theme.name}
+                                                        {language.originalName}
                                                     </span>
-                                                    {theme.id === `system` && (
+                                                    {language.code === browserLanguage && (
                                                         <span className={`text-muted-foreground text-xs opacity-60`}>
-                                                            ({systemTheme})
+                                                            (system)
                                                         </span>
                                                     )}
                                                 </div>
+                                                <span className={`text-muted-foreground text-xs`}>
+                                                    {language.englishName}
+                                                </span>
                                             </div>
                                         </div>
                                         <Check
                                             className={cn(
                                                 `ml-auto h-4 w-4`,
-                                                currentTheme.id === theme.id
+                                                currentLanguage?.code === language.code
                                                     ? `opacity-100`
                                                     : `opacity-0`
                                             )}
@@ -143,49 +142,59 @@ const ThemePicker = forwardRef<HTMLDivElement, ThemePickerProps>(
                             `flex w-full cursor-pointer items-center justify-between px-2`
                         )}
                         style={style}
-                        title={t.themePicker.selectTheme}
+                        title={t.languagePicker.selectLanguage}
                     >
-                        {getThemeIcon(currentTheme.id)}
-                        <span className={`flex w-full items-center gap-2`}>
-                            <span>{currentTheme.name}</span>
-                        </span>
+                        <IoLanguageSharp className={`h-5 w-5`} />{` `}
+                        {currentLanguage ? (
+                            <span className={`flex w-full items-center gap-2`}>
+                                <span>{currentLanguage.originalName}</span>{` `}
+                                <span className={`text-sm`}>{currentLanguage.emoji}</span>
+                            </span>
+                        ) : (
+                            <span>
+                                <span>{t.languagePicker.selectLanguage}</span>
+                            </span>
+                        )}
                         <ChevronsUpDown className={`ml-2 h-4 w-4 opacity-50`} />
                     </div>
                 </PopoverTrigger>
                 <PopoverContent className={`w-[200px] p-0`}>
-                    <Command filter={filterThemes}>
-                        <CommandInput placeholder={t.themePicker.selectTheme} />
+                    <Command filter={filterLanguages}>
+                        <CommandInput placeholder={t.languagePicker.selectLanguage} />
                         <CommandList>
                             <CommandEmpty className={`py-6 text-center text-sm select-none`}>
-                                {t.themePicker.noThemeFound}
+                                {t.languagePicker.noLanguageFound}
                             </CommandEmpty>
                             <CommandGroup>
-                                {themes.map((theme) => (
+                                {languages.map((language) => (
                                     <CommandItem
-                                        key={theme.id}
-                                        value={theme.id}
+                                        key={language.code}
+                                        value={language.code}
                                         className={`cursor-pointer`}
-                                        onSelect={() => handleSelect(theme)}
+                                        onSelect={() => handleSelect(language)}
                                     >
                                         <div className={`flex items-center gap-2`}>
-                                            {getThemeIcon(theme.id)}
+                                            <span className={`text-lg`}>{language.emoji}</span>
                                             <div className={`flex flex-col`}>
                                                 <div className={`flex items-center gap-2`}>
                                                     <span className={`font-medium`}>
-                                                        {theme.name}
+                                                        {language.originalName}
                                                     </span>
-                                                    {theme.id === `system` && (
+                                                    {language.code === browserLanguage && (
                                                         <span className={`text-muted-foreground text-xs opacity-60`}>
-                                                            ({systemTheme})
+                                                            (system)
                                                         </span>
                                                     )}
                                                 </div>
+                                                <span className={`text-muted-foreground text-xs`}>
+                                                    {language.englishName}
+                                                </span>
                                             </div>
                                         </div>
                                         <Check
                                             className={cn(
                                                 `ml-auto h-4 w-4`,
-                                                currentTheme.id === theme.id
+                                                currentLanguage?.code === language.code
                                                     ? `opacity-100`
                                                     : `opacity-0`
                                             )}
@@ -201,6 +210,6 @@ const ThemePicker = forwardRef<HTMLDivElement, ThemePickerProps>(
     }
 );
 
-ThemePicker.displayName = `ThemePicker`;
+LanguagePicker.displayName = `LanguagePicker`;
 
-export default ThemePicker;
+export default LanguagePicker;

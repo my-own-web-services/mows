@@ -1,7 +1,7 @@
 import FileIcon from "@/components/atoms/fileIcon/FileIcon";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "mows-components-react/components/ui/hover-card";
 import { Skeleton } from "mows-components-react/components/ui/skeleton";
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
 import { log } from "mows-components-react/lib/logging";
 import { cn, formatFileSizeToHumanReadable } from "@/lib/utils";
 import { Component, createRef } from "react";
@@ -21,8 +21,8 @@ interface ImagePreviewState {
 }
 
 export default class ImagePreview extends Component<ImagePreviewProps, ImagePreviewState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     private canvasRef = createRef<HTMLCanvasElement>();
     private isResizing = false;

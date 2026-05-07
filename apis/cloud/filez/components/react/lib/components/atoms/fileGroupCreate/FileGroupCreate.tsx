@@ -1,6 +1,7 @@
 import { Button } from "mows-components-react/components/ui/button";
 import { Input } from "mows-components-react/components/ui/input";
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { FileGroup, FileGroupType } from "filez-client-typescript";
 import { PureComponent, type CSSProperties } from "react";
 
@@ -9,6 +10,7 @@ interface FileGroupCreateProps {
     readonly style?: CSSProperties;
     readonly onFileGroupCreated?: (fileGroup: FileGroup) => void;
     readonly onCancel?: () => void;
+    readonly filez: FilezContextType;
 }
 
 interface FileGroupCreateState {
@@ -17,12 +19,12 @@ interface FileGroupCreateState {
     readonly error: string | null;
 }
 
-export default class FileGroupCreate extends PureComponent<
+class FileGroupCreateBase extends PureComponent<
     FileGroupCreateProps,
     FileGroupCreateState
 > {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: FileGroupCreateProps) {
         super(props);
@@ -54,7 +56,7 @@ export default class FileGroupCreate extends PureComponent<
         this.setState({ isCreating: true, error: null });
 
         try {
-            const response = await this.context?.filezClient.api.createFileGroup({
+            const response = await this.props.filez.filezClient.api.createFileGroup({
                 file_group_name: name.trim(),
                 file_group_type: FileGroupType.Manual
             });
@@ -127,3 +129,5 @@ export default class FileGroupCreate extends PureComponent<
         );
     };
 }
+
+export default withFilez(FileGroupCreateBase);

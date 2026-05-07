@@ -1,29 +1,48 @@
-import { Action, ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
-import type { FilezClientManagerBase } from "./filezContext/FilezContext";
-import { log } from "mows-components-react/lib/logging";
-import { signinRedirectSavePath } from "./utils";
+import { Action, ActionVisibility } from "./ActionManager";
+import { log } from "../logging";
+import type { MowsClientManagerBase } from "./MowsContext";
+import type { HotkeyConfig } from "./HotkeyManager";
+import type { SigninRedirectArgs } from "oidc-client-ts";
 
-export const defineApplicationActions = (
-    filezContextProvider: FilezClientManagerBase
+export enum CoreActionIds {
+    OPEN_COMMAND_PALETTE = `mows.openCommandPalette`,
+    OPEN_KEYBOARD_SHORTCUTS = `mows.openKeyboardShortcuts`,
+    OPEN_LANGUAGE_SETTINGS = `mows.openLanguageSettings`,
+    OPEN_THEME_SELECTOR = `mows.openThemeSelector`,
+    OPEN_PRIMARY_MENU = `mows.openPrimaryMenu`,
+    LOGIN = `mows.user.login`,
+    LOGOUT = `mows.user.logout`,
+    OPEN_DEV_TOOLS = `mows.developer.openDevTools`
+}
+
+export const CoreModalTypes = {
+    keyboardShortcutEditor: `keyboardShortcutEditor`,
+    themeSelector: `themeSelector`,
+    languageSelector: `languageSelector`,
+    devTools: `devTools`
+} as const;
+
+export const signinRedirectSavePath = async (
+    signinRedirectFunction: (args?: SigninRedirectArgs) => Promise<void>,
+    storageKey: string
+) => {
+    const redirect_uri = window.location.pathname + window.location.search;
+    localStorage.setItem(storageKey, redirect_uri);
+    await signinRedirectFunction();
+};
+
+export const defineCoreActions = (
+    provider: MowsClientManagerBase,
+    postLoginRedirectStorageKey: string
 ): Action[] => {
     return [
         new Action({
-            id: ActionIds.OPEN_COMMAND_PALETTE,
+            id: CoreActionIds.OPEN_COMMAND_PALETTE,
             category: `General`,
             doNotTrackUsage: true
         }),
         new Action({
-            id: ActionIds.DELETE_FILES,
-            category: `File List`,
-            doNotTrackUsage: false
-        }),
-        new Action({
-            id: ActionIds.DELETE_JOBS,
-            category: `Job List`,
-            doNotTrackUsage: false
-        }),
-        new Action({
-            id: ActionIds.OPEN_KEYBOARD_SHORTCUTS,
+            id: CoreActionIds.OPEN_KEYBOARD_SHORTCUTS,
             category: `General`,
             actionHandlers: new Map([
                 [
@@ -31,14 +50,14 @@ export const defineApplicationActions = (
                     {
                         id: `GlobalOpenKeyboardShortcuts`,
                         executeAction: () =>
-                            filezContextProvider.changeActiveModal(`keyboardShortcutEditor`),
+                            provider.changeActiveModal(CoreModalTypes.keyboardShortcutEditor),
                         getState: () => ({ visibility: ActionVisibility.Shown })
                     }
                 ]
             ])
         }),
         new Action({
-            id: ActionIds.OPEN_LANGUAGE_SETTINGS,
+            id: CoreActionIds.OPEN_LANGUAGE_SETTINGS,
             category: `General`,
             actionHandlers: new Map([
                 [
@@ -46,14 +65,14 @@ export const defineApplicationActions = (
                     {
                         id: `GlobalOpenLanguageSettings`,
                         executeAction: () =>
-                            filezContextProvider.changeActiveModal(`languageSelector`),
+                            provider.changeActiveModal(CoreModalTypes.languageSelector),
                         getState: () => ({ visibility: ActionVisibility.Shown })
                     }
                 ]
             ])
         }),
         new Action({
-            id: ActionIds.OPEN_THEME_SELECTOR,
+            id: CoreActionIds.OPEN_THEME_SELECTOR,
             category: `General`,
             actionHandlers: new Map([
                 [
@@ -61,18 +80,18 @@ export const defineApplicationActions = (
                     {
                         id: `GlobalOpenThemeSelector`,
                         executeAction: () =>
-                            filezContextProvider.changeActiveModal(`themeSelector`),
+                            provider.changeActiveModal(CoreModalTypes.themeSelector),
                         getState: () => ({ visibility: ActionVisibility.Shown })
                     }
                 ]
             ])
         }),
         new Action({
-            id: ActionIds.OPEN_PRIMARY_MENU,
+            id: CoreActionIds.OPEN_PRIMARY_MENU,
             category: `General`
         }),
         new Action({
-            id: ActionIds.LOGIN,
+            id: CoreActionIds.LOGIN,
             category: `User`,
             actionHandlers: new Map([
                 [
@@ -80,27 +99,30 @@ export const defineApplicationActions = (
                     {
                         id: `GlobalLogin`,
                         getState: () => {
-                            if (filezContextProvider.props.auth?.isAuthenticated) {
+                            if (provider.props.auth?.isAuthenticated) {
                                 return {
                                     visibility: ActionVisibility.Disabled,
-                                    disabledReason: `Already logged in`
+                                    disabledReasonText: `Already logged in`
                                 };
                             }
                             return { visibility: ActionVisibility.Shown };
                         },
                         executeAction: () => {
-                            if (!filezContextProvider.props.auth) {
+                            if (!provider.props.auth) {
                                 log.warn(`No authentication provider configured`);
                                 return;
                             }
-                            signinRedirectSavePath(filezContextProvider.props.auth.signinRedirect);
+                            signinRedirectSavePath(
+                                provider.props.auth.signinRedirect,
+                                postLoginRedirectStorageKey
+                            );
                         }
                     }
                 ]
             ])
         }),
         new Action({
-            id: ActionIds.LOGOUT,
+            id: CoreActionIds.LOGOUT,
             category: `User`,
             actionHandlers: new Map([
                 [
@@ -108,45 +130,30 @@ export const defineApplicationActions = (
                     {
                         id: `GlobalLogout`,
                         getState: () => {
-                            if (!filezContextProvider.props.auth?.isAuthenticated) {
+                            if (!provider.props.auth?.isAuthenticated) {
                                 return {
                                     visibility: ActionVisibility.Disabled,
-                                    disabledReason: `Not logged in`
+                                    disabledReasonText: `Not logged in`
                                 };
                             }
                             return { visibility: ActionVisibility.Shown };
                         },
                         executeAction: () => {
-                            filezContextProvider.props.auth?.signoutRedirect();
+                            provider.props.auth?.signoutRedirect();
                         }
                     }
                 ]
             ])
         }),
         new Action({
-            id: ActionIds.CREATE_FILE_GROUP,
-            category: `File Groups`,
-            actionHandlers: new Map([
-                [
-                    `GlobalCreateFileGroup`,
-                    {
-                        id: `GlobalCreateFileGroup`,
-                        executeAction: () =>
-                            filezContextProvider.changeActiveModal(`fileGroupCreate`),
-                        getState: () => ({ visibility: ActionVisibility.Shown })
-                    }
-                ]
-            ])
-        }),
-        new Action({
-            id: ActionIds.OPEN_DEV_TOOLS,
+            id: CoreActionIds.OPEN_DEV_TOOLS,
             category: `Developer`,
             actionHandlers: new Map([
                 [
                     `GlobalOpenDevTools`,
                     {
                         id: `GlobalOpenDevTools`,
-                        executeAction: () => filezContextProvider.changeActiveModal(`devTools`),
+                        executeAction: () => provider.changeActiveModal(CoreModalTypes.devTools),
                         getState: () => ({ visibility: ActionVisibility.Shown })
                     }
                 ]
@@ -155,16 +162,8 @@ export const defineApplicationActions = (
     ];
 };
 
-export enum ActionIds {
-    OPEN_COMMAND_PALETTE = `filez.openCommandPalette`,
-    OPEN_KEYBOARD_SHORTCUTS = `filez.openKeyboardShortcuts`,
-    OPEN_LANGUAGE_SETTINGS = `filez.openLanguageSettings`,
-    OPEN_THEME_SELECTOR = `filez.openThemeSelector`,
-    OPEN_PRIMARY_MENU = `filez.openPrimaryMenu`,
-    LOGIN = `filez.user.login`,
-    LOGOUT = `filez.user.logout`,
-    DELETE_FILES = `filez.files.delete`,
-    DELETE_JOBS = `filez.jobs.delete`,
-    CREATE_FILE_GROUP = `filez.fileGroups.create`,
-    OPEN_DEV_TOOLS = `filez.developer.openDevTools`
-}
+export const coreDefaultHotkeys: HotkeyConfig = {
+    [CoreActionIds.OPEN_COMMAND_PALETTE]: {
+        keyCombinations: [`ctrl+shift+p`, `meta+k`]
+    }
+};

@@ -1,12 +1,11 @@
 import { cn } from "@/lib/utils";
-import type { FilezUser } from "filez-client-typescript";
 import { type CSSProperties, PureComponent } from "react";
-import { Skeleton } from "mows-components-react/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AvatarProps {
     readonly className?: string;
     readonly style?: CSSProperties;
-    readonly filezUser?: FilezUser;
+    readonly displayName?: string;
 }
 
 type AvatarState = Record<string, never>;
@@ -17,10 +16,8 @@ export default class Avatar extends PureComponent<AvatarProps, AvatarState> {
         this.state = {};
     }
 
-    componentDidMount = async () => {};
-
     render = () => {
-        const userName = this.props.filezUser?.display_name;
+        const userName = this.props.displayName;
 
         return (
             <div

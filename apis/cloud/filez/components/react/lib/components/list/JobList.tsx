@@ -2,12 +2,13 @@ import { CSSProperties, PureComponent, createRef } from "react";
 
 import { FilezJob, JobStatus, ListJobsSortBy, SortDirection } from "filez-client-typescript";
 
-import { FilezContext } from "@/lib/filezContext/FilezContext";
-import { ActionIds } from "@/lib/defaultActions";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
+import { FilezActionIds as ActionIds } from "@/lib/filezActions";
 import { ActionHandler, ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
 import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
-import DateTime from "../atoms/dateTime/DateTime";
+import DateTime from "mows-components-react/components/atoms/dateTime/DateTime";
 import ResourceList from "./ResourceList/ResourceList";
 import {
     ListResourceRequestBody,
@@ -26,6 +27,7 @@ interface JobListProps {
     readonly resourceListRowHandlers?: ResourceListRowHandlers<FilezJob>;
     readonly resourceListHandlers?: ResourceListHandlers<FilezJob>;
     readonly handlers?: JobListHandlers;
+    readonly filez: FilezContextType;
 }
 
 export interface JobListHandlers {
@@ -36,9 +38,9 @@ interface JobListState {
     readonly selectedJobs: FilezJob[];
 }
 
-export default class JobList extends PureComponent<JobListProps, JobListState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+class JobListBase extends PureComponent<JobListProps, JobListState> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     resourceListRef = createRef<ResourceList<FilezJob>>();
 
@@ -161,7 +163,7 @@ export default class JobList extends PureComponent<JobListProps, JobListState> {
                 log.debug(`Delete jobs action triggered for jobs:`, selectedItems);
                 for (const job of selectedItems) {
                     log.info(`Deleting job: ${job.name} (${job.id})`);
-                    await this.context?.filezClient.api.deleteJob(job.id);
+                    await this.props.filez.filezClient.api.deleteJob(job.id);
                     this.resourceListRef.current?.refreshList();
                 }
             },
@@ -213,17 +215,17 @@ export default class JobList extends PureComponent<JobListProps, JobListState> {
     getJobsList = async (
         request: ListResourceRequestBody
     ): Promise<ListResourceResponseBody<FilezJob>> => {
-        if (!this.context?.filezClient) {
+        if (!this.props.filez.filezClient) {
             log.warn(`No filezClient available`);
             return { totalCount: 0, items: [] };
         }
 
-        if (!this.context?.clientAuthenticated) {
+        if (!this.props.filez.clientAuthenticated) {
             log.warn(`Client not authenticated`);
             return { totalCount: 0, items: [] };
         }
 
-        const res = await this.context.filezClient.api.listJobs({
+        const res = await this.props.filez.filezClient.api.listJobs({
             from_index: request.fromIndex,
             limit: request.limit,
             sort_by: request.sortBy as ListJobsSortBy,
@@ -240,7 +242,7 @@ export default class JobList extends PureComponent<JobListProps, JobListState> {
     };
 
     render = () => {
-        if (!this.context?.clientAuthenticated) {
+        if (!this.props.filez.clientAuthenticated) {
             return <></>;
         }
 
@@ -273,3 +275,5 @@ export default class JobList extends PureComponent<JobListProps, JobListState> {
         );
     };
 }
+
+export default withFilez(JobListBase);

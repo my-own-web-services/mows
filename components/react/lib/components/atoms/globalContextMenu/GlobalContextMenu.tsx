@@ -1,10 +1,10 @@
-import { FilezContext } from "@/lib/filezContext/FilezContext";
-import { Action, ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
-import { log } from "mows-components-react/lib/logging";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
+import { Action, ActionVisibility } from "@/lib/mowsContext/ActionManager";
+import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { PureComponent, type CSSProperties } from "react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "mows-components-react/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import ActionComponent from "../actionDisplay/ActionDisplay";
 
 interface GlobalContextMenuProps {
@@ -22,8 +22,8 @@ export default class GlobalContextMenu extends PureComponent<
     GlobalContextMenuProps,
     GlobalContextMenuState
 > {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
     constructor(props: GlobalContextMenuProps) {
         super(props);
         this.state = {

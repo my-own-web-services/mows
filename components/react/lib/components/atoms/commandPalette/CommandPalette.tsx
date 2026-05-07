@@ -1,8 +1,8 @@
-import { FilezContext } from "@/lib/filezContext/FilezContext";
-import { ActionIds } from "@/lib/defaultActions";
-import type { Action } from "mows-components-react/lib/mowsContext/ActionManager";
-import { ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
-import { log } from "mows-components-react/lib/logging";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
+import { CoreActionIds as ActionIds } from "@/lib/mowsContext/coreActions";
+import type { Action } from "@/lib/mowsContext/ActionManager";
+import { ActionVisibility } from "@/lib/mowsContext/ActionManager";
+import { log } from "@/lib/logging";
 import { PureComponent, type CSSProperties } from "react";
 import {
     CommandDialog,
@@ -11,7 +11,7 @@ import {
     CommandInput,
     CommandItem,
     CommandList
-} from "mows-components-react/components/ui/command";
+} from "@/components/ui/command";
 import ActionComponent from "../actionDisplay/ActionDisplay";
 
 interface CommandPaletteProps {
@@ -29,8 +29,8 @@ export default class CommandPalette extends PureComponent<
     CommandPaletteProps,
     CommandPaletteState
 > {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: CommandPaletteProps) {
         super(props);

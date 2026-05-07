@@ -7,13 +7,14 @@ import ColumnListRowHandler from "@/components/list/ResourceList/rowHandlers/Col
 import { Button } from "mows-components-react/components/ui/button";
 import { Checkbox } from "mows-components-react/components/ui/checkbox";
 import { Progress } from "mows-components-react/components/ui/progress";
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { log } from "mows-components-react/lib/logging";
 import { cn, formatFileSizeToHumanReadable, generateRandomId } from "@/lib/utils";
 import { FileGroup, SortDirection, StorageQuota } from "filez-client-typescript";
 import { Folder, Upload as UploadIcon } from "lucide-react";
 import { createRef, PureComponent, type CSSProperties, type ReactNode } from "react";
-import DateTime from "../dateTime/DateTime";
+import DateTime from "mows-components-react/components/atoms/dateTime/DateTime";
 import FileGroupPicker from "../fileGroupPicker/FileGroupPicker";
 import StorageQuotaPicker from "../storageQuotaPicker/StorageQuotaPicker";
 import { handleFileUpload, UploadFileRequest, UploadProgressData } from "./handleUpload";
@@ -44,6 +45,7 @@ interface UploadProps {
     readonly maxSize?: number;
     readonly disabled?: boolean;
     readonly children?: ReactNode;
+    readonly filez: FilezContextType;
 }
 
 interface UploadState {
@@ -54,9 +56,9 @@ interface UploadState {
     readonly createPreviews: boolean;
 }
 
-export default class Upload extends PureComponent<UploadProps, UploadState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+class UploadBase extends PureComponent<UploadProps, UploadState> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     private fileInputRef: HTMLInputElement | null = null;
     private folderInputRef: HTMLInputElement | null = null;
@@ -337,7 +339,7 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
     handleAutomaticUpload = async () => {
         const { selectedStorageQuota } = this.state;
 
-        if (!this.context?.filezClient) {
+        if (!this.props.filez.filezClient) {
             console.error(`FilezClient not available for automatic upload`);
             return;
         }
@@ -366,7 +368,7 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
                 };
 
                 await handleFileUpload(
-                    this.context.filezClient,
+                    this.props.filez.filezClient,
                     selectedStorageQuota,
                     uploadRequest,
                     this.state.selectedFileGroup?.id,
@@ -820,3 +822,5 @@ export default class Upload extends PureComponent<UploadProps, UploadState> {
         );
     };
 }
+
+export default withFilez(UploadBase);

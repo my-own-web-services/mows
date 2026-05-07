@@ -15,7 +15,7 @@ const libraryConfig: UserConfig = {
         react(),
         libInjectCss(),
         tailwindcssVite(),
-        dts({ rollupTypes: true, tsconfigPath: resolve(__dirname, `tsconfig.lib.json`) }),
+        dts({ tsconfigPath: resolve(__dirname, `tsconfig.lib.json`) }),
         visualizer({
             emitFile: true,
             filename: `stats.html`

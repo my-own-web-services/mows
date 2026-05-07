@@ -352,7 +352,74 @@ Notes from phase 1:
 - 5.6 ✅/❌ Audit imports — no filez file should still import from a
   `lib/lib/filezContext/...` path that no longer exists.
 
-## Stopping point at end of phase 2.1
+## Phases 2.2–2.5 + Phase 4 landed
+
+### What landed
+- **Translation framework**: `BaseTranslation` interface in mows (only generic
+  keys); filez augments via `declare module "mows-components-react/lib/languages"`
+  declaration merging. Mows ships `en-US` + `de` base translation files; filez
+  spreads them and adds resourceTags / upload / fileGroup* / storage*Picker /
+  jobsProgress / jobList / common keys.
+- **CoreActionIds + coreActions** in mows
+  (`mows.openCommandPalette`, `mows.openThemeSelector`, `mows.user.login`, etc.).
+  `defineCoreActions(provider, postLoginRedirectStorageKey)` builds the action
+  list with handlers wired to `provider.changeActiveModal` and
+  `provider.props.auth.signinRedirect`. Filez ships its own `FilezActionIds`
+  (DELETE_FILES/DELETE_JOBS/CREATE_FILE_GROUP) in `lib/lib/filezActions.ts`,
+  plus a `<FilezActionHandlers />` component that registers the
+  CREATE_FILE_GROUP handler at runtime via `useEffect`.
+- **MowsContext + MowsProvider** in mows: owns OIDC AuthProvider, DndProvider,
+  ActionManager, HotkeyManager, theme + language state, modal state. Required
+  `storagePrefix` prop drives all localStorage keys (`${prefix}_theme`,
+  `${prefix}_language`, `${prefix}_hotkey_config`, `${prefix}_recent_actions`,
+  `${prefix}_post_login_redirect_path`) and the CSS theme class prefix
+  (`${prefix}-theme-`). Optional `themes` / `languages` /
+  `initialTranslation` / `extraActions` / `extraDefaultHotkeys` /
+  `defaultThemeId` / `onSigninCallback` props.
+- **10 generic atoms moved** to mows: `themePicker`, `languagePicker`,
+  `keyboardShortcutEditor`, `keyComboDisplay`, `actionDisplay`,
+  `commandPalette`, `modalHandler`, `dateTime`, `avatar`, `globalContextMenu`,
+  plus `LoggingConfig`. All switched from `FilezContext` to `MowsContext`.
+  - `ModalHandler` genericized: ships only core modals
+    (themeSelector / languageSelector / keyboardShortcutEditor) and accepts an
+    `extraModals` prop for app-specific modals.
+  - `Avatar` genericized: takes `displayName: string` instead of
+    `filezUser: FilezUser`.
+  - `LanguagePicker` / `ThemePicker` read `themes` / `languages` from
+    `MowsContext` instead of importing globals.
+- **Slim FilezContext**: only `filezClient`, `clientConfig`, `clientLoading`,
+  `clientAuthenticated`, `ownFilezUser`. `FilezProvider` fetches client config
+  via `getClientConfig()`, mounts `MowsProvider` (storagePrefix `filez`, filez
+  OIDC audience scope, filez themes/languages/actions/hotkeys), and renders
+  `FilezClientManager` (session refresh + user load) inside.
+- **`withFilez` / `withMows` HOC typing fixed** to make the injected prop
+  optional from the outside: signature is now
+  `<P extends { x: T }>(Component: ComponentType<P>) => ComponentType<Omit<P, 'x'>>`.
+- **`PrimaryMenu` migrated** to dual-context pattern: `static contextType =
+  MowsContext` for theme/lang/auth/actionManager, `withFilez` HOC injects
+  `filez: FilezContextType` prop for `clientLoading` / `ownFilezUser`.
+- **Vite library config in filez**: `dts({ rollupTypes: true })` removed.
+  Cross-package imports of `MowsContext` confused api-extractor; per-file
+  declaration emit works fine.
+
+### Remaining items
+- ResourceList + DevPanel: still in filez. ResourceList is generic and could
+  move; DevPanel is filez-coupled (filez API tests) and should stay or be
+  refactored to take tasks/apiTests as injected children.
+- Browser smoke test: `pnpm dev` not run; the build and unit tests pass but
+  haven't verified the runtime in a browser yet.
+- All filez-API-using consumers wrapped with `withFilez` HOC and using
+  `this.props.filez.<field>` for filez-specific access:
+  PrimaryMenu, FileList, JobList, DevPanel, StorageQuotaPicker,
+  StorageLocationPicker, FileGroupCreate, FileGroupPicker, JobsProgress,
+  Upload, ImageViewer. `tsc --noEmit` clean.
+
+### Important gotcha
+- Vite (esbuild) builds DON'T fully type-check — type errors silently passed
+  the build until `tsc --noEmit -p tsconfig.app.json` was run explicitly.
+  Always run that as part of verification, not just `pnpm build`.
+
+### Stopping point at end of phase 2.1 (historical)
 
 Mows package now contains: shadcn UI, generic atoms (buttonSelect /
 copyValueButton / optionPicker), logging, themes, generic utils,

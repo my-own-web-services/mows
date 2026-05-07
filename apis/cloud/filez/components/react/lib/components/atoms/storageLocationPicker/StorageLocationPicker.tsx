@@ -7,7 +7,8 @@ import {
     CommandList
 } from "mows-components-react/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "mows-components-react/components/ui/popover";
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, HardDrive } from "lucide-react";
 import { PureComponent, type CSSProperties, type ReactNode } from "react";
@@ -24,6 +25,7 @@ interface StorageLocationPickerProps {
     readonly triggerComponent?: ReactNode;
     readonly standalone?: boolean;
     readonly autofocus?: boolean;
+    readonly filez: FilezContextType;
 }
 
 interface StorageLocationPickerState {
@@ -33,12 +35,12 @@ interface StorageLocationPickerState {
     readonly error: string | null;
 }
 
-export default class StorageLocationPicker extends PureComponent<
+class StorageLocationPickerBase extends PureComponent<
     StorageLocationPickerProps,
     StorageLocationPickerState
 > {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: StorageLocationPickerProps) {
         super(props);
@@ -70,7 +72,7 @@ export default class StorageLocationPicker extends PureComponent<
                 locations = await this.props.getStorageLocations();
             } else {
                 // Handle API request ourselves when no prop is provided
-                const res = await this.context?.filezClient.api.listStorageLocations({});
+                const res = await this.props.filez.filezClient.api.listStorageLocations({});
                 locations = res?.data?.data?.storage_locations;
             }
 
@@ -259,3 +261,4 @@ export default class StorageLocationPicker extends PureComponent<
         );
     };
 }
+export default withFilez(StorageLocationPickerBase);

@@ -1,19 +1,19 @@
-import { FilezContext } from "@/lib/filezContext/FilezContext";
-import type { Action } from "mows-components-react/lib/mowsContext/ActionManager";
-import { log } from "mows-components-react/lib/logging";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
+import type { Action } from "@/lib/mowsContext/ActionManager";
+import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { type CSSProperties, PureComponent } from "react";
 import { MdDelete, MdEdit, MdRestartAlt } from "react-icons/md";
 import { RiResetLeftFill } from "react-icons/ri";
-import { Button } from "mows-components-react/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle
-} from "mows-components-react/components/ui/dialog";
-import { Input } from "mows-components-react/components/ui/input";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { KeyComboDisplay } from "../keyComboDisplay/KeyComboDisplay";
 
 interface KeyboardShortcutEditorProps {
@@ -39,8 +39,8 @@ export default class KeyboardShortcutEditor extends PureComponent<
     KeyboardShortcutEditorProps,
     KeyboardShortcutEditorState
 > {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: KeyboardShortcutEditorProps) {
         super(props);

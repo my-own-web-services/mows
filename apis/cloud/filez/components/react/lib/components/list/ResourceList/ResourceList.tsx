@@ -1,6 +1,6 @@
 import ButtonSelect from "mows-components-react/components/atoms/buttonSelect/ButtonSelect";
 import { Button } from "mows-components-react/components/ui/button";
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
 import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
 import { SortDirection } from "filez-client-typescript";
@@ -96,8 +96,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
     ResourceListProps<ResourceType>,
     ResourceListState<ResourceType>
 > {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     infiniteLoaderRef = createRef<typeof InfiniteLoader>();
     listOuterRef = createRef<HTMLDivElement>();

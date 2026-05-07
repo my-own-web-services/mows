@@ -1,6 +1,6 @@
 import { PureComponent } from "react";
 import { cn } from "../../lib/utils";
-import { Slider } from "mows-components-react/components/ui/slider";
+import { Slider } from "@/components/ui/slider";
 
 type LogLevel = `TRACE` | `DEBUG` | `INFO` | `WARN` | `ERROR`;
 

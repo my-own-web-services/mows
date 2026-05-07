@@ -6,55 +6,23 @@ import {
     type FilezUser,
     getClientConfig
 } from "filez-client-typescript";
-import { User, WebStorageStateStore } from "oidc-client-ts";
-import React, { Component, createContext, type ReactNode } from "react";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
-import { type AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
-import {
-    CSS_VARIABLE_THEME_PREFIX,
-    FILEZ_MAXIMUM_RECENT_ACTIONS,
-    FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY,
-    FILEZ_RECENT_ACTIONS_STORAGE_KEY,
-    HOTKEY_CONFIG_LOCAL_STORAGE_KEY,
-    SELECTED_LANGUAGE_LOCAL_STORAGE_KEY,
-    THEME_LOCAL_STORAGE_KEY
-} from "../constants";
-import { defaultHotkeys } from "../defaultHotkeys";
-import { defineApplicationActions } from "../defaultActions";
-import { getBrowserLanguage, type Language, type Translation } from "../languages";
-import englishTranslation from "../languages/en-US/default";
 import { log } from "mows-components-react/lib/logging";
-import { type MowsTheme, loadThemeCSS, themes } from "../themes";
+import { MowsProvider } from "mows-components-react/lib/mowsContext/MowsContext";
+import React, { Component, createContext, type ReactNode } from "react";
+import { type AuthContextProps, withAuth } from "react-oidc-context";
+import { FilezActionHandlers, filezExtraActions, filezExtraDefaultHotkeys } from "../filezActions";
+import { languages as filezLanguages } from "../languages";
+import filezEnglishTranslation from "../languages/en-US/default";
+import { themes as filezThemes } from "../themes";
 import { signinRedirectSavePath } from "../utils";
-import { ActionManager } from "mows-components-react/lib/mowsContext/ActionManager";
-import { HotkeyManager } from "mows-components-react/lib/mowsContext/HotkeyManager";
-//import { generateDndPreview } from "./components/dragAndDrop/generatePreview";
 
 export interface FilezContextType {
-    readonly auth: AuthContextProps;
     readonly filezClient: FilezClient;
     readonly clientConfig: ClientConfig;
     readonly clientLoading: boolean;
     readonly clientAuthenticated: boolean;
-    readonly setTheme: (theme: MowsTheme) => Promise<void>;
-    readonly currentTheme: MowsTheme;
     readonly ownFilezUser?: FilezUser | null;
-    readonly setLanguage: (language?: Language) => void;
-    readonly t: Translation;
-    readonly currentLanguage?: Language;
-    readonly actionManager: ActionManager;
-    readonly hotkeyManager: HotkeyManager;
-    readonly currentlyOpenModal?: ModalType;
-    readonly changeActiveModal: (modalType?: ModalType) => void;
 }
-
-export type ModalType =
-    | `keyboardShortcutEditor`
-    | `themeSelector`
-    | `languageSelector`
-    | `fileGroupCreate`
-    | `devTools`;
 
 interface FilezClientManagerProps {
     readonly children: ReactNode;
@@ -62,90 +30,39 @@ interface FilezClientManagerProps {
     readonly auth?: AuthContextProps;
 }
 
-// Undefined means still loading, null means no user, otherwise a user.
 interface FilezClientManagerState {
     readonly filezClient?: FilezClient;
-    readonly currentTheme: MowsTheme;
     readonly ownUser?: FilezUser | null;
-    readonly currentTranslation: Translation;
-    readonly currentLanguage?: Language;
-    readonly currentlyOpenModal?: ModalType;
     readonly clientAuthenticated?: boolean;
     readonly sessionTimeoutSeconds?: number;
 }
 
-export class FilezClientManagerBase extends Component<
+class FilezClientManagerBase extends Component<
     FilezClientManagerProps,
     FilezClientManagerState
 > {
-    private actionManager: ActionManager;
-    private hotkeyManager: HotkeyManager;
     private sessionRefreshInterval?: NodeJS.Timeout;
 
     constructor(props: FilezClientManagerProps) {
         super(props);
-        const currentThemeId = localStorage.getItem(THEME_LOCAL_STORAGE_KEY) || `system`;
-        log.info(`Current theme ID:`, currentThemeId);
-
-        this.state = {
-            currentTheme: themes.find((t) => t.id === currentThemeId) || themes[0],
-            currentTranslation: englishTranslation,
-            currentLanguage: getBrowserLanguage(),
-            clientAuthenticated: false
-        };
-
-        this.actionManager = new ActionManager({
-            recentActionsStorageKey: FILEZ_RECENT_ACTIONS_STORAGE_KEY,
-            maxRecentActions: FILEZ_MAXIMUM_RECENT_ACTIONS
-        });
-        this.hotkeyManager = new HotkeyManager(this.actionManager, {
-            configStorageKey: HOTKEY_CONFIG_LOCAL_STORAGE_KEY,
-            defaultHotkeys
-        });
+        this.state = { clientAuthenticated: false };
     }
 
     componentDidMount = () => {
-        if (this.context) {
-            // Define actions first
-            const actions = defineApplicationActions(this);
-            this.actionManager.defineMultipleActions(actions);
-
-            // Then define hotkeys that reference those actions
-        }
         this.updateFilezClient();
-        this.setTheme(this.state.currentTheme);
-        this.setLanguage(this.state.currentLanguage);
     };
 
     componentDidUpdate = async (prevProps: FilezClientManagerProps) => {
         const { auth } = this.props;
         const prevAuth = prevProps.auth;
 
-        if (auth?.user !== prevAuth?.user) {
-            this.restoreRedirectPath();
-        }
-
         if (auth?.user !== prevAuth?.user || auth?.isLoading !== prevAuth?.isLoading) {
             await this.updateFilezClient();
         }
     };
 
-    changeActiveModal = (modalType?: ModalType) => {
-        log.debug(`Changing active modal to:`, modalType);
-        this.setState({ currentlyOpenModal: modalType });
-    };
-
     componentWillUnmount = () => {
         this.clearSessionRefreshInterval();
-    };
-
-    restoreRedirectPath = () => {
-        const redirectPath = localStorage.getItem(FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY);
-        log.info(`Restoring redirect path:`, redirectPath);
-        if (redirectPath) {
-            localStorage.removeItem(FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY);
-            window.history.replaceState({}, document.title, redirectPath);
-        }
     };
 
     updateFilezClient = async () => {
@@ -161,7 +78,6 @@ export class FilezClientManagerBase extends Component<
             this.setState({ filezClient });
             log.debug(`Filez API client initialized with user token.`);
 
-            // Verify the token is active, otherwise force a new sign-in.
             const ownUserRes = await filezClient?.api.getOwnUser().catch(async (response) => {
                 if (response?.error?.status?.Error === `IntrospectionGuardError::Inactive`) {
                     log.debug(`User token is inactive, redirecting to sign in.`);
@@ -190,24 +106,14 @@ export class FilezClientManagerBase extends Component<
     };
 
     startAndSetupSessionRefresh = async (filezClient: FilezClient) => {
-        // Start the session and get the timeout from the response
-        const sessionRes = await filezClient.api.startSession(
-            {},
-            {
-                credentials: `include`
-            }
-        );
-
+        const sessionRes = await filezClient.api.startSession({}, { credentials: `include` });
         const timeoutSeconds = sessionRes?.data?.data?.inactivity_timeout_seconds;
 
         if (timeoutSeconds) {
-            // Store the timeout if we don't have it or if it changed
             if (this.state.sessionTimeoutSeconds !== timeoutSeconds) {
                 this.setState({ sessionTimeoutSeconds: timeoutSeconds });
                 log.debug(`Session timeout: ${timeoutSeconds} seconds`);
             }
-
-            // Set up refresh interval at 75% of the timeout duration
             this.setupSessionRefreshInterval(filezClient, timeoutSeconds);
         } else {
             log.warn(`Session timeout not returned from startSession`);
@@ -215,26 +121,12 @@ export class FilezClientManagerBase extends Component<
     };
 
     setupSessionRefreshInterval = (filezClient: FilezClient, timeoutSeconds: number) => {
-        // Clear any existing interval
         this.clearSessionRefreshInterval();
-
-        // Refresh at 75% of the timeout duration to ensure the session stays active
         const refreshIntervalMs = timeoutSeconds * 0.75 * 1000;
-
-        log.debug(
-            `Setting up session refresh interval: ${refreshIntervalMs}ms (${refreshIntervalMs / 1000}s)`
-        );
 
         this.sessionRefreshInterval = setInterval(async () => {
             try {
-                log.debug(`Refreshing session...`);
-                await filezClient.api.refreshSession(
-                    {},
-                    {
-                        credentials: `include`
-                    }
-                );
-                log.debug(`Session refreshed successfully`);
+                await filezClient.api.refreshSession({}, { credentials: `include` });
             } catch (error) {
                 log.error(`Failed to refresh session`, error);
             }
@@ -245,76 +137,19 @@ export class FilezClientManagerBase extends Component<
         if (this.sessionRefreshInterval) {
             clearInterval(this.sessionRefreshInterval);
             this.sessionRefreshInterval = undefined;
-            log.debug(`Session refresh interval cleared`);
         }
-    };
-
-    setTheme = async (theme: MowsTheme) => {
-        const root = window.document.documentElement;
-
-        root.classList.forEach((cls) => {
-            if (cls.startsWith(CSS_VARIABLE_THEME_PREFIX)) {
-                root.classList.remove(cls);
-            }
-        });
-
-        localStorage.setItem(THEME_LOCAL_STORAGE_KEY, theme.id);
-
-        if (theme.id === `system`) {
-            const systemTheme = window.matchMedia(`(prefers-color-scheme: dark)`).matches
-                ? `dark`
-                : `light`;
-
-            root.classList.add(CSS_VARIABLE_THEME_PREFIX + systemTheme);
-            this.setState({ currentTheme: theme });
-
-            return;
-        }
-
-        // IMPORTANT: The order matters here.
-        root.classList.add(CSS_VARIABLE_THEME_PREFIX + theme.id);
-        if (theme.url) await loadThemeCSS(theme.url);
-        this.setState({ currentTheme: theme });
-    };
-
-    setLanguage = async (languageToSet?: Language) => {
-        if (!languageToSet) {
-            log.error(`No language provided`);
-            return;
-        }
-        this.setState({ currentLanguage: languageToSet });
-
-        const translation = await languageToSet.import();
-
-        localStorage.setItem(SELECTED_LANGUAGE_LOCAL_STORAGE_KEY, languageToSet.code);
-
-        this.setState({ currentTranslation: translation.default });
     };
 
     render = () => {
         const { children, auth, clientConfig } = this.props;
-        const { filezClient, currentTheme } = this.state;
-
-        if (!this.context) {
-            throw new Error(`FilezClientManager must be used within a ModalManagerProvider`);
-        }
+        const { filezClient } = this.state;
 
         const contextValue: FilezContextType = {
-            auth: auth!,
             filezClient: filezClient!,
             clientConfig,
             clientLoading: auth?.isLoading || !clientConfig,
             clientAuthenticated: this.state.clientAuthenticated || false,
-            setTheme: this.setTheme,
-            currentTheme,
-            ownFilezUser: this.state.ownUser,
-            t: this.state.currentTranslation,
-            setLanguage: this.setLanguage,
-            currentLanguage: this.state.currentLanguage,
-            actionManager: this.actionManager,
-            hotkeyManager: this.hotkeyManager,
-            currentlyOpenModal: this.state.currentlyOpenModal,
-            changeActiveModal: this.changeActiveModal
+            ownFilezUser: this.state.ownUser
         };
 
         return <FilezContext.Provider value={contextValue}>{children}</FilezContext.Provider>;
@@ -323,10 +158,18 @@ export class FilezClientManagerBase extends Component<
 
 export const FilezContext = createContext<FilezContextType | undefined>(undefined);
 
-export const withFilez = <P extends object>(
-    WrappedComponent: React.ComponentType<P & { filez: FilezContextType }>
-) => {
-    return class extends Component<P> {
+export const useFilez = (): FilezContextType => {
+    const context = React.useContext(FilezContext);
+    if (context === undefined) {
+        throw new Error(`useFilez must be used within a FilezProvider`);
+    }
+    return context;
+};
+
+export const withFilez = <P extends { filez: FilezContextType }>(
+    WrappedComponent: React.ComponentType<P>
+): React.ComponentType<Omit<P, `filez`>> => {
+    return class extends Component<Omit<P, `filez`>> {
         static contextType = FilezContext;
         declare context: React.ContextType<typeof FilezContext>;
 
@@ -334,17 +177,10 @@ export const withFilez = <P extends object>(
             if (this.context === undefined) {
                 throw new Error(`withFilez must be used within a FilezProvider`);
             }
-            return <WrappedComponent {...this.props} filez={this.context} />;
+            const props = { ...this.props, filez: this.context } as unknown as P;
+            return <WrappedComponent {...props} />;
         };
     };
-};
-
-export const useFilez = (): FilezContextType => {
-    const context = React.useContext(FilezContext);
-    if (context === undefined) {
-        throw new Error(`useFilez must be used within a FilezProvider`);
-    }
-    return context;
 };
 
 const FilezClientManager = withAuth(FilezClientManagerBase);
@@ -360,25 +196,13 @@ interface FilezProviderState {
 export class FilezProvider extends Component<FilezProviderProps, FilezProviderState> {
     constructor(props: FilezProviderProps) {
         super(props);
-        this.state = {
-            clientConfig: null
-        };
+        this.state = { clientConfig: null };
     }
 
     componentDidMount = () => {
         getClientConfig()
-            .then((config) => {
-                this.setState({ clientConfig: config });
-            })
-            .catch((error) => {
-                log.error(`Failed to fetch OIDC config`, error);
-            });
-    };
-
-    onSigninCallback = (_user: User | void): void => {
-        const redirectUri = localStorage.getItem(`filez_redirect_uri`);
-        localStorage.removeItem(`filez_redirect_uri`);
-        window.history.replaceState({}, document.title, redirectUri || window.location.pathname);
+            .then((config) => this.setState({ clientConfig: config }))
+            .catch((error) => log.error(`Failed to fetch OIDC config`, error));
     };
 
     render = () => {
@@ -389,25 +213,23 @@ export class FilezProvider extends Component<FilezProviderProps, FilezProviderSt
             return <div>Loading Configuration...</div>;
         }
 
-        const oidcConfig = {
-            userStore: new WebStorageStateStore({ store: window.localStorage }),
-            authority: clientConfig.oidcIssuerUrl,
-            client_id: clientConfig.oidcClientId,
-            redirect_uri: window.location.origin + `/auth/callback`,
-            response_type: `code`,
-            scope: `openid profile email urn:zitadel:iam:org:project:id:zrc-mows-cloud-filez-filez-auth:aud`,
-            post_logout_redirect_uri: window.location.origin,
-            response_mode: `query`,
-            automaticSilentRenew: true,
-            onSigninCallback: this.onSigninCallback
-        };
-
         return (
-            <AuthProvider {...oidcConfig}>
-                <DndProvider backend={HTML5Backend}>
-                    <FilezClientManager clientConfig={clientConfig}>{children}</FilezClientManager>
-                </DndProvider>
-            </AuthProvider>
+            <MowsProvider
+                storagePrefix={`filez`}
+                oidc={{
+                    issuerUrl: clientConfig.oidcIssuerUrl,
+                    clientId: clientConfig.oidcClientId,
+                    scope: `openid profile email urn:zitadel:iam:org:project:id:zrc-mows-cloud-filez-filez-auth:aud`
+                }}
+                themes={filezThemes}
+                languages={filezLanguages}
+                initialTranslation={filezEnglishTranslation}
+                extraActions={filezExtraActions}
+                extraDefaultHotkeys={filezExtraDefaultHotkeys}
+            >
+                <FilezActionHandlers />
+                <FilezClientManager clientConfig={clientConfig}>{children}</FilezClientManager>
+            </MowsProvider>
         );
     };
 }

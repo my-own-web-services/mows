@@ -1,32 +1,36 @@
-import { FilezContext, type ModalType } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
+import { CoreModalTypes } from "@/lib/mowsContext/coreActions";
 import { cn } from "@/lib/utils";
 import { PureComponent, type CSSProperties, type ReactNode } from "react";
-import DevPanel from "../../development/DevPanel";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle
-} from "mows-components-react/components/ui/dialog";
-import FileGroupCreate from "../fileGroupCreate/FileGroupCreate";
+} from "@/components/ui/dialog";
 import KeyboardShortcuts from "../keyboardShortcutEditor/KeyboardShortcutEditor";
 import LanguagePicker from "../languagePicker/LanguagePicker";
 import ThemePicker from "../themePicker/ThemePicker";
 
+export interface ModalEntry {
+    component: () => ReactNode;
+}
+
 interface ModalHandlerProps {
     readonly className?: string;
     readonly style?: CSSProperties;
+    readonly extraModals?: Record<string, ModalEntry>;
 }
 
 type ModalHandlerState = Record<string, never>;
 
 export default class ModalHandler extends PureComponent<ModalHandlerProps, ModalHandlerState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
-    modals: Record<ModalType, { component: () => ReactNode }> = {
-        keyboardShortcutEditor: {
+    coreModals: Record<string, ModalEntry> = {
+        [CoreModalTypes.keyboardShortcutEditor]: {
             component: () => (
                 <DialogContent>
                     <DialogHeader>
@@ -37,7 +41,7 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
                 </DialogContent>
             )
         },
-        themeSelector: {
+        [CoreModalTypes.themeSelector]: {
             component: () => (
                 <DialogContent>
                     <DialogHeader>
@@ -48,7 +52,7 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
                 </DialogContent>
             )
         },
-        languageSelector: {
+        [CoreModalTypes.languageSelector]: {
             component: () => (
                 <DialogContent className={`max-h-52`}>
                     <DialogHeader>
@@ -56,36 +60,6 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
                         <DialogDescription aria-describedby={undefined} />
                     </DialogHeader>
                     <LanguagePicker className={`overflow-y-auto px-6 pb-6`} standalone />
-                </DialogContent>
-            )
-        },
-        fileGroupCreate: {
-            component: () => (
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{this.context?.t.fileGroupCreate.title}</DialogTitle>
-                        <DialogDescription>
-                            {this.context?.t.fileGroupCreate.description}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <FileGroupCreate
-                        className={`overflow-y-auto px-6 pb-6`}
-                        onCancel={() => this.context?.changeActiveModal(undefined)}
-                        onFileGroupCreated={() => this.context?.changeActiveModal(undefined)}
-                    />
-                </DialogContent>
-            )
-        },
-        devTools: {
-            component: () => (
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{this.context?.t.devTools.title}</DialogTitle>
-                        <DialogDescription>
-                            {this.context?.t.devTools.description}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DevPanel className={`overflow-y-auto select-none`} />
                 </DialogContent>
             )
         }
@@ -96,10 +70,12 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
         this.state = {};
     }
 
-    componentDidMount = async () => {};
-
     render = () => {
         if (!this.context?.currentlyOpenModal) return null;
+
+        const allModals = { ...this.coreModals, ...(this.props.extraModals ?? {}) };
+        const entry = allModals[this.context.currentlyOpenModal];
+        if (!entry) return null;
 
         return (
             <div
@@ -110,7 +86,7 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
                     open={true}
                     onOpenChange={(open) => !open && this.context?.changeActiveModal(undefined)}
                 >
-                    {this.modals[this.context?.currentlyOpenModal]?.component()}
+                    {entry.component()}
                 </Dialog>
             </div>
         );

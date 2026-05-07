@@ -1,4 +1,4 @@
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
 import { cn } from "@/lib/utils";
 import { FilezFile } from "filez-client-typescript";
 import { PureComponent, type CSSProperties } from "react";
@@ -17,8 +17,8 @@ interface FileViewerProps {
 type FileViewerState = Record<string, never>;
 
 export default class FileViewer extends PureComponent<FileViewerProps, FileViewerState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
     constructor(props: FileViewerProps) {
         super(props);
         this.state = {};

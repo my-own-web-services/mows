@@ -4,16 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "mows-
 import { Input } from "mows-components-react/components/ui/input";
 import { Label } from "mows-components-react/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "mows-components-react/components/ui/radio-group";
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
 import { Check, Loader2, Play, Search, X } from "lucide-react";
 import { PureComponent, type CSSProperties } from "react";
-import LoggingConfig from "../loggingConfig/LoggingConfig";
+import LoggingConfig from "mows-components-react/components/loggingConfig/LoggingConfig";
 
 interface DevPanelProps {
     readonly className?: string;
     readonly style?: CSSProperties;
+    readonly filez: FilezContextType;
 }
 
 type TestStatus = `idle` | `running` | `success` | `error`;
@@ -106,9 +108,9 @@ const tasks: TestMetadata[] = [
     }
 ];
 
-export default class DevPanel extends PureComponent<DevPanelProps, DevPanelState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+class DevPanelBase extends PureComponent<DevPanelProps, DevPanelState> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
     constructor(props: DevPanelProps) {
         super(props);
         this.state = {
@@ -123,7 +125,7 @@ export default class DevPanel extends PureComponent<DevPanelProps, DevPanelState
     }
 
     runAllTests = async () => {
-        if (!this.context?.filezClient) {
+        if (!this.props.filez.filezClient) {
             console.error(`Filez client is not initialized.`);
             return;
         }
@@ -148,7 +150,7 @@ export default class DevPanel extends PureComponent<DevPanelProps, DevPanelState
     };
 
     runTest = async (testId: string) => {
-        if (!this.context?.filezClient) {
+        if (!this.props.filez.filezClient) {
             console.error(`Filez client is not initialized.`);
             return;
         }
@@ -170,7 +172,7 @@ export default class DevPanel extends PureComponent<DevPanelProps, DevPanelState
                 throw new Error(`Test module for ${testId} not found or does not export default.`);
             }
             console.log(`Running test: ${testId}`);
-            await mod.default(this.context.filezClient);
+            await mod.default(this.props.filez.filezClient);
 
             const duration = performance.now() - startTime;
             log.debug(`Test ${testId} completed successfully in ${duration.toFixed(2)}ms.`);
@@ -232,7 +234,7 @@ export default class DevPanel extends PureComponent<DevPanelProps, DevPanelState
     };
 
     runAllTasks = async () => {
-        if (!this.context?.filezClient) {
+        if (!this.props.filez.filezClient) {
             console.error(`Filez client is not initialized.`);
             return;
         }
@@ -252,7 +254,7 @@ export default class DevPanel extends PureComponent<DevPanelProps, DevPanelState
     };
 
     runTask = async (taskId: string) => {
-        if (!this.context?.filezClient) {
+        if (!this.props.filez.filezClient) {
             console.error(`Filez client is not initialized.`);
             return;
         }
@@ -274,7 +276,7 @@ export default class DevPanel extends PureComponent<DevPanelProps, DevPanelState
                 throw new Error(`Task module for ${taskId} not found or does not export default.`);
             }
             console.log(`Running task: ${taskId}`);
-            await mod.default(this.context.filezClient);
+            await mod.default(this.props.filez.filezClient);
 
             const duration = performance.now() - startTime;
             log.debug(`Task ${taskId} completed successfully in ${duration.toFixed(2)}ms.`);
@@ -622,3 +624,5 @@ export default class DevPanel extends PureComponent<DevPanelProps, DevPanelState
         );
     };
 }
+
+export default withFilez(DevPanelBase);

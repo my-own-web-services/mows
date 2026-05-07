@@ -3,7 +3,7 @@ import {
     RESOURCE_TAGS_NOT_ALL_RESOURCES_SUFFIX,
     RESOURCE_TAGS_SEPARATOR
 } from "@/lib/constants";
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
 import { cn } from "@/lib/utils";
 import { TagResourceType } from "filez-client-typescript";
 import { Search, TagIcon, Text, X } from "lucide-react";
@@ -72,8 +72,8 @@ interface WorkingTag {
 }
 
 export default class ResourceTags extends PureComponent<ResourceTagsProps, ResourceTagsState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: ResourceTagsProps) {
         super(props);

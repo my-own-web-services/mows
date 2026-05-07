@@ -7,26 +7,28 @@ import {
     DropdownMenuTrigger
 } from "mows-components-react/components/ui/dropdown-menu";
 import { Skeleton } from "mows-components-react/components/ui/skeleton";
-import { ActionIds } from "@/lib/defaultActions";
+import { CoreActionIds as ActionIds } from "mows-components-react/lib/mowsContext/coreActions";
 import { ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
 import { log } from "mows-components-react/lib/logging";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
 import { cn, signinRedirectSavePath } from "@/lib/utils";
 import { type CSSProperties, PureComponent } from "react";
 import { IoCodeSlashSharp, IoLogOutSharp, IoMenuSharp, IoPersonSharp } from "react-icons/io5";
 import { LiaKeyboard } from "react-icons/lia";
 import { PiUserSwitchFill } from "react-icons/pi";
 import { match } from "ts-pattern";
-import { FilezContext } from "../lib/filezContext/FilezContext";
-import Avatar from "./atoms/avatar/Avatar";
+import { type FilezContextType, withFilez } from "../lib/filezContext/FilezContext";
+import Avatar from "mows-components-react/components/atoms/avatar/Avatar";
 import CopyValueButton from "mows-components-react/components/atoms/copyValueButton/CopyValueButton";
-import LanguagePicker from "./atoms/languagePicker/LanguagePicker";
-import ThemePicker from "./atoms/themePicker/ThemePicker";
+import LanguagePicker from "mows-components-react/components/atoms/languagePicker/LanguagePicker";
+import ThemePicker from "mows-components-react/components/atoms/themePicker/ThemePicker";
 
 interface PrimaryMenuProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly defaultOpen?: boolean;
     readonly position?: `top-right` | `top-left` | `bottom-right` | `bottom-left`;
+    readonly filez: FilezContextType;
 }
 
 interface PrimaryMenuState {
@@ -36,9 +38,9 @@ interface PrimaryMenuState {
     readonly menuOpen?: boolean;
 }
 
-export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+class PrimaryMenuBase extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     constructor(props: PrimaryMenuProps) {
         super(props);
@@ -89,12 +91,12 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
 
     render = () => {
         const loggedIn = !!this.context?.auth?.isAuthenticated;
-        if (this.context?.clientLoading) {
+        if (this.props.filez.clientLoading) {
             return <></>;
         }
 
-        const userName = this.context?.ownFilezUser?.display_name;
-        const userId = this.context?.ownFilezUser?.id;
+        const userName = this.props.filez.ownFilezUser?.display_name;
+        const userId = this.props.filez.ownFilezUser?.id;
 
         const { t } = this.context!;
 
@@ -129,7 +131,7 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                                 className={`outline-0`}
                                 title={`${t.primaryMenu.loggedInAs} ${userName}`}
                             >
-                                <Avatar filezUser={this.context?.ownFilezUser!} />
+                                <Avatar displayName={this.props.filez.ownFilezUser?.display_name} />
                             </DropdownMenuTrigger>
                         ))
                         .otherwise(() => (
@@ -149,7 +151,7 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                                         <div className={`flex items-center`}>
                                             <Avatar
                                                 className={`h-16 w-16 text-xl`}
-                                                filezUser={this.context?.ownFilezUser!}
+                                                displayName={this.props.filez.ownFilezUser?.display_name}
                                             />
                                             <div className={`flex flex-col gap-1 px-4 py-2 pb-4`}>
                                                 <span className={`text-muted-foreground space-y-1 text-sm select-none`}>
@@ -272,3 +274,5 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
         );
     };
 }
+
+export default withFilez(PrimaryMenuBase);

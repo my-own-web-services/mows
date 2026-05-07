@@ -1,4 +1,5 @@
-import { FilezContext } from "@/lib/filezContext/FilezContext";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
 import { FilezFile } from "filez-client-typescript";
 import { PureComponent, type CSSProperties } from "react";
@@ -10,6 +11,7 @@ interface ImageViewerProps {
     readonly fileVersion?: number;
     readonly width?: number;
     readonly height?: number;
+    readonly filez: FilezContextType;
 }
 
 interface ImageViewerState {
@@ -19,9 +21,9 @@ interface ImageViewerState {
     readonly error: string | null;
 }
 
-export default class ImageViewer extends PureComponent<ImageViewerProps, ImageViewerState> {
-    static contextType = FilezContext;
-    declare context: React.ContextType<typeof FilezContext>;
+class ImageViewerBase extends PureComponent<ImageViewerProps, ImageViewerState> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
     private imageLoader: HTMLImageElement | null = null; // Used for preloading
 
     constructor(props: ImageViewerProps) {
@@ -54,7 +56,7 @@ export default class ImageViewer extends PureComponent<ImageViewerProps, ImageVi
         const appId = `019a4a36-abf3-7f62-9df9-cdf5f60331cf`;
         const appPath = this.getImageVersion();
 
-        const url = `${this.context?.filezClient.baseUrl}/api/file_versions/content/get/${this.props.file.id}/${this.props.fileVersion || 0}/${appId}/${appPath}?cache=3600`;
+        const url = `${this.props.filez.filezClient.baseUrl}/api/file_versions/content/get/${this.props.file.id}/${this.props.fileVersion || 0}/${appId}/${appPath}?cache=3600`;
 
         return (
             <div
@@ -75,3 +77,5 @@ export default class ImageViewer extends PureComponent<ImageViewerProps, ImageVi
         );
     };
 }
+
+export default withFilez(ImageViewerBase);
