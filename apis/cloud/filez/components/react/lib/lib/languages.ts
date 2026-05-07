@@ -5,6 +5,7 @@ import {
 } from "mows-components-react/lib/languages";
 import { SELECTED_LANGUAGE_LOCAL_STORAGE_KEY } from "./constants";
 
+// eslint-disable-next-line quotes
 declare module "mows-components-react/lib/languages" {
     interface Translation {
         resourceTags: {

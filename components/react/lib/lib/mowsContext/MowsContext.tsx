@@ -8,11 +8,7 @@ import baseEnglishTranslation from "../languages/en-US/default";
 import { log } from "../logging";
 import { defaultThemes, loadThemeCSS, type MowsTheme } from "../themes";
 import { ActionManager } from "./ActionManager";
-import {
-    coreDefaultHotkeys,
-    defineCoreActions,
-    signinRedirectSavePath
-} from "./coreActions";
+import { coreDefaultHotkeys, defineCoreActions } from "./coreActions";
 import { type HotkeyConfig, HotkeyManager } from "./HotkeyManager";
 
 export interface MowsOidcConfig {

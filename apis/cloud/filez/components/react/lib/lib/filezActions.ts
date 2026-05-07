@@ -54,6 +54,6 @@ export const FilezActionHandlers = (): null => {
                 `FilezCreateFileGroup`
             );
         };
-    }, [mows.actionManager, mows.changeActiveModal]);
+    }, [mows]);
     return null;
 };
