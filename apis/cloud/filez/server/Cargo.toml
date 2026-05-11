@@ -25,6 +25,10 @@ path = "src/build/schemagen.rs"
 name = "gen_migrations"
 path = "src/build/gen_migrations.rs"
 
+[[bin]]
+name = "openapi_dump"
+path = "src/build/openapi_dump.rs"
+
 
 [lib]
 name = "filez_server_lib"

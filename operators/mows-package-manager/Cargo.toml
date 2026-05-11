@@ -16,6 +16,10 @@ path = "src/bin/cli.rs"
 name = "generate_schema"
 path = "src/bin/generate_schema.rs"
 
+[[bin]]
+name = "openapi_dump"
+path = "src/bin/openapi_dump.rs"
+
 
 [features]
 default = []

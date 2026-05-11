@@ -40,5 +40,6 @@ pub mod api {
     pub mod direct_terminal;
     pub mod health;
     pub mod machines;
+    pub mod openapi;
     pub mod public_ip;
 }

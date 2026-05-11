@@ -2,21 +2,16 @@
 
 set -euo pipefail
 
-export BUILDX_BAKE_ENTITLEMENTS_FS=0
-export SERVICE_NAME="filez-server"
-
-docker buildx bake --set "*.args.PROFILE=dev" --set "*.tags=filez-server-codegen"
-docker rm filez-server-codegen-server --force
-docker run -d --rm -p 8088:8080 --name filez-server-codegen-server filez-server-codegen 
-
-sleep 2
+# OpenAPI is dumped at build time from the same `OpenApiRouter` graph the
+# server uses, via the `openapi_dump` binary. No docker container, no
+# running server, no curl — the spec is whatever the current source
+# defines, before any deploy.
 
 rm -f openapi.json
-curl -o openapi.json http://localhost:8088/api-docs/openapi.json -v
+cargo run -q --bin openapi_dump -- --output openapi.json
 
-# exit if the file is empty
 if [ ! -s openapi.json ]; then
-  echo "Error: openapi.json is empty or does not exist."
+  echo "Error: openapi.json is empty or does not exist." >&2
   exit 1
 fi
 
@@ -35,8 +30,6 @@ cd ../clients/typescript/ && yalc publish --push && cd -
 
 
 rm -rf tmp
-
-docker rm filez-server-codegen-server --force
 
 # rust
 

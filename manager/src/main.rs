@@ -1,10 +1,7 @@
 use anyhow::Context;
 use axum::http::header::{CONTENT_TYPE, UPGRADE};
 use axum::http::{HeaderValue, Method};
-use manager::api::boot::*;
-
-use manager::api::direct_terminal::*;
-use manager::api::public_ip::*;
+use manager::api::openapi::build_api_router;
 use manager::internal_config::INTERNAL_CONFIG;
 use manager::tasks::start_background_tasks;
 use manager::tracing::start_tracing;
@@ -13,18 +10,6 @@ use manager::utils::{shutdown_signal, start_dnsmasq, start_pixiecore};
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 use tracing::info;
-use utoipa::OpenApi;
-use utoipa_axum::router::OpenApiRouter;
-use utoipa_axum::routes;
-use utoipa_swagger_ui::SwaggerUi;
-
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    tags(
-        (name = "mows-manager", description = "Cluster management API")
-    )
-)]
-pub struct ApiDoc;
 
 #[tracing::instrument]
 #[tokio::main]
@@ -45,34 +30,7 @@ async fn main() -> Result<(), anyhow::Error> {
         let _ = &ic.dev.allow_origins.iter().for_each(|x| origins.push(x));
     }
 
-    let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
-        //.nest("/api/machines", machines::router())
-        // machines
-        .routes(routes!(manager::api::machines::delete_machine))
-        .routes(routes!(manager::api::machines::create_machines))
-        .routes(routes!(manager::api::machines::signal_machine))
-        .routes(routes!(manager::api::machines::get_machine_info))
-        .routes(routes!(manager::api::machines::get_vnc_websocket))
-        .routes(routes!(manager::api::machines::get_machine_status))
-        .routes(routes!(manager::api::machines::dev_delete_all_machines))
-        // cluster
-        .routes(routes!(
-            manager::api::clusters::dev_create_cluster_from_all_machines_in_inventory
-        ))
-        .routes(routes!(manager::api::clusters::dev_install_cluster_basics))
-        .routes(routes!(manager::api::clusters::get_cluster_status))
-        .routes(routes!(manager::api::clusters::signal_cluster))
-        // health
-        .routes(routes!(manager::api::health::get_health))
-        // config
-        .routes(routes!(manager::api::config::update_config))
-        .routes(routes!(manager::api::config::get_config))
-        //.nest("/api/config", config_api::router())
-        //.nest("/api/health", health::router())
-        //.nest("/api/clusters", clusters::router())
-        .routes(routes!(create_public_ip))
-        .routes(routes!(get_boot_config_by_mac))
-        .routes(routes!(direct_terminal))
+    let (router, api) = build_api_router()
         .fallback(serve_spa)
         .layer(
             CorsLayer::new()

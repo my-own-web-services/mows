@@ -11,5 +11,6 @@ pub mod ui;
 pub mod utils;
 pub mod api {
     pub mod health;
+    pub mod openapi;
     pub mod repository;
 }

@@ -7,26 +7,12 @@ use mows_common_rust::{
     config::common_config, get_current_config_cloned, observability::init_observability,
 };
 use mows_package_manager::{
-    api::{health::*, repository::*},
-    config::config,
-    ui::serve_spa,
-    utils::shutdown_signal,
+    api::openapi::build_api_router, config::config, ui::serve_spa, utils::shutdown_signal,
 };
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 use tracing::info;
-use utoipa::OpenApi;
-use utoipa_axum::router::OpenApiRouter;
-use utoipa_axum::routes;
 use utoipa_swagger_ui::SwaggerUi;
-
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    tags(
-        (name = "mows-package-manager", description = "MOWS Package Manager API"),
-    )
-)]
-struct ApiDoc;
 
 #[tracing::instrument]
 #[tokio::main]
@@ -46,11 +32,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .for_each(|origin| origins.push(origin));
     }
 
-    let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
-        .routes(routes!(mows_package_manager::api::health::get_health))
-        .routes(routes!(
-            mows_package_manager::api::repository::render_repositories
-        ))
+    let (router, api) = build_api_router()
         .fallback(serve_spa)
         .layer(
             CorsLayer::new()

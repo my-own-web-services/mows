@@ -1,3 +1,4 @@
+pub mod api_router;
 pub mod background_tasks;
 pub mod config;
 pub mod database;

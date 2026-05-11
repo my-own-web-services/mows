@@ -2,24 +2,21 @@
 
 set -euo pipefail
 
-rm -rf ./mows-common-rust-temp
+# OpenAPI is dumped at build time from the same `OpenApiRouter` graph the
+# server uses, via the `openapi_dump` binary. No docker container, no
+# running server, no curl — the spec is whatever the current source
+# defines, before any deploy.
 
-cp ../../utils/mows-common-rust ./mows-common-rust-temp -r
+rm -f openapi.json swagger.json
+cargo run -q --bin openapi_dump -- --output openapi.json
+# Keep the legacy `swagger.json` name working for the downstream codegen
+# images that mount it by path.
+cp openapi.json swagger.json
 
-docker build -t mows-package-manager . -f docker/package-manager.Dockerfile
-
-rm -rf ./mows-common-rust-temp
-
-# generate openapi.json
-
-docker remove mows-package-manager-codegen-server --force
-docker network create mows-codegen || true
-docker run -d --rm -p 3001:80  -e PRIMARY_ORIGIN="http://localhost:1234" --network=mows-codegen --name mows-package-manager-codegen-server mows-package-manager 
-
-sleep 2
-
-rm -f openapi.json
-curl -o openapi.json http://localhost:3001/apidoc/openapi.json
+if [ ! -s openapi.json ]; then
+  echo "Error: openapi.json is empty or does not exist." >&2
+  exit 1
+fi
 
 
 # generate clients
@@ -33,7 +30,3 @@ docker run --rm -v ./swagger.json:/app/swagger.json -v ./clients/:/local/out/ mo
 
 docker build -t mows-package-manager-codegen-typescript . -f docker/ts-codegen.Dockerfile
 docker run --rm -v ./swagger.json:/app/swagger.json -v ./ui/src:/app/out mows-package-manager-codegen-typescript --name mows-package-manager-codegen-typescript
-
-
-docker remove mows-package-manager-codegen-server --force
-docker network remove mows-codegen
