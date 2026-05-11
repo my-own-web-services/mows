@@ -3,6 +3,7 @@ import React, { Component, createContext, type ReactNode } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { type AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
+import { defaultCodeThemes, type MowsCodeTheme } from "../codeThemes";
 import { getBrowserLanguage, type Language, type Translation } from "../languages";
 import baseEnglishTranslation from "../languages/en-US/default";
 import { log } from "../logging";
@@ -19,6 +20,18 @@ export interface MowsOidcConfig {
     readonly postLogoutRedirectUri?: string;
 }
 
+export interface MowsCodeEditorSettings {
+    readonly showWhitespace: boolean;
+    readonly wrap: boolean;
+    readonly showLineNumbers: boolean;
+}
+
+export const defaultCodeEditorSettings: MowsCodeEditorSettings = {
+    showWhitespace: true,
+    wrap: true,
+    showLineNumbers: true
+};
+
 export interface MowsContextType {
     readonly auth: AuthContextProps;
     readonly mowsUser?: User | null;
@@ -34,6 +47,11 @@ export interface MowsContextType {
     readonly hotkeyManager: HotkeyManager;
     readonly currentlyOpenModal?: string;
     readonly changeActiveModal: (modalType?: string) => void;
+    readonly codeThemes: MowsCodeTheme[];
+    readonly currentCodeTheme: MowsCodeTheme;
+    readonly setCodeTheme: (theme: MowsCodeTheme) => void;
+    readonly codeEditorSettings: MowsCodeEditorSettings;
+    readonly setCodeEditorSettings: (settings: Partial<MowsCodeEditorSettings>) => void;
 }
 
 interface MowsClientManagerProps {
@@ -42,9 +60,12 @@ interface MowsClientManagerProps {
     readonly themes: MowsTheme[];
     readonly languages: Language[];
     readonly initialTranslation: Translation;
+    // eslint-disable-next-line quotes
     readonly extraActions: import("./ActionManager").Action[];
     readonly extraDefaultHotkeys: HotkeyConfig;
     readonly defaultThemeId: string;
+    readonly codeThemes: MowsCodeTheme[];
+    readonly defaultCodeThemeId: string;
     readonly auth?: AuthContextProps;
 }
 
@@ -53,15 +74,50 @@ interface MowsClientManagerState {
     readonly currentTranslation: Translation;
     readonly currentLanguage?: Language;
     readonly currentlyOpenModal?: string;
+    readonly currentCodeTheme: MowsCodeTheme;
+    readonly codeEditorSettings: MowsCodeEditorSettings;
 }
 
 const buildStorageKeys = (prefix: string) => ({
     theme: `${prefix}_theme`,
+    codeTheme: `${prefix}_code_theme`,
+    codeEditorSettings: `${prefix}_code_editor_settings`,
     selectedLanguage: `${prefix}_language`,
     hotkeyConfig: `${prefix}_hotkey_config`,
     recentActions: `${prefix}_recent_actions`,
     postLoginRedirectPath: `${prefix}_post_login_redirect_path`
 });
+
+const readCodeEditorSettings = (storageKey: string): MowsCodeEditorSettings => {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return defaultCodeEditorSettings;
+    try {
+        const parsed = JSON.parse(raw);
+        return { ...defaultCodeEditorSettings, ...parsed };
+    } catch (error) {
+        log.warn(`Failed to parse stored code editor settings; reverting to defaults`, error);
+        return defaultCodeEditorSettings;
+    }
+};
+
+const applyThemeClassSynchronously = (theme: MowsTheme) => {
+    if (typeof document === `undefined`) return;
+    const root = document.documentElement;
+
+    root.classList.forEach((cls) => {
+        if (cls.startsWith(`theme-`)) root.classList.remove(cls);
+    });
+
+    if (theme.id === `system`) {
+        const systemTheme = window.matchMedia(`(prefers-color-scheme: dark)`).matches
+            ? `dark`
+            : `light`;
+        root.classList.add(`theme-${systemTheme}`);
+        return;
+    }
+
+    root.classList.add(`theme-${theme.id}`);
+};
 
 export class MowsClientManagerBase extends Component<
     MowsClientManagerProps,
@@ -70,22 +126,34 @@ export class MowsClientManagerBase extends Component<
     private actionManager: ActionManager;
     private hotkeyManager: HotkeyManager;
     private storageKeys: ReturnType<typeof buildStorageKeys>;
-    private cssThemePrefix: string;
 
     constructor(props: MowsClientManagerProps) {
         super(props);
         this.storageKeys = buildStorageKeys(props.storagePrefix);
-        this.cssThemePrefix = `${props.storagePrefix}-theme-`;
 
         const currentThemeId =
             localStorage.getItem(this.storageKeys.theme) || props.defaultThemeId;
         log.info(`Current theme ID:`, currentThemeId);
 
+        const initialTheme =
+            props.themes.find((t) => t.id === currentThemeId) || props.themes[0];
+
+        // Apply the theme class synchronously before React paints, so we don't
+        // flash the default :root tokens (white surfaces on dark themes, etc.)
+        // before componentDidMount fires.
+        applyThemeClassSynchronously(initialTheme);
+
+        const currentCodeThemeId =
+            localStorage.getItem(this.storageKeys.codeTheme) || props.defaultCodeThemeId;
+        const initialCodeTheme =
+            props.codeThemes.find((t) => t.id === currentCodeThemeId) || props.codeThemes[0];
+
         this.state = {
-            currentTheme:
-                props.themes.find((t) => t.id === currentThemeId) || props.themes[0],
+            currentTheme: initialTheme,
             currentTranslation: props.initialTranslation,
-            currentLanguage: getBrowserLanguage(props.languages, this.storageKeys.selectedLanguage)
+            currentLanguage: getBrowserLanguage(props.languages, this.storageKeys.selectedLanguage),
+            currentCodeTheme: initialCodeTheme,
+            codeEditorSettings: readCodeEditorSettings(this.storageKeys.codeEditorSettings)
         };
 
         this.actionManager = new ActionManager({
@@ -133,7 +201,7 @@ export class MowsClientManagerBase extends Component<
         const root = window.document.documentElement;
 
         root.classList.forEach((cls) => {
-            if (cls.startsWith(this.cssThemePrefix)) {
+            if (cls.startsWith(`theme-`)) {
                 root.classList.remove(cls);
             }
         });
@@ -145,15 +213,26 @@ export class MowsClientManagerBase extends Component<
                 ? `dark`
                 : `light`;
 
-            root.classList.add(this.cssThemePrefix + systemTheme);
+            root.classList.add(`theme-${systemTheme}`);
             this.setState({ currentTheme: theme });
 
             return;
         }
 
-        root.classList.add(this.cssThemePrefix + theme.id);
+        root.classList.add(`theme-${theme.id}`);
         if (theme.url) await loadThemeCSS(theme.url);
         this.setState({ currentTheme: theme });
+    };
+
+    setCodeTheme = (theme: MowsCodeTheme) => {
+        localStorage.setItem(this.storageKeys.codeTheme, theme.id);
+        this.setState({ currentCodeTheme: theme });
+    };
+
+    setCodeEditorSettings = (partial: Partial<MowsCodeEditorSettings>) => {
+        const next = { ...this.state.codeEditorSettings, ...partial };
+        localStorage.setItem(this.storageKeys.codeEditorSettings, JSON.stringify(next));
+        this.setState({ codeEditorSettings: next });
     };
 
     setLanguage = async (languageToSet?: Language) => {
@@ -171,8 +250,8 @@ export class MowsClientManagerBase extends Component<
     };
 
     render = () => {
-        const { children, auth, storagePrefix, themes, languages } = this.props;
-        const { currentTheme } = this.state;
+        const { children, auth, storagePrefix, themes, languages, codeThemes } = this.props;
+        const { currentTheme, currentCodeTheme, codeEditorSettings } = this.state;
 
         const contextValue: MowsContextType = {
             auth: auth!,
@@ -188,7 +267,12 @@ export class MowsClientManagerBase extends Component<
             actionManager: this.actionManager,
             hotkeyManager: this.hotkeyManager,
             currentlyOpenModal: this.state.currentlyOpenModal,
-            changeActiveModal: this.changeActiveModal
+            changeActiveModal: this.changeActiveModal,
+            codeThemes,
+            currentCodeTheme,
+            setCodeTheme: this.setCodeTheme,
+            codeEditorSettings,
+            setCodeEditorSettings: this.setCodeEditorSettings
         };
 
         return <MowsContext.Provider value={contextValue}>{children}</MowsContext.Provider>;
@@ -249,6 +333,9 @@ interface MowsProviderProps {
     readonly languages?: Language[];
     readonly initialTranslation?: Translation;
     readonly defaultThemeId?: string;
+    readonly codeThemes?: MowsCodeTheme[];
+    readonly defaultCodeThemeId?: string;
+    // eslint-disable-next-line quotes
     readonly extraActions?: import("./ActionManager").Action[];
     readonly extraDefaultHotkeys?: HotkeyConfig;
     readonly onSigninCallback?: (user: User | void) => void;
@@ -277,6 +364,8 @@ export class MowsProvider extends Component<MowsProviderProps> {
             languages = baseLanguages,
             initialTranslation = baseEnglishTranslation as Translation,
             defaultThemeId = `system`,
+            codeThemes = defaultCodeThemes,
+            defaultCodeThemeId = `vs-dark`,
             extraActions = [],
             extraDefaultHotkeys = {}
         } = this.props;
@@ -303,6 +392,8 @@ export class MowsProvider extends Component<MowsProviderProps> {
                         languages={languages}
                         initialTranslation={initialTranslation}
                         defaultThemeId={defaultThemeId}
+                        codeThemes={codeThemes}
+                        defaultCodeThemeId={defaultCodeThemeId}
                         extraActions={extraActions}
                         extraDefaultHotkeys={extraDefaultHotkeys}
                     >

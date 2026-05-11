@@ -1,5 +1,5 @@
-import { Component } from "preact";
-import { CSSProperties } from "preact/compat";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { PureComponent, type CSSProperties } from "react";
 import { IoHardwareChipOutline } from "react-icons/io5";
 import { SiHetzner, SiQemu } from "react-icons/si";
 import { match } from "ts-pattern";
@@ -13,34 +13,31 @@ interface MachineProviderIconProps {
 
 interface MachineProviderIconState {}
 
-export default class MachineProviderIcon extends Component<
+export default class MachineProviderIcon extends PureComponent<
     MachineProviderIconProps,
     MachineProviderIconState
 > {
-    constructor(props: MachineProviderIconProps) {
-        super(props);
-        this.state = {};
-    }
-
-    componentDidMount = async () => {};
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
 
     render = () => {
         const size = 18;
+        const t = this.context!.t.manager.machine.providers;
 
         return (
             <div
-                style={{ ...this.props.style }}
-                className={`MachineProviderIcon ${this.props.className ?? ""}`}
+                style={this.props.style}
+                className={`MachineProviderIcon ${this.props.className ?? ``}`}
             >
                 {match(this.props.machine.machine_type)
                     .with(MachineType.LocalQemu, () => (
-                        <SiQemu size={size} color="#f14e28" title={"Qemu"} />
+                        <SiQemu size={size} color={`#f14e28`} title={t.qemu} />
                     ))
                     .with(MachineType.LocalPhysical, () => (
-                        <IoHardwareChipOutline size={size} title="Bare Metal" />
+                        <IoHardwareChipOutline size={size} title={t.bareMetal} />
                     ))
                     .with(MachineType.ExternalHcloud, () => (
-                        <SiHetzner color="red" size={size} title="hcloud" />
+                        <SiHetzner color={`red`} size={size} title={`hcloud`} />
                     ))
                     .exhaustive()}
             </div>

@@ -1,10 +1,14 @@
 import { FilezProvider } from "@/lib/filezContext/FilezContext";
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { SortDirection } from "filez-client-typescript";
 import { expect, test, vi } from "vitest";
-import ResourceList from "./ResourceList";
-import { type BaseResource } from "./ResourceListTypes";
-import ColumnListRowHandler, { type Column } from "./rowHandlers/Column";
+import ResourceList from "mows-components-react/components/list/ResourceList/ResourceList";
+import {
+    SortDirection,
+    type BaseResource
+} from "mows-components-react/components/list/ResourceList/ResourceListTypes";
+import ColumnListRowHandler, {
+    type Column
+} from "mows-components-react/components/list/ResourceList/rowHandlers/Column";
 
 // Mock test resource type
 interface TestResource extends BaseResource {

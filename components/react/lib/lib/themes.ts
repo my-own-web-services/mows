@@ -30,5 +30,13 @@ export const defaultThemes: MowsTheme[] = [
     {
         id: `dark`,
         name: `Dark`
+    },
+    {
+        id: `glass-light`,
+        name: `Glass Light`
+    },
+    {
+        id: `glass-dark`,
+        name: `Glass Dark`
     }
 ];

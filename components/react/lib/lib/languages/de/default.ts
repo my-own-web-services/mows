@@ -28,6 +28,34 @@ const translation: BaseTranslation = {
         selectTheme: `Design auswählen`,
         noThemeFound: `Kein Design gefunden`
     },
+    codeThemePicker: {
+        title: `Code-Theme-Auswahl`,
+        label: `Code-Design`,
+        selectCodeTheme: `Code-Design auswählen`,
+        noCodeThemeFound: `Kein Code-Design gefunden`
+    },
+    settings: {
+        title: `Einstellungen`,
+        description: `Alle Einstellungen an einem Ort verwalten`,
+        formTab: `Formular`,
+        jsonTab: `JSON`,
+        save: `Speichern`,
+        reset: `Zurücksetzen`,
+        invalidJson: `Ungültiges JSON`,
+        sections: {
+            appearance: `Erscheinungsbild`,
+            language: `Sprache`,
+            codeEditor: `Code-Editor`
+        },
+        labels: {
+            theme: `Design`,
+            language: `Sprache`,
+            codeTheme: `Code-Design`,
+            showWhitespace: `Leerzeichen anzeigen`,
+            wrap: `Lange Zeilen umbrechen`,
+            showLineNumbers: `Zeilennummern anzeigen`
+        }
+    },
     keyboardShortcuts: {
         label: `Tastenkombinationen`,
         title: `Tastenkombinationen`,
@@ -56,7 +84,9 @@ const translation: BaseTranslation = {
         [CoreActionIds.OPEN_PRIMARY_MENU]: `Hauptmenü öffnen`,
         [CoreActionIds.LOGIN]: `Anmelden`,
         [CoreActionIds.LOGOUT]: `Abmelden`,
-        [CoreActionIds.OPEN_DEV_TOOLS]: `Entwicklerwerkzeuge öffnen`
+        [CoreActionIds.OPEN_DEV_TOOLS]: `Entwicklerwerkzeuge öffnen`,
+        [CoreActionIds.OPEN_CODE_THEME_SELECTOR]: `Code-Design-Auswahl öffnen`,
+        [CoreActionIds.OPEN_SETTINGS]: `Einstellungen öffnen`
     },
     commandPalette: {
         placeholder: `Befehl eingeben oder suchen...`,
@@ -115,6 +145,17 @@ const translation: BaseTranslation = {
     },
     resourceList: {
         reload: `Neu laden`
+    },
+    keys: {
+        ctrl: `Strg`,
+        alt: `Alt`,
+        shift: `Umschalt`,
+        meta: `Win`,
+        enter: `Eingabe`,
+        esc: `Esc`,
+        tab: `Tab`,
+        space: `Leertaste`,
+        backspace: `Rücktaste`
     }
 };
 

@@ -1,7 +1,9 @@
-import { Component, CSSProperties } from "react";
-import TerminalComponent from "./Terminal";
+import { Input } from "mows-components-react/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "mows-components-react/components/ui/tabs";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { PureComponent, type CSSProperties } from "react";
 import { IoAdd, IoClose } from "react-icons/io5";
-import { Nav, IconButton, ButtonToolbar, Input } from "rsuite";
+import TerminalComponent from "./Terminal";
 
 interface Tab {
     id: string;
@@ -24,15 +26,20 @@ interface TabbedTerminalState {
     editingTitle: string;
 }
 
-export default class TabbedTerminal extends Component<TabbedTerminalProps, TabbedTerminalState> {
+export default class TabbedTerminal extends PureComponent<
+    TabbedTerminalProps,
+    TabbedTerminalState
+> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
+
     constructor(props: TabbedTerminalProps) {
         super(props);
 
-        // Create initial tab
         const initialTab: Tab = {
-            id: "tab-0",
-            title: props.defaultTitle || "Terminal 1",
-            terminalId: props.defaultTerminalId,
+            id: `tab-0`,
+            title: props.defaultTitle || `Terminal 1`,
+            terminalId: props.defaultTerminalId
         };
 
         this.state = {
@@ -40,46 +47,35 @@ export default class TabbedTerminal extends Component<TabbedTerminalProps, Tabbe
             activeTabId: initialTab.id,
             nextTabIndex: 1,
             editingTabId: null,
-            editingTitle: "",
+            editingTitle: ``
         };
     }
 
-    componentDidMount() {
-        // Add keyboard shortcuts
-        document.addEventListener("keydown", this.handleKeyDown);
-    }
+    componentDidMount = () => {
+        document.addEventListener(`keydown`, this.handleKeyDown);
+    };
 
-    componentWillUnmount() {
-        // Remove keyboard shortcuts
-        document.removeEventListener("keydown", this.handleKeyDown);
-    }
+    componentWillUnmount = () => {
+        document.removeEventListener(`keydown`, this.handleKeyDown);
+    };
 
     handleKeyDown = (e: KeyboardEvent) => {
-        // Ctrl/Cmd + T: New tab
-        if ((e.ctrlKey || e.metaKey) && e.key === "t" && e.target === document.body) {
+        if ((e.ctrlKey || e.metaKey) && e.key === `t` && e.target === document.body) {
             e.preventDefault();
             this.addNewTab();
         }
-
-        // Ctrl/Cmd + W: Close tab (only when body is focused, not terminal)
-        if ((e.ctrlKey || e.metaKey) && e.key === "w" && e.target === document.body) {
+        if ((e.ctrlKey || e.metaKey) && e.key === `w` && e.target === document.body) {
             e.preventDefault();
             this.closeTab(this.state.activeTabId);
         }
-
-        // Ctrl/Cmd + Tab: Next tab
-        if ((e.ctrlKey || e.metaKey) && e.key === "Tab" && !e.shiftKey) {
+        if ((e.ctrlKey || e.metaKey) && e.key === `Tab` && !e.shiftKey) {
             e.preventDefault();
             this.switchToNextTab();
         }
-
-        // Ctrl/Cmd + Shift + Tab: Previous tab
-        if ((e.ctrlKey || e.metaKey) && e.key === "Tab" && e.shiftKey) {
+        if ((e.ctrlKey || e.metaKey) && e.key === `Tab` && e.shiftKey) {
             e.preventDefault();
             this.switchToPreviousTab();
         }
-
-        // Ctrl/Cmd + 1-9: Switch to specific tab
         if ((e.ctrlKey || e.metaKey) && /^[1-9]$/.test(e.key)) {
             e.preventDefault();
             const tabIndex = parseInt(e.key) - 1;
@@ -106,43 +102,30 @@ export default class TabbedTerminal extends Component<TabbedTerminalProps, Tabbe
     addNewTab = () => {
         const newTab: Tab = {
             id: `tab-${this.state.nextTabIndex}`,
-            title: `Terminal ${this.state.nextTabIndex + 1}`,
-            terminalId: this.props.defaultTerminalId,
+            title: `${this.context!.t.manager.terminal.terminal} ${this.state.nextTabIndex + 1}`,
+            terminalId: this.props.defaultTerminalId
         };
 
         this.setState({
             tabs: [...this.state.tabs, newTab],
             activeTabId: newTab.id,
-            nextTabIndex: this.state.nextTabIndex + 1,
+            nextTabIndex: this.state.nextTabIndex + 1
         });
     };
 
     closeTab = (tabId: string) => {
         const { tabs, activeTabId } = this.state;
-
-        // Don't close if it's the last tab
-        if (tabs.length === 1) {
-            return;
-        }
+        if (tabs.length === 1) return;
 
         const tabIndex = tabs.findIndex((t) => t.id === tabId);
         const newTabs = tabs.filter((t) => t.id !== tabId);
 
-        // If closing the active tab, switch to another tab
         let newActiveTabId = activeTabId;
         if (tabId === activeTabId) {
-            // Switch to the previous tab if available, otherwise next tab
-            if (tabIndex > 0) {
-                newActiveTabId = newTabs[tabIndex - 1].id;
-            } else {
-                newActiveTabId = newTabs[0].id;
-            }
+            newActiveTabId = tabIndex > 0 ? newTabs[tabIndex - 1].id : newTabs[0].id;
         }
 
-        this.setState({
-            tabs: newTabs,
-            activeTabId: newActiveTabId,
-        });
+        this.setState({ tabs: newTabs, activeTabId: newActiveTabId });
     };
 
     switchTab = (tabId: string) => {
@@ -152,10 +135,7 @@ export default class TabbedTerminal extends Component<TabbedTerminalProps, Tabbe
     startEditingTab = (tabId: string) => {
         const tab = this.state.tabs.find((t) => t.id === tabId);
         if (tab) {
-            this.setState({
-                editingTabId: tabId,
-                editingTitle: tab.title,
-            });
+            this.setState({ editingTabId: tabId, editingTitle: tab.title });
         }
     };
 
@@ -167,76 +147,64 @@ export default class TabbedTerminal extends Component<TabbedTerminalProps, Tabbe
                     t.id === editingTabId ? { ...t, title: editingTitle.trim() } : t
                 ),
                 editingTabId: null,
-                editingTitle: "",
+                editingTitle: ``
             });
         } else {
-            this.setState({
-                editingTabId: null,
-                editingTitle: "",
-            });
+            this.setState({ editingTabId: null, editingTitle: `` });
         }
     };
 
     cancelEditingTab = () => {
-        this.setState({
-            editingTabId: null,
-            editingTitle: "",
-        });
+        this.setState({ editingTabId: null, editingTitle: `` });
     };
 
-    render() {
+    render = () => {
         const { tabs, activeTabId, editingTabId, editingTitle } = this.state;
+        const t = this.context!.t.manager.terminal;
 
         return (
             <div
-                className={`TabbedTerminal flex h-full w-full flex-col ${this.props.className ?? ""}`}
-                style={{ ...this.props.style }}
+                style={this.props.style}
+                className={`TabbedTerminal flex h-full w-full flex-col ${this.props.className ?? ``}`}
             >
-                {/* Tab bar with rsuite Nav */}
-                <div className="flex items-center border-b border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900">
-                    <Nav
-                        appearance="tabs"
-                        activeKey={activeTabId}
-                        onSelect={(eventKey) => this.switchTab(eventKey as string)}
-                        style={{ flex: 1 }}
+                <div className={`flex items-center gap-1 px-1 pt-1`}>
+                    <Tabs
+                        value={activeTabId}
+                        onValueChange={(value) => this.switchTab(value)}
                     >
-                        {tabs.map((tab, index) => (
-                            <Nav.Item
-                                key={tab.id}
-                                eventKey={tab.id}
-                                onDblClick={() => this.startEditingTab(tab.id)}
-                                style={{ position: "relative" }}
-                            >
-                                <div className="flex items-center gap-2">
+                        <TabsList className={`h-auto bg-transparent p-0 gap-1`}>
+                            {tabs.map((tab, index) => (
+                                <TabsTrigger
+                                    key={tab.id}
+                                    value={tab.id}
+                                    onDoubleClick={() => this.startEditingTab(tab.id)}
+                                    className={`gap-2 px-3 py-1.5 data-[state=active]:bg-card data-[state=active]:shadow-sm`}
+                                >
                                     {editingTabId === tab.id ? (
                                         <Input
-                                            size="xs"
                                             value={editingTitle}
-                                            onChange={(value) => this.setState({ editingTitle: value })}
+                                            onChange={(e) =>
+                                                this.setState({
+                                                    editingTitle: e.currentTarget.value
+                                                })
+                                            }
                                             onBlur={this.finishEditingTab}
-                                            onKeyDown={(e: any) => {
-                                                if (e.key === "Enter") {
-                                                    this.finishEditingTab();
-                                                } else if (e.key === "Escape") {
-                                                    this.cancelEditingTab();
-                                                }
+                                            onKeyDown={(e) => {
+                                                if (e.key === `Enter`) this.finishEditingTab();
+                                                else if (e.key === `Escape`) this.cancelEditingTab();
                                             }}
-                                            onClick={(e: any) => e.stopPropagation()}
-                                            style={{ width: "120px" }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className={`h-6 w-[120px]`}
                                             autoFocus
                                         />
                                     ) : (
                                         <span
-                                            className="flex items-center gap-2"
-                                            title="Double-click to rename"
+                                            className={`flex items-center gap-2`}
+                                            title={t.renameTab}
                                         >
                                             {index < 9 && (
                                                 <span
-                                                    style={{
-                                                        fontSize: "0.7em",
-                                                        opacity: 0.6,
-                                                        fontWeight: "bold",
-                                                    }}
+                                                    className={`text-xs font-bold opacity-60`}
                                                 >
                                                     {index + 1}
                                                 </span>
@@ -245,43 +213,46 @@ export default class TabbedTerminal extends Component<TabbedTerminalProps, Tabbe
                                         </span>
                                     )}
                                     {tabs.length > 1 && (
-                                        <IconButton
-                                            size="xs"
-                                            icon={<IoClose />}
-                                            appearance="subtle"
+                                        <span
+                                            role={`button`}
+                                            tabIndex={0}
+                                            className={`ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground`}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 this.closeTab(tab.id);
                                             }}
-                                            title="Close tab"
-                                            style={{ marginLeft: "4px" }}
-                                        />
+                                            onKeyDown={(e) => {
+                                                if (e.key === `Enter` || e.key === ` `) {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    this.closeTab(tab.id);
+                                                }
+                                            }}
+                                            title={t.closeTab}
+                                        >
+                                            <IoClose />
+                                        </span>
                                     )}
-                                </div>
-                            </Nav.Item>
-                        ))}
-                    </Nav>
-
-                    {/* New tab button */}
-                    <ButtonToolbar style={{ padding: "0 8px" }}>
-                        <IconButton
-                            size="sm"
-                            icon={<IoAdd />}
-                            appearance="subtle"
-                            onClick={this.addNewTab}
-                            title="New terminal tab (Ctrl+T)"
-                        >
-                            New
-                        </IconButton>
-                    </ButtonToolbar>
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </Tabs>
+                    <button
+                        type={`button`}
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground`}
+                        onClick={this.addNewTab}
+                        title={t.newTab}
+                        aria-label={t.newTabAria}
+                    >
+                        <IoAdd />
+                    </button>
                 </div>
 
-                {/* Terminal content */}
-                <div className="relative flex-1">
+                <div className={`relative flex-1`}>
                     {tabs.map((tab) => (
                         <div
                             key={tab.id}
-                            className={`absolute inset-0 ${tab.id === activeTabId ? "block" : "hidden"}`}
+                            className={`absolute inset-0 ${tab.id === activeTabId ? `block` : `hidden`}`}
                         >
                             <TerminalComponent id={tab.terminalId} />
                         </div>
@@ -289,5 +260,5 @@ export default class TabbedTerminal extends Component<TabbedTerminalProps, Tabbe
                 </div>
             </div>
         );
-    }
+    };
 }

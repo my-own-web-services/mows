@@ -4,8 +4,9 @@ import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
-import { IDisposable, ITerminalAddon, Terminal } from "@xterm/xterm";
+import { IDisposable, ITerminalAddon, ITheme, Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
 import { CSSProperties, Component, createRef } from "react";
 
 interface TerminalComponentProps {
@@ -16,10 +17,40 @@ interface TerminalComponentProps {
 
 interface TerminalComponentState {}
 
+const lightXtermTheme: ITheme = {
+    background: "#ffffff",
+    foreground: "#1a1a1a",
+    cursor: "#1a1a1a",
+    cursorAccent: "#ffffff",
+    selectionBackground: "rgba(0, 0, 0, 0.18)"
+};
+
+const darkXtermTheme: ITheme = {
+    background: "#000000",
+    foreground: "#ffffff",
+    cursor: "#ffffff",
+    cursorAccent: "#000000",
+    selectionBackground: "rgba(255, 255, 255, 0.25)"
+};
+
+const lightThemeIds = new Set(["light", "glass-light"]);
+
+const isLightTheme = (themeId?: string): boolean => {
+    if (!themeId) return false;
+    if (lightThemeIds.has(themeId)) return true;
+    if (themeId === "system") {
+        return !window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return false;
+};
+
 export default class TerminalComponent extends Component<
     TerminalComponentProps,
     TerminalComponentState
 > {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
+
     private terminalRef = createRef<HTMLDivElement>();
     private terminal: Terminal | null = null;
     private statusBanner = createRef<HTMLDivElement>();
@@ -37,11 +68,23 @@ export default class TerminalComponent extends Component<
         await this.init();
     };
 
+    componentDidUpdate = () => {
+        if (!this.terminal) return;
+        const theme = this.computeXtermTheme();
+        const current = this.terminal.options.theme;
+        if (current?.background !== theme.background) {
+            this.terminal.options.theme = theme;
+        }
+    };
+
     componentWillUnmount = () => {
         this.dispose();
         // remove the resize event listener
         window.removeEventListener("resize", this.fitAddon!.fit);
     };
+
+    computeXtermTheme = (): ITheme =>
+        isLightTheme(this.context?.currentTheme?.id) ? lightXtermTheme : darkXtermTheme;
 
     getUrl = () => `ws://localhost:3000/api/terminal/${this.props.id}`;
 
@@ -95,6 +138,7 @@ export default class TerminalComponent extends Component<
                 fontFamily: 'Menlo, Monaco, "Courier New", monospace',
                 fontSize: 14,
                 lineHeight: 1.2,
+                theme: this.computeXtermTheme(),
             });
             this.fitAddon = new FitAddon();
             this.searchAddon = new SearchAddon();
@@ -140,10 +184,11 @@ export default class TerminalComponent extends Component<
     };
 
     render() {
+        const xtermBg = this.computeXtermTheme().background;
         return (
             <div
-                style={{ ...this.props.style }}
-                className={`Terminal relative h-full min-h-full w-full ${this.props.className ?? ""} rounded-lg bg-[black] p-3 pb-3`}
+                style={{ ...this.props.style, backgroundColor: xtermBg }}
+                className={`Terminal relative h-full min-h-full w-full ${this.props.className ?? ""} rounded-lg border border-border p-3 pb-3`}
             >
                 <div className={"absolute left-0 top-0 hidden"} ref={this.statusBanner}></div>
                 <div ref={this.terminalRef} className={`h-[calc(100%+9px)]`}></div>
@@ -305,7 +350,6 @@ export class WebSocketAddon implements ITerminalAddon {
 
         //console.warn(`Socket state is: ${this._socket!.readyState}`);
         return false;
-        ``;
     }
 }
 

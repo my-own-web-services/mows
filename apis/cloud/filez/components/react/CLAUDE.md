@@ -11,8 +11,9 @@
 # Architecture
 
 This is the **filez-specific** React component library. Generic primitives,
-auth, theme, language, action/hotkey machinery, and modal handling live in
-`mows-components-react` at `/home/paul/projects/mows/components/react/`,
+auth, theme, language, action/hotkey machinery, modal handling, and the
+generic `ResourceList` (with `ColumnListRowHandler` / `GridListRowHandler`)
+live in `mows-components-react` at `/home/paul/projects/mows/components/react/`,
 linked here via yalc. Filez consumes it and adds:
 
 - Filez API client wiring (`FilezClientManager` inside `FilezContext.tsx`)
@@ -21,6 +22,9 @@ linked here via yalc. Filez consumes it and adds:
   `upload`)
 - Filez `FileViewer`, `FileList`, `JobList`, `PrimaryMenu`, `DevPanel`
 - Filez-specific actions and translations
+
+`FileList` passes a filez `FileViewer`-based `cellRenderer` to the generic
+`GridListRowHandler` so the grid can be reused for any object type.
 
 `FilezProvider` mounts `MowsProvider` (passing `storagePrefix="filez"`,
 the filez OIDC scope, filez themes/languages/actions/hotkeys) and then

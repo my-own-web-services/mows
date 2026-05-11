@@ -27,7 +27,7 @@ echo "Regenerating cargo-workspace-docker.toml..."
 if command -v mows >/dev/null 2>&1; then
     mows tools cargo-workspace-docker
 elif command -v mpm >/dev/null 2>&1; then
-    mpm tools cargo-workspace-docker
+    mows tools cargo-workspace-docker
 else
     # Fallback: use cargo to run from source (slower but works without mows installed)
     cargo run --quiet --release -- tools cargo-workspace-docker

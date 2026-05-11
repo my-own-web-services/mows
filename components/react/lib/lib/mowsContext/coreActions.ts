@@ -9,6 +9,8 @@ export enum CoreActionIds {
     OPEN_KEYBOARD_SHORTCUTS = `mows.openKeyboardShortcuts`,
     OPEN_LANGUAGE_SETTINGS = `mows.openLanguageSettings`,
     OPEN_THEME_SELECTOR = `mows.openThemeSelector`,
+    OPEN_CODE_THEME_SELECTOR = `mows.openCodeThemeSelector`,
+    OPEN_SETTINGS = `mows.openSettings`,
     OPEN_PRIMARY_MENU = `mows.openPrimaryMenu`,
     LOGIN = `mows.user.login`,
     LOGOUT = `mows.user.logout`,
@@ -19,6 +21,8 @@ export const CoreModalTypes = {
     keyboardShortcutEditor: `keyboardShortcutEditor`,
     themeSelector: `themeSelector`,
     languageSelector: `languageSelector`,
+    codeThemeSelector: `codeThemeSelector`,
+    settings: `settings`,
     devTools: `devTools`
 } as const;
 
@@ -81,6 +85,35 @@ export const defineCoreActions = (
                         id: `GlobalOpenThemeSelector`,
                         executeAction: () =>
                             provider.changeActiveModal(CoreModalTypes.themeSelector),
+                        getState: () => ({ visibility: ActionVisibility.Shown })
+                    }
+                ]
+            ])
+        }),
+        new Action({
+            id: CoreActionIds.OPEN_CODE_THEME_SELECTOR,
+            category: `General`,
+            actionHandlers: new Map([
+                [
+                    `GlobalOpenCodeThemeSelector`,
+                    {
+                        id: `GlobalOpenCodeThemeSelector`,
+                        executeAction: () =>
+                            provider.changeActiveModal(CoreModalTypes.codeThemeSelector),
+                        getState: () => ({ visibility: ActionVisibility.Shown })
+                    }
+                ]
+            ])
+        }),
+        new Action({
+            id: CoreActionIds.OPEN_SETTINGS,
+            category: `General`,
+            actionHandlers: new Map([
+                [
+                    `GlobalOpenSettings`,
+                    {
+                        id: `GlobalOpenSettings`,
+                        executeAction: () => provider.changeActiveModal(CoreModalTypes.settings),
                         getState: () => ({ visibility: ActionVisibility.Shown })
                     }
                 ]
@@ -164,6 +197,6 @@ export const defineCoreActions = (
 
 export const coreDefaultHotkeys: HotkeyConfig = {
     [CoreActionIds.OPEN_COMMAND_PALETTE]: {
-        keyCombinations: [`ctrl+shift+p`, `meta+k`]
+        keyCombinations: [`mod+shift+p`, `mod+k`]
     }
 };

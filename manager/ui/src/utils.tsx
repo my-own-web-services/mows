@@ -1,9 +1,9 @@
-import { useToaster } from "rsuite";
+import { toast } from "sonner";
 
-export const withToasterHook = (Component: any) => {
-    return (props: any) => {
-        const toaster = useToaster();
+export const notifySuccess = (header: string, message?: string) => {
+    toast.success(header, { description: message });
+};
 
-        return <Component toaster={toaster} {...props} />;
-    };
+export const notifyError = (header: string, message?: string) => {
+    toast.error(header, { description: message });
 };

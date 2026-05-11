@@ -1,264 +1,47 @@
+import PrimaryMenu, {
+    type PrimaryMenuProps as MowsPrimaryMenuProps
+} from "mows-components-react/components/atoms/primaryMenu/PrimaryMenu";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
+    DropdownMenuSeparator
 } from "mows-components-react/components/ui/dropdown-menu";
-import { Skeleton } from "mows-components-react/components/ui/skeleton";
-import { CoreActionIds as ActionIds } from "mows-components-react/lib/mowsContext/coreActions";
-import { ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
-import { log } from "mows-components-react/lib/logging";
 import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
-import { cn, signinRedirectSavePath } from "@/lib/utils";
 import { type CSSProperties, PureComponent } from "react";
-import { IoCodeSlashSharp, IoLogOutSharp, IoMenuSharp, IoPersonSharp } from "react-icons/io5";
-import { LiaKeyboard } from "react-icons/lia";
-import { PiUserSwitchFill } from "react-icons/pi";
-import { match } from "ts-pattern";
+import { IoCodeSlashSharp } from "react-icons/io5";
 import { type FilezContextType, withFilez } from "../lib/filezContext/FilezContext";
-import Avatar from "mows-components-react/components/atoms/avatar/Avatar";
-import CopyValueButton from "mows-components-react/components/atoms/copyValueButton/CopyValueButton";
-import LanguagePicker from "mows-components-react/components/atoms/languagePicker/LanguagePicker";
-import ThemePicker from "mows-components-react/components/atoms/themePicker/ThemePicker";
 
 interface PrimaryMenuProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly defaultOpen?: boolean;
-    readonly position?: `top-right` | `top-left` | `bottom-right` | `bottom-left`;
+    readonly position?: MowsPrimaryMenuProps[`position`];
     readonly filez: FilezContextType;
 }
 
-interface PrimaryMenuState {
-    readonly languagePickerOpen: boolean;
-    readonly themePickerOpen: boolean;
-    readonly keyboardShortcutsOpen: boolean;
-    readonly menuOpen?: boolean;
-}
-
-class PrimaryMenuBase extends PureComponent<PrimaryMenuProps, PrimaryMenuState> {
+class FilezPrimaryMenuBase extends PureComponent<PrimaryMenuProps> {
     static contextType = MowsContext;
     declare context: React.ContextType<typeof MowsContext>;
 
-    constructor(props: PrimaryMenuProps) {
-        super(props);
-        this.state = {
-            languagePickerOpen: false,
-            themePickerOpen: false,
-            keyboardShortcutsOpen: false,
-            menuOpen: this.props.defaultOpen ?? false
-        };
-    }
-
-    componentDidMount = async () => {
-        this.registerActionHandler();
-    };
-
-    componentDidUpdate = async () => {
-        this.registerActionHandler();
-    };
-
-    registerActionHandler = () => {
-        this.context?.actionManager?.registerActionHandler(ActionIds.OPEN_PRIMARY_MENU, {
-            getState: () => ({ visibility: ActionVisibility.Shown }),
-            id: `GlobalOpenPrimaryMenu`,
-            executeAction: async () => {
-                this.setState({ menuOpen: true });
-            }
-        });
-    };
-
-    componentWillUnmount = () => {
-        this.context?.actionManager?.unregisterActionHandler(
-            ActionIds.OPEN_PRIMARY_MENU,
-            `GlobalOpenPrimaryMenu`
-        );
-    };
-
-    loginClick = async () => {
-        if (!this.context?.auth?.signinRedirect) {
-            log.error(`No signinRedirect function available`);
-            return;
-        }
-        await signinRedirectSavePath(this.context?.auth?.signinRedirect);
-    };
-
-    logoutClick = async () => {
-        this.context?.auth?.removeUser();
-    };
-
     render = () => {
-        const loggedIn = !!this.context?.auth?.isAuthenticated;
-        if (this.props.filez.clientLoading) {
-            return <></>;
-        }
-
-        const userName = this.props.filez.ownFilezUser?.display_name;
-        const userId = this.props.filez.ownFilezUser?.id;
-
         const { t } = this.context!;
-
-        const positionClass = (() => {
-            switch (this.props.position) {
-                case `top-left`:
-                    return `top-3 left-3`;
-                case `bottom-right`:
-                    return `bottom-3 right-3`;
-                case `bottom-left`:
-                    return `bottom-3 left-3`;
-                case `top-right`:
-                default:
-                    return `top-3 right-3`;
-            }
-        })();
+        const filezUser = this.props.filez.ownFilezUser;
 
         return (
-            <div
-                className={cn(
-                    `PrimaryMenu text-foreground fixed ${positionClass} z-20 flex flex-col items-end gap-2`,
-                    this.props.className
-                )}
-            >
-                <DropdownMenu
-                    open={this.state.menuOpen}
-                    onOpenChange={(open) => this.setState({ menuOpen: open })}
-                >
-                    {match(loggedIn)
-                        .with(true, () => (
-                            <DropdownMenuTrigger
-                                className={`outline-0`}
-                                title={`${t.primaryMenu.loggedInAs} ${userName}`}
-                            >
-                                <Avatar displayName={this.props.filez.ownFilezUser?.display_name} />
-                            </DropdownMenuTrigger>
-                        ))
-                        .otherwise(() => (
-                            <DropdownMenuTrigger
-                                className={`outline-0`}
-                                title={t.primaryMenu.openMenu}
-                            >
-                                <IoMenuSharp className={`border-primary text-primary h-10 w-10 cursor-pointer rounded-full border-2 p-2`} />
-                            </DropdownMenuTrigger>
-                        ))}
-
-                    <DropdownMenuContent>
-                        {match(loggedIn)
-                            .with(true, () => (
-                                <>
-                                    <DropdownMenuLabel>
-                                        <div className={`flex items-center`}>
-                                            <Avatar
-                                                className={`h-16 w-16 text-xl`}
-                                                displayName={this.props.filez.ownFilezUser?.display_name}
-                                            />
-                                            <div className={`flex flex-col gap-1 px-4 py-2 pb-4`}>
-                                                <span className={`text-muted-foreground space-y-1 text-sm select-none`}>
-                                                    {t.primaryMenu.loggedInAs}
-                                                </span>
-                                                <span className={`flex items-center gap-2 font-bold`}>
-                                                    {userName ? (
-                                                        userName
-                                                    ) : (
-                                                        <Skeleton className={`h-4 w-full`} />
-                                                    )}
-                                                </span>
-                                                <div className={``}>
-                                                    {userId ? (
-                                                        <DropdownMenuItem className={`p-0`} asChild>
-                                                            <CopyValueButton
-                                                                value={userId}
-                                                                label={
-                                                                    t.primaryMenu.copyUserId.label
-                                                                }
-                                                                title={
-                                                                    t.primaryMenu.copyUserId.title
-                                                                }
-                                                            />
-                                                        </DropdownMenuItem>
-                                                    ) : (
-                                                        <Skeleton className={`h-4 w-full`} />
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </DropdownMenuLabel>
-
-                                    <DropdownMenuItem
-                                        className={`cursor-pointer`}
-                                        onClick={this.logoutClick}
-                                    >
-                                        <IoLogOutSharp className={`h-4 w-4`} />
-                                        <span>{t.primaryMenu.logout}</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        className={`cursor-pointer`}
-                                        onClick={this.logoutClick}
-                                    >
-                                        <PiUserSwitchFill className={`h-4 w-4`} />
-                                        <span>{t.primaryMenu.switchUser}</span>
-                                    </DropdownMenuItem>
-                                </>
-                            ))
-                            .with(false, () => (
-                                <DropdownMenuItem
-                                    className={`cursor-pointer`}
-                                    onClick={this.loginClick}
-                                >
-                                    <IoPersonSharp className={`h-4 w-4`} />
-                                    <span>{t.primaryMenu.login}</span>
-                                </DropdownMenuItem>
-                            ))
-                            .exhaustive()}
+            <PrimaryMenu
+                className={this.props.className}
+                style={this.props.style}
+                defaultOpen={this.props.defaultOpen}
+                position={this.props.position}
+                loading={this.props.filez.clientLoading}
+                showSwitchUser
+                user={{ displayName: filezUser?.display_name, id: filezUser?.id }}
+                extraItems={
+                    <>
                         <DropdownMenuSeparator />
-                        <DropdownMenuLabel className={`select-none`}>
-                            {t.primaryMenu.language}
-                        </DropdownMenuLabel>
-                        <DropdownMenuItem
-                            onSelect={(e) => {
-                                e.preventDefault();
-                                this.setState({ languagePickerOpen: true });
-                            }}
-                            asChild
-                        >
-                            <LanguagePicker
-                                defaultOpen={this.state.languagePickerOpen}
-                                onValueChange={() => this.setState({ languagePickerOpen: false })}
-                            />
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel className={`select-none`}>
-                            {t.primaryMenu.theme}
-                        </DropdownMenuLabel>
-                        <DropdownMenuItem
-                            onSelect={(e) => {
-                                e.preventDefault();
-                                this.setState({ themePickerOpen: true });
-                            }}
-                            asChild
-                        >
-                            <ThemePicker
-                                defaultOpen={this.state.themePickerOpen}
-                                onValueChange={() => this.setState({ themePickerOpen: false })}
-                            />
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            onClick={() => {
-                                this.context?.changeActiveModal(`keyboardShortcutEditor`);
-                            }}
-                            className={`cursor-pointer`}
-                        >
-                            <LiaKeyboard></LiaKeyboard>
-                            <span>{t.keyboardShortcuts.label}</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-
                         <DropdownMenuLabel className={`select-none`}>
                             {t.primaryMenu.developer}
                         </DropdownMenuLabel>
-
                         <DropdownMenuItem
                             className={`cursor-pointer`}
                             onClick={() => {
@@ -268,11 +51,11 @@ class PrimaryMenuBase extends PureComponent<PrimaryMenuProps, PrimaryMenuState> 
                             <IoCodeSlashSharp className={`inline h-4 w-4`} />
                             <span> {t.primaryMenu.developerTools}</span>
                         </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
+                    </>
+                }
+            />
         );
     };
 }
 
-export default withFilez(PrimaryMenuBase);
+export default withFilez(FilezPrimaryMenuBase);

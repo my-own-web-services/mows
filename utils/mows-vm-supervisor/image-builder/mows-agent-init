@@ -1,0 +1,43 @@
+#!/sbin/openrc-run
+# mows-agent-init: per-boot setup driven by the supervisor's run.yaml.
+#
+# Reads /mowsinit/run.yaml (mounted via 9p), writes the supervisor-issued
+# SSH pubkey into /root/.ssh/authorized_keys, and prepares the chosen
+# agent kind's environment.
+
+description="MOWS agent init"
+depend() {
+    need localmount
+    after sshd
+}
+
+start() {
+    ebegin "Preparing mows agent runtime"
+    set -e
+
+    if [ ! -d /mowsinit ]; then
+        eerror "/mowsinit not present — supervisor 9p share missing"
+        eend 1 "no init share"
+        return 1
+    fi
+
+    install -d -m 0700 /root/.ssh
+    if [ -f /mowsinit/authorized_keys ]; then
+        install -m 0600 /mowsinit/authorized_keys /root/.ssh/authorized_keys
+    fi
+
+    if [ -f /mowsinit/run.yaml ]; then
+        kind=$(awk -F': *' '$1=="kind"{print $2; exit}' /mowsinit/run.yaml)
+        echo "MOWS_AGENT_KIND=${kind:-claude}" >> /etc/environment
+    fi
+
+    # Drop the supervisor-issued profile shim into /etc/profile.d so every
+    # interactive shell auto-launches the kind binary (claude by default).
+    if [ -f /mowsinit/profile.sh ]; then
+        install -m 0644 /mowsinit/profile.sh /etc/profile.d/mows-agent.sh
+    fi
+
+    # Mark readiness for the supervisor's SSH-readiness probe.
+    touch /run/mows-agent-init.ready
+    eend 0
+}

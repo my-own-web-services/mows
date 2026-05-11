@@ -1,0 +1,17 @@
+services:
+    mows-vm-supervisor:
+        # Local-only image. The bootstrap auto-start path (mows-cli) and the
+        # full-boot e2e tests both look for `mows-vm-supervisor:dev`, so that
+        # is the default tag. Set REGISTRY=<host> to also tag for push.
+        image: ${SERVICE_NAME:-mows-vm-supervisor}:${IMAGE_TAG:-dev}
+        build:
+            context: "."
+            dockerfile: Dockerfile
+            tags:
+                - ${SERVICE_NAME:-mows-vm-supervisor}:${IMAGE_TAG:-dev}
+            additional_contexts:
+                lock: ../../
+            args:
+                - PROFILE=${PROFILE:-dev}
+                - SERVICE_NAME=${SERVICE_NAME:-mows-vm-supervisor}
+                - APP_STAGE_IMAGE=${APP_STAGE_IMAGE:-alpine}

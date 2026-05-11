@@ -1,4 +1,4 @@
-import { signal } from "@preact/signals";
+import { signal } from "@preact/signals-react";
 import { ClusterStatus, MachineStatus, MachineStatusResBody, ManagerConfig } from "./api-client";
 
 export const configSignal = signal<ManagerConfig | null>(null);

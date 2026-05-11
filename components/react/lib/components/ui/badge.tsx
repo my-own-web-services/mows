@@ -15,6 +15,13 @@ const badgeVariants = cva(
         destructive:
           `border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80`,
         outline: `text-foreground`,
+        // Semantic status variants — used by `mows vms`, `filez jobs`, etc. to
+        // render resource state badges without each app reinventing colours.
+        // Tailwind-arbitrary classes so theme tokens take care of dark mode.
+        success: `border-transparent bg-emerald-500/20 text-emerald-500`,
+        warning: `border-transparent bg-amber-500/20 text-amber-500`,
+        info: `border-transparent bg-sky-500/20 text-sky-500`,
+        muted: `border-transparent bg-muted text-muted-foreground`,
       },
     },
     defaultVariants: {

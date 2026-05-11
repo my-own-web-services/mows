@@ -75,7 +75,7 @@ services:
             mows-manager:
                 ipv4_address: "192.168.112.4"
     mows-dev-local-registry:
-        image: registry:2
+        image: registry:2@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
         container_name: mows-dev-local-registry
         restart: always
         ports:
@@ -86,62 +86,25 @@ services:
             mows-manager:
                 ipv4_address: "192.168.112.5"
 
-    # TODO: replace with https://github.com/mcronce/oci-registry
-    mows-dev-pull-through-cache-docker:
-        image: registry:2
-        container_name: mows-dev-pull-through-cache-docker
+    # Single multi-upstream pull-through cache for docker.io, quay.io, gcr.io,
+    # registry.k8s.io and ghcr.io. K3s' embedded containerd selects the upstream
+    # via the `?ns=<host>` query parameter, which oci-registry routes through the
+    # `namespace` entries in oci-registry-upstreams.yaml.
+    mows-dev-pull-through-cache:
+        image: mcronce/oci-registry:v0.4.5@sha256:09519cd7bd2f8da6130062b8e1d3dbf57a0dcff599eb26e8a5d12ce5317fcb91
+        container_name: mows-dev-pull-through-cache
         restart: always
-        environment:
-            - REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io
+        command:
+            - "--listen=0.0.0.0:5000"
+            - "--upstream-config-file=/config/upstreams.yaml"
+            - "filesystem"
+            - "--root=/var/lib/oci-registry"
         networks:
             mows-manager:
                 ipv4_address: "192.168.112.6"
         volumes:
-            - ./temp/registries/docker:/var/lib/registry:rw
-    mows-dev-pull-through-cache-quay:
-        image: registry:2
-        container_name: mows-dev-pull-through-cache-quay
-        restart: always
-        environment:
-            - REGISTRY_PROXY_REMOTEURL=https://quay.io
-        networks:
-            mows-manager:
-                ipv4_address: "192.168.112.7"
-        volumes:
-            - ./temp/registries/quay:/var/lib/registry:rw
-    mows-dev-pull-through-cache-gcr:
-        image: registry:2
-        container_name: mows-dev-pull-through-cache-gcr
-        restart: always
-        environment:
-            - REGISTRY_PROXY_REMOTEURL=https://gcr.io
-        networks:
-            mows-manager:
-                ipv4_address: "192.168.112.8"
-        volumes:
-            - ./temp/registries/gcr:/var/lib/registry
-    mows-dev-pull-through-cache-k8s:
-        image: registry:2
-        container_name: mows-dev-pull-through-cache-k8s
-        restart: always
-        environment:
-            - REGISTRY_PROXY_REMOTEURL=https://k8s.gcr.io
-        networks:
-            mows-manager:
-                ipv4_address: "192.168.112.9"
-        volumes:
-            - ./temp/registries/k8s:/var/lib/registry:rw
-    mows-dev-pull-through-cache-ghcr:
-        image: registry:2
-        container_name: mows-dev-pull-through-cache-ghcr
-        restart: always
-        environment:
-            - REGISTRY_PROXY_REMOTEURL=https://ghcr.io
-        networks:
-            mows-manager:
-                ipv4_address: "192.168.112.10"
-        volumes:
-            - ./temp/registries/ghcr:/var/lib/registry:rw
+            - ./misc/oci-registry-upstreams.yaml:/config/upstreams.yaml:ro
+            - ./temp/registries/oci-registry:/var/lib/oci-registry:rw
 
 volumes:
     mows-dev-local-registry:

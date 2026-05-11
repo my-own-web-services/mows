@@ -1,6 +1,6 @@
 import { CSSProperties, PureComponent, createRef } from "react";
 
-import { FileGroupType, FilezFile, ListFilesSortBy, SortDirection } from "filez-client-typescript";
+import { FileGroupType, FilezFile, ListFilesSortBy } from "filez-client-typescript";
 
 import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
 import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
@@ -8,15 +8,17 @@ import { FilezActionIds as ActionIds } from "@/lib/filezActions";
 import { ActionHandler, ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
 import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
-import ResourceList from "./ResourceList/ResourceList";
+import ResourceList from "mows-components-react/components/list/ResourceList/ResourceList";
 import {
     ListResourceRequestBody,
     ListResourceResponseBody,
     ResourceListHandlers,
-    ResourceListRowHandlers
-} from "./ResourceList/ResourceListTypes";
-import ColumnListRowHandler, { Column } from "./ResourceList/rowHandlers/Column";
-import GridListRowHandler from "./ResourceList/rowHandlers/Grid";
+    ResourceListRowHandlers,
+    SortDirection
+} from "mows-components-react/components/list/ResourceList/ResourceListTypes";
+import ColumnListRowHandler, { Column } from "mows-components-react/components/list/ResourceList/rowHandlers/Column";
+import GridListRowHandler from "mows-components-react/components/list/ResourceList/rowHandlers/Grid";
+import FileViewer from "@/components/fileViewer/FileViewer";
 
 interface FileListProps {
     readonly fileGroupId: string;
@@ -231,7 +233,11 @@ class FileListBase extends PureComponent<FileListProps, FileListState> {
                         new ColumnListRowHandler({
                             columns: this.defaultColumns
                         }),
-                        new GridListRowHandler({})
+                        new GridListRowHandler<FilezFile>({
+                            cellRenderer: (item, width, height) => (
+                                <FileViewer file={item} width={width} height={height} />
+                            )
+                        })
                     ]}
                     displayListHeader={this.props.displayTopBar}
                     displayDebugBar={true}

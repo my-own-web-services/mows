@@ -138,7 +138,17 @@ export default class CommandPalette extends PureComponent<
 
         return (
             <CommandDialog open={open} onOpenChange={this.handleOpenChange}>
-                <CommandInput placeholder={t!.commandPalette.placeholder} />
+                <CommandInput
+                    placeholder={t!.commandPalette.placeholder}
+                    autoComplete={`off`}
+                    autoCorrect={`off`}
+                    autoCapitalize={`off`}
+                    spellCheck={false}
+                    data-form-type={`other`}
+                    data-1p-ignore={``}
+                    data-lpignore={`true`}
+                    data-bwignore={`true`}
+                />
                 <CommandList className={`overflow-y-scroll`}>
                     <CommandEmpty>{t?.commandPalette?.noResults}</CommandEmpty>
 

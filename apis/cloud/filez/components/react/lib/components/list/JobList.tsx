@@ -1,6 +1,6 @@
 import { CSSProperties, PureComponent, createRef } from "react";
 
-import { FilezJob, JobStatus, ListJobsSortBy, SortDirection } from "filez-client-typescript";
+import { FilezJob, JobStatus, ListJobsSortBy } from "filez-client-typescript";
 
 import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
 import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
@@ -9,14 +9,15 @@ import { ActionHandler, ActionVisibility } from "mows-components-react/lib/mowsC
 import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
 import DateTime from "mows-components-react/components/atoms/dateTime/DateTime";
-import ResourceList from "./ResourceList/ResourceList";
+import ResourceList from "mows-components-react/components/list/ResourceList/ResourceList";
 import {
     ListResourceRequestBody,
     ListResourceResponseBody,
     ResourceListHandlers,
-    ResourceListRowHandlers
-} from "./ResourceList/ResourceListTypes";
-import ColumnListRowHandler, { Column } from "./ResourceList/rowHandlers/Column";
+    ResourceListRowHandlers,
+    SortDirection
+} from "mows-components-react/components/list/ResourceList/ResourceListTypes";
+import ColumnListRowHandler, { Column } from "mows-components-react/components/list/ResourceList/rowHandlers/Column";
 
 interface JobListProps {
     readonly className?: string;

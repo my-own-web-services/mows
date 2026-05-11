@@ -3,10 +3,69 @@
 MOWS uses a busybox-style binary called `mows` with subcommands:
 - `mows package-manager compose ...` - Package manager compose operations
 - `mows tools ...` - Utility tools (json-to-yaml, jq, etc.)
+- `mows vms ...` - Spawn and manage Alpine QEMU VMs (and the supervisor that runs them)
+- `mows agents ...` - Run AI coding agents (claude-code, future kinds) inside QEMU VMs
 - `mows template ...` - Template rendering
 - `mows self-update` - Self-update
 
 A symlink `mpm` is provided as an alias for `mows package-manager`, so `mpm compose ...` is equivalent to `mows package-manager compose ...`.
+
+## `mows vms` and `mows agents`
+
+`vms` and `agents` are sibling root commands. A **VM** is the general-purpose
+Alpine QEMU primitive: `/workspace` (host CWD, rw) and `/creds` (host
+`~/.claude`, ro) mounted via 9p, sshd listening on a forwarded host port,
+and an independent dockerd inside. **Agents** are processes running
+*inside* a VM (one VM may host many), started over SSH by the supervisor.
+
+Both root commands talk to the **mows-vm-supervisor** container (under
+`utils/mows-vm-supervisor/`). The CLI talks to the supervisor over loopback
+HTTP today; unix socket and (later) WireGuard remote control share the same
+axum API on the supervisor side.
+
+The supervisor also exposes per-VM **display** and **console** websocket
+streams for the future web UI:
+- `GET /v1/vms/:id/display` — RFB/VNC. QEMU binds VNC to a unix socket
+  (`<state_dir>/vms/<id>/display.sock`); axum proxies raw bytes
+  bidirectionally as binary websocket frames. noVNC connects directly.
+- `GET /v1/vms/:id/console` — guest serial console. QEMU exposes the
+  serial chardev as a unix socket and persists everything to `console.log`
+  via the chardev `logfile=` option, so the on-disk log captures output
+  whether or not a websocket client is attached. Only one console client
+  may attach at a time (QEMU `server=on,wait=off` semantics).
+
+### `mows vms`
+
+| Subcommand | Purpose |
+|---|---|
+| `vms run` | Boot a fresh VM and (default) attach via SSH. `--detach` runs in the background. |
+| `vms list` | List running and stopped VMs. |
+| `vms attach <id\|name>` | SSH into a running VM. |
+| `vms logs <id\|name>` | Print recent VM logs. |
+| `vms stop <id\|name>` | Stop a running VM. |
+| `vms rm <id\|name>` | Remove a stopped VM and its on-disk state. |
+| `vms build-image` | Build (or rebuild) the cached Alpine guest qcow2 image. |
+| `vms supervisor {start,stop,status,logs,wg-config}` | Manage the supervisor container itself. |
+
+### `mows agents`
+
+| Subcommand | Purpose |
+|---|---|
+| `agents run` | Convenience: boot a fresh VM, spawn an agent in it, and attach. |
+| `agents create <vm-id>` | Spawn an additional agent inside an existing VM. |
+| `agents list` | List agents (optionally filter by VM). |
+| `agents attach <id\|name>` | Attach the local terminal to a running agent via tmux. |
+| `agents logs <id\|name>` | Print recent agent logs. |
+| `agents stop <id\|name>` | Stop a running agent. |
+| `agents rm <id\|name>` | Remove a stopped agent and its on-disk state. |
+| `agents user {add,list,passwd,rm}` | Web-UI / API user accounts. |
+
+Environment variables:
+
+- `MOWS_VM_SUPERVISOR_URL` — supervisor base URL (default `http://127.0.0.1:7878`).
+- `MOWS_VM_SUPERVISOR_API_TOKEN` (or `_FILE`) — bearer token used for HTTP listener.
+
+Design doc: `.plans/agent-vm/PLAN.md`.
 
 ## Testing Guidelines
 

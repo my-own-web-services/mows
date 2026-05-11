@@ -1,5 +1,6 @@
 /* eslint-disable */
 /* tslint:disable */
+// @ts-nocheck
 /*
  * ---------------------------------------------------------------
  * ## THIS FILE WAS GENERATED VIA SWAGGER-TYPESCRIPT-API        ##
@@ -8,6 +9,58 @@
  * ## SOURCE: https://github.com/acacode/swagger-typescript-api ##
  * ---------------------------------------------------------------
  */
+
+export enum MachineType {
+  LocalQemu = "LocalQemu",
+  LocalPhysical = "LocalPhysical",
+  ExternalHcloud = "ExternalHcloud",
+}
+
+export enum MachineStatus {
+  Running = "Running",
+  Stopped = "Stopped",
+  Unknown = "Unknown",
+  Suspended = "Suspended",
+}
+
+export enum MachineSignal {
+  Start = "Start",
+  Reboot = "Reboot",
+  Shutdown = "Shutdown",
+  Reset = "Reset",
+  ForceOff = "ForceOff",
+  Suspend = "Suspend",
+  Resume = "Resume",
+}
+
+export enum MachineInstallState {
+  Configured = "Configured",
+  Requested = "Requested",
+  Installed = "Installed",
+}
+
+export enum ClusterSignal {
+  Start = "Start",
+  Restart = "Restart",
+  Stop = "Stop",
+  Suspend = "Suspend",
+  Resume = "Resume",
+}
+
+export enum ClusterRunningState {
+  Stopped = "Stopped",
+  DriveDecrypted = "DriveDecrypted",
+  KubernetesRunning = "KubernetesRunning",
+  ControlplaneReady = "ControlplaneReady",
+  VaultUnsealed = "VaultUnsealed",
+  SystemReady = "SystemReady",
+}
+
+export enum ClusterInstallState {
+  Kubernetes = "Kubernetes",
+  BasicsConfigured = "BasicsConfigured",
+  BasicsReady = "BasicsReady",
+}
 
 export enum ApiResponseStatus {
   Success = "Success",
@@ -71,48 +124,25 @@ export interface BackupNode {
 }
 
 export interface Cluster {
-  backup_nodes: Record<string, BackupNode>;
+  backup_nodes: Partial<Record<string, BackupNode>>;
   cluster_backup_wg_private_key?: string | null;
-  cluster_nodes: Record<string, ClusterNode>;
+  cluster_nodes: Partial<Record<string, ClusterNode>>;
   encryption_key?: string | null;
   id: string;
   install_state?: null | ClusterInstallState;
   k3s_token: string;
   kubeconfig?: string | null;
-  public_ip_config: Record<string, PublicIpConfig>;
+  public_ip_config: Partial<Record<string, PublicIpConfig>>;
   vault_secrets?: null | VaultSecrets;
   vip: Vip;
 }
 
 export type ClusterCreationConfig = object;
 
-export enum ClusterInstallState {
-  Kubernetes = "Kubernetes",
-  BasicsConfigured = "BasicsConfigured",
-  BasicsReady = "BasicsReady",
-}
-
 export interface ClusterNode {
   internal_ips: InternalIps;
   machine_id: string;
   primary: boolean;
-}
-
-export enum ClusterRunningState {
-  Stopped = "Stopped",
-  DriveDecrypted = "DriveDecrypted",
-  KubernetesRunning = "KubernetesRunning",
-  ControlplaneReady = "ControlplaneReady",
-  VaultUnsealed = "VaultUnsealed",
-  SystemReady = "SystemReady",
-}
-
-export enum ClusterSignal {
-  Start = "Start",
-  Restart = "Restart",
-  Stop = "Stop",
-  Suspend = "Suspend",
-  Resume = "Resume",
 }
 
 export interface ClusterSignalReqBody {
@@ -219,32 +249,9 @@ export interface MachineInstall {
   state?: null | MachineInstallState;
 }
 
-export enum MachineInstallState {
-  Configured = "Configured",
-  Requested = "Requested",
-  Installed = "Installed",
-}
-
-export enum MachineSignal {
-  Start = "Start",
-  Reboot = "Reboot",
-  Shutdown = "Shutdown",
-  Reset = "Reset",
-  ForceOff = "ForceOff",
-  Suspend = "Suspend",
-  Resume = "Resume",
-}
-
 export interface MachineSignalReqBody {
   machine_id: string;
   signal: MachineSignal;
-}
-
-export enum MachineStatus {
-  Running = "Running",
-  Stopped = "Stopped",
-  Unknown = "Unknown",
-  Suspended = "Suspended",
 }
 
 export interface MachineStatusResBody {
@@ -252,16 +259,10 @@ export interface MachineStatusResBody {
   status: MachineStatus;
 }
 
-export enum MachineType {
-  LocalQemu = "LocalQemu",
-  LocalPhysical = "LocalPhysical",
-  ExternalHcloud = "ExternalHcloud",
-}
-
 export interface ManagerConfig {
-  clusters: Record<string, Cluster>;
+  clusters: Partial<Record<string, Cluster>>;
   external_provider_config?: null | ExternalProviderConfigMap;
-  machines: Record<string, Machine>;
+  machines: Partial<Record<string, Machine>>;
 }
 
 export interface PixiecoreBootConfig {
@@ -357,16 +358,22 @@ export interface FullRequestParams extends Omit<RequestInit, "body"> {
   cancelToken?: CancelToken;
 }
 
-export type RequestParams = Omit<FullRequestParams, "body" | "method" | "query" | "path">;
+export type RequestParams = Omit<
+  FullRequestParams,
+  "body" | "method" | "query" | "path"
+>;
 
 export interface ApiConfig<SecurityDataType = unknown> {
   baseUrl?: string;
   baseApiParams?: Omit<RequestParams, "baseUrl" | "cancelToken" | "signal">;
-  securityWorker?: (securityData: SecurityDataType | null) => Promise<RequestParams | void> | RequestParams | void;
+  securityWorker?: (
+    securityData: SecurityDataType | null,
+  ) => Promise<RequestParams | void> | RequestParams | void;
   customFetch?: typeof fetch;
 }
 
-export interface HttpResponse<D extends unknown, E extends unknown = unknown> extends Response {
+export interface HttpResponse<D extends unknown, E extends unknown = unknown>
+  extends Response {
   data: D;
   error: E;
 }
@@ -375,6 +382,7 @@ type CancelToken = Symbol | string | number;
 
 export enum ContentType {
   Json = "application/json",
+  JsonApi = "application/vnd.api+json",
   FormData = "multipart/form-data",
   UrlEncoded = "application/x-www-form-urlencoded",
   Text = "text/plain",
@@ -385,7 +393,8 @@ export class HttpClient<SecurityDataType = unknown> {
   private securityData: SecurityDataType | null = null;
   private securityWorker?: ApiConfig<SecurityDataType>["securityWorker"];
   private abortControllers = new Map<CancelToken, AbortController>();
-  private customFetch = (...fetchParams: Parameters<typeof fetch>) => fetch(...fetchParams);
+  private customFetch = (...fetchParams: Parameters<typeof fetch>) =>
+    fetch(...fetchParams);
 
   private baseApiParams: RequestParams = {
     credentials: "same-origin",
@@ -418,9 +427,15 @@ export class HttpClient<SecurityDataType = unknown> {
 
   protected toQueryString(rawQuery?: QueryParamsType): string {
     const query = rawQuery || {};
-    const keys = Object.keys(query).filter((key) => "undefined" !== typeof query[key]);
+    const keys = Object.keys(query).filter(
+      (key) => "undefined" !== typeof query[key],
+    );
     return keys
-      .map((key) => (Array.isArray(query[key]) ? this.addArrayQueryParam(query, key) : this.addQueryParam(query, key)))
+      .map((key) =>
+        Array.isArray(query[key])
+          ? this.addArrayQueryParam(query, key)
+          : this.addQueryParam(query, key),
+      )
       .join("&");
   }
 
@@ -431,10 +446,23 @@ export class HttpClient<SecurityDataType = unknown> {
 
   private contentFormatters: Record<ContentType, (input: any) => any> = {
     [ContentType.Json]: (input: any) =>
-      input !== null && (typeof input === "object" || typeof input === "string") ? JSON.stringify(input) : input,
-    [ContentType.Text]: (input: any) => (input !== null && typeof input !== "string" ? JSON.stringify(input) : input),
-    [ContentType.FormData]: (input: any) =>
-      Object.keys(input || {}).reduce((formData, key) => {
+      input !== null && (typeof input === "object" || typeof input === "string")
+        ? JSON.stringify(input)
+        : input,
+    [ContentType.JsonApi]: (input: any) =>
+      input !== null && (typeof input === "object" || typeof input === "string")
+        ? JSON.stringify(input)
+        : input,
+    [ContentType.Text]: (input: any) =>
+      input !== null && typeof input !== "string"
+        ? JSON.stringify(input)
+        : input,
+    [ContentType.FormData]: (input: any) => {
+      if (input instanceof FormData) {
+        return input;
+      }
+
+      return Object.keys(input || {}).reduce((formData, key) => {
         const property = input[key];
         formData.append(
           key,
@@ -445,11 +473,15 @@ export class HttpClient<SecurityDataType = unknown> {
               : `${property}`,
         );
         return formData;
-      }, new FormData()),
+      }, new FormData());
+    },
     [ContentType.UrlEncoded]: (input: any) => this.toQueryString(input),
   };
 
-  protected mergeRequestParams(params1: RequestParams, params2?: RequestParams): RequestParams {
+  protected mergeRequestParams(
+    params1: RequestParams,
+    params2?: RequestParams,
+  ): RequestParams {
     return {
       ...this.baseApiParams,
       ...params1,
@@ -462,7 +494,9 @@ export class HttpClient<SecurityDataType = unknown> {
     };
   }
 
-  protected createAbortSignal = (cancelToken: CancelToken): AbortSignal | undefined => {
+  protected createAbortSignal = (
+    cancelToken: CancelToken,
+  ): AbortSignal | undefined => {
     if (this.abortControllers.has(cancelToken)) {
       const abortController = this.abortControllers.get(cancelToken);
       if (abortController) {
@@ -506,22 +540,34 @@ export class HttpClient<SecurityDataType = unknown> {
     const payloadFormatter = this.contentFormatters[type || ContentType.Json];
     const responseFormat = format || requestParams.format;
 
-    return this.customFetch(`${baseUrl || this.baseUrl || ""}${path}${queryString ? `?${queryString}` : ""}`, {
-      ...requestParams,
-      headers: {
-        ...(requestParams.headers || {}),
-        ...(type && type !== ContentType.FormData ? { "Content-Type": type } : {}),
+    return this.customFetch(
+      `${baseUrl || this.baseUrl || ""}${path}${queryString ? `?${queryString}` : ""}`,
+      {
+        ...requestParams,
+        headers: {
+          ...(requestParams.headers || {}),
+          ...(type && type !== ContentType.FormData
+            ? { "Content-Type": type }
+            : {}),
+        },
+        signal:
+          (cancelToken
+            ? this.createAbortSignal(cancelToken)
+            : requestParams.signal) || null,
+        body:
+          typeof body === "undefined" || body === null
+            ? null
+            : payloadFormatter(body),
       },
-      signal: (cancelToken ? this.createAbortSignal(cancelToken) : requestParams.signal) || null,
-      body: typeof body === "undefined" || body === null ? null : payloadFormatter(body),
-    }).then(async (response) => {
-      const r = response.clone() as HttpResponse<T, E>;
+    ).then(async (response) => {
+      const r = response as HttpResponse<T, E>;
       r.data = null as unknown as T;
       r.error = null as unknown as E;
 
+      const responseToParse = responseFormat ? response.clone() : response;
       const data = !responseFormat
         ? r
-        : await response[responseFormat]()
+        : await responseToParse[responseFormat]()
             .then((data) => {
               if (r.ok) {
                 r.data = data;
@@ -550,7 +596,9 @@ export class HttpClient<SecurityDataType = unknown> {
  * @version 0.0.1
  * @license
  */
-export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDataType> {
+export class Api<
+  SecurityDataType extends unknown,
+> extends HttpClient<SecurityDataType> {
   api = {
     /**
      * No description
@@ -558,7 +606,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @name DevCreateClusterFromAllMachinesInInventory
      * @request POST:/api/clusters/dev_create_from_all_machines_in_inventory
      */
-    devCreateClusterFromAllMachinesInInventory: (data: ClusterCreationConfig, params: RequestParams = {}) =>
+    devCreateClusterFromAllMachinesInInventory: (
+      data: ClusterCreationConfig,
+      params: RequestParams = {},
+    ) =>
       this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/clusters/dev_create_from_all_machines_in_inventory`,
         method: "POST",
@@ -661,7 +712,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @name CreateMachines
      * @request POST:/api/machines/create
      */
-    createMachines: (data: MachineCreationReqBody, params: RequestParams = {}) =>
+    createMachines: (
+      data: MachineCreationReqBody,
+      params: RequestParams = {},
+    ) =>
       this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/machines/create`,
         method: "POST",
@@ -767,7 +821,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @name CreatePublicIp
      * @request POST:/api/public_ip/create
      */
-    createPublicIp: (data: PublicIpCreationConfig, params: RequestParams = {}) =>
+    createPublicIp: (
+      data: PublicIpCreationConfig,
+      params: RequestParams = {},
+    ) =>
       this.request<ApiResponseEmptyApiResponse, any>({
         path: `/api/public_ip/create`,
         method: "POST",

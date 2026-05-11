@@ -3,6 +3,7 @@
 #[cfg(not(unix))]
 compile_error!("mows only supports Unix-like operating systems (Linux, macOS)");
 
+mod agents;
 mod cli;
 pub mod error;
 mod manpage;
@@ -19,7 +20,10 @@ use clap::Parser;
 use colored::Colorize;
 use tracing_subscriber::EnvFilter;
 
-use cli::{Cli, Commands, ComposeCommands, PackageManagerCommands, SecretsCommands, ToolCommands};
+use cli::{
+    AgentsCommands, AgentsUserCommands, Cli, Commands, ComposeCommands, PackageManagerCommands,
+    SecretsCommands, ToolCommands, VmsCommands, VmsSupervisorCommands,
+};
 use manpage::manpage;
 use package_manager::{
     compose_cd, compose_init, compose_install, compose_passthrough, compose_up, compose_update,
@@ -28,6 +32,12 @@ use package_manager::{
 use self_update::{check_for_updates_background, notify_if_update_available, self_update, show_version};
 use shell_init::shell_init;
 use template::render_template_command;
+use agents::{
+    agent_attach, agent_create, agent_list, agent_logs, agent_rm, agent_run, agent_stop, agent_ui,
+    agent_user_add, agent_user_list, agent_user_passwd, agent_user_rm, vm_attach,
+    vm_build_image, vm_list, vm_logs, vm_rm, vm_run, vm_stop, vm_supervisor_logs,
+    vm_supervisor_start, vm_supervisor_status, vm_supervisor_stop, vm_supervisor_wg_config,
+};
 use tools::{
     drives_command, expand_object_command, flatten_object_command, jq_command, json_to_yaml,
     prettify_json, workspace_docker_command, yaml_to_json,
@@ -88,6 +98,8 @@ fn main() {
     let result = match cli.command {
         Commands::PackageManager { command } => handle_package_manager_command(command),
         Commands::Tools { tool } => handle_tool_command(tool),
+        Commands::Vms { command } => handle_vms_command(command),
+        Commands::Agents { command } => handle_agents_command(command),
         Commands::Template {
             input,
             variables,
@@ -167,6 +179,61 @@ fn handle_tool_command(tool: ToolCommands) -> error::Result<()> {
             workspace_docker_command(all, path.as_deref())
         }
         ToolCommands::Drives => drives_command(),
+    }
+}
+
+fn handle_vms_command(command: VmsCommands) -> error::Result<()> {
+    match command {
+        VmsCommands::Run {
+            name,
+            cpus,
+            memory,
+            no_workspace,
+        } => vm_run(name, cpus, memory, no_workspace),
+        VmsCommands::List => vm_list(),
+        VmsCommands::Attach { id_or_name } => vm_attach(id_or_name),
+        VmsCommands::Logs { id_or_name, follow } => vm_logs(id_or_name, follow),
+        VmsCommands::Stop { id_or_name, force } => vm_stop(id_or_name, force),
+        VmsCommands::Rm { id_or_name } => vm_rm(id_or_name),
+        VmsCommands::BuildImage { rebuild } => vm_build_image(rebuild),
+        VmsCommands::Supervisor { command } => match command {
+            VmsSupervisorCommands::Start => vm_supervisor_start(),
+            VmsSupervisorCommands::Stop => vm_supervisor_stop(),
+            VmsSupervisorCommands::Status => vm_supervisor_status(),
+            VmsSupervisorCommands::Logs { follow } => vm_supervisor_logs(follow),
+            VmsSupervisorCommands::WgConfig { user } => vm_supervisor_wg_config(user),
+        },
+    }
+}
+
+fn handle_agents_command(command: AgentsCommands) -> error::Result<()> {
+    match command {
+        AgentsCommands::Run {
+            name,
+            kind,
+            cpus,
+            memory,
+            no_workspace,
+            detach,
+        } => agent_run(name, kind, cpus, memory, no_workspace, detach),
+        AgentsCommands::Create {
+            vm_id_or_name,
+            kind,
+            name,
+            detach,
+        } => agent_create(vm_id_or_name, kind, name, detach),
+        AgentsCommands::List { vm } => agent_list(vm),
+        AgentsCommands::Attach { id_or_name } => agent_attach(id_or_name),
+        AgentsCommands::Logs { id_or_name, follow } => agent_logs(id_or_name, follow),
+        AgentsCommands::Stop { id_or_name, force } => agent_stop(id_or_name, force),
+        AgentsCommands::Rm { id_or_name } => agent_rm(id_or_name),
+        AgentsCommands::Ui { print } => agent_ui(print),
+        AgentsCommands::User { command } => match command {
+            AgentsUserCommands::Add { username, role } => agent_user_add(username, role),
+            AgentsUserCommands::List => agent_user_list(),
+            AgentsUserCommands::Passwd { username } => agent_user_passwd(username),
+            AgentsUserCommands::Rm { username } => agent_user_rm(username),
+        },
     }
 }
 

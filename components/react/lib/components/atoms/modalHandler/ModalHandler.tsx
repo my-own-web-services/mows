@@ -9,8 +9,10 @@ import {
     DialogHeader,
     DialogTitle
 } from "@/components/ui/dialog";
+import CodeThemePicker from "../codeThemePicker/CodeThemePicker";
 import KeyboardShortcuts from "../keyboardShortcutEditor/KeyboardShortcutEditor";
 import LanguagePicker from "../languagePicker/LanguagePicker";
+import SettingsPanel from "../settingsPanel/SettingsPanel";
 import ThemePicker from "../themePicker/ThemePicker";
 
 export interface ModalEntry {
@@ -60,6 +62,30 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
                         <DialogDescription aria-describedby={undefined} />
                     </DialogHeader>
                     <LanguagePicker className={`overflow-y-auto px-6 pb-6`} standalone />
+                </DialogContent>
+            )
+        },
+        [CoreModalTypes.codeThemeSelector]: {
+            component: () => (
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{this.context?.t.codeThemePicker.title}</DialogTitle>
+                        <DialogDescription aria-describedby={undefined} />
+                    </DialogHeader>
+                    <CodeThemePicker className={`overflow-y-auto px-6 pb-6`} standalone />
+                </DialogContent>
+            )
+        },
+        [CoreModalTypes.settings]: {
+            component: () => (
+                <DialogContent className={`max-w-3xl max-h-[80vh]`}>
+                    <DialogHeader>
+                        <DialogTitle>{this.context?.t.settings.title}</DialogTitle>
+                        <DialogDescription>
+                            {this.context?.t.settings.description}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <SettingsPanel className={`overflow-y-auto px-6 pb-6`} />
                 </DialogContent>
             )
         }

@@ -1,5 +1,4 @@
-import { Component } from "preact";
-import { CSSProperties } from "preact/compat";
+import { PureComponent, type CSSProperties } from "react";
 
 interface HomeProps {
     readonly className?: string;
@@ -8,19 +7,10 @@ interface HomeProps {
 
 interface HomeState {}
 
-export default class Home extends Component<HomeProps, HomeState> {
-    constructor(props: HomeProps) {
-        super(props);
-        this.state = {};
-    }
-
-    componentDidMount = async () => {};
-
-    render = () => {
-        return (
-            <div style={{ ...this.props.style }} className={`Home ${this.props.className ?? ""}`}>
-                <h1 className={"text-3xl font-bold"}>Welcome to the MOWS Manager</h1>
-            </div>
-        );
-    };
+export default class Home extends PureComponent<HomeProps, HomeState> {
+    render = () => (
+        <div style={this.props.style} className={`Home ${this.props.className ?? ``}`}>
+            <h1 className={`text-3xl font-bold`}>Welcome to the MOWS Manager</h1>
+        </div>
+    );
 }

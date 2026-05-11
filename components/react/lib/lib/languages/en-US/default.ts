@@ -28,6 +28,34 @@ const translation: BaseTranslation = {
         selectTheme: `Select theme`,
         noThemeFound: `No theme found`
     },
+    codeThemePicker: {
+        title: `Code Theme Selector`,
+        label: `Code theme`,
+        selectCodeTheme: `Select code theme`,
+        noCodeThemeFound: `No code theme found`
+    },
+    settings: {
+        title: `Settings`,
+        description: `Configure all preferences in one place`,
+        formTab: `Form`,
+        jsonTab: `JSON`,
+        save: `Save`,
+        reset: `Reset`,
+        invalidJson: `Invalid JSON`,
+        sections: {
+            appearance: `Appearance`,
+            language: `Language`,
+            codeEditor: `Code editor`
+        },
+        labels: {
+            theme: `Theme`,
+            language: `Language`,
+            codeTheme: `Code theme`,
+            showWhitespace: `Show whitespace`,
+            wrap: `Wrap long lines`,
+            showLineNumbers: `Show line numbers`
+        }
+    },
     keyboardShortcuts: {
         label: `Keyboard Shortcuts`,
         title: `Keyboard Shortcuts`,
@@ -55,7 +83,9 @@ const translation: BaseTranslation = {
         [CoreActionIds.OPEN_PRIMARY_MENU]: `Open primary menu`,
         [CoreActionIds.LOGIN]: `Login`,
         [CoreActionIds.LOGOUT]: `Logout`,
-        [CoreActionIds.OPEN_DEV_TOOLS]: `Open developer tools`
+        [CoreActionIds.OPEN_DEV_TOOLS]: `Open developer tools`,
+        [CoreActionIds.OPEN_CODE_THEME_SELECTOR]: `Open code theme selector`,
+        [CoreActionIds.OPEN_SETTINGS]: `Open settings`
     },
     commandPalette: {
         placeholder: `Type a command or search...`,
@@ -114,6 +144,17 @@ const translation: BaseTranslation = {
     },
     resourceList: {
         reload: `Reload`
+    },
+    keys: {
+        ctrl: `Ctrl`,
+        alt: `Alt`,
+        shift: `Shift`,
+        meta: `Win`,
+        enter: `Enter`,
+        esc: `Esc`,
+        tab: `Tab`,
+        space: `Space`,
+        backspace: `Backspace`
     }
 };
 

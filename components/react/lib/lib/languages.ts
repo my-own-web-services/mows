@@ -25,6 +25,34 @@ export interface BaseTranslation {
         selectTheme: string;
         noThemeFound: string;
     };
+    codeThemePicker: {
+        title: string;
+        label: string;
+        selectCodeTheme: string;
+        noCodeThemeFound: string;
+    };
+    settings: {
+        title: string;
+        description: string;
+        formTab: string;
+        jsonTab: string;
+        save: string;
+        reset: string;
+        invalidJson: string;
+        sections: {
+            appearance: string;
+            language: string;
+            codeEditor: string;
+        };
+        labels: {
+            theme: string;
+            language: string;
+            codeTheme: string;
+            showWhitespace: string;
+            wrap: string;
+            showLineNumbers: string;
+        };
+    };
     keyboardShortcuts: {
         label: string;
         title: string;
@@ -104,6 +132,17 @@ export interface BaseTranslation {
     };
     resourceList: {
         reload: string;
+    };
+    keys: {
+        ctrl: string;
+        alt: string;
+        shift: string;
+        meta: string;
+        enter: string;
+        esc: string;
+        tab: string;
+        space: string;
+        backspace: string;
     };
 }
 

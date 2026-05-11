@@ -1,0 +1,13 @@
+# Upstream registry configuration for mcronce/oci-registry.
+# Replaces five separate registry:2 pull-through caches with a single instance.
+# See: https://gitlab.cronce.io/foss/oci-registry/-/blob/master/example.yaml
+- namespace: docker.io
+  host: registry-1.docker.io
+- namespace: quay.io
+  host: quay.io
+- namespace: gcr.io
+  host: gcr.io
+- namespace: registry.k8s.io
+  host: registry.k8s.io
+- namespace: ghcr.io
+  host: ghcr.io

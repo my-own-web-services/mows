@@ -1,9 +1,9 @@
-import ResourceList from "@/components/list/ResourceList/ResourceList";
+import ResourceList from "mows-components-react/components/list/ResourceList/ResourceList";
 import {
     ListResourceRequestBody,
     ListResourceResponseBody
-} from "@/components/list/ResourceList/ResourceListTypes";
-import ColumnListRowHandler from "@/components/list/ResourceList/rowHandlers/Column";
+} from "mows-components-react/components/list/ResourceList/ResourceListTypes";
+import ColumnListRowHandler from "mows-components-react/components/list/ResourceList/rowHandlers/Column";
 import { Button } from "mows-components-react/components/ui/button";
 import { Checkbox } from "mows-components-react/components/ui/checkbox";
 import { Progress } from "mows-components-react/components/ui/progress";

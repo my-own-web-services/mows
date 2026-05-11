@@ -27,7 +27,7 @@ Command.displayName = CommandPrimitive.displayName
 const CommandDialog = ({ children, ...props }: DialogProps) => {
   return (
     <Dialog {...props}>
-      <DialogContent className={`overflow-hidden p-0`} aria-describedby={undefined}>
+      <DialogContent className={`max-w-[700px] overflow-hidden p-0`} aria-describedby={undefined}>
         <VisuallyHidden>
           <DialogTitle>Command Menu</DialogTitle>
         </VisuallyHidden>

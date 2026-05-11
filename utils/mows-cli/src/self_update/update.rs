@@ -75,7 +75,12 @@ fn get_arch() -> Result<&'static str> {
     match std::env::consts::ARCH {
         "x86_64" => Ok("amd64"),
         "aarch64" => Ok("arm64"),
-        arch => Err(MowsError::Message(format!("Unsupported architecture: {}", arch))),
+        arch => Err(MowsError::Message(format!(
+            "self-update is not yet available on architecture `{arch}`. \
+             Supported: x86_64 (amd64), aarch64 (arm64). \
+             Build from source with `cargo install --path utils/mows-cli` or open an issue \
+             at https://github.com/firstdorsal/mows to request prebuilt binaries."
+        ))),
     }
 }
 
@@ -84,7 +89,11 @@ fn get_os() -> Result<&'static str> {
     match std::env::consts::OS {
         "linux" => Ok("linux"),
         "macos" => Ok("darwin"),
-        os => Err(MowsError::Message(format!("Unsupported operating system: {}", os))),
+        os => Err(MowsError::Message(format!(
+            "self-update is not yet available on OS `{os}`. \
+             Supported: linux, macos. \
+             Build from source with `cargo install --path utils/mows-cli`."
+        ))),
     }
 }
 
@@ -828,13 +837,94 @@ pub fn self_update(build: bool, version: Option<&str>) -> Result<()> {
 
     // Clear update notification on successful update
     if result.is_ok() {
-        let _ = crate::package_manager::compose::config::MowsConfig::with_locked(|config| {
+        if let Err(e) = crate::package_manager::compose::config::MowsConfig::with_locked(|config| {
             config.clear_update_notification();
             Ok(())
-        });
+        }) {
+            tracing::warn!("failed to clear update notification after successful update: {e}");
+        }
+
+        // Best-effort: refresh the cached agent guest image so the next
+        // `mows agents run` doesn't have to wait for a build. The version
+        // bump has already happened — image-build failure must never roll
+        // back the self-update. Skipped when MOWS_SKIP_AGENT_IMAGE_BUILD is
+        // set (used by CI / when running inside containers where docker
+        // isn't available) or when the image-builder/ directory can't be
+        // located alongside this binary.
+        if std::env::var_os("MOWS_SKIP_AGENT_IMAGE_BUILD").is_none() {
+            if let Err(e) = trigger_agent_image_build() {
+                tracing::warn!(
+                    "agent image rebuild after self-update did not succeed: {e}. \
+                     Run `mows agents build-image` manually before your next agent run, \
+                     or set MOWS_SKIP_AGENT_IMAGE_BUILD=1 to silence this."
+                );
+            }
+        }
     }
 
     result
+}
+
+fn trigger_agent_image_build() -> Result<()> {
+    use std::process::Command;
+
+    match Command::new("docker")
+        .arg("--version")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+    {
+        Ok(s) if s.success() => {}
+        Ok(s) => {
+            return Err(crate::error::MowsError::Config(format!(
+                "docker probe (`docker --version`) failed with status {s} — agent image build requires docker"
+            )));
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(crate::error::MowsError::Config(
+                "docker not installed — agent image build requires docker".into(),
+            ));
+        }
+        Err(e) => {
+            return Err(crate::error::MowsError::Config(format!(
+                "could not invoke docker: {e}"
+            )));
+        }
+    }
+
+    let cwd = std::env::current_dir()
+        .map_err(|e| crate::error::MowsError::io("getting current directory", e))?;
+    let mut search = cwd.clone();
+    let suffix = std::path::Path::new("utils/mows-vm-supervisor/image-builder/build.sh");
+    let builder = loop {
+        let probe = search.join(suffix);
+        if probe.exists() {
+            break probe;
+        }
+        if !search.pop() {
+            return Err(crate::error::MowsError::Config(format!(
+                "could not locate {} above {}",
+                suffix.display(),
+                cwd.display()
+            )));
+        }
+    };
+
+    eprintln!("post-update: refreshing agent guest image via {}", builder.display());
+    let status = Command::new("bash")
+        .arg(&builder)
+        .status()
+        .map_err(|e| crate::error::MowsError::Command {
+            command: "image-builder/build.sh".into(),
+            message: e.to_string(),
+        })?;
+    if !status.success() {
+        return Err(crate::error::MowsError::Command {
+            command: "image-builder/build.sh".into(),
+            message: format!("exited with {status}"),
+        });
+    }
+    Ok(())
 }
 
 /// Check for updates synchronously with a short timeout (called after command completes)

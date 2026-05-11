@@ -20,7 +20,9 @@ static INDEX_HEADERS: [(&str, &str); 8] = [
     r#"
         default-src 'none';
         script-src 'self';
-        style-src 'self';
+        style-src 'self' 'unsafe-inline';
+        style-src-elem 'self';
+        style-src-attr 'unsafe-inline';
         manifest-src 'self';
         connect-src 'self' ws://localhost:* wss://web-console.hetzner.cloud;
         img-src 'self';

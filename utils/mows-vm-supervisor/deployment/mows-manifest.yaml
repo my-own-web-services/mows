@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://git.vindelicum.eu/firstdorsal/mows/-/raw/main/operators/mows-package-manager/schemas/manifest-schema.json?ref_type=heads
+
+manifestVersion: "0.1"
+metadata:
+    name: "mows-vm-supervisor"
+    version: "0.1.0"
+    description: "Runs AI coding agents (claude-code today, others later) inside QEMU VMs. Owns lifecycle, web UI auth, and (later) WireGuard remote access."
+spec:
+    raw:
+        sources: {}
+secrets:
+    api_token:
+        # Token used by the local CLI when talking to the supervisor over HTTP.
+        # Random URL-safe 48-char value.
+        pattern: "[A-Za-z0-9_-]{48}"
+    admin_password:
+        # Initial admin password for the web UI. Replace after first login.
+        pattern: "[A-Za-z0-9!@#$%^&*()_+=-]{32}"
+    wg_private_key:
+        # WireGuard server private key — rotated by `mows tools agent supervisor wg-rotate`.
+        # Real WG keys are 32 random bytes base64-encoded; this pattern is a placeholder
+        # that satisfies the secret generator until we add a `wg genkey` hook.
+        pattern: "[A-Za-z0-9+/=]{44}"

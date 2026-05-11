@@ -1,0 +1,13 @@
+# Supervisor runtime config. Mounted read-only at
+# /etc/mows-vm-supervisor/config.yaml inside the container.
+state_dir: /var/lib/mows-agent
+image_dir: /var/lib/mows-agent/images
+unix_socket: /run/mows-agent.sock
+http_listen: 0.0.0.0:7878
+qemu_binary: qemu-system-x86_64
+vm_defaults:
+    cpus: 2
+    memory_mb: 2048
+port_range:
+    start: 22000
+    end: 22999

@@ -1,0 +1,44 @@
+services:
+    supervisor:
+        image: "{{ .image_name }}:{{ .image_tag }}"
+        restart: unless-stopped
+        # The supervisor needs:
+        # - /dev/kvm to run guest VMs with KVM acceleration
+        # - /dev/net/tun for WireGuard
+        # - NET_ADMIN for WG, SYS_ADMIN for the 9p mounts QEMU sets up
+        cap_add:
+            - NET_ADMIN
+            - SYS_ADMIN
+        devices:
+            - /dev/kvm
+            - /dev/net/tun
+        ports:
+            # Loopback HTTP (CLI talks here).
+            - "127.0.0.1:{{ .http_port }}:7878"
+            # WireGuard UDP (operators dial in from here).
+            - "0.0.0.0:{{ .wireguard_port }}:51820/udp"
+            # Future: HTTPS for the web UI on the WG interface.
+            - "127.0.0.1:{{ .web_ui_port }}:8443"
+        volumes:
+            - "{{ .state_volume }}:/var/lib/mows-agent"
+            - "../results/secrets/api_token:/run/secrets/api_token:ro"
+            - "../results/secrets/admin_password:/run/secrets/admin_password:ro"
+            - "../results/secrets/wg_private_key:/run/secrets/wg_private_key:ro"
+            - "./templates/config/config.yaml:/etc/mows-vm-supervisor/config.yaml:ro"
+            # Bind-mount the host workspace dir users plan to share into agents.
+            # The supervisor relays this into per-agent 9p shares at runtime.
+            - "${HOME}:/host-home:ro"
+            - "${HOME}/.claude:/host-creds:ro"
+        environment:
+            MOWS_VM_SUPERVISOR_CONFIG: /etc/mows-vm-supervisor/config.yaml
+            MOWS_VM_SUPERVISOR_API_TOKEN_FILE: /run/secrets/api_token
+            RUST_LOG: info
+        healthcheck:
+            test: ["CMD", "wget", "-qO-", "http://127.0.0.1:7878/v1/healthz"]
+            interval: 10s
+            timeout: 3s
+            retries: 5
+            start_period: 15s
+
+volumes:
+    "{{ .state_volume }}":

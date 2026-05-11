@@ -1,57 +1,54 @@
-import "@fontsource-variable/inter";
-import { Component } from "preact/compat";
-import { BrowserRouter, Route, Switch } from "react-router-dom";
-import { CustomProvider } from "rsuite";
+import CommandPalette from "mows-components-react/components/atoms/commandPalette/CommandPalette";
+import GlobalContextMenu from "mows-components-react/components/atoms/globalContextMenu/GlobalContextMenu";
+import ModalHandler from "mows-components-react/components/atoms/modalHandler/ModalHandler";
+import PrimaryMenu from "mows-components-react/components/atoms/primaryMenu/PrimaryMenu";
+import { PureComponent } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Api } from "./api-client";
 import CustomNavbar from "./components/CustomNavbar";
 import Dev from "./components/Dev";
 import Home from "./components/Home";
 import { handleClusterStatusUpdate, handleConfigUpdate, handleMachineStatusUpdate } from "./config";
-import "./index.scss";
 
 interface AppProps {}
 
 interface AppState {}
 
-export default class App extends Component<AppProps, AppState> {
+export default class App extends PureComponent<AppProps, AppState> {
     client: Api<unknown>;
     origin: string;
 
     constructor(props: AppProps) {
         super(props);
-        this.origin = "localhost:3000";
+        this.origin = `localhost:3000`;
 
-        this.client = new Api({ baseUrl: "http://" + this.origin });
+        this.client = new Api({ baseUrl: `http://` + this.origin });
     }
 
     componentDidMount = async () => {
         await handleConfigUpdate(this.origin);
         await handleMachineStatusUpdate(this.origin);
         await handleClusterStatusUpdate(this.origin);
-        //setInterval(reloadConfig, 1000);
     };
 
-    render = () => {
-        return (
-            <div className="App">
-                <CustomProvider theme={"dark"}>
-                    <BrowserRouter>
-                        <div className={"flex"}>
-                            <CustomNavbar />
-                            <span className="Page w-full p-4 pl-[76px]">
-                                <Switch>
-                                    <Route exact path="/">
-                                        <Home></Home>
-                                    </Route>
-                                    <Route exact path="/devtools/">
-                                        <Dev client={this.client} />
-                                    </Route>
-                                </Switch>
-                            </span>
-                        </div>
-                    </BrowserRouter>
-                </CustomProvider>
-            </div>
-        );
-    };
+    render = () => (
+        <div className={`App min-h-screen w-full text-foreground`}>
+            <BrowserRouter>
+                <CustomNavbar />
+                <main
+                    className={`Page min-h-screen w-full py-4`}
+                    style={{ paddingLeft: 76, paddingRight: 76 }}
+                >
+                    <Routes>
+                        <Route path={`/`} element={<Home />} />
+                        <Route path={`/devtools/`} element={<Dev client={this.client} />} />
+                    </Routes>
+                </main>
+            </BrowserRouter>
+            <PrimaryMenu />
+            <CommandPalette />
+            <ModalHandler />
+            <GlobalContextMenu />
+        </div>
+    );
 }

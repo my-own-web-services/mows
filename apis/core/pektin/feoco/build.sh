@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-mpm tools cargo-workspace-docker
+mows tools cargo-workspace-docker
 
 export SERVICE_NAME="feoco"
 

@@ -27,5 +27,12 @@ beforeAll(() => {
         disconnect: vi.fn()
     }));
 
+    global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+        observe: vi.fn(),
+        unobserve: vi.fn(),
+        disconnect: vi.fn(),
+        takeRecords: vi.fn().mockReturnValue([])
+    })) as unknown as typeof IntersectionObserver;
+
     Element.prototype.scrollIntoView = vi.fn();
 });

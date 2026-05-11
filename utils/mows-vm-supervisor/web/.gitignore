@@ -1,0 +1,8 @@
+node_modules
+dist
+.yalc
+yalc.lock
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+public/assets/

@@ -1,0 +1,8 @@
+/dev/vda    /              ext4    rw,relatime,noatime    0 1
+proc        /proc          proc    defaults               0 0
+sysfs       /sys           sysfs   defaults               0 0
+devtmpfs    /dev           devtmpfs defaults              0 0
+tmpfs       /tmp           tmpfs   defaults               0 0
+workspace   /workspace     9p      trans=virtio,version=9p2000.L,rw,nofail  0 0
+creds       /creds         9p      trans=virtio,version=9p2000.L,ro,nofail  0 0
+mowsinit    /mowsinit      9p      trans=virtio,version=9p2000.L,ro,nofail  0 0

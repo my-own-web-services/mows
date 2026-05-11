@@ -18,6 +18,7 @@ exclude = [
     "./apis/core/pektin/docs/",
     "./apis/core/pektin/ribston/",
     "./utils/mows-common-rust/code_generation",
+    "./utils/pull-through-registry",
 ]
 
 [workspace.package]

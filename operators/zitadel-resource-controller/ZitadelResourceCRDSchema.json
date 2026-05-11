@@ -22,6 +22,18 @@
     }
   },
   "definitions": {
+    "ClientDataTargetFile": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "description": "The file path where the credentials JSON file will be written",
+          "type": "string"
+        }
+      }
+    },
     "ClientDataTargetVault": {
       "type": "object",
       "required": [
@@ -34,7 +46,7 @@
           "type": "string"
         },
         "secretEngineName": {
-          "description": "The name of the vault engine in the same namespace mows-core-secrets-vrc/{RESOURCE_NAMESPACE}/{engine_name} the zitadel controller cant create the vault engine, it must be created before with a vault resource, the vault resource must have the same namespace as the zitadel resource",
+          "description": "The name of the vault engine in the same namespace mows-core-secrets-vrc/{RESOURCE_SCOPE}/{engine_name} the zitadel controller cant create the vault engine, it must be created before with a vault resource, the vault resource must have the same scope as the zitadel resource",
           "type": "string"
         },
         "secretEngineSubPath": {
@@ -211,6 +223,18 @@
           "properties": {
             "vault": {
               "$ref": "#/definitions/ClientDataTargetVault"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "file"
+          ],
+          "properties": {
+            "file": {
+              "$ref": "#/definitions/ClientDataTargetFile"
             }
           },
           "additionalProperties": false

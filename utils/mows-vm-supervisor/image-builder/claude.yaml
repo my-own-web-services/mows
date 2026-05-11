@@ -1,0 +1,12 @@
+name: claude
+binary: /usr/local/bin/claude
+# Inside the VM the agent is sandboxed by KVM + per-agent qcow2 overlay, so
+# full tool permissions is the right default — anything the agent does is
+# contained to its own ephemeral guest filesystem.
+argv:
+    - /usr/local/bin/claude
+    - --dangerously-skip-permissions
+login_command: "/usr/local/bin/claude login"
+env:
+    CLAUDE_CONFIG_DIR: /creds
+credentials_mount: /creds

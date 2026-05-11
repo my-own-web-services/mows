@@ -35,6 +35,27 @@ pub enum Commands {
         #[command(subcommand)]
         tool: ToolCommands,
     },
+    /// Spawn and manage Alpine QEMU VMs (and the supervisor that runs them).
+    ///
+    /// `vms` is the general-purpose VM primitive: boot an Alpine VM with
+    /// `/workspace` (the host CWD, rw) and `/creds` (host `~/.claude`, ro)
+    /// mounted via 9p, sshd listening on a forwarded host port, and an
+    /// independent dockerd inside the guest. Agents run *inside* VMs (see
+    /// `mows agents`) — multiple agents per VM are allowed.
+    Vms {
+        #[command(subcommand)]
+        command: VmsCommands,
+    },
+    /// Run AI coding agents (claude-code, future kinds) inside QEMU VMs.
+    ///
+    /// Each agent is a process running inside a VM, started over SSH by the
+    /// supervisor. `mows agents run` is the convenience for "boot a VM and
+    /// drop me into an agent shell"; `mows agents create <vm-id>` adds an
+    /// extra agent to an existing VM.
+    Agents {
+        #[command(subcommand)]
+        command: AgentsCommands,
+    },
     /// Render templates
     ///
     /// Automatically loads values.yml, values.yaml, or values.json from the input directory.
@@ -376,6 +397,165 @@ pub enum ToolCommands {
         #[arg(short, long)]
         path: Option<PathBuf>,
     },
+}
+
+#[derive(Subcommand)]
+pub enum VmsCommands {
+    /// Boot a fresh VM (no agent attached). Detaches by default; use
+    /// `mows vms attach` to ssh in, or `mows agents run` to spawn an agent
+    /// in one step.
+    Run {
+        /// Override the auto-generated VM name.
+        #[arg(long)]
+        name: Option<String>,
+        /// vCPU count (default from supervisor config).
+        #[arg(long)]
+        cpus: Option<u32>,
+        /// Memory in megabytes (default from supervisor config).
+        #[arg(long)]
+        memory: Option<u32>,
+        /// Skip mounting the current working directory into the VM.
+        #[arg(long)]
+        no_workspace: bool,
+    },
+    /// List all known VMs (running and stopped).
+    List,
+    /// Attach to a running VM over SSH.
+    Attach { id_or_name: String },
+    /// Print the most recent VM console log.
+    Logs {
+        id_or_name: String,
+        #[arg(short, long)]
+        follow: bool,
+    },
+    /// Stop a running VM (also stops every agent inside it).
+    Stop {
+        id_or_name: String,
+        #[arg(long)]
+        force: bool,
+    },
+    /// Remove a stopped VM and its on-disk state.
+    Rm { id_or_name: String },
+    /// Build (or rebuild) the cached Alpine guest image.
+    BuildImage {
+        #[arg(long)]
+        rebuild: bool,
+    },
+    /// Manage the mows-vm-supervisor container itself.
+    Supervisor {
+        #[command(subcommand)]
+        command: VmsSupervisorCommands,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum VmsSupervisorCommands {
+    /// Start the supervisor container (no-op if already running).
+    Start,
+    /// Stop the supervisor container.
+    Stop,
+    /// Print supervisor health.
+    Status,
+    /// Tail supervisor logs.
+    Logs {
+        #[arg(short, long)]
+        follow: bool,
+    },
+    /// Mint a WireGuard peer config for `user`.
+    WgConfig { user: String },
+}
+
+#[derive(Subcommand)]
+pub enum AgentsCommands {
+    /// Boot a fresh VM and create an agent inside it (the original
+    /// `mows tools agent run` UX). Defaults `--kind=claude`.
+    Run {
+        /// Override the auto-generated VM/agent name.
+        #[arg(long)]
+        name: Option<String>,
+        /// Agent kind to run (default: claude). Built-ins: shell, claude.
+        #[arg(long)]
+        kind: Option<String>,
+        /// vCPU count (default from supervisor config).
+        #[arg(long)]
+        cpus: Option<u32>,
+        /// Memory in megabytes (default from supervisor config).
+        #[arg(long)]
+        memory: Option<u32>,
+        /// Skip mounting the current working directory into the VM.
+        #[arg(long)]
+        no_workspace: bool,
+        /// Start in the background instead of attaching to the agent's IO.
+        #[arg(short, long)]
+        detach: bool,
+    },
+    /// Create an agent inside an existing running VM (multi-agent per VM).
+    Create {
+        /// VM id (or unique-prefix) to spawn the agent in.
+        vm_id_or_name: String,
+        /// Agent kind to run (default: claude).
+        #[arg(long)]
+        kind: Option<String>,
+        /// Override the auto-generated agent name.
+        #[arg(long)]
+        name: Option<String>,
+        /// Detach instead of attaching to the agent's IO.
+        #[arg(short, long)]
+        detach: bool,
+    },
+    /// List all known agents (across every VM).
+    List {
+        /// Restrict to agents in this VM.
+        #[arg(long)]
+        vm: Option<String>,
+    },
+    /// Attach to a running agent's IO (live stdout, type to send stdin).
+    Attach { id_or_name: String },
+    /// Print the recent agent log (replay of the persisted stdout).
+    Logs {
+        id_or_name: String,
+        #[arg(short, long)]
+        follow: bool,
+    },
+    /// Stop a running agent (kills the SSH-spawned process).
+    Stop {
+        id_or_name: String,
+        #[arg(long)]
+        force: bool,
+    },
+    /// Remove a stopped agent's row + log.
+    Rm { id_or_name: String },
+    /// Open the supervisor's web UI in a browser.
+    ///
+    /// Auto-starts the supervisor container if it isn't running, then
+    /// launches the system browser at the supervisor URL. Pass `--print`
+    /// to just print the URL instead.
+    Ui {
+        /// Print the URL instead of launching a browser.
+        #[arg(long)]
+        print: bool,
+    },
+    /// Manage web-UI / API users.
+    User {
+        #[command(subcommand)]
+        command: AgentsUserCommands,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum AgentsUserCommands {
+    /// Create a new user (prompts for password).
+    Add {
+        username: String,
+        #[arg(long, default_value = "user")]
+        role: String,
+    },
+    /// List users.
+    List,
+    /// Change a user's password (prompts for new value).
+    Passwd { username: String },
+    /// Remove a user.
+    Rm { username: String },
 }
 
 /// Build a clap Command for the `mpm` alias binary.

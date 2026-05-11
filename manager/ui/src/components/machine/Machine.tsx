@@ -1,10 +1,10 @@
-import { Component } from "preact";
-import { CSSProperties } from "preact/compat";
+import { Button } from "mows-components-react/components/ui/button";
+import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { PureComponent, type CSSProperties } from "react";
 import { GrResume } from "react-icons/gr";
 import { IoTerminal } from "react-icons/io5";
 import { TbSnowflake } from "react-icons/tb";
 import { VscDebugStart, VscDebugStop, VscSync, VscSyncIgnored, VscTrash } from "react-icons/vsc";
-import { Button } from "rsuite";
 import { Api, Machine, MachineSignal, MachineStatus, VncWebsocket } from "../../api-client";
 import TabbedTerminal from "../TabbedTerminal";
 import MachineProviderIcon from "./MachineProviderIcon";
@@ -24,10 +24,13 @@ interface MachineComponentState {
     readonly vncWebsocket: VncWebsocket | null;
 }
 
-export default class MachineComponent extends Component<
+export default class MachineComponent extends PureComponent<
     MachineComponentProps,
     MachineComponentState
 > {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
+
     constructor(props: MachineComponentProps) {
         super(props);
         this.state = {
@@ -47,16 +50,15 @@ export default class MachineComponent extends Component<
         ) {
             this.getVncWebsocket();
         }
-        //(this.getVncWebsocket();
     };
 
-    toggleSSH = async () => {
+    toggleSSH = () => {
         this.setState({ sshOpen: !this.state.sshOpen });
     };
 
     private getVncWebsocket = async () => {
         const ws = (await this.props.client.api.getVncWebsocket(this.props.machine.id)).data;
-        this.setState({ vncWebsocket: ws.data });
+        this.setState({ vncWebsocket: ws.data ?? null });
     };
 
     private signalMachine = async (signal: MachineSignal) => {
@@ -74,16 +76,16 @@ export default class MachineComponent extends Component<
 
     render = () => {
         const machineStatus = this.props.machineStatus;
-        const buttonSize = "sm";
+        const t = this.context!.t.manager.machine;
 
         return (
             <div
-                style={{ ...this.props.style }}
-                className={`MachineComponent ${this.props.className ?? ""}`}
+                style={this.props.style}
+                className={`MachineComponent ${this.props.className ?? ``}`}
             >
-                <div className={"flex gap-4"}>
-                    <div className={"w-1/3"}>
-                        <h1 className="flex items-center gap-2 pb-1 text-xl">
+                <div className={`flex gap-4`}>
+                    <div className={`w-1/3`}>
+                        <h1 className={`flex items-center gap-2 pb-1 text-xl`}>
                             <MachineStatusComp machineStatus={machineStatus} />
                             <MachineProviderIcon machine={this.props.machine} />
                             <span>{this.props.machine.id}</span>
@@ -95,83 +97,88 @@ export default class MachineComponent extends Component<
                             machine={this.props.machine}
                         />
 
-                        <div className="flex gap-2 pt-2">
-                            <Button
-                                title="Start"
-                                size={buttonSize}
+                        <div className={`flex gap-2 pt-2`}>
+                            <Button variant={`secondary`}
+                                size={`sm`}
+                                title={t.start}
                                 onClick={() => this.signalMachine(MachineSignal.Start)}
                             >
                                 <VscDebugStart />
                             </Button>
-                            <Button
-                                title="Shutdown"
-                                size={buttonSize}
+                            <Button variant={`secondary`}
+                                size={`sm`}
+                                title={t.shutdown}
                                 onClick={() => this.signalMachine(MachineSignal.Shutdown)}
                             >
                                 <VscDebugStop />
                             </Button>
-                            <Button
-                                title="Reboot"
-                                size={buttonSize}
+                            <Button variant={`secondary`}
+                                size={`sm`}
+                                title={t.reboot}
                                 onClick={() => this.signalMachine(MachineSignal.Reboot)}
                             >
                                 <VscSync />
                             </Button>
-                            <Button
-                                title="Reset"
-                                size={buttonSize}
+                            <Button variant={`secondary`}
+                                size={`sm`}
+                                title={t.reset}
                                 onClick={() => this.signalMachine(MachineSignal.Reset)}
                             >
                                 <VscSyncIgnored />
                             </Button>
-                            <Button
-                                title="Force Off"
-                                size={buttonSize}
+                            <Button variant={`secondary`}
+                                size={`sm`}
+                                title={t.forceOff}
                                 onClick={() => this.signalMachine(MachineSignal.ForceOff)}
                             >
                                 💥
                             </Button>
-                            <Button
-                                title="Suspend"
-                                size={buttonSize}
+                            <Button variant={`secondary`}
+                                size={`sm`}
+                                title={t.suspend}
                                 onClick={() => this.signalMachine(MachineSignal.Suspend)}
                             >
                                 <TbSnowflake />
                             </Button>
-                            <Button
-                                title="Resume"
-                                size={buttonSize}
+                            <Button variant={`secondary`}
+                                size={`sm`}
+                                title={t.resume}
                                 onClick={() => this.signalMachine(MachineSignal.Resume)}
                             >
                                 <GrResume />
                             </Button>
-                            <Button title="Delete" size={buttonSize} onClick={() => this.delete()}>
+                            <Button
+                                size={`sm`}
+                                title={t.delete}
+                                variant={`destructive`}
+                                onClick={() => this.delete()}
+                            >
                                 <VscTrash />
                             </Button>
                         </div>
 
-                        <div className={"flex flex-col gap-1 pt-2"}>
-                            <Button className="w-8" title="Toggle SSH" onClick={this.toggleSSH}>
-                                <div className={"scale-100"}>
-                                    <IoTerminal />
-                                </div>
+                        <div className={`flex flex-col gap-1 pt-2`}>
+                            <Button variant={`secondary`}
+                                size={`sm`}
+                                className={`w-8`}
+                                title={t.toggleSsh}
+                                onClick={this.toggleSSH}
+                            >
+                                <IoTerminal />
                             </Button>
                         </div>
                     </div>
-                    <div className="w-2/3">
+                    <div className={`w-2/3`}>
                         {this.state.sshOpen ? (
                             <TabbedTerminal
-                                className="w-full"
+                                className={`w-full`}
                                 defaultTerminalId={this.props.machine.id}
                                 defaultTitle={this.props.machine.id}
                             />
-                        ) : (
-                            ""
-                        )}
+                        ) : null}
                     </div>
                 </div>
             </div>
         );
     };
 }
-// <TerminalComponent type="direct" className="w-2/3" id={this.props.machine.id} />

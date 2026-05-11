@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "mows-components-react/main.css";
+
+@theme {
+    --font-sans: "Inter Variable", sans-serif;
+    --font-mono: monospace;
+}
+
+#root {
+    width: 100%;
+    min-height: 100vh;
+}

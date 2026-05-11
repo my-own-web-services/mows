@@ -7,7 +7,7 @@ interface CopyValueButtonProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly value: string;
-    readonly label: string;
+    readonly label?: string;
     readonly title?: string;
 }
 
@@ -56,7 +56,7 @@ const CopyValueButton = forwardRef<HTMLDivElement, CopyValueButtonProps>(
                 onClick={copyClick}
                 title={copied ? `Copied!` : (title ?? ``)}
             >
-                <span>{label}</span>
+                {label !== undefined && <span>{label}</span>}
                 {copied ? (
                     <IoCheckmarkSharp className={`text-success duration-200`} />
                 ) : (

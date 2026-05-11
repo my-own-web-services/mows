@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -25,6 +25,8 @@ interface OptionPickerProps {
     readonly disabled?: boolean;
     readonly showCount?: boolean;
     readonly header?: ReactNode;
+    readonly triggerVariant?: ButtonProps[`variant`];
+    readonly triggerSize?: ButtonProps[`size`];
 }
 
 interface OptionPickerState {
@@ -55,7 +57,9 @@ export default class OptionPicker extends PureComponent<OptionPickerProps, Optio
             triggerComponent: trigger = `Options`,
             disabled = false,
             showCount = true,
-            header
+            header,
+            triggerVariant = `iconStandalone`,
+            triggerSize = `sm`
         } = this.props;
         const enabledCount = options.filter((option) => option.enabled).length;
         const totalCount = options.length;
@@ -64,19 +68,19 @@ export default class OptionPicker extends PureComponent<OptionPickerProps, Optio
             <DropdownMenu open={this.state.open} onOpenChange={this.handleOpenChange}>
                 <DropdownMenuTrigger asChild>
                     <Button
-                        variant={`iconStandalone`}
-                        size={`icon-xs`}
+                        variant={triggerVariant}
+                        size={triggerSize}
                         disabled={disabled}
                         style={{ ...this.props.style }}
                         className={cn(
-                            `OptionPicker flex cursor-pointer items-center justify-between`,
+                            `OptionPicker inline-flex cursor-pointer items-center`,
                             this.props.className
                         )}
                     >
-                        <span className={`flex w-full items-center justify-center`}>
+                        <span className={`inline-flex items-center gap-2`}>
                             {trigger}
                             {showCount && (
-                                <span className={`text-muted-foreground ml-2`}>
+                                <span className={`text-muted-foreground`}>
                                     ({enabledCount}/{totalCount})
                                 </span>
                             )}

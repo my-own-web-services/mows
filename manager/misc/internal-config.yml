@@ -29,6 +29,9 @@ dev:
     install_k8s_dashboard: true
     send_default_netboot_config_if_mac_unknown: false
     # https://docs.k3s.io/installation/private-registry
+    # All upstream registries route through a single mcronce/oci-registry instance
+    # at 192.168.112.6:5000. K3s' embedded containerd appends `?ns=<host>` to
+    # mirrored requests, which oci-registry uses to dispatch to the correct upstream.
     k3s_registries_file:
         mirrors:
             192.168.112.5:5000:
@@ -39,16 +42,16 @@ dev:
                     - "http://192.168.112.6:5000"
             quay.io:
                 endpoint:
-                    - "http://192.168.112.7:5000"
+                    - "http://192.168.112.6:5000"
             gcr.io:
                 endpoint:
-                    - "http://192.168.112.8:5000"
+                    - "http://192.168.112.6:5000"
             registry.k8s.io:
                 endpoint:
-                    - "http://192.168.112.9:5000"
+                    - "http://192.168.112.6:5000"
             ghcr.io:
                 endpoint:
-                    - "http://192.168.112.10:5000"
+                    - "http://192.168.112.6:5000"
 
 log:
     dnsmasq:
