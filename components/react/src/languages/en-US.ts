@@ -286,6 +286,68 @@ const translation: Translation = {
                     }
                 }
             },
+            sectionHeading: {
+                default: {
+                    title: `Default`,
+                    description: `A single permalink heading. Hover the text to underline it and reveal the muted # marker; clicking pushes #<id> to the URL.`
+                },
+                levels: {
+                    title: `Levels`,
+                    description: `One <SectionHeading> per heading level (h1–h6). The component renders the requested level via React.createElement; styling is the consumer's responsibility (via className).`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Command`,
+                        manualTab: `Manual`,
+                        manualStep1: `Install the following dependencies:`,
+                        manualStep2: `Copy and paste the following code into your project.`,
+                        manualStep3: `Update the import paths to match your project setup.`
+                    },
+                    usage: {
+                        title: `Usage`,
+                        body: `Import <SectionHeading> from the package and render it with an id (becomes the URL hash on click) and the heading level. Style the heading via className.`
+                    },
+                    composition: {
+                        title: `Composition`,
+                        body: `<SectionHeading> is a thin wrapper around the native <hN> element. It owns the anchor link, the hash push on click, and the hover-underline + dim # marker affordance. Visual styling is left to the consumer.`
+                    },
+                    examples: {
+                        title: `Examples`,
+                        default: {
+                            title: `Default`,
+                            description: `A single h2 heading with the standard hover affordance.`
+                        },
+                        levels: {
+                            title: `Levels`,
+                            description: `All six heading levels rendered side by side.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Defined behaviour`,
+                        intro: `Statements describing how <SectionHeading> is expected to behave, each linked to the test that verifies it.`,
+                        verifiedBy: `verified by`,
+                        statements: {
+                            rendersLevel: `Renders the requested heading level (h1–h6) with the given id.`,
+                            defaultsToH2: `Defaults to h2 when no level is provided.`,
+                            anchorHref: `Wraps its text in an anchor whose href matches the id.`,
+                            pushesHash: `Clicking the heading pushes #<id> to the URL via history.pushState.`,
+                            noDuplicateHistory: `Does not push a duplicate history entry when the hash is already current.`,
+                            preventsDefaultScroll: `Prevents the browser's default scroll so scrollToSection can run.`,
+                            hoverUnderlineText: `Underlines only the heading text on hover, not the # marker.`,
+                            dimMarker: `Renders a dim # marker that appears on hover and is not underlined.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Headings inherit direction from their DOM ancestor — wrap in dir="rtl" and the # marker flips to the start of the heading.`
+                    },
+                    apiReference: {
+                        title: `API Reference`,
+                        intro: `Props accepted by <SectionHeading>.`
+                    }
+                }
+            },
             pageIndex: {
                 default: {
                     title: `Default`,
@@ -362,6 +424,183 @@ const translation: Translation = {
                 fallback: {
                     title: `Unknown extensions`,
                     description: `When upstream finds no specific match, it returns the generic file icon. Only if the SVG itself fails to load does FileIcon fall back further to a lucide File glyph.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Command`,
+                        manualTab: `Manual`,
+                        manualStep1: `Install the following dependencies:`,
+                        manualStep2: `Copy and paste the following code into your project.`,
+                        manualStep3: `Update the import paths to match your project setup.`
+                    },
+                    usage: {
+                        title: `Usage`,
+                        body: `Import <FileIcon> from the package and pass a fileName. The component resolves the matching Material icon and falls back gracefully when nothing matches.`
+                    },
+                    composition: {
+                        title: `Composition`,
+                        body: `<FileIcon> bundles the full 1109-icon set as Vite assets so consumers don't need to mirror SVGs in their own public/. The resolved <img> can be swapped for a lucide File glyph if the SVG itself fails to load.`
+                    },
+                    examples: {
+                        title: `Examples`,
+                        default: {
+                            title: `Common file types`,
+                            description: `A grid of recognisable extensions and exact-name matches.`
+                        },
+                        sizes: {
+                            title: `Sizes`,
+                            description: `Same icon at several pixel sizes.`
+                        },
+                        fallback: {
+                            title: `Unknown extensions`,
+                            description: `What happens when no match is found.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Defined behaviour`,
+                        intro: `Statements describing how <FileIcon> is expected to behave, each linked to the test that verifies it.`,
+                        verifiedBy: `verified by`,
+                        statements: {
+                            resolvesAll: `Resolves extensions, exact names, and the default fallback in priority order.`,
+                            extension: `A file extension alone resolves to the matching icon.`,
+                            exactName: `An exact file-name match wins over the extension.`,
+                            defaultFallback: `Unknown extensions render the default file icon.`,
+                            sizeForwarded: `The size prop forwards to width + height on the rendered <img>.`,
+                            rerendersOnFileName: `Changing the fileName prop re-resolves to the new icon.`,
+                            lucideFallback: `If the SVG itself fails to load, the lucide File fallback is shown.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `The icon is a square <img> — its visual orientation is direction-agnostic. Wrapping in dir="rtl" leaves the icon unchanged.`
+                    },
+                    apiReference: {
+                        title: `API Reference`,
+                        intro: `Props accepted by <FileIcon>.`
+                    }
+                }
+            },
+            codeThemePicker: {
+                popover: {
+                    title: `Popover trigger`,
+                    description: `Default form: a trigger button that opens a searchable theme list in a popover. Use when the picker needs to live inside a settings menu.`
+                },
+                standalone: {
+                    title: `Standalone`,
+                    description: `Renders the search + list inline without the popover trigger. Use when the picker is the whole UI (e.g. a dedicated theme-switcher page).`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Command`,
+                        manualTab: `Manual`,
+                        manualStep1: `Install the following dependencies:`,
+                        manualStep2: `Copy and paste the following code into your project.`,
+                        manualStep3: `Update the import paths to match your project setup.`
+                    },
+                    usage: {
+                        title: `Usage`,
+                        body: `Import <CodeThemePicker> and render it. It reads the available code themes and the currently active one from <MowsProvider>, and calls setCodeTheme on selection.`
+                    },
+                    composition: {
+                        title: `Composition`,
+                        body: `<CodeThemePicker> wires Radix Popover + Command (with search) to the <MowsProvider> code-theme state. Set standalone to skip the popover and inline the searchable list.`
+                    },
+                    examples: {
+                        title: `Examples`,
+                        popover: {
+                            title: `Popover trigger`,
+                            description: `Trigger button + popover list.`
+                        },
+                        standalone: {
+                            title: `Standalone`,
+                            description: `Inline searchable list, no popover.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Defined behaviour`,
+                        intro: `Statements describing how <CodeThemePicker> is expected to behave, each linked to the test that verifies it.`,
+                        verifiedBy: `verified by`,
+                        statements: {
+                            showsCurrent: `Shows the current code theme name on the trigger.`,
+                            listsAll: `Lists every registered theme when opened (standalone).`,
+                            callsSetCodeTheme: `Calls setCodeTheme on the surrounding MowsContext when a theme is picked.`,
+                            filtersBySearch: `Filters the theme list by the typed search query.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `The picker inherits direction from its DOM ancestor — wrap in dir="rtl" and the trigger + search field flip to right-to-left.`
+                    },
+                    apiReference: {
+                        title: `API Reference`,
+                        intro: `Props accepted by <CodeThemePicker>.`
+                    }
+                }
+            },
+            codeViewer: {
+                default: {
+                    title: `Default`,
+                    description: `A read-only Monaco-backed code view with line numbers, syntax highlighting, and word-wrap.`
+                },
+                editable: {
+                    title: `Editable`,
+                    description: `Set editable to let the user type. Bind onCodeChange to receive the new value as the user edits.`
+                },
+                fitContent: {
+                    title: `Fit to content`,
+                    description: `fitContent sizes the wrapper to Monaco's content height — no internal scrollbar. Pair with <ExpandableCode> to collapse long snippets.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Command`,
+                        manualTab: `Manual`,
+                        manualStep1: `Install the following dependencies:`,
+                        manualStep2: `Copy and paste the following code into your project.`,
+                        manualStep3: `Update the import paths to match your project setup.`
+                    },
+                    usage: {
+                        title: `Usage`,
+                        body: `Import <CodeViewer> and pass it code + language. The Monaco bundle is loaded lazily via React.lazy, so apps that don't render the viewer don't pay the bundle cost.`
+                    },
+                    composition: {
+                        title: `Composition`,
+                        body: `<CodeViewer> wraps Monaco's standalone editor with sensible defaults (line numbers / wrap / whitespace markers / syntax highlighting). It honours the active code theme from <MowsProvider>; consumers can override individual display options per-instance.`
+                    },
+                    examples: {
+                        title: `Examples`,
+                        default: {
+                            title: `Default`,
+                            description: `Read-only view with line numbers and syntax highlighting.`
+                        },
+                        editable: {
+                            title: `Editable`,
+                            description: `editable + onCodeChange turns the viewer into a small editor.`
+                        },
+                        fitContent: {
+                            title: `Fit to content`,
+                            description: `Wrapper grows to fit Monaco's full content height.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Defined behaviour`,
+                        intro: `Statements describing how <CodeViewer> is expected to behave, each linked to the test that verifies it.`,
+                        verifiedBy: `verified by`,
+                        statements: {
+                            rendersLazyEditor: `Renders the lazy-loaded Monaco editor with the supplied code.`,
+                            forwardsClassName: `Forwards className to the editor wrapper.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Source code is direction-agnostic. Wrapping in dir="rtl" keeps token order intact; only surrounding prose flow flips.`
+                    },
+                    apiReference: {
+                        title: `API Reference`,
+                        intro: `Props accepted by <CodeViewer>.`
+                    }
                 }
             },
             codeSnippet: {

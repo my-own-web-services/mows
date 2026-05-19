@@ -286,6 +286,68 @@ const translation: Translation = {
                     }
                 }
             },
+            sectionHeading: {
+                default: {
+                    title: `Standard`,
+                    description: `Eine einzelne Permalink-Überschrift. Hover über den Text unterstreicht ihn und zeigt die gedämpfte #-Markierung; ein Klick schreibt #<id> in die URL.`
+                },
+                levels: {
+                    title: `Ebenen`,
+                    description: `Ein <SectionHeading> pro Überschriftenebene (h1–h6). Die Komponente rendert die gewünschte Ebene per React.createElement; das Styling liegt beim Konsumenten (via className).`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Importiere <SectionHeading> aus dem Paket und rendere es mit einer id (wird beim Klick zur URL-Hash) und der Überschriften-Ebene. Style die Überschrift via className.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<SectionHeading> ist ein schlanker Wrapper um das native <hN>-Element. Es besitzt den Anker-Link, das Setzen der Hash beim Klick und die Hover-Unterstreichung + gedämpfte #-Markierung. Die visuelle Gestaltung bleibt beim Konsumenten.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Eine einzelne h2-Überschrift mit der Standard-Hover-Affordanz.`
+                        },
+                        levels: {
+                            title: `Ebenen`,
+                            description: `Alle sechs Überschriften-Ebenen nebeneinander gerendert.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <SectionHeading> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersLevel: `Rendert die angeforderte Überschriftenebene (h1–h6) mit der angegebenen id.`,
+                            defaultsToH2: `Verwendet h2 als Standard, wenn keine Ebene angegeben ist.`,
+                            anchorHref: `Wickelt den Text in einen Anker, dessen href zur id passt.`,
+                            pushesHash: `Ein Klick auf die Überschrift schreibt #<id> per history.pushState in die URL.`,
+                            noDuplicateHistory: `Erzeugt keinen doppelten History-Eintrag, wenn die Hash bereits aktuell ist.`,
+                            preventsDefaultScroll: `Verhindert das Default-Scrollen des Browsers, damit scrollToSection greift.`,
+                            hoverUnderlineText: `Unterstreicht beim Hover nur den Überschriftentext, nicht die #-Markierung.`,
+                            dimMarker: `Rendert eine gedämpfte #-Markierung, die beim Hover erscheint und nicht unterstrichen wird.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Überschriften erben die Richtung vom DOM-Vorfahren — ein umgebendes dir="rtl" verschiebt die #-Markierung an den Anfang der Überschrift.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <SectionHeading> akzeptiert.`
+                    }
+                }
+            },
             pageIndex: {
                 default: {
                     title: `Standard`,
@@ -351,6 +413,61 @@ const translation: Translation = {
                 }
             },
             fileIcon: {
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Importiere <FileIcon> aus dem Paket und übergib einen fileName. Die Komponente löst das passende Material-Icon auf und greift bei fehlender Übereinstimmung sanft auf einen Fallback zurück.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<FileIcon> bündelt das vollständige 1109-Icon-Set als Vite-Assets, sodass Konsumenten die SVGs nicht in ihrem eigenen public/ spiegeln müssen. Schlägt das Laden des SVGs selbst fehl, wird auf ein lucide-File-Glyph zurückgegriffen.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Gängige Dateitypen`,
+                            description: `Ein Raster bekannter Endungen und exakter Namenstreffer.`
+                        },
+                        sizes: {
+                            title: `Größen`,
+                            description: `Dasselbe Icon in verschiedenen Pixelgrößen.`
+                        },
+                        fallback: {
+                            title: `Unbekannte Endungen`,
+                            description: `Was passiert, wenn kein Treffer gefunden wird.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <FileIcon> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            resolvesAll: `Löst Endungen, exakte Namen und den Default-Fallback in Prioritätsreihenfolge auf.`,
+                            extension: `Eine Dateiendung allein löst zum passenden Icon auf.`,
+                            exactName: `Ein exakter Dateinamens-Treffer gewinnt gegen die Endung.`,
+                            defaultFallback: `Unbekannte Endungen rendern das Default-File-Icon.`,
+                            sizeForwarded: `Die size-Prop wird an width + height des gerenderten <img> weitergereicht.`,
+                            rerendersOnFileName: `Eine Änderung des fileName-Props löst zu einem neuen Icon auf.`,
+                            lucideFallback: `Schlägt das Laden des SVGs fehl, wird der lucide-File-Fallback angezeigt.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Das Icon ist ein quadratisches <img> — seine visuelle Ausrichtung ist richtungsneutral. Ein umgebendes dir="rtl" lässt das Icon unverändert.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <FileIcon> akzeptiert.`
+                    }
+                },
                 default: {
                     title: `Gängige Dateitypen`,
                     description: `Wählt anhand des Dateinamens das passende Material-Datei-Icon. Zuerst wird nach exaktem Dateinamen gesucht (z. B. Dockerfile, .gitignore), dann nach Dateiendung; sonst greift das generische Datei-Icon.`
@@ -362,6 +479,128 @@ const translation: Translation = {
                 fallback: {
                     title: `Unbekannte Endungen`,
                     description: `Findet der Upstream-Resolver keine spezifische Zuordnung, liefert er das generische File-Icon zurück. Nur wenn auch das SVG selbst nicht laden kann, zeigt FileIcon zusätzlich das lucide-File-Glyph als Fallback.`
+                }
+            },
+            codeThemePicker: {
+                popover: {
+                    title: `Popover-Trigger`,
+                    description: `Standardform: eine Trigger-Schaltfläche, die eine durchsuchbare Theme-Liste in einem Popover öffnet. Verwende sie, wenn der Picker in einem Einstellungsmenü leben soll.`
+                },
+                standalone: {
+                    title: `Eigenständig`,
+                    description: `Rendert Suche + Liste inline, ohne Popover-Trigger. Verwende es, wenn der Picker die gesamte UI ist (z. B. eine eigene Theme-Auswahl-Seite).`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Importiere <CodeThemePicker> und rendere ihn. Er liest die verfügbaren Code-Themes und das aktuell aktive aus <MowsProvider> und ruft setCodeTheme bei einer Auswahl auf.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<CodeThemePicker> verdrahtet Radix Popover + Command (mit Suche) mit dem Code-Theme-Status aus <MowsProvider>. Setze standalone, um das Popover zu überspringen und die durchsuchbare Liste inline anzuzeigen.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        popover: {
+                            title: `Popover-Trigger`,
+                            description: `Trigger-Schaltfläche + Popover-Liste.`
+                        },
+                        standalone: {
+                            title: `Eigenständig`,
+                            description: `Inline-Suchliste, kein Popover.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <CodeThemePicker> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            showsCurrent: `Zeigt den aktuellen Code-Theme-Namen auf dem Trigger.`,
+                            listsAll: `Listet jedes registrierte Theme, wenn geöffnet (standalone).`,
+                            callsSetCodeTheme: `Ruft setCodeTheme im umgebenden MowsContext auf, wenn ein Theme ausgewählt wird.`,
+                            filtersBySearch: `Filtert die Theme-Liste anhand der getippten Suchanfrage.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Der Picker erbt die Richtung von seinem DOM-Vorfahren — ein umgebendes dir="rtl" dreht Trigger + Suchfeld nach rechts-nach-links.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <CodeThemePicker> akzeptiert.`
+                    }
+                }
+            },
+            codeViewer: {
+                default: {
+                    title: `Standard`,
+                    description: `Eine schreibgeschützte, Monaco-gestützte Code-Ansicht mit Zeilennummern, Syntax-Hervorhebung und Zeilenumbruch.`
+                },
+                editable: {
+                    title: `Bearbeitbar`,
+                    description: `Setze editable, damit der Nutzer tippen kann. Binde onCodeChange, um den neuen Wert beim Editieren zu erhalten.`
+                },
+                fitContent: {
+                    title: `An Inhalt anpassen`,
+                    description: `fitContent passt die Wrapper-Höhe an Monacos Inhaltshöhe an — keine interne Scrollleiste. Kombiniere es mit <ExpandableCode>, um lange Snippets einzuklappen.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Importiere <CodeViewer> und übergib code + language. Das Monaco-Bundle wird per React.lazy nachgeladen — Apps, die keinen Viewer rendern, zahlen das Bundle nicht.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<CodeViewer> umschließt Monacos Standalone-Editor mit sinnvollen Defaults (Zeilennummern / Umbruch / Whitespace-Markierung / Syntax-Hervorhebung). Er respektiert das aktive Code-Theme aus <MowsProvider>; Konsumenten können Anzeigeoptionen je Instanz überschreiben.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Schreibgeschützte Ansicht mit Zeilennummern und Syntax-Hervorhebung.`
+                        },
+                        editable: {
+                            title: `Bearbeitbar`,
+                            description: `editable + onCodeChange machen aus dem Viewer einen kleinen Editor.`
+                        },
+                        fitContent: {
+                            title: `An Inhalt anpassen`,
+                            description: `Der Wrapper wächst auf Monacos volle Inhaltshöhe.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <CodeViewer> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersLazyEditor: `Rendert den lazy-geladenen Monaco-Editor mit dem übergebenen Code.`,
+                            forwardsClassName: `Reicht className an den Editor-Wrapper weiter.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Quellcode ist richtungsneutral. Ein umgebendes dir="rtl" lässt die Token-Reihenfolge unverändert; nur der Fließtext-Fluss kehrt sich um.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <CodeViewer> akzeptiert.`
+                    }
                 }
             },
             codeSnippet: {

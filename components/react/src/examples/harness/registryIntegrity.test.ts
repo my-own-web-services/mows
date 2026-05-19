@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { cleanExampleSource } from "./cleanExampleSource";
 import { codeSnippetExamples } from "../codeSnippet";
+import { codeThemePickerExamples } from "../codeThemePicker";
+import { codeViewerExamples } from "../codeViewer";
 import { fileIconExamples } from "../fileIcon";
 import { pageIndexExamples } from "../pageIndex";
+import { sectionHeadingExamples } from "../sectionHeading";
 import { stepsExamples } from "../steps";
 import type { RegisteredExample } from "./types";
 
@@ -20,7 +23,10 @@ const ALL_REGISTRIES: ReadonlyArray<{
 }> = [
     { name: `steps`, examples: stepsExamples },
     { name: `pageIndex`, examples: pageIndexExamples },
+    { name: `sectionHeading`, examples: sectionHeadingExamples },
     { name: `codeSnippet`, examples: codeSnippetExamples },
+    { name: `codeThemePicker`, examples: codeThemePickerExamples },
+    { name: `codeViewer`, examples: codeViewerExamples },
     { name: `fileIcon`, examples: fileIconExamples }
 ];
 

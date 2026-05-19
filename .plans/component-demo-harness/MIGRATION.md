@@ -32,12 +32,20 @@ Legend: ✅ done · 🔧 partial · ❌ todo · ➖ N/A
 
 - ✅ Steps — `StepsDocPage` is the reference implementation.
 
-### Started (examples exist, no DocPage yet)
+### Migrated
 
-- ✅ PageIndex — `PageIndexDocPage` wired into `demos.tsx`. Two examples
-  (Default, Nested). 10 behaviour statements linked to real tests.
-- 🔧 CodeSnippet — examples in `src/examples/codeSnippet/`. Needs doc page.
-- 🔧 FileIcon — examples in `src/examples/fileIcon/`. Needs doc page.
+- ✅ PageIndex — `PageIndexDocPage`. Default + Nested examples. 10
+  behaviour statements linked.
+- ✅ CodeSnippet — `CodeSnippetDocPage`. Block / Inline / Languages
+  examples. 6 behaviour statements linked.
+- ✅ FileIcon — `FileIconDocPage`. Default / Sizes / Fallback examples. 7
+  behaviour statements linked.
+- ✅ SectionHeading — `SectionHeadingDocPage` (new demos entry added).
+  Default / Levels examples. 8 behaviour statements linked.
+- ✅ CodeViewer — `CodeViewerDocPage`. Default / Editable / FitContent
+  examples. 2 behaviour statements (the test file only has 2).
+- ✅ CodeThemePicker — `CodeThemePickerDocPage`. Popover / Standalone
+  examples. 4 behaviour statements linked.
 
 ### Not started — `lib/components/` library components (~30)
 
@@ -46,13 +54,11 @@ surfaces.
 
 **Group: navigation/**
 
-- ❌ SectionHeading
+- _(all migrated)_
 
 **Group: code/**
 
-- ❌ CodeViewer
-- ❌ ExpandableCode
-- ❌ CodeThemePicker
+- ❌ ExpandableCode _(needs tests — no test file yet)_
 
 **Group: actions/**
 

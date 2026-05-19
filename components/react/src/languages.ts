@@ -215,6 +215,44 @@ declare module "../lib/lib/languages" {
                         apiReference: { title: string; intro: string };
                     };
                 };
+                sectionHeading: {
+                    default: { title: string; description: string };
+                    levels: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            default: { title: string; description: string };
+                            levels: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                rendersLevel: string;
+                                defaultsToH2: string;
+                                anchorHref: string;
+                                pushesHash: string;
+                                noDuplicateHistory: string;
+                                preventsDefaultScroll: string;
+                                hoverUnderlineText: string;
+                                dimMarker: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
                 pageIndex: {
                     default: { title: string; description: string };
                     nested: { title: string; description: string };
@@ -259,6 +297,108 @@ declare module "../lib/lib/languages" {
                     default: { title: string; description: string };
                     sizes: { title: string; description: string };
                     fallback: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            default: { title: string; description: string };
+                            sizes: { title: string; description: string };
+                            fallback: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                resolvesAll: string;
+                                extension: string;
+                                exactName: string;
+                                defaultFallback: string;
+                                sizeForwarded: string;
+                                rerendersOnFileName: string;
+                                lucideFallback: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+                codeThemePicker: {
+                    popover: { title: string; description: string };
+                    standalone: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            popover: { title: string; description: string };
+                            standalone: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                showsCurrent: string;
+                                listsAll: string;
+                                callsSetCodeTheme: string;
+                                filtersBySearch: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+                codeViewer: {
+                    default: { title: string; description: string };
+                    editable: { title: string; description: string };
+                    fitContent: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            default: { title: string; description: string };
+                            editable: { title: string; description: string };
+                            fitContent: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                rendersLazyEditor: string;
+                                forwardsClassName: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
                 };
                 codeSnippet: {
                     block: { title: string; description: string };

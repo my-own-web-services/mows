@@ -43,8 +43,11 @@ import { MowsContext } from "../lib/lib/mowsContext/MowsContext";
 import { ExampleActionIds, EXAMPLE_ACTION_SCOPE } from "./exampleActions";
 import { ExamplePage } from "./examples/harness";
 import CodeSnippetDocPage from "./examples/codeSnippet/CodeSnippetDocPage";
-import { fileIconExamples } from "./examples/fileIcon";
+import FileIconDocPage from "./examples/fileIcon/FileIconDocPage";
 import PageIndexDocPage from "./examples/pageIndex/PageIndexDocPage";
+import CodeThemePickerDocPage from "./examples/codeThemePicker/CodeThemePickerDocPage";
+import CodeViewerDocPage from "./examples/codeViewer/CodeViewerDocPage";
+import SectionHeadingDocPage from "./examples/sectionHeading/SectionHeadingDocPage";
 import type { Translation } from "./languages";
 import { uiDemos } from "./uiDemos";
 
@@ -1136,14 +1139,14 @@ export const demos: DemoEntry[] = [
     { id: `commandPalette`, name: `CommandPalette`, groupKey: `appShell`, render: () => <CommandPaletteDemo /> },
     { id: `globalContextMenu`, name: `GlobalContextMenu`, groupKey: `appShell`, render: () => <GlobalContextMenuDemo /> },
     { id: `modalHandler`, name: `ModalHandler`, groupKey: `appShell`, render: () => <ModalHandlerDemo /> },
-    { id: `codeViewer`, name: `CodeViewer`, groupKey: `code`, render: () => <CodeViewerDemo /> },
+    { id: `codeViewer`, name: `CodeViewer`, groupKey: `code`, render: () => <CodeViewerDocPage /> },
     {
         id: `codeSnippet`,
         name: `CodeSnippet`,
         groupKey: `code`,
         render: () => <CodeSnippetDocPage />
     },
-    { id: `codeThemePicker`, name: `CodeThemePicker`, groupKey: `code`, render: () => <CodeThemePickerDemo /> },
+    { id: `codeThemePicker`, name: `CodeThemePicker`, groupKey: `code`, render: () => <CodeThemePickerDocPage /> },
     { id: `logView`, name: `LogView`, groupKey: `console`, render: () => <LogViewDemo /> },
     { id: `terminal`, name: `Terminal`, groupKey: `console`, render: () => <TerminalDemo /> },
     { id: `machineMonitor`, name: `MachineMonitor`, groupKey: `console`, render: () => <MachineMonitorDemo /> },
@@ -1156,7 +1159,7 @@ export const demos: DemoEntry[] = [
         id: `fileIcon`,
         name: `FileIcon`,
         groupKey: `files`,
-        render: () => <ExamplePage examples={fileIconExamples} idPrefix={`fileIcon`} />
+        render: () => <FileIconDocPage />
     },
     { id: `fileViewer`, name: `FileViewer`, groupKey: `files`, render: () => <FileViewerDemo /> },
     { id: `image360Viewer`, name: `Image360Viewer`, groupKey: `files`, render: () => <Image360ViewerDemo /> },
@@ -1176,6 +1179,12 @@ export const demos: DemoEntry[] = [
         name: `PageIndex`,
         groupKey: `navigation`,
         render: () => <PageIndexDocPage />
+    },
+    {
+        id: `sectionHeading`,
+        name: `SectionHeading`,
+        groupKey: `navigation`,
+        render: () => <SectionHeadingDocPage />
     },
     ...uiDemos.map(
         (entry): DemoEntry => ({
