@@ -8,7 +8,6 @@ declare module "../lib/lib/languages" {
     interface Translation {
         example: {
             pageTitle: string;
-            pageSubtitle: string;
             menuHint: string;
             themeAndLanguageCard: {
                 title: string;
@@ -28,11 +27,17 @@ declare module "../lib/lib/languages" {
             greetAlert: string;
             sidebar: {
                 groups: {
-                    atoms: string;
-                    dateAndTime: string;
-                    actionsAndShortcuts: string;
+                    actions: string;
+                    appShell: string;
+                    code: string;
+                    console: string;
+                    dateTime: string;
+                    files: string;
+                    identity: string;
+                    input: string;
+                    list: string;
+                    navigation: string;
                     settings: string;
-                    lists: string;
                     uiPrimitives: string;
                 };
                 searchPlaceholder: string;
@@ -159,6 +164,141 @@ declare module "../lib/lib/languages" {
                 };
                 calendar: { description: string; empty: string };
             };
+            examples: {
+                _harness: {
+                    codeTab: string;
+                    noStateReported: string;
+                };
+                steps: {
+                    horizontal: { title: string; description: string };
+                    vertical: { title: string; description: string };
+                    statusOverride: { title: string; description: string };
+                    wizard: { title: string; description: string };
+                    disabled: { title: string; description: string };
+                    icons: { title: string; description: string };
+                    rtl: { title: string; description: string };
+                    selection: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            line: { title: string; description: string };
+                            vertical: { title: string; description: string };
+                            disabled: { title: string; description: string };
+                            icons: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                derivesStatuses: string;
+                                ariaCurrent: string;
+                                rendersTitleDescription: string;
+                                orientationAttr: string;
+                                statusOverride: string;
+                                selectionNoCompleted: string;
+                                selectionShowsNumbers: string;
+                                throwsOutsideSteps: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+                pageIndex: {
+                    default: { title: string; description: string };
+                    nested: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            default: { title: string; description: string };
+                            nested: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                pushesHashOnClick: string;
+                                smoothOnClick: string;
+                                instantOnLoad: string;
+                                immediateActiveOnClick: string;
+                                holdsActiveDuringScroll: string;
+                                nestedRenders: string;
+                                nestedScrollsToChild: string;
+                                emptyRendersNothing: string;
+                                missingIdSkipsHash: string;
+                                translationFallback: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+                fileIcon: {
+                    default: { title: string; description: string };
+                    sizes: { title: string; description: string };
+                    fallback: { title: string; description: string };
+                };
+                codeSnippet: {
+                    block: { title: string; description: string };
+                    inline: { title: string; description: string };
+                    languages: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            block: { title: string; description: string };
+                            inline: { title: string; description: string };
+                            languages: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                blockFallback: string;
+                                inlineFallback: string;
+                                defaultMode: string;
+                                forwardsClassName: string;
+                                preservesMultiline: string;
+                                rendersWithoutProvider: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+            };
             common: {
                 selected: string;
                 value: string;
@@ -195,6 +335,8 @@ declare module "../lib/lib/languages" {
                     description: string;
                     tokenLabel: string;
                     timeLabel: string;
+                    toastLabel: string;
+                    toastMessage: string;
                 };
                 dateTime: {
                     description: string;
@@ -214,6 +356,30 @@ declare module "../lib/lib/languages" {
                 dateTimeRangePicker: {
                     description: string;
                 };
+                fileViewer: {
+                    description: string;
+                    hint: string;
+                    urlPlaceholder: string;
+                    namePlaceholder: string;
+                    mimeTypePlaceholder: string;
+                    empty: string;
+                    loadSample: string;
+                    clear: string;
+                    sampleName: string;
+                    photoBy: string;
+                    sourceLink: string;
+                };
+                image360Viewer: {
+                    description: string;
+                    hint: string;
+                    urlPlaceholder: string;
+                    empty: string;
+                    loadSample: string;
+                    load: string;
+                    clear: string;
+                    photoBy: string;
+                    sourceLink: string;
+                };
                 globalContextMenu: {
                     description: string;
                     rightClickHere: string;
@@ -223,6 +389,21 @@ declare module "../lib/lib/languages" {
                 };
                 keyComboDisplay: {
                     description: string;
+                    combosHeading: string;
+                    iconsHeading: string;
+                    textHeading: string;
+                    textHint: string;
+                    macDifferencesHeading: string;
+                    macDifferencesHint: string;
+                };
+                keyComboRecorder: {
+                    description: string;
+                    heading: string;
+                    hint: string;
+                    start: string;
+                    stop: string;
+                    clear: string;
+                    listening: string;
                 };
                 languagePicker: {
                     description: string;
@@ -251,6 +432,32 @@ declare module "../lib/lib/languages" {
                 };
                 loggingConfig: {
                     description: string;
+                };
+                logView: {
+                    description: string;
+                    hint: string;
+                    searchPlaceholder: string;
+                    empty: string;
+                    pushLine: string;
+                };
+                terminal: {
+                    description: string;
+                    hint: string;
+                    clear: string;
+                };
+                machineMonitor: {
+                    description: string;
+                    hint: string;
+                    urlPlaceholder: string;
+                    connect: string;
+                    disconnect: string;
+                    sendCtrlAltDel: string;
+                    readOnly: string;
+                    status: {
+                        connected: string;
+                        disconnected: string;
+                    };
+                    loadingLabel: string;
                 };
                 resourceList: {
                     description: string;
