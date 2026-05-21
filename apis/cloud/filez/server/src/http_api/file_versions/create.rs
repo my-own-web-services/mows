@@ -80,8 +80,14 @@ pub async fn create_file_version(
             &database,
             &authentication_information
                 .requesting_user
-                .unwrap()
+                .as_ref()
+                .ok_or_else(|| {
+                    FilezError::Unauthorized(
+                        "auth middleware did not populate requesting_user".into(),
+                    )
+                })?
                 .id
+                .clone()
                 .into(),
             &request_body.storage_quota_id,
             request_body.file_version_content_size_bytes.into()

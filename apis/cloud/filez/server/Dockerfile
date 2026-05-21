@@ -13,7 +13,9 @@ COPY cargo-workspace-docker.toml ./Cargo.toml
 
 
 
-FROM clux/muslrust:nightly AS chef-builder
+# Pinned to match utils/mows-cli/Dockerfile — floating `:nightly` was
+# producing byte-different binaries on every rebuild (DEVOPS-15).
+FROM clux/muslrust:1.92.0-stable AS chef-builder
 ARG CARGO_CHEF_REF
 RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
 RUN cargo install --locked --no-default-features sccache

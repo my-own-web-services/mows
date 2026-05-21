@@ -58,7 +58,11 @@ pub async fn create_user_group(
     let created_user_group = with_timing!(
         UserGroup::create_one(
             &database,
-            &authentication_information.requesting_user.unwrap(),
+            authentication_information.requesting_user.as_ref().ok_or_else(|| {
+                FilezError::Unauthorized(
+                    "auth middleware did not populate requesting_user".into(),
+                )
+            })?,
             &request_body.user_group_name
         )
         .await?,

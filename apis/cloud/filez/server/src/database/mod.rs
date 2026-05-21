@@ -75,24 +75,21 @@ impl Database {
 
     pub async fn run_migrations() -> Result<(), FilezError> {
         let config = get_current_config_cloned!(config());
-        match AsyncPgConnection::establish(&config.db_url)
+        let async_connection = AsyncPgConnection::establish(&config.db_url)
             .await
-            .context("Failed to establish async Postgres connection")
-        {
-            Ok(async_connection) => {
-                let mut async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
-                    AsyncConnectionWrapper::from(async_connection);
+            .context("Failed to establish async Postgres connection for migrations")?;
+        let mut async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
+            AsyncConnectionWrapper::from(async_connection);
 
-                tokio::task::spawn_blocking(move || {
-                    async_wrapper.run_pending_migrations(MIGRATIONS).unwrap();
-                })
-                .await
-                .context("Failed to run pending migrations")?;
-            }
-            Err(e) => {
-                tracing::error!("Failed to establish async Postgres connection: {e}");
-            }
-        };
+        tokio::task::spawn_blocking(move || {
+            async_wrapper
+                .run_pending_migrations(MIGRATIONS)
+                .map(|_versions| ())
+                .map_err(|e| anyhow::anyhow!("migration runner reported failure: {e}"))
+        })
+        .await
+        .context("migrations task panicked")?
+        .context("Failed to run pending migrations")?;
         Ok(())
     }
 

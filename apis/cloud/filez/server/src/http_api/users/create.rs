@@ -58,7 +58,11 @@ pub async fn create_user(
         FilezUser::create_one(
             &database,
             &request_body.email,
-            &authentication_information.requesting_user.unwrap().id
+            &authentication_information.requesting_user.as_ref().ok_or_else(|| {
+                FilezError::Unauthorized(
+                    "auth middleware did not populate requesting_user".into(),
+                )
+            })?.id
         )
         .await?,
         "Database operation to create user",

@@ -1,4 +1,5 @@
 import { Api, StorageQuotaSubjectType } from "filez-client-typescript";
+import { log } from "mows-components-react/lib/logging";
 
 export default async (filezClient: Api<unknown>) => {
     const ownUser = (await filezClient.api.getOwnUser({})).data?.data?.user;
@@ -13,7 +14,7 @@ export default async (filezClient: Api<unknown>) => {
     if (storage_locations?.length === 0) {
         throw new Error(`No storage locations found. Please create a storage location first.`);
     } else if (storage_locations?.length !== undefined && storage_locations?.length > 1) {
-        console.warn(`Multiple storage locations found. Using the first one.`);
+        log.warn(`Multiple storage locations found. Using the first one.`);
     }
 
     const storage_location_id = storage_locations?.[0].id;
@@ -32,5 +33,5 @@ export default async (filezClient: Api<unknown>) => {
         })
     ).data?.data?.created_storage_quota;
 
-    console.log(`Created storage quota for Admin: ${quota?.id}`);
+    log.info(`Created storage quota for Admin: ${quota?.id}`);
 };

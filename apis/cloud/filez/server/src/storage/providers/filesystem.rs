@@ -1,7 +1,10 @@
 use crate::http_api::health::HealthStatus;
 use crate::kubernetes_controller::crd::SecretReadableByFilezController;
 use crate::models::file_versions::ContentRange;
-use crate::{kubernetes_controller::crd::ValueOrSecretReference, storage::errors::StorageError};
+use crate::{
+    kubernetes_controller::crd::ValueOrSecretReference,
+    storage::errors::{InnerStorageError, StorageError},
+};
 use anyhow::Context;
 use axum::body::Body;
 use axum::extract::Request;
@@ -149,8 +152,19 @@ impl StorageProviderFilesystem {
             .await
             .context("Failed to delete file")?;
 
-        // Clean up empty parent directories
-        let mut current_path = path.parent().unwrap().to_path_buf();
+        // Clean up empty parent directories. A path produced by
+        // `self.root_path.join(...)` always has at least one segment, so
+        // `parent()` is `Some(...)` in practice; surface the impossible
+        // case as a typed error rather than a thread-killing panic.
+        let mut current_path = path
+            .parent()
+            .ok_or_else(|| {
+                StorageError::from(InnerStorageError::GenericError(anyhow::anyhow!(
+                    "storage path {} has no parent — refusing to walk up",
+                    path.display()
+                )))
+            })?
+            .to_path_buf();
         while current_path != self.root_path {
             if fs::read_dir(&current_path)
                 .await?

@@ -58,7 +58,11 @@ pub async fn create_file_group(
     let created_file_group = with_timing!(
         FileGroup::create_one(
             &database,
-            &authentication_information.requesting_user.unwrap(),
+            authentication_information.requesting_user.as_ref().ok_or_else(|| {
+                FilezError::Unauthorized(
+                    "auth middleware did not populate requesting_user".into(),
+                )
+            })?,
             &request_body.file_group_name,
             request_body.file_group_type,
             request_body.dynamic_group_rule,

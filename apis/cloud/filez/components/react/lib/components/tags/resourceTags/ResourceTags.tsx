@@ -16,7 +16,7 @@ import { Badge } from "mows-components-react/components/ui/badge";
 import { Button } from "mows-components-react/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "mows-components-react/components/ui/input-group";
 import { Textarea } from "mows-components-react/components/ui/textarea";
-import ButtonSelect from "mows-components-react/components/atoms/buttonSelect/ButtonSelect";
+import ButtonSelect from "mows-components-react/components/input/buttonSelect/ButtonSelect";
 
 export interface ResourceTagsChangeset {
     resourceIds: string[];

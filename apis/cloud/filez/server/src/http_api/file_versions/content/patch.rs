@@ -13,7 +13,7 @@ use crate::{
 };
 use axum::{
     extract::{Path, Query, Request, State},
-    http::{HeaderMap, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode},
     response::IntoResponse,
     Extension, Json,
 };
@@ -186,10 +186,9 @@ pub async fn file_versions_content_patch(
         .checked_add(content_length)
         .ok_or_else(|| FilezError::InvalidRequest("Upload-Offset overflow".to_string()))?;
 
-    response_headers.insert(
-        "Upload-Offset",
-        new_upload_offset.to_string().parse().unwrap(),
-    );
+    // Infallible HeaderValue construction from a numeric type — no
+    // String round-trip, no panic path.
+    response_headers.insert("Upload-Offset", HeaderValue::from(new_upload_offset));
 
     Ok((
         StatusCode::OK,

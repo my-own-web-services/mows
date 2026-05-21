@@ -1,6 +1,9 @@
 use anyhow::Context;
 use axum::http::{
-    header::{AUTHORIZATION, CONTENT_SECURITY_POLICY, CONTENT_TYPE},
+    header::{
+        ACCEPT_RANGES, AUTHORIZATION, CONTENT_LENGTH, CONTENT_RANGE, CONTENT_SECURITY_POLICY,
+        CONTENT_TYPE,
+    },
     request::Parts,
     HeaderValue, Method,
 };
@@ -19,7 +22,11 @@ use filez_server_lib::{
 use mows_common_rust::{
     config::common_config, get_current_config_cloned, observability::init_observability,
 };
+use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::{Duration as StdDuration, Instant};
+use tokio::sync::RwLock;
 use tower::ServiceBuilder;
 use tower_http::{
     compression::CompressionLayer,
@@ -59,6 +66,12 @@ async fn main() -> Result<(), anyhow::Error> {
         .context("Failed to create server state")?;
 
     let database_for_cors_layer = server_state.database.clone();
+    // 60-second positive/negative cache so OPTIONS preflights don't
+    // hammer the database. Keyed on the literal Origin header. The cache
+    // also gives us a single place to enforce the origin deny-list
+    // (`null`, non-http(s) schemes, wildcards, …) before the DB lookup.
+    let cors_origin_cache: Arc<RwLock<HashMap<String, (bool, Instant)>>> =
+        Arc::new(RwLock::new(HashMap::new()));
 
     let session_storage_adapter = MemoryStore::default();
 
@@ -85,24 +98,47 @@ async fn main() -> Result<(), anyhow::Error> {
                 .layer(DecompressionLayer::new())
                 .layer(
                     CorsLayer::new()
-                        .allow_origin(AllowOrigin::async_predicate(
-                            move |origin: HeaderValue, _: &Parts| async move {
-                                let origin = match origin.to_str() {
-                                    Ok(s) => s,
-                                    Err(_) => return false,
-                                };
-                                if let Ok(_) = MowsApp::get_from_origin_string(
-                                    &database_for_cors_layer,
-                                    &origin,
-                                )
-                                .await
-                                {
-                                    return true;
-                                } else {
-                                    return false;
+                        .allow_origin(AllowOrigin::async_predicate({
+                            let cache = cors_origin_cache.clone();
+                            move |origin: HeaderValue, _: &Parts| {
+                                let db = database_for_cors_layer.clone();
+                                let cache = cache.clone();
+                                async move {
+                                    let origin = match origin.to_str() {
+                                        Ok(s) => s.to_string(),
+                                        Err(_) => return false,
+                                    };
+                                    // Hard deny-list: never reflect the
+                                    // serialized `null` origin (sandboxed
+                                    // iframes / data: URLs), wildcards, or
+                                    // any scheme that isn't http(s). With
+                                    // `allow_credentials(true)` reflecting
+                                    // any of these is a credential-leak.
+                                    if !is_origin_eligible_for_credentials(&origin) {
+                                        return false;
+                                    }
+                                    // Positive/negative cache (60s TTL).
+                                    let now = Instant::now();
+                                    {
+                                        let read = cache.read().await;
+                                        if let Some((allowed, at)) = read.get(&origin) {
+                                            if now.duration_since(*at)
+                                                < StdDuration::from_secs(60)
+                                            {
+                                                return *allowed;
+                                            }
+                                        }
+                                    }
+                                    let allowed =
+                                        MowsApp::get_from_origin_string(&db, &origin)
+                                            .await
+                                            .is_ok();
+                                    let mut write = cache.write().await;
+                                    write.insert(origin, (allowed, now));
+                                    allowed
                                 }
-                            },
-                        ))
+                            }
+                        }))
                         .allow_methods([
                             Method::GET,
                             Method::POST,
@@ -116,6 +152,18 @@ async fn main() -> Result<(), anyhow::Error> {
                             AUTHORIZATION,
                             CONTENT_TYPE,
                             static_as_header(IMPERSONATE_USER_HEADER_NAME),
+                        ])
+                        // Expose Range-related headers so Shaka Player (and
+                        // any other MSE-based reader) can read the byte
+                        // ranges + total length when issuing range
+                        // requests against /api/file_versions/content/get.
+                        // Without these, DASH/HLS playback fails and
+                        // progressive seek degrades.
+                        .expose_headers([
+                            ACCEPT_RANGES,
+                            CONTENT_RANGE,
+                            CONTENT_LENGTH,
+                            CONTENT_TYPE,
                         ]),
                 )
                 .layer(SetResponseHeaderLayer::overriding(
@@ -155,4 +203,58 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::join!(controller, server).1?;
 
     Ok(())
+}
+
+/// Origin-string gate that runs BEFORE the `MowsApp` DB lookup. Filters
+/// out values that the CORS spec allows on the wire but that we must
+/// never reflect back with `Access-Control-Allow-Credentials: true`.
+fn is_origin_eligible_for_credentials(origin: &str) -> bool {
+    // The serialized opaque origin `null` (sandboxed iframes, file://,
+    // data:) — reflecting this with credentials would let any document
+    // with an opaque origin call us. Same for the wildcard.
+    if origin == "null" || origin == "*" {
+        return false;
+    }
+    // Only http(s) schemes are meaningful for browser CORS with cookies.
+    let lower = origin.to_ascii_lowercase();
+    if !(lower.starts_with("http://") || lower.starts_with("https://")) {
+        return false;
+    }
+    // Bound the length so a pathological client can't blow up the cache
+    // map with multi-MB keys.
+    if origin.len() > 253 + 8 {
+        return false;
+    }
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_origin_eligible_for_credentials;
+
+    #[test]
+    fn rejects_null_and_wildcard_origins() {
+        assert!(!is_origin_eligible_for_credentials("null"));
+        assert!(!is_origin_eligible_for_credentials("*"));
+    }
+
+    #[test]
+    fn rejects_non_http_schemes() {
+        assert!(!is_origin_eligible_for_credentials("file://x"));
+        assert!(!is_origin_eligible_for_credentials("data:text/plain,foo"));
+        assert!(!is_origin_eligible_for_credentials("javascript:alert(1)"));
+        assert!(!is_origin_eligible_for_credentials(""));
+    }
+
+    #[test]
+    fn accepts_http_and_https() {
+        assert!(is_origin_eligible_for_credentials("https://app.example.com"));
+        assert!(is_origin_eligible_for_credentials("http://localhost:5173"));
+    }
+
+    #[test]
+    fn rejects_overlong_origins() {
+        let long = format!("https://{}.com", "a".repeat(300));
+        assert!(!is_origin_eligible_for_credentials(&long));
+    }
 }

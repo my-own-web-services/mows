@@ -65,8 +65,14 @@ pub async fn update_tags(
             &database,
             &authentication_information
                 .requesting_user
-                .unwrap()
+                .as_ref()
+                .ok_or_else(|| {
+                    FilezError::Unauthorized(
+                        "auth middleware did not populate requesting_user".into(),
+                    )
+                })?
                 .id
+                .clone()
                 .into(),
             &request_body.resource_ids,
             request_body.tag_resource_type,

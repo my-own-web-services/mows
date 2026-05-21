@@ -1,4 +1,5 @@
 import {
+import { log } from "mows-components-react/lib/logging";
     Api,
     createDefaultStorageQuotaForUser,
     createExampleUser,
@@ -11,7 +12,7 @@ export default async (filezClient: Api<unknown>) => {
 
     const alice_quota = await createDefaultStorageQuotaForUser(filezClient, alice);
 
-    console.log(
+    log.info(
         `Created storage quota: ${alice_quota.id} for Alice(${alice.id}) at location ${alice_quota.storage_location_id}`
     );
 
@@ -35,11 +36,11 @@ export default async (filezClient: Api<unknown>) => {
         if (!createFileResponse) {
             throw new Error(`Failed to create file for Alice: ${fileName}`);
         }
-        console.log(`Created file for Alice: ${createFileResponse.created_file.id}`);
+        log.info(`Created file for Alice: ${createFileResponse.created_file.id}`);
         aliceFiles.push(createFileResponse.created_file);
     }
 
-    console.log(`Created ${aliceFiles.length} files for Alice.`);
+    log.info(`Created ${aliceFiles.length} files for Alice.`);
 
     // Add tags to Alice's files
 
@@ -73,8 +74,8 @@ export default async (filezClient: Api<unknown>) => {
     if (!filesMeta.data?.data) {
         throw new Error(`Failed to retrieve files metadata for Alice's files.`);
     }
-    console.log(`Retrieved files metadata for Alice's files: `);
-    console.log(filesMeta.data.data);
+    log.info(`Retrieved files metadata for Alice's files: `);
+    log.info(filesMeta.data.data);
 
     // Check if tags were added correctly
     aliceFiles.forEach((file) => {
@@ -97,7 +98,7 @@ export default async (filezClient: Api<unknown>) => {
         }
     });
 
-    console.log(`Tags added successfully to Alice's files.`);
+    log.info(`Tags added successfully to Alice's files.`);
 
     // remove Tag Berlin from Alice's files
     const removeTags = await filezClient.api.updateTags(
@@ -115,7 +116,7 @@ export default async (filezClient: Api<unknown>) => {
     if (removeTags.data.status !== `Success`) {
         throw new Error(`Failed to remove tags from Alice's files.`);
     }
-    console.log(`Removed tag 'Berlin' from Alice's files.`);
+    log.info(`Removed tag 'Berlin' from Alice's files.`);
 
     // Check if the tag was removed
     const updatedFilesMeta = await filezClient.api.getTags(
@@ -128,8 +129,8 @@ export default async (filezClient: Api<unknown>) => {
     if (!updatedFilesMeta.data?.data) {
         throw new Error(`Failed to retrieve updated files metadata for Alice's files.`);
     }
-    console.log(`Retrieved updated files metadata for Alice's files: `);
-    console.log(updatedFilesMeta.data.data);
+    log.info(`Retrieved updated files metadata for Alice's files: `);
+    log.info(updatedFilesMeta.data.data);
     aliceFiles.forEach((file) => {
         const fileMeta = updatedFilesMeta.data.data?.resource_tags[file.id];
         if (!fileMeta) {
@@ -142,5 +143,5 @@ export default async (filezClient: Api<unknown>) => {
         }
     });
 
-    console.log(`Tag 'Berlin' removed successfully from Alice's files.`);
+    log.info(`Tag 'Berlin' removed successfully from Alice's files.`);
 };

@@ -11,8 +11,18 @@ use tokio::signal::{self};
 use url::Url;
 use utoipa::ToSchema;
 
+/// Convert a literal `&'static str` containing an already-lowercase
+/// header name into a `HeaderName` without allocating. Callers MUST
+/// pass a lowercase string — the function panics on uppercase input
+/// so a typo surfaces at the first request rather than silently
+/// allocating per-call (the previous implementation called
+/// `.to_lowercase()` on every invocation).
 pub fn static_as_header(static_str: &'static str) -> HeaderName {
-    HeaderName::from_lowercase(static_str.to_lowercase().as_bytes()).unwrap()
+    debug_assert!(
+        static_str.bytes().all(|b| !b.is_ascii_uppercase()),
+        "static_as_header expects a lowercase header name, got {static_str:?}",
+    );
+    HeaderName::from_static(static_str)
 }
 
 pub fn get_current_timestamp() -> chrono::NaiveDateTime {
@@ -132,7 +142,15 @@ pub fn safe_parse_mime_type(
     Ok(if unsafe_mime_types.contains(&mime_type_to_use) {
         HeaderValue::from_static("text/plain")
     } else {
-        mime_type_to_use.parse::<HeaderValue>().unwrap()
+        // A MIME type containing CRLF or other illegal byte sequences must
+        // not panic the response handler — surface as a typed error and
+        // let the caller decide (typically 500 with a useful message)
+        // instead of taking down the connection.
+        mime_type_to_use.parse::<HeaderValue>().map_err(|e| {
+            FilezError::GenericError(anyhow::anyhow!(
+                "stored MIME type {mime_type_to_use:?} is not a valid HTTP header value: {e}"
+            ))
+        })?
     })
 }
 

@@ -1,4 +1,5 @@
 import {
+import { log } from "mows-components-react/lib/logging";
     Api,
     createDefaultStorageQuotaForUser,
     createExampleUser,
@@ -26,7 +27,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!aliceFileResponse) {
         throw new Error(`Failed to create file for Alice.`);
     }
-    console.log(`Created file for Alice: ${aliceFileResponse.created_file.id}`);
+    log.info(`Created file for Alice: ${aliceFileResponse.created_file.id}`);
 
     const aliceFileVersion1ShouldFail = await filezClient.api
         .createFileVersion(
@@ -45,7 +46,7 @@ export default async (filezClient: Api<unknown>) => {
                     `Unexpected error when creating file version for Alice: ${response.message}`
                 );
             }
-            console.log(
+            log.info(
                 `Expected error when creating file version for Alice due to storage quota.`
             );
             return null; // Return null to indicate the expected failure
@@ -74,7 +75,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Failed to create second file version for Alice.`);
     }
 
-    console.log(`Created second file version for Alice: ${aliceFileVersion2ShouldWork.id}`);
+    log.info(`Created second file version for Alice: ${aliceFileVersion2ShouldWork.id}`);
 
     const aliceFileVersion3ShouldWork = (
         await filezClient.api.createFileVersion(
@@ -91,7 +92,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!aliceFileVersion3ShouldWork) {
         throw new Error(`Failed to create third file version for Alice.`);
     }
-    console.log(`Created third file version for Alice: ${aliceFileVersion3ShouldWork.id}`);
+    log.info(`Created third file version for Alice: ${aliceFileVersion3ShouldWork.id}`);
 
     const aliceFileVersion4ShouldFail = await filezClient.api
         .createFileVersion(
@@ -110,7 +111,7 @@ export default async (filezClient: Api<unknown>) => {
                     `Unexpected error when creating third file version for Alice: ${response.message}`
                 );
             }
-            console.log(
+            log.info(
                 `Expected error when creating third file version for Alice due to storage quota.`
             );
         });
@@ -125,7 +126,7 @@ export default async (filezClient: Api<unknown>) => {
         impersonateAliceParams
     );
 
-    console.log(
+    log.info(
         `Deleted file version for Alice: ${aliceFileVersion3ShouldWork.id} to free up space in storage quota`
     );
 

@@ -1,4 +1,4 @@
-import FileIcon from "@/components/atoms/fileIcon/FileIcon";
+import FileIcon from "mows-components-react/components/files/fileIcon/FileIcon";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "mows-components-react/components/ui/hover-card";
 import { Skeleton } from "mows-components-react/components/ui/skeleton";
 import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";

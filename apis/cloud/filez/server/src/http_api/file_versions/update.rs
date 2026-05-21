@@ -116,8 +116,15 @@ pub async fn update_file_version(
                     &database,
                     &authentication_information
                         .requesting_user
-                        .unwrap()
+                        .as_ref()
+                        .ok_or_else(|| {
+                            FilezError::Unauthorized(
+                                "auth middleware did not populate requesting_user"
+                                    .into(),
+                            )
+                        })?
                         .id
+                        .clone()
                         .into(),
                     &file_version.storage_quota_id,
                     additional_requested_bytes.try_into()?

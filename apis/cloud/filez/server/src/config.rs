@@ -4,13 +4,16 @@ use std::sync::OnceLock;
 use tokio::sync::RwLock;
 use url::Url;
 
-pub const IMPERSONATE_USER_HEADER_NAME: &str = "X-Filez-Impersonate-User";
+// HTTP header names are case-insensitive on the wire; we store the
+// canonical lowercase form so `HeaderName::from_static` accepts these
+// constants without allocating on every request.
+pub const IMPERSONATE_USER_HEADER_NAME: &str = "x-filez-impersonate-user";
 
-pub const KEY_ACCESS_HEADER_NAME: &str = "X-Filez-Key-Access";
+pub const KEY_ACCESS_HEADER_NAME: &str = "x-filez-key-access";
 
-pub const SERVICE_ACCOUNT_TOKEN_HEADER_NAME: &str = "X-Service-Account-Token";
+pub const SERVICE_ACCOUNT_TOKEN_HEADER_NAME: &str = "x-service-account-token";
 
-pub const RUNTIME_INSTANCE_ID_HEADER_NAME: &str = "X-Filez-Runtime-Instance-ID";
+pub const RUNTIME_INSTANCE_ID_HEADER_NAME: &str = "x-filez-runtime-instance-id";
 
 pub const SESSION_INFO_KEY: &str = "user_id";
 pub const SESSION_IMPERSONATED_USER_KEY: &str = "impersonated_user_id";

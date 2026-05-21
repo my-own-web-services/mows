@@ -66,7 +66,14 @@ impl ServerState {
     pub fn metrics(&self) -> String {
         let mut buffer = String::new();
         let registry = &*self.controller_state.metrics.registry;
-        prometheus_client::encoding::text::encode(&mut buffer, registry).unwrap();
+        // `text::encode` returns `Result<(), fmt::Error>`, which can only
+        // fail if the `Write` impl errors. Writing to `String` is
+        // infallible — log + return an empty payload rather than panic
+        // the metrics endpoint (which would take down the scraper).
+        if let Err(err) = prometheus_client::encoding::text::encode(&mut buffer, registry) {
+            tracing::error!(error = %err, "failed to encode prometheus metrics");
+            return String::new();
+        }
         buffer
     }
 

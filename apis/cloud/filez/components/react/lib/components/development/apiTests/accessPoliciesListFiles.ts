@@ -1,4 +1,5 @@
 import {
+import { log } from "mows-components-react/lib/logging";
     AccessPolicyAction,
     AccessPolicyEffect,
     AccessPolicyResourceType,
@@ -12,7 +13,7 @@ import {
 
 export default async (filezClient: Api<unknown>) => {
     const alice = await createExampleUser(filezClient);
-    console.log(`Created users: Alice (${alice.id})`);
+    log.info(`Created users: Alice (${alice.id})`);
 
     const impersonateAliceParams = {
         headers: {
@@ -21,7 +22,7 @@ export default async (filezClient: Api<unknown>) => {
     };
 
     const bob = await createExampleUser(filezClient);
-    console.log(`Created users: Bob (${bob.id})`);
+    log.info(`Created users: Bob (${bob.id})`);
 
     const impersonateBobParams = {
         headers: {
@@ -43,7 +44,7 @@ export default async (filezClient: Api<unknown>) => {
         if (!aliceFile) {
             throw new Error(`Failed to upload file alice_file_${i + 1}.txt for Alice.`);
         }
-        console.log(`Uploaded file for Alice: ${aliceFile.id}`);
+        log.info(`Uploaded file for Alice: ${aliceFile.id}`);
         createdAliceFiles.push(aliceFile);
     }
 
@@ -62,7 +63,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Failed to create file group for Alice.`);
     }
 
-    console.log(`Created file group for Alice: ${aliceFileGroup.id}`);
+    log.info(`Created file group for Alice: ${aliceFileGroup.id}`);
 
     // Add all created files to Alice's file group
 
@@ -74,7 +75,7 @@ export default async (filezClient: Api<unknown>) => {
         impersonateAliceParams
     );
 
-    console.log(`Added files to Alice's file group: ${aliceFileGroup.id}`);
+    log.info(`Added files to Alice's file group: ${aliceFileGroup.id}`);
 
     // List files as Alice
     const aliceFileList = (
@@ -90,7 +91,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Failed to list files for Alice.`);
     }
 
-    console.log(`Listed files for Alice: ${aliceFileList.length} files found.`);
+    log.info(`Listed files for Alice: ${aliceFileList.length} files found.`);
 
     if (aliceFileList.length !== createdAliceFiles.length) {
         throw new Error(
@@ -116,7 +117,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Bob should not be able to list Alice's files without an access policy.`);
     }
 
-    console.log(`Bob cannot list Alice's files as expected.`);
+    log.info(`Bob cannot list Alice's files as expected.`);
 
     // Create a access policy to allow Bob to view files in Alice's file group
     const aliceAccessPolicy = (
@@ -139,7 +140,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Failed to create access policy for Alice.`);
     }
 
-    console.log(`Created access policy for Alice: ${aliceAccessPolicy.id}`);
+    log.info(`Created access policy for Alice: ${aliceAccessPolicy.id}`);
 
     // Check if Bob can see Alice's files now
 
@@ -155,7 +156,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!bobFileList) {
         throw new Error(`Failed to list files for Bob.`);
     }
-    console.log(`Listed files for Bob: ${bobFileList.length} files found.`);
+    log.info(`Listed files for Bob: ${bobFileList.length} files found.`);
 
     if (bobFileList.length !== createdAliceFiles.length) {
         throw new Error(
@@ -163,7 +164,7 @@ export default async (filezClient: Api<unknown>) => {
         );
     }
 
-    console.log(`Bob can list Alice's files as expected.`);
+    log.info(`Bob can list Alice's files as expected.`);
 
     // Create a access policy explicitly denying Bob to view files in Alice's file group
     const denyAliceAccessPolicy = (
@@ -184,7 +185,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!denyAliceAccessPolicy) {
         throw new Error(`Failed to create deny access policy for Alice.`);
     }
-    console.log(`Created deny access policy for Alice: ${denyAliceAccessPolicy.id}`);
+    log.info(`Created deny access policy for Alice: ${denyAliceAccessPolicy.id}`);
     // Check if Bob can see Alice's files now
     const bobFileListShouldFailAgain = await filezClient.api
         .listFilesInFileGroup(
@@ -201,12 +202,12 @@ export default async (filezClient: Api<unknown>) => {
     if (bobFileListShouldFailAgain) {
         throw new Error(`Bob should not be able to list Alice's files after deny access policy.`);
     }
-    console.log(`Bob cannot list Alice's files after deny access policy as expected.`);
+    log.info(`Bob cannot list Alice's files after deny access policy as expected.`);
 
     // Delete both access policies
     await filezClient.api.deleteAccessPolicy(aliceAccessPolicy.id, impersonateAliceParams);
     await filezClient.api.deleteAccessPolicy(denyAliceAccessPolicy.id, impersonateAliceParams);
-    console.log(`Deleted both access policies.`);
+    log.info(`Deleted both access policies.`);
 
     // Check if Bob can see Alice's files now
 
@@ -227,7 +228,7 @@ export default async (filezClient: Api<unknown>) => {
             `Bob should not be able to list Alice's files after both access policies are deleted.`
         );
     }
-    console.log(
+    log.info(
         `Bob cannot list Alice's files after both access policies are deleted as expected.`
     );
 
@@ -243,7 +244,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!userGroup) {
         throw new Error(`Failed to create user group.`);
     }
-    console.log(`Created user group: ${userGroup.id}`);
+    log.info(`Created user group: ${userGroup.id}`);
 
     await filezClient.api.updateUserGroupMembers(
         {
@@ -270,9 +271,9 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Bob should not be able to list Alice's files before group access policy.`);
     }
 
-    console.log(`Bob cannot list Alice's files before group access policy as expected.`);
+    log.info(`Bob cannot list Alice's files before group access policy as expected.`);
 
-    console.log(`Added Bob to user group: ${userGroup.id}`);
+    log.info(`Added Bob to user group: ${userGroup.id}`);
     // Create a access policy to allow the user group to view files in Alice's file group
     const groupAccessPolicy = (
         await filezClient.api.createAccessPolicy(
@@ -292,7 +293,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!groupAccessPolicy) {
         throw new Error(`Failed to create group access policy.`);
     }
-    console.log(`Created group access policy: ${groupAccessPolicy.id}`);
+    log.info(`Created group access policy: ${groupAccessPolicy.id}`);
 
     // Check if Bob can see Alice's files now
     const bobFileListViaGroup = (
@@ -306,13 +307,13 @@ export default async (filezClient: Api<unknown>) => {
     if (!bobFileListViaGroup) {
         throw new Error(`Failed to list files for Bob via group.`);
     }
-    console.log(`Listed files for Bob via group: ${bobFileListViaGroup.length} files found.`);
+    log.info(`Listed files for Bob via group: ${bobFileListViaGroup.length} files found.`);
     if (bobFileListViaGroup.length !== createdAliceFiles.length) {
         throw new Error(
             `File count mismatch for Bob via group. Expected ${createdAliceFiles.length}, got ${bobFileListViaGroup.length}.`
         );
     }
-    console.log(`Bob can list Alice's files via group as expected.`);
+    log.info(`Bob can list Alice's files via group as expected.`);
 
     // Create explicit deny access policy for bob
 
@@ -334,7 +335,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!denyBobAccessPolicyOverridingGroup) {
         throw new Error(`Failed to create deny access policy for Bob overriding group.`);
     }
-    console.log(
+    log.info(
         `Created deny access policy for Bob overriding group: ${denyBobAccessPolicyOverridingGroup.id}`
     );
 
@@ -357,7 +358,7 @@ export default async (filezClient: Api<unknown>) => {
             `Bob should not be able to list Alice's files after deny access policy overriding group.`
         );
     }
-    console.log(
+    log.info(
         `Bob cannot list Alice's files after deny access policy overriding group as expected.`
     );
 
@@ -367,7 +368,7 @@ export default async (filezClient: Api<unknown>) => {
         denyBobAccessPolicyOverridingGroup.id,
         impersonateAliceParams
     );
-    console.log(`Deleted all access policies.`);
+    log.info(`Deleted all access policies.`);
 
     // Check if Bob can see Alice's files now
 
@@ -388,7 +389,7 @@ export default async (filezClient: Api<unknown>) => {
             `Bob should not be able to list Alice's files after all access policies are deleted.`
         );
     }
-    console.log(`Bob cannot list Alice's files after all access policies are deleted as expected.`);
+    log.info(`Bob cannot list Alice's files after all access policies are deleted as expected.`);
 
     // check if bob can give himself access by creating an access policy (he should not be able to)
     const bobCreatingAccessPolicyShouldFail = await filezClient.api
@@ -416,7 +417,7 @@ export default async (filezClient: Api<unknown>) => {
             `Bob should not be able to create an access policy for Alice's file group.`
         );
     }
-    console.log(`Bob cannot create an access policy for Alice's file group as expected.`);
+    log.info(`Bob cannot create an access policy for Alice's file group as expected.`);
 
     // Create a user group as bob and add alice to it, this should work
 
@@ -431,7 +432,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!bobUserGroup) {
         throw new Error(`Failed to create user group as Bob.`);
     }
-    console.log(`Created user group as Bob: ${bobUserGroup.id}`);
+    log.info(`Created user group as Bob: ${bobUserGroup.id}`);
     await filezClient.api.updateUserGroupMembers(
         {
             user_group_id: bobUserGroup.id,
@@ -439,7 +440,7 @@ export default async (filezClient: Api<unknown>) => {
         },
         impersonateBobParams
     );
-    console.log(`Added Alice to Bob's user group: ${bobUserGroup.id}`);
+    log.info(`Added Alice to Bob's user group: ${bobUserGroup.id}`);
 
     // try to create an access policy that allows bob's user group to access alice's file group, this should fail
 
@@ -467,13 +468,13 @@ export default async (filezClient: Api<unknown>) => {
             `Bob should not be able to create an access policy for Alice's file group using his user group.`
         );
     }
-    console.log(
+    log.info(
         `Bob cannot create an access policy for Alice's file group using his user group as expected.`
     );
 
     // Create new user Larry
     const larry = await createExampleUser(filezClient);
-    console.log(`Created users: Larry (${larry.id})`);
+    log.info(`Created users: Larry (${larry.id})`);
 
     // try as Alice to add Larry to Bob's user group, this should fail
     const aliceAddingLarryToBobsGroupShouldFail = await filezClient.api
@@ -492,5 +493,5 @@ export default async (filezClient: Api<unknown>) => {
     if (aliceAddingLarryToBobsGroupShouldFail) {
         throw new Error(`Alice should not be able to add Larry to Bob's user group.`);
     }
-    console.log(`Alice cannot add Larry to Bob's user group as expected.`);
+    log.info(`Alice cannot add Larry to Bob's user group as expected.`);
 };

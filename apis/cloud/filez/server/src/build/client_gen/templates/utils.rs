@@ -12,7 +12,9 @@ pub async fn stream_file_to_path(
     target_path: &PathBuf,
 ) -> Result<String, anyhow::Error> {
     if !target_path.exists() {
-        tokio::fs::create_dir_all(&target_path.parent().unwrap()).await?;
+        if let Some(parent) = target_path.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
     }
 
     let get_file_version_content_request = filez_client

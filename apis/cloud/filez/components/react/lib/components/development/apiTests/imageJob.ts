@@ -1,4 +1,5 @@
 import {
+import { log } from "mows-components-react/lib/logging";
     Api,
     ContentType,
     createExampleUser,
@@ -9,7 +10,7 @@ import {
 
 export default async (filezClient: Api<unknown>) => {
     const alice = await createExampleUser(filezClient);
-    console.log(`Created users: Alice (${alice.id})`);
+    log.info(`Created users: Alice (${alice.id})`);
 
     const storage_locations = (await filezClient.api.listStorageLocations({})).data?.data
         ?.storage_locations;
@@ -17,7 +18,7 @@ export default async (filezClient: Api<unknown>) => {
     if (storage_locations?.length === 0) {
         throw new Error(`No storage locations found. Please create a storage location first.`);
     } else if (storage_locations?.length !== undefined && storage_locations?.length > 1) {
-        console.warn(`Multiple storage locations found. Using the first one.`);
+        log.warn(`Multiple storage locations found. Using the first one.`);
     }
 
     const storage_location_id = storage_locations?.[0].id;
@@ -57,7 +58,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Failed to create storage quota for Alice.`);
     }
 
-    console.log(
+    log.info(
         `Created storage quota: ${alice_quota.id} for Alice(${alice.id}) at location ${storage_location_id}`
     );
 
@@ -81,7 +82,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Failed to create file for Alice.`);
     }
 
-    console.log(`Created file for Alice: ${aliceFile.created_file.id}`);
+    log.info(`Created file for Alice: ${aliceFile.created_file.id}`);
 
     const image_response = await fetch(
         `https://upload.wikimedia.org/wikipedia/commons/0/00/El_Gato.jpg`
@@ -156,13 +157,13 @@ export default async (filezClient: Api<unknown>) => {
     if (!jobId) {
         throw new Error(`Failed to create job for image processing.`);
     }
-    console.log(`Created job for image processing: ${jobId}`);
+    log.info(`Created job for image processing: ${jobId}`);
 
     let _successfullyCompleted = false;
 
     for (let i = 0; i < 10; i++) {
         const job = await filezClient.api.getJob({ job_id: jobId }, impersonateAliceParams);
-        console.log(`Job status: ${job.data?.data?.job.status}`);
+        log.info(`Job status: ${job.data?.data?.job.status}`);
         if (job.data?.data?.job.status === `Completed`) {
             _successfullyCompleted = true;
             break;
@@ -191,5 +192,5 @@ export default async (filezClient: Api<unknown>) => {
         impersonateAliceParams
     );
 
-    console.log(`File version content retrieved successfully`);
+    log.info(`File version content retrieved successfully`);
 };

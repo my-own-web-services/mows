@@ -58,7 +58,11 @@ pub async fn get_storage_quota_usage(
     let (storage_quota, used_bytes) = with_timing!(
         StorageQuota::get_usage(
             &database,
-            &authentication_information.requesting_user.unwrap().id,
+            &authentication_information.requesting_user.as_ref().ok_or_else(|| {
+                FilezError::Unauthorized(
+                    "auth middleware did not populate requesting_user".into(),
+                )
+            })?.id,
             &request_body.storage_quota_id
         )
         .await?,

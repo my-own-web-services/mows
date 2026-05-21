@@ -14,9 +14,9 @@ import { cn, formatFileSizeToHumanReadable, generateRandomId } from "@/lib/utils
 import { FileGroup, SortDirection, StorageQuota } from "filez-client-typescript";
 import { Folder, Upload as UploadIcon } from "lucide-react";
 import { createRef, PureComponent, type CSSProperties, type ReactNode } from "react";
-import DateTime from "mows-components-react/components/atoms/dateTime/DateTime";
-import FileGroupPicker from "../fileGroupPicker/FileGroupPicker";
-import StorageQuotaPicker from "../storageQuotaPicker/StorageQuotaPicker";
+import DateTimeDisplay from "mows-components-react/components/dateTime/dateTimeDisplay/DateTimeDisplay";
+import FileGroupPicker from "@/components/fileGroups/fileGroupPicker/FileGroupPicker";
+import StorageQuotaPicker from "@/components/storage/storageQuotaPicker/StorageQuotaPicker";
 import { handleFileUpload, UploadFileRequest, UploadProgressData } from "./handleUpload";
 import ImagePreview from "./ImagePreview";
 
@@ -556,7 +556,7 @@ class UploadBase extends PureComponent<UploadProps, UploadState> {
                                         _className: string
                                     ) => {
                                         return (
-                                            <DateTime
+                                            <DateTimeDisplay
                                                 timestampMilliseconds={item.file.lastModified}
                                             />
                                         );

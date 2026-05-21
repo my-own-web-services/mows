@@ -16,13 +16,30 @@ use axum::{
     extract::{Path, Query, State},
     http::{
         header::{self, RANGE},
-        HeaderMap, HeaderName, StatusCode,
+        HeaderMap, HeaderName, HeaderValue, StatusCode,
     },
     response::IntoResponse,
     Extension,
 };
 
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::{Deserialize, Serialize};
+
+// RFC 6266: ASCII fallback for the legacy `filename="…"` parameter. Strip
+// every character that has special meaning in HTTP quoted-string syntax
+// (`"` and `\`), plus CR/LF/HT, and replace anything non-ASCII with `_`.
+fn ascii_filename_fallback(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    for c in name.chars() {
+        match c {
+            '"' | '\\' | '\r' | '\n' | '\t' => out.push('_'),
+            c if (c as u32) < 0x20 => out.push('_'),
+            c if c.is_ascii() => out.push(c),
+            _ => out.push('_'),
+        }
+    }
+    out
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetFileVersionContentQuery {
@@ -172,16 +189,27 @@ pub async fn get_file_version_content(
             file_meta.name.clone()
         };
 
+        // RFC 6266 §4.3: prefer `filename*=UTF-8''<pct-encoded>` for the
+        // canonical name (handles non-ASCII + bytes that would terminate the
+        // quoted-string). Keep `filename="…"` as an ASCII fallback for very
+        // old clients, with `"` / `\` / CR / LF / non-ASCII stripped to
+        // prevent quoted-string escape or response-splitting via the
+        // user-controlled file name.
+        let encoded = utf8_percent_encode(&file_name, NON_ALPHANUMERIC).to_string();
+        let fallback = ascii_filename_fallback(&file_name);
         response_headers.insert(
             header::CONTENT_DISPOSITION,
-            format!("attachment; filename=\"{}\"", file_name)
-                .parse()
-                .map_err(|e| {
-                    FilezError::GenericError(anyhow::anyhow!(
-                        "Failed to parse content disposition header: {}",
-                        e
-                    ))
-                })?,
+            format!(
+                "attachment; filename=\"{}\"; filename*=UTF-8''{}",
+                fallback, encoded
+            )
+            .parse()
+            .map_err(|e| {
+                FilezError::GenericError(anyhow::anyhow!(
+                    "Failed to parse content disposition header: {}",
+                    e
+                ))
+            })?,
         );
     }
 
@@ -205,11 +233,11 @@ pub async fn get_file_version_content(
             let range_str = range.to_str().unwrap_or("");
             let parsed_range = parse_range(range_str)?;
 
-            response_headers.insert(header::ACCEPT_RANGES, "bytes".parse().unwrap());
-            response_headers.insert(header::CONNECTION, "Keep-Alive".parse().unwrap());
+            response_headers.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
+            response_headers.insert(header::CONNECTION, HeaderValue::from_static("Keep-Alive"));
             response_headers.insert(
                 HeaderName::from_static("keep-alive"),
-                "timeout=5, max=100".parse().unwrap(),
+                HeaderValue::from_static("timeout=5, max=100"),
             );
 
             let file_version_meta_size: u64 = file_version_meta.content_size_bytes.try_into()?;

@@ -379,38 +379,11 @@ describe(`Upload`, () => {
         // Note: we can't reliably check for filename display in the ResourceList in tests
     });
 
-    it(`allows removing files from the list`, async () => {
-        const onUpload = vi.fn();
-        const onFileRemove = vi.fn();
-        const user = userEvent.setup();
-
-        render(
-            <MockFilezProvider>
-                <Upload onUpload={onUpload} onFileRemove={onFileRemove} />
-            </MockFilezProvider>
-        );
-
-        await waitFor(() => {
-            expect(screen.getByText(`Drop files or folders here`)).toBeInTheDocument();
-        });
-
-        const file = createMockFile(`test.txt`, 1024);
-        const fileInputs = document.querySelectorAll(`input[type="file"]`);
-        const input = fileInputs[0] as HTMLInputElement;
-
-        await user.upload(input, file);
-
-        await waitFor(() => {
-            expect(screen.getByText(`Upload Files`)).toBeInTheDocument();
-        });
-
-        // TODO: File removal functionality might not be implemented in the current UI
-        // The ResourceList component might not include remove buttons by default
-        // This test needs to be updated when the remove functionality is properly implemented
-        // const removeButton = screen.getByLabelText("Remove file");
-        // await user.click(removeButton);
-        // expect(onFileRemove).toHaveBeenCalled();
-    });
+    // SLOP-1: the previous `allows removing files from the list` test was
+    // disabled (its only assertion was commented out behind a TODO). Per
+    // the policy "delete the test entirely if the feature is out of
+    // scope", it's gone. Add a real test back when the remove-file UI
+    // ships.
 
     it(`is disabled when disabled prop is true`, async () => {
         const onUpload = vi.fn();

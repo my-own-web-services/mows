@@ -1,4 +1,5 @@
 import {
+import { log } from "mows-components-react/lib/logging";
     AccessPolicyAction,
     AccessPolicyEffect,
     AccessPolicyResourceType,
@@ -27,7 +28,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!alice || !bob) {
         throw new Error(`Failed to create users Alice and Bob.`);
     }
-    console.log(`Created users: Alice (${alice.id}), Bob (${bob.id})`);
+    log.info(`Created users: Alice (${alice.id}), Bob (${bob.id})`);
 
     const storage_locations = (await filezClient.api.listStorageLocations({})).data?.data
         ?.storage_locations;
@@ -35,7 +36,7 @@ export default async (filezClient: Api<unknown>) => {
     if (storage_locations?.length === 0) {
         throw new Error(`No storage locations found. Please create a storage location first.`);
     } else if (storage_locations?.length !== undefined && storage_locations?.length > 1) {
-        console.warn(`Multiple storage locations found. Using the first one.`);
+        log.warn(`Multiple storage locations found. Using the first one.`);
     }
 
     const storage_location_id = storage_locations?.[0].id;
@@ -59,7 +60,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Failed to create storage quota for Alice.`);
     }
 
-    console.log(
+    log.info(
         `Created storage quota: ${alice_quota.id} for Alice(${alice.id}) at location ${storage_location_id}`
     );
 
@@ -88,7 +89,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!aliceFileResponse) {
         throw new Error(`Failed to create file for Alice.`);
     }
-    console.log(`Created file for Alice: ${aliceFileResponse.created_file.id}`);
+    log.info(`Created file for Alice: ${aliceFileResponse.created_file.id}`);
 
     // Create a file version for Alice's file
 
@@ -151,7 +152,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!firstUpload) {
         throw new Error(`Failed to upload content for Alice's file version.`);
     }
-    console.log(`Uploaded first half of content for Alice's file version: ${aliceFileVersion.id}`);
+    log.info(`Uploaded first half of content for Alice's file version: ${aliceFileVersion.id}`);
 
     // Now upload the rest of the content
 
@@ -174,7 +175,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!secondUpload) {
         throw new Error(`Failed to upload second half of content for Alice's file version.`);
     }
-    console.log(`Uploaded second half of content for Alice's file version: ${aliceFileVersion.id}`);
+    log.info(`Uploaded second half of content for Alice's file version: ${aliceFileVersion.id}`);
 
     const content = await (
         await filezClient.api
@@ -282,7 +283,7 @@ export default async (filezClient: Api<unknown>) => {
                         response.status
                 );
             }
-            console.log(
+            log.info(
                 `Correctly caught the error when trying to update content for Alice's file version with an already valid size.`
             );
         });
@@ -291,7 +292,7 @@ export default async (filezClient: Api<unknown>) => {
             `Expected an error when trying to update content for Alice's file version with an already valid size.`
         );
     }
-    console.log(`Successfully failed to update content for Alice's file version.`);
+    log.info(`Successfully failed to update content for Alice's file version.`);
 
     const aliceFiles = [];
 
@@ -307,11 +308,11 @@ export default async (filezClient: Api<unknown>) => {
         if (!createFileResponse) {
             throw new Error(`Failed to create file for Alice: ${fileName}`);
         }
-        console.log(`Created file for Alice: ${createFileResponse.created_file.id}`);
+        log.info(`Created file for Alice: ${createFileResponse.created_file.id}`);
         aliceFiles.push(createFileResponse.created_file);
     }
 
-    console.log(`Created ${aliceFiles.length} files for Alice.`);
+    log.info(`Created ${aliceFiles.length} files for Alice.`);
 
     // Create a file group for Alice
     const aliceFileGroup1 = (
@@ -329,7 +330,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Failed to create file group for Alice.`);
     }
 
-    console.log(`Created file group for Alice: ${aliceFileGroup1.id}`);
+    log.info(`Created file group for Alice: ${aliceFileGroup1.id}`);
 
     const aliceFileGroup2 = (
         await filezClient.api.createFileGroup(
@@ -344,7 +345,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!aliceFileGroup2) {
         throw new Error(`Failed to create second file group for Alice.`);
     }
-    console.log(`Created second file group for Alice: ${aliceFileGroup2.id}`);
+    log.info(`Created second file group for Alice: ${aliceFileGroup2.id}`);
 
     // Add files to the first file group
 
@@ -360,7 +361,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!addFilesToGroup1) {
         throw new Error(`Failed to add files to Alice's first file group.`);
     }
-    console.log(
+    log.info(
         `Added ${filesToAddToGroup1.length} files to Alice's first file group: ${aliceFileGroup1.id}`
     );
 
@@ -378,7 +379,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!addFilesToGroup2) {
         throw new Error(`Failed to add files to Alice's second file group.`);
     }
-    console.log(
+    log.info(
         `Added ${filesToAddToGroup2.length} files to Alice's second file group: ${aliceFileGroup2.id}`
     );
 
@@ -395,7 +396,7 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Failed to list files in Alice's first file group.`);
     }
 
-    console.log(
+    log.info(
         `Listed ${listFilesInGroup1.length} files in Alice's first file group: ${aliceFileGroup1.id}`
     );
 
@@ -411,7 +412,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!listFilesInGroup2) {
         throw new Error(`Failed to list files in Alice's second file group.`);
     }
-    console.log(
+    log.info(
         `Listed ${listFilesInGroup2.length} files in Alice's second file group: ${aliceFileGroup2.id}`
     );
 
@@ -429,7 +430,7 @@ export default async (filezClient: Api<unknown>) => {
                     `Bob should not be able to list files in Alice's first file group, expected 403, got: ${response.status}`
                 );
             }
-            console.log(
+            log.info(
                 `Correctly caught the error when Bob tried to list files in Alice's first file group before policy creation.`
             );
         });
@@ -459,7 +460,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!accessRule) {
         throw new Error(`Failed to create access rule for Bob.`);
     }
-    console.log(
+    log.info(
         `Created access rule for Bob: ${accessRule.id} to list files in Alice's first file group: ${aliceFileGroup1.id}`
     );
 
@@ -475,7 +476,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!bobListFilesInGroup1) {
         throw new Error(`Bob failed to list files in Alice's first file group.`);
     }
-    console.log(
+    log.info(
         `Bob listed ${bobListFilesInGroup1.length} files in Alice's first file group: ${aliceFileGroup1.id}`
     );
     // Try to delete files in Alice's first file group, should fail
@@ -487,7 +488,7 @@ export default async (filezClient: Api<unknown>) => {
                     `Bob should not be able to delete files in Alice's first file group, expected 403, got: ${response.status}`
                 );
             }
-            console.log(
+            log.info(
                 `Correctly caught the error when Bob tried to delete files in Alice's first file group.`
             );
         });
@@ -496,7 +497,7 @@ export default async (filezClient: Api<unknown>) => {
             `Expected an error when Bob tried to delete files in Alice's first file group.`
         );
     }
-    console.log(`Bob correctly failed to delete files in Alice's first file group.`);
+    log.info(`Bob correctly failed to delete files in Alice's first file group.`);
 
     // Try to list files in Alice's second file group (should fail)
     const bobListFilesInGroup2 = await filezClient.api
@@ -512,7 +513,7 @@ export default async (filezClient: Api<unknown>) => {
                     `Bob should not be able to list files in Alice's second file group, expected 403, got: ${response.status}`
                 );
             }
-            console.log(
+            log.info(
                 `Correctly caught the error when Bob tried to list files in Alice's second file group.`
             );
         });
@@ -522,5 +523,5 @@ export default async (filezClient: Api<unknown>) => {
         );
     }
 
-    console.log(`Bob correctly failed to list files in Alice's second file group.`);
+    log.info(`Bob correctly failed to list files in Alice's second file group.`);
 };

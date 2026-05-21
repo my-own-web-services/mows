@@ -1,4 +1,5 @@
 import { Api } from "filez-client-typescript";
+import { log } from "mows-components-react/lib/logging";
 
 export default async (filezClient: Api<unknown>) => {
     const fileShouldWork = await filezClient.api.createFile({
@@ -10,7 +11,7 @@ export default async (filezClient: Api<unknown>) => {
     if (!fileShouldWork.data?.data?.created_file) {
         throw new Error(`Failed to create file.`);
     }
-    console.log(`Created file: ${fileShouldWork.data?.data?.created_file.id}`);
+    log.info(`Created file: ${fileShouldWork.data?.data?.created_file.id}`);
 
     const fileShouldFail = await filezClient.api
         .createFile({
@@ -28,5 +29,5 @@ export default async (filezClient: Api<unknown>) => {
     if (fileShouldFail.data?.data?.created_file) {
         throw new Error(`File creation should have failed due to validation.`);
     }
-    console.log(`File creation failed as expected due to validation.`);
+    log.info(`File creation failed as expected due to validation.`);
 };

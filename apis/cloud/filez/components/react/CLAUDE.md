@@ -17,11 +17,38 @@ live in `mows-components-react` at `/home/paul/projects/mows/components/react/`,
 linked here via yalc. Filez consumes it and adds:
 
 - Filez API client wiring (`FilezClientManager` inside `FilezContext.tsx`)
-- Filez-specific atoms (`fileGroupCreate`, `fileGroupPicker`, `fileIcon`,
-  `jobs`, `resourceTags`, `storageLocationPicker`, `storageQuotaPicker`,
-  `upload`)
-- Filez `FileViewer`, `FileList`, `JobList`, `PrimaryMenu`, `DevPanel`
 - Filez-specific actions and translations
+
+## Component taxonomy
+
+Components are grouped by purpose under `lib/components/` — the same semantic
+layout used by `mows-components-react`. There is no `atoms/` bucket.
+
+- `appShell/` — top-level chrome (`PrimaryMenu`, a thin filez wrapper around
+  the mows `PrimaryMenu` that adds a "Developer Tools" entry and wires the
+  filez user).
+- `development/` — `DevPanel` plus `apiTests/*` and `tasks/*` scripts. The
+  DevPanel dynamically imports modules from those two subfolders.
+- `fileGroups/` — `FileGroupCreate`, `FileGroupPicker`.
+- `files/` — filez-specific file UI: `fileList` plus the thin filez wrapper
+  around `mows-components-react`'s `FileViewer` (resolves a `FilezFile` to
+  the right thumbnail URL, detects 360 panoramas). `FileIcon` and the
+  generic `FileViewer`/`ImageViewer`/`Image360Viewer` live in
+  `mows-components-react`.
+- `jobs/` — `JobsProgress`, `JobList`.
+- `storage/` — `StorageLocationPicker`, `StorageQuotaPicker`.
+- `tags/` — `ResourceTags`.
+- `upload/` — `upload/upload/Upload.tsx` (plus helpers `ImagePreview.tsx`,
+  `handleUpload.tsx` in the same folder).
+- `list/ResourceList/` — only integration tests for the mows-side
+  `ResourceList` running under `FilezProvider` (`ResourceList.test.tsx`
+  + `rowHandlers/Column.test.tsx`). No filez `ResourceList`
+  implementation; the component itself ships from `mows-components-react`.
+  **Never put filez-side source here** — if you need a filez-specific
+  list helper, give it its own group (or add to `files/fileList/`).
+
+When adding a new component, pick the group it most clearly belongs to. If
+none fits, surface that to the user before inventing a new group.
 
 `FileList` passes a filez `FileViewer`-based `cellRenderer` to the generic
 `GridListRowHandler` so the grid can be reused for any object type.

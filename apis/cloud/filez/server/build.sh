@@ -5,7 +5,14 @@ mows tools cargo-workspace-docker
 
 export SERVICE_NAME="filez-server"
 
-export BAKE_ARGS="${BAKE_ARGS:-default} --allow=fs.read=/home/paul/projects/mows --set *.args.APP_STAGE_IMAGE=alpine"
+# Resolve the repo root from this script's location instead of hardcoding
+# `/home/paul/projects/mows` (DEVOPS-9). Anyone else running `bash
+# build.sh` from a different checkout path was hitting buildx permission
+# errors.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+
+export BAKE_ARGS="${BAKE_ARGS:-default} --allow=fs.read=${REPO_ROOT} --set *.args.APP_STAGE_IMAGE=alpine"
 
 export BUILDKIT_PROGRESS="plain"
 

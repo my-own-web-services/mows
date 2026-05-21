@@ -10,7 +10,7 @@ import { log } from "mows-components-react/lib/logging";
 import { cn } from "@/lib/utils";
 import { Check, Loader2, Play, Search, X } from "lucide-react";
 import { PureComponent, type CSSProperties } from "react";
-import LoggingConfig from "mows-components-react/components/loggingConfig/LoggingConfig";
+import LoggingConfig from "mows-components-react/components/settings/loggingConfig/LoggingConfig";
 
 interface DevPanelProps {
     readonly className?: string;
@@ -126,7 +126,7 @@ class DevPanelBase extends PureComponent<DevPanelProps, DevPanelState> {
 
     runAllTests = async () => {
         if (!this.props.filez.filezClient) {
-            console.error(`Filez client is not initialized.`);
+            log.error(`Filez client is not initialized.`);
             return;
         }
 
@@ -151,7 +151,7 @@ class DevPanelBase extends PureComponent<DevPanelProps, DevPanelState> {
 
     runTest = async (testId: string) => {
         if (!this.props.filez.filezClient) {
-            console.error(`Filez client is not initialized.`);
+            log.error(`Filez client is not initialized.`);
             return;
         }
 
@@ -166,12 +166,12 @@ class DevPanelBase extends PureComponent<DevPanelProps, DevPanelState> {
         const startTime = performance.now();
 
         try {
-            console.log(`Importing test module for ${testId}...`);
+            log.info(`Importing test module for ${testId}...`);
             const mod = await import(`./apiTests/${testId}.ts`);
             if (!mod.default) {
                 throw new Error(`Test module for ${testId} not found or does not export default.`);
             }
-            console.log(`Running test: ${testId}`);
+            log.info(`Running test: ${testId}`);
             await mod.default(this.props.filez.filezClient);
 
             const duration = performance.now() - startTime;
@@ -235,7 +235,7 @@ class DevPanelBase extends PureComponent<DevPanelProps, DevPanelState> {
 
     runAllTasks = async () => {
         if (!this.props.filez.filezClient) {
-            console.error(`Filez client is not initialized.`);
+            log.error(`Filez client is not initialized.`);
             return;
         }
 
@@ -255,7 +255,7 @@ class DevPanelBase extends PureComponent<DevPanelProps, DevPanelState> {
 
     runTask = async (taskId: string) => {
         if (!this.props.filez.filezClient) {
-            console.error(`Filez client is not initialized.`);
+            log.error(`Filez client is not initialized.`);
             return;
         }
 
@@ -270,12 +270,12 @@ class DevPanelBase extends PureComponent<DevPanelProps, DevPanelState> {
         const startTime = performance.now();
 
         try {
-            console.log(`Importing task module for ${taskId}...`);
+            log.info(`Importing task module for ${taskId}...`);
             const mod = await import(`./tasks/${taskId}.ts`);
             if (!mod.default) {
                 throw new Error(`Task module for ${taskId} not found or does not export default.`);
             }
-            console.log(`Running task: ${taskId}`);
+            log.info(`Running task: ${taskId}`);
             await mod.default(this.props.filez.filezClient);
 
             const duration = performance.now() - startTime;

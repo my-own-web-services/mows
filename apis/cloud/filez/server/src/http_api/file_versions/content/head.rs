@@ -14,7 +14,7 @@ use crate::{
 };
 use axum::{
     extract::{Path, State},
-    http::{HeaderMap, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode},
     response::IntoResponse,
     Extension, Json,
 };
@@ -121,15 +121,14 @@ pub async fn file_versions_content_head(
 
     let mut response_headers = HeaderMap::new();
 
-    response_headers.insert(
-        "Upload-Offset",
-        real_content_size.to_string().parse().unwrap(),
-    );
-
-    response_headers.insert("Cache-Control", "no-store".parse().unwrap());
+    // `HeaderValue::from(<int>)` is infallible (and zero-allocation for
+    // small ints) — was `to_string().parse().unwrap()` which round-tripped
+    // through a String for no benefit and added a panic path.
+    response_headers.insert("Upload-Offset", HeaderValue::from(real_content_size));
+    response_headers.insert("Cache-Control", HeaderValue::from_static("no-store"));
     response_headers.insert(
         "Upload-Length",
-        file_version.content_size_bytes.to_string().parse().unwrap(),
+        HeaderValue::from(file_version.content_size_bytes),
     );
 
     Ok((

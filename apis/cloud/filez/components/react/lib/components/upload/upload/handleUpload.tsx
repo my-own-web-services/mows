@@ -5,6 +5,7 @@ import {
     JobPersistenceType,
     StorageQuota
 } from "filez-client-typescript";
+import { log } from "mows-components-react/lib/logging";
 
 export type UploadFileResponse = Record<string, never>;
 
@@ -46,7 +47,11 @@ export const handleFileUpload = async (
     ).data?.data;
 
     if (!createFileResponse?.created_file) {
-        throw new Error(`Failed to create file: ${JSON.stringify(createFileResponse)}`);
+        // SLOP-54: log the full response at error level (operator can
+        // inspect in devtools), throw an opaque user-facing message so
+        // we don't leak the response body into toasts / telemetry.
+        log.error(`createFile failed`, { response: createFileResponse });
+        throw new Error(`Failed to create file`);
     }
 
     if (addToFileGroupId) {
@@ -73,7 +78,8 @@ export const handleFileUpload = async (
     ).data?.data?.created_file_version;
 
     if (!fileVersionResponse) {
-        throw new Error(`Failed to create file version: ${JSON.stringify(fileVersionResponse)}`);
+        log.error(`createFileVersion failed`, { response: fileVersionResponse });
+        throw new Error(`Failed to create file version`);
     }
 
     const maxChunkSize = 100 * 1024 * 1024; // 100MB

@@ -1,4 +1,5 @@
 import {
+import { log } from "mows-components-react/lib/logging";
     createExampleUser,
     FileGroupType,
     FilezClient,
@@ -47,10 +48,10 @@ export default async (filezClient: FilezClient) => {
                 fileIds.push(res.data.data.created_file.id);
             }
         });
-        console.log(`Completed batch: ${batchEnd}/${TOTAL_FILES} files`);
+        log.info(`Completed batch: ${batchEnd}/${TOTAL_FILES} files`);
     }
 
-    console.log(`All files created successfully.`);
+    log.info(`All files created successfully.`);
 
     // add all files to the file group
     await filezClient.api.updateFileGroupMembers({
@@ -58,5 +59,5 @@ export default async (filezClient: FilezClient) => {
         files_to_add: fileIds
     });
 
-    console.log(fileGroup.data?.data?.created_file_group.id);
+    log.info(fileGroup.data?.data?.created_file_group.id);
 };

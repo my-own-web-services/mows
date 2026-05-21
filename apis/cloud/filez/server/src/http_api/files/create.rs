@@ -71,7 +71,11 @@ pub async fn create_file(
     let db_created_file = with_timing!(
         FilezFile::create_one(
             &database,
-            &authentication_information.requesting_user.unwrap(),
+            authentication_information.requesting_user.as_ref().ok_or_else(|| {
+                FilezError::Unauthorized(
+                    "auth middleware did not populate requesting_user".into(),
+                )
+            })?,
             &mime_type,
             &request_body.file_name,
         )

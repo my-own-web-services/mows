@@ -1,6 +1,6 @@
 import PrimaryMenu, {
     type PrimaryMenuProps as MowsPrimaryMenuProps
-} from "mows-components-react/components/atoms/primaryMenu/PrimaryMenu";
+} from "mows-components-react/components/appShell/primaryMenu/PrimaryMenu";
 import {
     DropdownMenuItem,
     DropdownMenuLabel,
@@ -9,7 +9,7 @@ import {
 import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
 import { type CSSProperties, PureComponent } from "react";
 import { IoCodeSlashSharp } from "react-icons/io5";
-import { type FilezContextType, withFilez } from "../lib/filezContext/FilezContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 
 interface PrimaryMenuProps {
     readonly className?: string;

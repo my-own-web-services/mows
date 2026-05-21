@@ -1,4 +1,5 @@
 import { Api, TagResourceType } from "filez-client-typescript";
+import { log } from "mows-components-react/lib/logging";
 
 export default async (filezClient: Api<unknown>) => {
     const tags = (await filezClient.api.listTags({ resource_type: TagResourceType.File })).data
@@ -8,5 +9,5 @@ export default async (filezClient: Api<unknown>) => {
         throw new Error(`Failed to list tags.`);
     }
 
-    console.log(`Retrieved ${tags.length} tags.`);
+    log.info(`Retrieved ${tags.length} tags.`);
 };
