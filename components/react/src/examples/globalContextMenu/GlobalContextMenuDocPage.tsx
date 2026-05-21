@@ -206,6 +206,26 @@ export const GlobalContextMenuDocPage = () => {
                             hideHeader
                         />
                     </DocSubsection>
+                    <DocSubsection
+                        id={ANCHOR.submenus}
+                        title={doc.examples.submenus.title}
+                        description={doc.examples.submenus.description}
+                    >
+                        <ExampleCard
+                            example={globalContextMenuExampleById(`submenus`)}
+                            hideHeader
+                        />
+                    </DocSubsection>
+                    <DocSubsection
+                        id={ANCHOR.modifierVariants}
+                        title={doc.examples.modifierVariants.title}
+                        description={doc.examples.modifierVariants.description}
+                    >
+                        <ExampleCard
+                            example={globalContextMenuExampleById(`modifierVariants`)}
+                            hideHeader
+                        />
+                    </DocSubsection>
                 </div>
             </DocSection>
 

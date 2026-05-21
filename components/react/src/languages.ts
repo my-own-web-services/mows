@@ -436,6 +436,8 @@ declare module "../lib/lib/languages" {
                 };
                 globalContextMenu: {
                     default: { title: string; description: string };
+                    submenus: { title: string; description: string };
+                    modifierVariants: { title: string; description: string };
                     doc: {
                         installation: {
                             title: string;
@@ -450,6 +452,8 @@ declare module "../lib/lib/languages" {
                         examples: {
                             title: string;
                             default: { title: string; description: string };
+                            submenus: { title: string; description: string };
+                            modifierVariants: { title: string; description: string };
                         };
                         definedBehaviour: {
                             title: string;

@@ -1,5 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 # Pack a rootfs into a bootable qcow2 disk image.
+#
+# `bash` (not `sh`) so `set -o pipefail` is portable — dash doesn't
+# accept `pipefail` and the `sha256sum | awk` lines below would
+# silently swallow a `sha256sum` failure under `/bin/sh` (TECH-INFRA-2).
 #
 # Inputs:
 #   $1 — rootfs directory (e.g. /rootfs)
@@ -96,6 +100,6 @@ for f in "${OUT_QCOW}" "${OUT_KERNEL}" "${OUT_INITRD}"; do
 done
 
 echo "wrote ${OUT_QCOW}"
-echo "qcow2 sha256:    $(cat ${OUT_QCOW}.sha256)"
-echo "kernel sha256:   $(cat ${OUT_KERNEL}.sha256)"
-echo "initrd sha256:   $(cat ${OUT_INITRD}.sha256)"
+echo "qcow2 sha256:    $(cat "${OUT_QCOW}.sha256")"
+echo "kernel sha256:   $(cat "${OUT_KERNEL}.sha256")"
+echo "initrd sha256:   $(cat "${OUT_INITRD}.sha256")"

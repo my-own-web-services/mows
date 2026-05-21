@@ -7,7 +7,13 @@ const translation: Translation = {
     actions: {
         ...baseDe.actions,
         [ExampleActionIds.GREET]: `Begrüßen`,
-        [ExampleActionIds.COPY_TIMESTAMP]: `Aktuellen Zeitstempel kopieren`
+        [ExampleActionIds.COPY_TIMESTAMP]: `Aktuellen Zeitstempel kopieren`,
+        [ExampleActionIds.SHARE]: `Teilen`,
+        [ExampleActionIds.SHARE_COPY_LINK]: `Link kopieren`,
+        [ExampleActionIds.SHARE_EMAIL]: `E-Mail`,
+        [ExampleActionIds.SHARE_SLACK]: `Slack`,
+        [ExampleActionIds.TRASH]: `In den Papierkorb`,
+        [ExampleActionIds.DUPLICATE]: `Duplizieren`
     },
     example: {
         pageTitle: `MOWS-Komponenten — Beispiel`,
@@ -718,6 +724,14 @@ const translation: Translation = {
                     title: `Rechtsklick-Ziel`,
                     description: `Eine umrandete Drop-Zone, deren data-actionscope mit dem GlobalContextMenu verbunden ist. Rechtsklick in der Box öffnet das Menü an der Cursorposition.`
                 },
+                submenus: {
+                    title: `Untermenüs`,
+                    description: `Gibt der ActionHandler.children() weitere Actions zurück, rendert das Menü ein Untermenü. Am Aufrufer ändert sich nichts — du beschreibst Daten, der Renderer wählt automatisch DropdownMenuSub.`
+                },
+                modifierVariants: {
+                    title: `Modifier-Varianten`,
+                    description: `Eine Action kann Varianten anhand gedrückter Modifiertasten deklarieren. Shift gedrückt halten verwandelt „In den Papierkorb verschieben“ live in „Endgültig löschen“; ein Shift-Klick überspringt den Bestätigungsdialog. Der ausgeführte Zweig wird aus event.shiftKey neu aufgelöst — wird Shift vor dem Klick losgelassen, läuft sicher der Standardzweig.`
+                },
                 doc: {
                     installation: {
                         title: `Installation`,
@@ -740,6 +754,14 @@ const translation: Translation = {
                         default: {
                             title: `Rechtsklick-Ziel`,
                             description: `Die gestrichelte Fläche unten trägt data-actionscope; mache einen Rechtsklick darauf.`
+                        },
+                        submenus: {
+                            title: `Untermenüs`,
+                            description: `Rechtsklick — „Teilen“ öffnet sich in Link kopieren / E-Mail / Slack über einen ActionHandler.children-Resolver.`
+                        },
+                        modifierVariants: {
+                            title: `Modifier-Varianten`,
+                            description: `Rechtsklick auf das Ziel, dann Shift halten, um die Affordance von „In den Papierkorb“ auf „Endgültig löschen“ umzuschalten. Im State-Tab unten wird festgehalten, welcher Zweig lief.`
                         }
                     },
                     definedBehaviour: {

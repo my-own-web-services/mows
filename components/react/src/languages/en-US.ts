@@ -7,7 +7,13 @@ const translation: Translation = {
     actions: {
         ...baseEn.actions,
         [ExampleActionIds.GREET]: `Greet`,
-        [ExampleActionIds.COPY_TIMESTAMP]: `Copy current timestamp`
+        [ExampleActionIds.COPY_TIMESTAMP]: `Copy current timestamp`,
+        [ExampleActionIds.SHARE]: `Share`,
+        [ExampleActionIds.SHARE_COPY_LINK]: `Copy link`,
+        [ExampleActionIds.SHARE_EMAIL]: `Email`,
+        [ExampleActionIds.SHARE_SLACK]: `Slack`,
+        [ExampleActionIds.TRASH]: `Move to bin`,
+        [ExampleActionIds.DUPLICATE]: `Duplicate`
     },
     example: {
         pageTitle: `MOWS Components — Example`,
@@ -718,6 +724,14 @@ const translation: Translation = {
                     title: `Right-click target`,
                     description: `A bordered drop zone whose data-actionscope is wired to the GlobalContextMenu. Right-click inside the box to open the menu at the cursor.`
                 },
+                submenus: {
+                    title: `Submenus`,
+                    description: `An ActionHandler whose children() returns more actions renders as a submenu. No special menu primitive in your call site — declare data, the menu picks DropdownMenuSub automatically.`
+                },
+                modifierVariants: {
+                    title: `Modifier-key variants`,
+                    description: `An action can declare variants keyed by held modifiers. Holding Shift live-morphs the label from "Move to bin" to "Delete permanently"; a Shift-held click skips the confirm. The executed branch is re-resolved from event.shiftKey, so releasing Shift before the click safely reverts to the default.`
+                },
                 doc: {
                     installation: {
                         title: `Installation`,
@@ -740,6 +754,14 @@ const translation: Translation = {
                         default: {
                             title: `Right-click target`,
                             description: `The dashed area below carries data-actionscope; right-click inside it.`
+                        },
+                        submenus: {
+                            title: `Submenus`,
+                            description: `Right-click — "Share" opens into Copy link / Email / Slack via an ActionHandler.children resolver.`
+                        },
+                        modifierVariants: {
+                            title: `Modifier-key variants`,
+                            description: `Right-click on the target, then hold Shift to switch the affordance from "Move to bin" to "Delete permanently". The State tab below records which branch ran.`
                         }
                     },
                     definedBehaviour: {

@@ -7,7 +7,12 @@ set -euo pipefail
 # running server, no curl — the spec is whatever the current source
 # defines, before any deploy.
 
-cd "$(dirname "$0")/.."
+# Anchor every path to the script's own location so the relative bind
+# mounts below resolve against an absolute root regardless of caller
+# CWD (TECH-INFRA-7).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${WORKSPACE_DIR}"
 
 # DEVOPS-37: skip the cargo run entirely when openapi.json is already
 # newer than every `*.rs` under src/. Saves ~3-5s on the inner dev loop
@@ -32,10 +37,12 @@ fi
 mkdir -p tmp
 
 # TypeScript client — bake the generated file straight into the web app.
-docker build -t mows-vm-supervisor-codegen ./codegen/typescript -f codegen/typescript/codegen.Dockerfile
+docker build -t mows-vm-supervisor-codegen \
+    "${WORKSPACE_DIR}/codegen/typescript" \
+    -f "${WORKSPACE_DIR}/codegen/typescript/codegen.Dockerfile"
 docker run --rm \
-    -v ./openapi.json:/app/openapi.json \
-    -v ./tmp:/app/out \
+    -v "${WORKSPACE_DIR}/openapi.json:/app/openapi.json" \
+    -v "${WORKSPACE_DIR}/tmp:/app/out" \
     mows-vm-supervisor-codegen --name mows-vm-supervisor-codegen
 
 mkdir -p web/src/api/generated

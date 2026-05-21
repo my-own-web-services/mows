@@ -29,7 +29,8 @@
 
 ---
 
-**ID:** TECH-INFRA-2
+**ID:** ✅ TECH-INFRA-2
+**Status:** Fixed — `pack.sh` shebang switched from `#!/bin/sh` to `#!/bin/bash` so `set -euo pipefail` (DEVOPS-35) actually accepts `pipefail`. Under `dash`, `pipefail` is silently ignored and a `sha256sum | awk` failure would swallow the inner exit. Inline comment documents the choice.
 **Severity:** Critical
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/pack.sh:1`
 **Issue:** The shebang is `#!/bin/sh` and `set -eu` is used without `-o pipefail`, but the script pipes through `awk` on lines 64 and 83-89, masking pipeline failures.
@@ -38,7 +39,8 @@
 
 ---
 
-**ID:** TECH-INFRA-3
+**ID:** ✅ TECH-INFRA-3
+**Status:** Fixed alongside DEVOPS-34 — `pack.sh` now uses `ls -1v ... | tail -1` (version-sort + newest) for both kernel and initramfs lookup. The pipefail option (now active per TECH-INFRA-2) makes a silent-empty path fail the script.
 **Severity:** Major
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/pack.sh:53-54`
 **Issue:** `ls -1 ... | head -1` is used to find the kernel and initramfs files rather than a glob assignment; the result is stored in a plain variable without `read -r`.
@@ -53,7 +55,8 @@ done
 
 ---
 
-**ID:** TECH-INFRA-4
+**ID:** ✅ TECH-INFRA-4
+**Status:** Fixed — All three trailing `echo` lines in `pack.sh` now quote the `cat` arguments: `$(cat "${OUT_QCOW}.sha256")`, `$(cat "${OUT_KERNEL}.sha256")`, `$(cat "${OUT_INITRD}.sha256")`. A path with spaces no longer word-splits into the wrong `cat` invocation.
 **Severity:** Major
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/pack.sh:87-89`
 **Issue:** `cat` output in the final `echo` lines is unquoted: `$(cat ${OUT_QCOW}.sha256)`.
@@ -62,7 +65,8 @@ done
 
 ---
 
-**ID:** TECH-INFRA-5
+**ID:** ✅ TECH-INFRA-5
+**Status:** Fixed — `image-builder/build.sh` argument parser switched from `[ $# -gt 0 ]` to `[[ $# -gt 0 ]]`, and each value-bearing arm (`--distro`, `--flavor`) now guards `[[ $# -ge 2 ]] || { echo "ERROR: ... requires a value" >&2; exit 2; }` before consuming `$2`. `bash build.sh --distro` (with no value) now exits 2 with a clear error message instead of silently setting `DISTRO=""` and confusing the downstream case validation.
 **Severity:** Major
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/build.sh:34`
 **Issue:** The argument parser uses `[ ]` (POSIX `test`) inside a `while [ $# -gt 0 ]` loop rather than `[[ ]]`, and the `case` block shifts `$2` without validating that `$2` exists.
@@ -96,7 +100,8 @@ cp "${MOWS_CLI_DIR}/dist/mows" "${MOWS_BIN_STAGING}"
 
 ---
 
-**ID:** TECH-INFRA-7
+**ID:** ✅ TECH-INFRA-7
+**Status:** Fixed — `scripts/codegen.sh` captures `SCRIPT_DIR` + `WORKSPACE_DIR` at the top (`"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"`) and threads `${WORKSPACE_DIR}` through every docker bind mount + the `docker build` context path. Running the script from any CWD now resolves the same paths.
 **Severity:** Major
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/scripts/codegen.sh:22-27`
 **Issue:** `docker run` mounts `./openapi.json` with a relative path (`-v ./openapi.json:/app/openapi.json`) which requires the CWD to be the script's parent directory.

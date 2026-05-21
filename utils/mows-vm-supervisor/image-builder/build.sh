@@ -58,10 +58,14 @@ EOF
 
 DISTRO="alpine"
 FLAVOR="headless"
-while [ $# -gt 0 ]; do
+while [[ $# -gt 0 ]]; do
     case "$1" in
-        --distro) DISTRO="$2"; shift 2 ;;
-        --flavor) FLAVOR="$2"; shift 2 ;;
+        --distro)
+            [[ $# -ge 2 ]] || { echo "ERROR: --distro requires a value" >&2; exit 2; }
+            DISTRO="$2"; shift 2 ;;
+        --flavor)
+            [[ $# -ge 2 ]] || { echo "ERROR: --flavor requires a value" >&2; exit 2; }
+            FLAVOR="$2"; shift 2 ;;
         --distro=*) DISTRO="${1#--distro=}"; shift ;;
         --flavor=*) FLAVOR="${1#--flavor=}"; shift ;;
         -h|--help)
