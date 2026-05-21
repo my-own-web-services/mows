@@ -61,19 +61,25 @@ const fireRefresh = () => {
     refreshListeners.forEach((fn) => fn());
 };
 
-// Capture-phase so we run before GlobalContextMenu's bubble-phase listener.
-document.addEventListener(
-    "contextmenu",
-    (event) => {
-        const el = (event.target as HTMLElement | null)?.closest?.(
+// Capture-phase `contextmenu` listener that captures the right-clicked
+// element's `data-actionscope` / `data-action-target-id` payload so the
+// action handler can read it without re-traversing the DOM.
+//
+// Wrapped in `registerContextScopeListener()` so module import is
+// side-effect-free; `main.tsx` calls it once at boot. Returns the
+// cleanup function so HMR can `import.meta.hot?.dispose(cleanup)` and
+// avoid stacking duplicate listeners across hot reloads (TASTE-15).
+export const registerContextScopeListener = (): (() => void) => {
+    const onContextMenu = (event: Event) => {
+        const target = (event.target as HTMLElement | null)?.closest?.(
             "[data-actionscope]"
         ) as HTMLElement | null;
-        if (!el) {
+        if (!target) {
             contextTarget = null;
             return;
         }
-        const scope = el.getAttribute("data-actionscope");
-        const id = el.getAttribute("data-action-target-id");
+        const scope = target.getAttribute("data-actionscope");
+        const id = target.getAttribute("data-action-target-id");
         if (!scope || !id) {
             contextTarget = null;
             return;
@@ -81,12 +87,13 @@ document.addEventListener(
         contextTarget = {
             scope,
             id,
-            name: el.getAttribute("data-action-target-name"),
-            status: el.getAttribute("data-action-target-status")
+            name: target.getAttribute("data-action-target-name"),
+            status: target.getAttribute("data-action-target-status")
         };
-    },
-    true
-);
+    };
+    document.addEventListener("contextmenu", onContextMenu, true);
+    return () => document.removeEventListener("contextmenu", onContextMenu, true);
+};
 
 const isLive = (status: string | null): boolean =>
     status !== null &&

@@ -215,7 +215,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-15
+- **ID:** ✅ TASTE-15
+- **Status:** Fixed — `web/src/lib/actions.ts` no longer registers the capture-phase `contextmenu` listener at module-import time. The registration is wrapped in `registerContextScopeListener()` which `main.tsx` calls once at boot, with the returned cleanup wired into `import.meta.hot?.dispose(...)` so HMR doesn't stack duplicate listeners across reloads. Module imports are now side-effect-free. `npx tsc --noEmit` clean.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/web/src/lib/actions.ts:62-86
 - **Issue:** Module-scoped `document.addEventListener("contextmenu", …, true)` runs at module-load time. This is a side effect tucked inside what looks like a pure-import module.
