@@ -44,11 +44,12 @@ const api = new Api({
 // Errors come back from `swagger-typescript-api` as an `HttpResponse` with
 // `.error`. Unwrap to the data on success, throw on failure so callers get a
 // familiar `try { … } catch` flow.
-const unwrap = async <T>(p: Promise<{ data: T }>): Promise<T> => (await p).data;
+const unwrap = async <T>(promise: Promise<{ data: T }>): Promise<T> =>
+    (await promise).data;
 
 export const listVms = () => unwrap(api.v1.listVms());
-export const createVm = (req: CreateVmRequest = {}) =>
-    unwrap(api.v1.createVm(req));
+export const createVm = (request: CreateVmRequest = {}) =>
+    unwrap(api.v1.createVm(request));
 export const getVmDefaults = () => unwrap(api.v1.getVmDefaults());
 export const stopVm = (id: string) => unwrap(api.v1.stopVm(id));
 export const deleteVm = (id: string) => unwrap(api.v1.deleteVm(id));
@@ -67,26 +68,26 @@ export { api };
 // body in some shapes), which `String(e)` collapses to "[object Response]".
 // Pull a useful message out instead: prefer the JSON `error` field, then
 // status text, then a generic fallback.
-export const describeApiError = async (e: unknown): Promise<string> => {
-    if (e instanceof Response) {
+export const describeApiError = async (error: unknown): Promise<string> => {
+    if (error instanceof Response) {
         try {
-            const body = await e.clone().json();
+            const body = await error.clone().json();
             if (body && typeof body === "object") {
-                const msg = (body as { error?: string; message?: string }).error
+                const message = (body as { error?: string; message?: string }).error
                     ?? (body as { message?: string }).message;
-                if (msg) return msg;
+                if (message) return message;
             }
         } catch {
             // body wasn't JSON; fall through
         }
         try {
-            const text = await e.clone().text();
+            const text = await error.clone().text();
             if (text) return text;
         } catch {
             // ignore
         }
-        return `${e.status} ${e.statusText}`.trim() || "Request failed";
+        return `${error.status} ${error.statusText}`.trim() || "Request failed";
     }
-    if (e instanceof Error) return e.message;
-    return String(e);
+    if (error instanceof Error) return error.message;
+    return String(error);
 };

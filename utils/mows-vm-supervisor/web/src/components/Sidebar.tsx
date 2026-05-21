@@ -230,16 +230,16 @@ const Sidebar = () => {
                                         title: t.supervisor.sidebar.vms.newVm
                                     });
                                     if (!form) return;
-                                    const req: CreateVmRequest = {
+                                    const createVmPayload: CreateVmRequest = {
                                         image: form.image as VmImage,
                                         display_mode: form.displayMode as VmDisplayMode
                                     };
-                                    if (form.name.trim()) req.name = form.name.trim();
-                                    if (form.cwd.trim()) req.cwd = form.cwd.trim();
-                                    if (form.cpus !== null) req.cpus = form.cpus;
+                                    if (form.name.trim()) createVmPayload.name = form.name.trim();
+                                    if (form.cwd.trim()) createVmPayload.cwd = form.cwd.trim();
+                                    if (form.cpus !== null) createVmPayload.cpus = form.cpus;
                                     if (form.memoryMb !== null)
-                                        req.memory_mb = form.memoryMb;
-                                    const vm = await createVm(req);
+                                        createVmPayload.memory_mb = form.memoryMb;
+                                    const vm = await createVm(createVmPayload);
                                     toast.success(`created ${vm.name}`);
                                     vms.refresh();
                                     navigate(`/vms/${vm.id}`);

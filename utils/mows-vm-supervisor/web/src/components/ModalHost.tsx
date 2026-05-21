@@ -38,8 +38,8 @@ import {
 } from "../lib/modals";
 
 const ModalHost = () => {
-    const [req, setReq] = useState<ModalRequest | null>(getCurrentModal());
-    useEffect(() => subscribeModal(setReq), []);
+    const [activeRequest, setActiveRequest] = useState<ModalRequest | null>(getCurrentModal());
+    useEffect(() => subscribeModal(setActiveRequest), []);
 
     // Re-seed the prompt input each time a new prompt request arrives.
     const [promptValue, setPromptValue] = useState("");
@@ -52,10 +52,10 @@ const ModalHost = () => {
         displayMode: "headless"
     });
     useEffect(() => {
-        if (!req) return;
-        if (req.kind === "prompt") setPromptValue(req.initial);
-        if (req.kind === "vm-create") {
-            setVmForm(req.initial);
+        if (!activeRequest) return;
+        if (activeRequest.kind === "prompt") setPromptValue(activeRequest.initial);
+        if (activeRequest.kind === "vm-create") {
+            setVmForm(activeRequest.initial);
             // Fetch the supervisor's current defaults and pre-fill any
             // numeric field the caller didn't seed, so the user sees the
             // actual values they'll get and can tweak from there.
@@ -71,19 +71,19 @@ const ModalHost = () => {
                     /* leave fields empty — backend applies its own default */
                 });
         }
-    }, [req]);
+    }, [activeRequest]);
 
-    if (!req) return null;
+    if (!activeRequest) return null;
 
     const cancel = () => {
-        if (req.kind === "confirm") req.resolve(false);
-        else req.resolve(null);
+        if (activeRequest.kind === "confirm") activeRequest.resolve(false);
+        else activeRequest.resolve(null);
     };
 
     const confirm = () => {
-        if (req.kind === "confirm") req.resolve(true);
-        else if (req.kind === "prompt") req.resolve(promptValue);
-        else req.resolve(vmForm);
+        if (activeRequest.kind === "confirm") activeRequest.resolve(true);
+        else if (activeRequest.kind === "prompt") activeRequest.resolve(promptValue);
+        else activeRequest.resolve(vmForm);
     };
 
     return (
@@ -95,19 +95,19 @@ const ModalHost = () => {
         >
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{req.title}</DialogTitle>
-                    {("description" in req ? req.description : null) && (
+                    <DialogTitle>{activeRequest.title}</DialogTitle>
+                    {("description" in activeRequest ? activeRequest.description : null) && (
                         <DialogDescription className="whitespace-pre-line">
-                            {req.kind === "confirm" ? req.description : req.description}
+                            {activeRequest.kind === "confirm" ? activeRequest.description : activeRequest.description}
                         </DialogDescription>
                     )}
                 </DialogHeader>
 
-                {req.kind === "prompt" && (
+                {activeRequest.kind === "prompt" && (
                     <Input
                         autoFocus
                         value={promptValue}
-                        placeholder={req.placeholder}
+                        placeholder={activeRequest.placeholder}
                         onChange={(e) => setPromptValue(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === "Enter") {
@@ -118,7 +118,7 @@ const ModalHost = () => {
                     />
                 )}
 
-                {req.kind === "vm-create" && (
+                {activeRequest.kind === "vm-create" && (
                     <form
                         className="flex flex-col gap-3"
                         onSubmit={(e) => {
@@ -239,17 +239,17 @@ const ModalHost = () => {
 
                 <DialogFooter>
                     <Button variant="outline" onClick={cancel}>
-                        {req.cancelLabel}
+                        {activeRequest.cancelLabel}
                     </Button>
                     <Button
                         variant={
-                            req.kind === "confirm" && req.danger
+                            activeRequest.kind === "confirm" && activeRequest.danger
                                 ? "destructive"
                                 : "default"
                         }
                         onClick={confirm}
                     >
-                        {req.confirmLabel}
+                        {activeRequest.confirmLabel}
                     </Button>
                 </DialogFooter>
             </DialogContent>

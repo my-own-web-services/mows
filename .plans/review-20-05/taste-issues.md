@@ -431,7 +431,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-35
+- **ID:** ✅ TASTE-35
+- **Status:** Fixed — `Sidebar.tsx`'s create-VM header action now uses `createVmPayload: CreateVmRequest` instead of `req: CreateVmRequest`. All 5 `req.*` field assignments + the `createVm(req)` call are renamed. `npx tsc --noEmit` clean.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/web/src/components/Sidebar.tsx:228-237
 - **Issue:** `const req: CreateVmRequest = {…}; req.name = …; req.cpus = …; createVm(req)` — five `req` references in 9 lines.
@@ -440,7 +441,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-36
+- **ID:** ✅ TASTE-36
+- **Status:** Fixed — `ModalHost.tsx`'s 15 `req`/`setReq` references → `activeRequest`/`setActiveRequest`. Subscribe call, effect deps, kind discriminators, resolve calls, title/description/placeholder/cancelLabel/confirmLabel/danger reads — all switched. `npx tsc --noEmit` clean.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/web/src/components/ModalHost.tsx:41-87 (15 uses)
 - **Issue:** `const [req, setReq] = useState<ModalRequest | null>(getCurrentModal());` — `req` is the local state, used 15 times below.
@@ -449,7 +451,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-37
+- **ID:** ✅ TASTE-37
+- **Status:** Fixed — `web/src/lib/api.ts` renames: `unwrap = async <T>(p: Promise<...>)` → `promise`; `createVm = (req: ... = {})` → `request`; `describeApiError = (e: unknown)` → `error`, plus the body's `msg` → `message`. `npx tsc --noEmit` clean.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/web/src/lib/api.ts:47,50,70
 - **Issue:** `const unwrap = async <T>(p: Promise<{data: T}>): Promise<T>` — `p` is single-letter. Also `createVm = (req: …)` and the `describeApiError` parameter `e` is single-letter.
