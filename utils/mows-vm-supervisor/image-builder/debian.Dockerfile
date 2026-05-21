@@ -105,8 +105,8 @@ RUN npm install -g --no-audit --no-fund "@anthropic-ai/claude-code@${CLAUDE_CODE
     && claude --version
 
 # Static mows binary (built by image-builder/build.sh).
-COPY --from=mows-bin /mows /usr/local/bin/mows
-RUN chmod +x /usr/local/bin/mows && ln -sf mows /usr/local/bin/mpm
+COPY --from=mows-bin --chmod=755 /mows /usr/local/bin/mows
+RUN ln -sf mows /usr/local/bin/mpm
 
 # Plugin manifests.
 RUN mkdir -p /etc/mows-agent/kinds.d

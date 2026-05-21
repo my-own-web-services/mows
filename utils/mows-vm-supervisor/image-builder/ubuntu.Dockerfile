@@ -89,8 +89,8 @@ RUN npm install -g --no-audit --no-fund "@anthropic-ai/claude-code@${CLAUDE_CODE
     && command -v claude >/dev/null \
     && claude --version
 
-COPY --from=mows-bin /mows /usr/local/bin/mows
-RUN chmod +x /usr/local/bin/mows && ln -sf mows /usr/local/bin/mpm
+COPY --from=mows-bin --chmod=755 /mows /usr/local/bin/mows
+RUN ln -sf mows /usr/local/bin/mpm
 
 RUN mkdir -p /etc/mows-agent/kinds.d
 COPY claude.yaml /etc/mows-agent/kinds.d/claude.yaml

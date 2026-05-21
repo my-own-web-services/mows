@@ -75,8 +75,14 @@ RUN set -eux; \
     TOPLEVEL=$(cat /bundle/toplevel-path); \
     ln -s "${TOPLEVEL}"      /rootfs/nix/var/nix/profiles/system; \
     ln -s "${TOPLEVEL}/init" /rootfs/init; \
-    # Pin mtimes for reproducibility.
-    find /rootfs -xdev -exec touch -hcd "@${SOURCE_DATE_EPOCH}" {} + 2>/dev/null || true; \
+    # Pin mtimes for reproducibility. Do NOT swallow with `|| true` (DEVOPS-14
+    # / TECH-INFRA-14) — a touch failure is exactly the "silent reproducibility
+    # break" class of bug. Suppress only the expected stderr from pseudo-FS
+    # paths so the exit code surfaces real failures.
+    find /rootfs -xdev \
+        -not -path '/rootfs/proc/*' -not -path '/rootfs/sys/*' \
+        -not -path '/rootfs/dev/*' -not -path '/rootfs/run/*' \
+        -exec touch -hcd "@${SOURCE_DATE_EPOCH}" {} +; \
     # Size the image at rootfs-size + 1 GiB headroom, rounded up to 64 MiB.
     SIZE_KB=$(du -sk /rootfs | awk '{print $1}'); \
     IMG_BYTES=$(( (SIZE_KB * 1024 + 1024 * 1024 * 1024 + 64 * 1024 * 1024 - 1) / (64 * 1024 * 1024) * (64 * 1024 * 1024) )); \

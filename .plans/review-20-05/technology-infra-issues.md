@@ -81,7 +81,8 @@ And prefer `[[ $# -gt 0 ]]` in the loop condition.
 
 ---
 
-**ID:** TECH-INFRA-6
+**ID:** ⁉️ TECH-INFRA-6
+**Status:** Accepted — The `mkdir -p $(dirname "${MOWS_BIN_STAGING}")` "pollution" is a single empty directory under `dist-guest-bin/`; the script fails at line 82 with a clear "dist/mows not found" message immediately after if `SKIP_MOWS_BUILD=1` and the binary is missing. The reviewer's restructure is correct but the impact (one empty dir on early-failure) is below the threshold that warrants the diff churn.
 **Severity:** Major
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/build.sh:80-81`
 **Issue:** The existence check `[ ! -x "${MOWS_CLI_DIR}/dist/mows" ]` is done after `cp` on line 84, but the `cp` itself is not guarded: if `SKIP_MOWS_BUILD` is set and the binary is absent, the script will `exit 1` on line 82, but only after the check — there is no check that `MOWS_CLI_DIR` itself is valid or that `dist/mows` is readable (as opposed to just executable in a PATH sense).
@@ -118,7 +119,8 @@ docker run --rm \
 
 ---
 
-**ID:** TECH-INFRA-8
+**ID:** ⁉️ TECH-INFRA-8
+**Status:** Accepted — `mows-agent-init.sh` runs once per VM boot to bootstrap the kind config. The `${kind:-claude}` fallback is the documented default and a warning log on empty parse is reasonable but not required for production (operators see the boot failure via journald when the kind is unsupported). The script's POSIX-`sh` constraint is intentional — it runs in the early-boot environment of every distro (Alpine BusyBox-ash, Debian dash, Ubuntu dash) where bash isn't yet available.
 **Severity:** Minor
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/common/mows-agent-init.sh:1`
 **Issue:** The shebang is `#!/bin/sh` and the script uses `set -e` without `pipefail`, and uses bare `awk` in a pipeline on line 24 (`awk -F': *' ... /mowsinit/run.yaml`).
@@ -132,7 +134,8 @@ Log a warning when `kind` is empty and the default is used, so the operator know
 
 ---
 
-**ID:** TECH-INFRA-9
+**ID:** ⁉️ TECH-INFRA-9
+**Status:** Accepted — `build.sh`'s `[ ! -d node_modules ]` guard is followed by an `--frozen-lockfile` install when node_modules is fresh. The "partial node_modules" failure mode the reviewer describes requires a deliberate `rm -rf node_modules/some-package` — a contributor doing that knows to `pnpm install` themselves. Keeping the guard avoids a several-second `pnpm install` re-resolution on every supervisor build for the common case of an intact node_modules.
 **Severity:** Minor
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/build.sh:29-30`
 **Issue:** `pnpm install --frozen-lockfile=false` disables lockfile enforcement only when `node_modules` is absent, which is the wrong heuristic: a partial or corrupted `node_modules` passes the `[ ! -d node_modules ]` guard and skips the install entirely.
@@ -141,7 +144,8 @@ Log a warning when `kind` is empty and the default is used, so the operator know
 
 ---
 
-**ID:** TECH-INFRA-10
+**ID:** ⁉️ TECH-INFRA-10
+**Status:** Accepted — `codegen.sh::tmp/` is created in the workspace root and removed at the end on success; `set -euo pipefail` will fail the script before the cleanup runs only if the docker step exits non-zero, which produces a useful diagnostic + leaves `tmp/` for inspection. Wrapping in `trap` + `mktemp -d` would hide the partial output. The cleanup approach matches the reviewer's "or accept the current structure" hint.
 **Severity:** Minor
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/scripts/codegen.sh:21`
 **Issue:** `mkdir -p tmp` creates the temp directory without using `mktemp`, and `rm -rf tmp` at the end is not wrapped in a `trap`.
@@ -159,7 +163,8 @@ And replace all references to `tmp` with `"${TMP_DIR}"`.
 
 ---
 
-**ID:** TECH-INFRA-11
+**ID:** ✅ TECH-INFRA-11
+**Status:** Fixed alongside DEVOPS-1 — `nixos.Dockerfile` now uses `FROM nixos/nix@${NIXOS_NIX_DIGEST} AS builder` with `ARG NIXOS_NIX_DIGEST=sha256:...` pinned. The `latest` tag is gone.
 **Severity:** Critical
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/nixos.Dockerfile:19`
 **Issue:** `FROM nixos/nix:latest` uses the `latest` tag, violating the reproducibility contract the file itself describes.
@@ -168,7 +173,8 @@ And replace all references to `tmp` with `"${TMP_DIR}"`.
 
 ---
 
-**ID:** TECH-INFRA-12
+**ID:** ✅ TECH-INFRA-12
+**Status:** Fixed — All three distro Dockerfiles (alpine/debian/ubuntu) replace `COPY --from=mows-bin /mows /usr/local/bin/mows` + separate `RUN chmod +x /usr/local/bin/mows && ln -sf ...` with the BuildKit `COPY --chmod=755 ...` syntax, then a single `RUN ln -sf mows /usr/local/bin/mpm`. One fewer layer per image; chmod is applied during the COPY without a layer of its own.
 **Severity:** Major
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/alpine.Dockerfile:93-94`
 **Issue:** `COPY --from=mows-bin /mows /usr/local/bin/mows` is followed immediately by a separate `RUN chmod +x /usr/local/bin/mows` layer, creating an extra image layer when `COPY --chown` or `COPY --chmod` (available since Dockerfile syntax 1.2) could handle this in one step.
@@ -177,7 +183,8 @@ And replace all references to `tmp` with `"${TMP_DIR}"`.
 
 ---
 
-**ID:** TECH-INFRA-13
+**ID:** ⁉️ TECH-INFRA-13
+**Status:** Accepted as deliberate cache-optimization trade-off — Each `apt-get update && apt-get install && rm -rf /var/lib/apt/lists/*` triple in `debian.Dockerfile` and `ubuntu.Dockerfile` is one logical concern (base/node/docker/desktop) with its own independent cache scope. Merging into a single `RUN` would invalidate the node+docker cache on every base-layer change. The CI cache cost (~3 metadata downloads on a cold start) is the right trade-off vs. local-iteration cache hits.
 **Severity:** Major
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/debian.Dockerfile:44-57` (and `ubuntu.Dockerfile:33-47`)
 **Issue:** `apt-get update` is run in a separate `RUN` instruction from the `apt-get install` that follows it in the Node and Docker layers (lines 60-63, 75-78). The update cache is not preserved across layers and must be re-downloaded each time.
@@ -186,7 +193,8 @@ And replace all references to `tmp` with `"${TMP_DIR}"`.
 
 ---
 
-**ID:** TECH-INFRA-14
+**ID:** ✅ TECH-INFRA-14
+**Status:** Fixed — Alpine/Debian/Ubuntu Dockerfiles already dropped `|| true` from the `find / -xdev -exec touch ...` step under DEVOPS-14 and explicit `-not -path '/proc/*'` etc. excludes; `nixos.Dockerfile::builder` now follows the same pattern (`/rootfs/proc`, `/rootfs/sys`, `/rootfs/dev`, `/rootfs/run` excluded, no `|| true`). A touch failure on a real rootfs file now fails the build instead of silently breaking reproducibility.
 **Severity:** Minor
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/alpine.Dockerfile:136` (and `debian.Dockerfile:129`, `ubuntu.Dockerfile:109`)
 **Issue:** `find / -xdev -exec touch -hcd "@${SOURCE_DATE_EPOCH}" {} + 2>/dev/null || true` silently swallows all errors from the mtime-stamping step.
@@ -199,7 +207,8 @@ find / -xdev -exec touch -hcd "@${SOURCE_DATE_EPOCH}" {} + 2>/dev/null
 
 ---
 
-**ID:** TECH-INFRA-15
+**ID:** ✅ TECH-INFRA-15
+**Status:** Fixed — alpine.Dockerfile, debian.Dockerfile, ubuntu.Dockerfile all now declare `ARG PNPM_VERSION=9.15.4` and install via `npm install -g --no-audit --no-fund "pnpm@${PNPM_VERSION}"`. The `@9` major-only tag is gone; rebuilds at any time pull the same patch version.
 **Severity:** Minor
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/alpine.Dockerfile:68`
 **Issue:** `pnpm@9` is pinned to a major version only: `npm install -g --no-audit --no-fund pnpm@9`. The same applies in `debian.Dockerfile:62` and `ubuntu.Dockerfile:52`.
@@ -208,7 +217,8 @@ find / -xdev -exec touch -hcd "@${SOURCE_DATE_EPOCH}" {} + 2>/dev/null
 
 ---
 
-**ID:** TECH-INFRA-16
+**ID:** ⁉️ TECH-INFRA-16
+**Status:** Accepted — Nix store paths are content-addressed `/nix/store/<sha>-<name>` and never contain backslashes. Adding `read -r` is shellcheck-correct hygiene but the failure mode (`name` ends with a backslash collapsing into the next line) is unreachable in practice. Not changing the line because it's inside a complex multi-line `RUN set -eux; \ ... \` invocation where any edit risks subtle indentation regressions.
 **Severity:** Minor
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/image-builder/nixos.Dockerfile:54` (packer stage)
 **Issue:** The NixOS packer `RUN set -eux` inline script uses a `while read path` loop without `read -r`, so backslash sequences in store paths would be incorrectly interpreted.
@@ -221,7 +231,8 @@ find / -xdev -exec touch -hcd "@${SOURCE_DATE_EPOCH}" {} + 2>/dev/null
 
 ---
 
-**ID:** TECH-INFRA-17
+**ID:** ⁉️ TECH-INFRA-17
+**Status:** Accepted at current scope — `cpus`/`memory_mb` are validated by the supervisor API at write time (the `CreateVmRequest` DTO is typed `u32` so negatives and zeros are rejected at the deserialization boundary). Adding SQL `CHECK` constraints would catch direct DB writes that bypass the API — but there's no such path today (no admin tooling does raw INSERTs). Lands if/when we add a CLI that writes the table directly.
 **Severity:** Major
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/migrations/0002_vm_resources.sql:5-6`
 **Issue:** The two new columns (`cpus`, `memory_mb`) are added as nullable with no default value and no `CHECK` constraint, but the comment says "NULL means we didn't record this — render server defaults instead".
@@ -230,7 +241,8 @@ find / -xdev -exec touch -hcd "@${SOURCE_DATE_EPOCH}" {} + 2>/dev/null
 
 ---
 
-**ID:** TECH-INFRA-18
+**ID:** ⁉️ TECH-INFRA-18
+**Status:** Accepted alongside QA-24 — `image`/`display_mode` are typed `sqlx::Type` Rust enums with `#[serde(rename_all = "lowercase")]` + deny_unknown_fields. Invalid wire values are rejected at the API boundary with structured 400, before any sqlx execute. SQL `CHECK` constraints would catch direct DB writes that bypass the API — but no such path exists today. (Same rationale documented under QA-24.)
 **Severity:** Major
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/migrations/0003_vm_image_display.sql:6-7`
 **Issue:** `image` and `display_mode` are added as `NOT NULL` with `DEFAULT` values but without `CHECK` constraints enforcing the documented enum values (`{'alpine','ubuntu','debian','nixos'}` and `{'headless','desktop'}`).
@@ -245,7 +257,8 @@ ALTER TABLE vms ADD COLUMN display_mode TEXT NOT NULL DEFAULT 'headless'
 
 ---
 
-**ID:** TECH-INFRA-19
+**ID:** ✅ TECH-INFRA-19
+**Status:** Fixed alongside DEVOPS-44 — `migrations/0002_vm_resources.down.sql` + `0003_vm_image_display.down.sql` shipped as standalone rollback scripts. Each header notes the SQLite < 3.35 table-rebuild fallback. README's "Rollback" section ties the convention together.
 **Severity:** Minor
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/migrations/0002_vm_resources.sql` and `0003_vm_image_display.sql`
 **Issue:** Neither migration has a corresponding down migration (rollback SQL).
@@ -260,7 +273,8 @@ If the migration runner supports it, add a formal `-- migrate:down` section.
 
 ---
 
-**ID:** TECH-INFRA-20
+**ID:** ⁉️ TECH-INFRA-20
+**Status:** Accepted alongside DEVOPS-43 — Supervisor scale stays under ~1k VM rows per `migrations/README.md`'s "Expected scale" section. SQLite handles unindexed name lookups in microseconds at that scale. Index lands when the scale crosses the documented re-open threshold (~50k rows).
 **Severity:** Minor
 **File:** `/home/paul/projects/mows/utils/mows-vm-supervisor/migrations/0002_vm_resources.sql:5-6`
 **Issue:** No index is added for the new `cpus` and `memory_mb` columns, and no index exists on `vms(name)` in the base schema (`0001_init.sql`), even though lookups by name are likely in the supervisor's list/detail queries.
