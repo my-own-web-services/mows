@@ -52,7 +52,7 @@ const PROPS: PropRow[] = [
     { name: `src`, type: `string`, default: `—`, description: `Required. URL of the equirectangular panorama.` },
     { name: `alt`, type: `string`, default: `—`, description: `Accessible name for the viewer.` },
     { name: `navbar`, type: `boolean | string[]`, default: `false`, description: `Photo Sphere Viewer navbar — false hides it, true shows default, or pass an array of button ids.` },
-    { name: `defaultZoomLvl`, type: `number`, default: `~50`, description: `Initial zoom level 0..100 (0 = widest, 100 = tightest).` },
+    { name: `defaultZoomLevel`, type: `number`, default: `~50`, description: `Initial zoom level 0..100 (0 = widest, 100 = tightest).` },
     { name: `minFov`, type: `number`, default: `10`, description: `Tightest allowed field of view in degrees.` },
     { name: `maxFov`, type: `number`, default: `140`, description: `Widest allowed field of view in degrees.` },
     { name: `onHeadingChange`, type: `(degrees: number) => void`, default: `—`, description: `Fires whenever the viewer's yaw changes. Bearing in degrees [0, 360), ready to feed straight into <Compass>.` },

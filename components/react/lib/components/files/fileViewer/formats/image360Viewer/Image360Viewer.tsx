@@ -38,7 +38,7 @@ export interface Image360ViewerProps {
      * maps to `minFov` (tightest). Default keeps the initial FOV close to
      * Photo Sphere Viewer's stock 90°.
      */
-    readonly defaultZoomLvl?: number;
+    readonly defaultZoomLevel?: number;
     /** Tightest allowed field of view, in degrees. Default 10°. */
     readonly minFov?: number;
     /** Widest allowed field of view, in degrees. Default 140°. */
@@ -122,8 +122,8 @@ export default class Image360Viewer extends PureComponent<
         // Default the initial zoom to the level that produces a ~90° FOV
         // (Photo Sphere Viewer's stock default) for the configured FOV
         // range. PSV's zoom level is 0..100 where 0 maps to `maxFov`.
-        const defaultZoomLvl =
-            this.props.defaultZoomLvl ??
+        const defaultZoomLevel =
+            this.props.defaultZoomLevel ??
             (maxFov === minFov
                 ? 0
                 : Math.max(0, Math.min(100, ((maxFov - 90) / (maxFov - minFov)) * 100)));
@@ -134,7 +134,10 @@ export default class Image360Viewer extends PureComponent<
             container: this.containerRef.current,
             panorama: this.props.src,
             navbar: this.props.navbar ?? false,
-            defaultZoomLvl,
+            // Photo Sphere Viewer's own API still spells this `defaultZoomLvl`.
+            // We expose the cleaner `defaultZoomLevel` name on our public prop
+            // surface and translate to PSV's wire name here at the boundary.
+            defaultZoomLvl: defaultZoomLevel,
             // PSV's built-in circular loader is hidden via CSS in render();
             // blank `loadingTxt` keeps the text node empty so nothing leaks
             // through if a consumer ever re-enables the loader styles.

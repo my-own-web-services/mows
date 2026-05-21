@@ -274,10 +274,10 @@ async fn create_vm(
         .transpose()?;
     let canonical_cwd: Option<String> = workspace
         .as_ref()
-        .map(|p| p.display().to_string());
+        .map(|path| path.display().to_string());
 
-    let cwd_basename = workspace.as_deref().and_then(|p| {
-        p.file_name().map(|s| s.to_string_lossy().into_owned())
+    let cwd_basename = workspace.as_deref().and_then(|path| {
+        path.file_name().map(|name| name.to_string_lossy().into_owned())
     });
     // Two random words (adjective-noun) instead of a timestamp. SLOP-25:
     // if petname returns None the dictionary assets are missing — that's

@@ -25,6 +25,8 @@ const ANCHOR = {
     composition: `composition`,
     examples: `examples`,
     default: `examples-default`,
+    submenus: `examples-submenus`,
+    modifierVariants: `examples-modifier-variants`,
     rtl: `rtl`,
     definedBehaviour: `defined-behaviour`,
     apiReference: `api-reference`
@@ -92,7 +94,14 @@ const buildIndexItems = (t: Strings): PageIndexItem[] => {
         {
             id: ANCHOR.examples,
             label: doc.examples.title,
-            children: [{ id: ANCHOR.default, label: doc.examples.default.title }]
+            children: [
+                { id: ANCHOR.default, label: doc.examples.default.title },
+                { id: ANCHOR.submenus, label: doc.examples.submenus.title },
+                {
+                    id: ANCHOR.modifierVariants,
+                    label: doc.examples.modifierVariants.title
+                }
+            ]
         },
         { id: ANCHOR.usage, label: doc.usage.title },
         { id: ANCHOR.composition, label: doc.composition.title },

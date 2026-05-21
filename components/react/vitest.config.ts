@@ -8,7 +8,12 @@ export default mergeConfig(
         test: {
             environment: `jsdom`,
             setupFiles: `./vitest.setup.ts`,
-            globals: true
+            globals: true,
+            // Playwright specs live in `e2e/` and use the Playwright test
+            // runner; vitest would otherwise pick them up via its default
+            // pattern and crash trying to instantiate `expect` from
+            // `@playwright/test`.
+            exclude: [`**/node_modules/**`, `**/dist/**`, `e2e/**`]
         }
     })
 );

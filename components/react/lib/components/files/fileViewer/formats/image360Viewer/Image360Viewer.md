@@ -28,7 +28,7 @@ for 360 images regardless of container width.
 | `src`               | `string` (required)                     | Resolved URL to the equirectangular image. Data URLs are fine.                                                                              |
 | `alt`               | `string`                                | Set as `aria-label` on the container.                                                                                                       |
 | `navbar`            | `boolean \| string[]`                   | Photo Sphere Viewer navbar config. Defaults to `false` (no chrome).                                                                         |
-| `defaultZoomLvl`    | `number`                                | Initial zoom level 0..100, where 0 maps to `maxFov` (widest) and 100 maps to `minFov` (tightest). Default keeps the FOV near PSV's stock 90°. |
+| `defaultZoomLevel`    | `number`                                | Initial zoom level 0..100, where 0 maps to `maxFov` (widest) and 100 maps to `minFov` (tightest). Default keeps the FOV near PSV's stock 90°. |
 | `minFov`            | `number`                                | Tightest allowed field of view, in degrees. Default `10`.                                                                                   |
 | `maxFov`            | `number`                                | Widest allowed field of view, in degrees. Default `140`.                                                                                    |
 | `onHeadingChange`   | `(degrees: number) => void`             | Fires on yaw change with bearing in 0..360 — drops straight into a `<Compass>` (no extra math).                                              |

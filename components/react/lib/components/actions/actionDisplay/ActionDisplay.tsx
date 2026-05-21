@@ -32,12 +32,20 @@ export default class ActionDisplay extends PureComponent<ActionDisplayProps, Act
     componentDidMount = async () => {};
 
     render = () => {
-        const { action } = this.props;
+        const { action, resolved } = this.props;
         const hotkeys = this.context?.hotkeyManager?.getHotkeysByActionId(action.id) || [];
 
-        const description = this.context?.t?.actions?.[action.id] || action.id;
+        const fallbackLabel = this.context?.t?.actions?.[action.id] || action.id;
+        // When a `resolved` snapshot is passed (modifier-variant menus), its
+        // label / icon / component / reason take precedence over the action's
+        // base state. Otherwise read straight off the action — preserves the
+        // pre-variant behaviour for every existing call site.
+        const baseState = action.getState();
+        const displayLabel = resolved?.label ?? baseState.label ?? fallbackLabel;
+        const displayIcon = resolved?.icon ?? baseState.icon;
+        const displayComponent = resolved?.component ?? baseState.component;
+        const reasonText = resolved?.disabledReasonText ?? baseState.disabledReasonText;
 
-        const itemState = action.getState();
         return (
             <span
                 style={{ ...this.props.style }}
@@ -47,21 +55,18 @@ export default class ActionDisplay extends PureComponent<ActionDisplayProps, Act
                     this.props.className
                 )}
             >
-                <span
-                    title={itemState?.disabledReasonText || undefined}
-                    className={`flex items-center gap-2`}
-                >
-                    {itemState.component?.() ?? (
+                <span title={reasonText || undefined} className={`flex items-center gap-2`}>
+                    {displayComponent?.() ?? (
                         <>
-                            {itemState.icon && (
+                            {displayIcon && (
                                 <span
                                     className={`text-current [&>svg]:size-4 [&>svg]:shrink-0`}
                                     aria-hidden
                                 >
-                                    {itemState.icon()}
+                                    {displayIcon()}
                                 </span>
                             )}
-                            <span>{description}</span>
+                            <span>{displayLabel}</span>
                         </>
                     )}
                 </span>

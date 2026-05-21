@@ -259,6 +259,7 @@ See per-item status blocks for the specific rationale.
 ---
 
 - **ID:** ⁉️ TASTE-19
+- **Status:** Deferred — Adding a `--local` flag to `codegen.sh` is straightforward but deviates from the project's "all builds in a docker container" rule (CLAUDE.md). The container-start cost (~3-4s once per regen) is the right trade-off for reproducibility today; if a contributor hits the latency hard, they can run the script's docker step manually and skip `--local`. Tracking as a comfort improvement, not a correctness fix.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/scripts/codegen.sh:23-27
 - **Issue:** Shells out to a Docker container that just runs `swagger-typescript-api`. Docker isn't required to invoke a JS CLI; this adds ~3-4 seconds of container start per regen.
@@ -268,6 +269,7 @@ See per-item status blocks for the specific rationale.
 ---
 
 - **ID:** ⁉️ TASTE-20
+- **Status:** Accepted with verification — Tried `requireFn.resolve("vscode-material-icons/package.json")`; the package's `exports` field forbids the subpath (`Package subpath './package.json' is not defined`). The walk-up loop is the documented workaround. TASTE-51 already renamed the loop variables to readable names (`currentDirectory`, `depth`) and capped at 5 levels — a reasonable upper bound given any package's `dist/` nesting is at most 2-3 deep in practice.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/vite-plugins/fileIconsVirtual.ts:36-49
 - **Issue:** Manual filesystem walk-up to find `vscode-material-icons/generated/icons` — `for (let i = 0; i < 5; i++)` magic number, walking parent dirs manually.
@@ -661,7 +663,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-55
+- **ID:** ✅ TASTE-55
+- **Status:** Fixed — Public prop `defaultZoomLvl` → `defaultZoomLevel` on `Image360ViewerProps`. Renamed in the type, the JSDoc, the component body's local + `this.props.defaultZoomLvl ?? ...` initializer, the `Image360Viewer.md` props table, and the `Image360ViewerDocPage.tsx` PropTable row. The Photo Sphere Viewer `Viewer({...})` constructor still receives `defaultZoomLvl` (PSV's own API name) via an explicit `defaultZoomLvl: defaultZoomLevel` mapping at the boundary, documented inline. 8 Image360Viewer tests pass.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/lib/components/files/fileViewer/formats/Image360Viewer.tsx:91,156
 - **Issue:** Local vars `minFov`, `maxFov`, `defaultZoomLvl`. The first two pass-through props match the upstream API but `defaultZoomLvl` (line 30, 96) uses the abbreviation `Lvl` rather than `Level`.
@@ -690,7 +693,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-58
+- **ID:** ✅ TASTE-58
+- **Status:** Fixed — `config.rs::resolve_agent_host_creds_path` already uses `path` / `fallback` named bindings (no `let p = ...` or `.filter(|p| p.exists())` shadowing). Verified via `grep -n "let p = " utils/mows-vm-supervisor/src/*.rs utils/mows-vm-supervisor/src/api/*.rs` returning 0 matches.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/src/qemu.rs:68-79
 - **Issue:** The `creds_host_path` env-fallback chain is OK but uses `let p = PathBuf::from(...)` and `.filter(|p| p.exists())` — two distinct `p` bindings in one expression.
@@ -869,7 +873,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-75
+- **ID:** ✅ TASTE-75
+- **Status:** Fixed alongside TASTE-38 — `frameGrabber.ts::getCached`'s `.find((c) => ...)` is now `(entry) => ...`. Verified.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/lib/components/files/fileViewer/formats/videoViewer/frameGrabber.ts:54-57
 - **Issue:** `this.cache.find((c) => Math.abs(c.time - time) < 0.4)` — `c` single-letter.
@@ -878,7 +883,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-76
+- **ID:** ✅ TASTE-76
+- **Status:** Fixed alongside TASTE-42 — `actions.ts::fireRefresh` is now `refreshListeners.forEach((listener) => listener())`.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/web/src/lib/actions.ts:60-61
 - **Issue:** `const fireRefresh = () => { refreshListeners.forEach((fn) => fn()); };` — `fn` is a banned abbreviation.
@@ -896,7 +902,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-78
+- **ID:** ✅ TASTE-78
+- **Status:** Fixed — `api/vms.rs::cwd_basename` block: `.map(|p| p.display()...)` → `(path)`, `.and_then(|p| p.file_name().map(|s| ...))` → `(path) => path.file_name().map(|name| name.to_string_lossy().into_owned())`.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/src/api/vms.rs:232-235
 - **Issue:** `let cwd_basename = req.cwd.as_deref().and_then(|p| {std::path::Path::new(p).file_name().map(|s| s.to_string_lossy().into_owned())});` — `p` and `s` are single-letter.
@@ -909,7 +916,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-79
+- **ID:** ✅ TASTE-79
+- **Status:** Fixed alongside TASTE-27 — stale "Atoms reorganized 2026-05-12" comment no longer at top of `components/react/lib/main.ts`.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/lib/main.ts:1-2
 - **Issue:** Migration history note at top of file (covered also in TASTE-27).
@@ -953,7 +961,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-83
+- **ID:** ✅ TASTE-83
+- **Status:** Fixed alongside TASTE-23 — `prepare_vm_dir` no longer accepts a `cfg` (now `config`) parameter; the doc-comment and the body match.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/src/qemu.rs:217
 - **Issue:** Doc-comment `/// Prepare per-VM state directory: writes the run.yaml seed and creates a / fresh qcow2 overlay over the cached image. Idempotent.` is good. But function body line 258 `let _ = cfg;` (covered in TASTE-23) implicitly says "unused arg" — the doc-comment promises behavior but the unused arg signals dead code.
