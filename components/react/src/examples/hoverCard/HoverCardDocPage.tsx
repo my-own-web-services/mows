@@ -67,11 +67,11 @@ const CONTENT_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<HoverCardDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.hoverCard;
+    return mowsContext.t.example.examples.hoverCard;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

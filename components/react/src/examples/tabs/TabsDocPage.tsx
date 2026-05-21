@@ -111,11 +111,11 @@ const CONTENT_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<TabsDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.tabs;
+    return mowsContext.t.example.examples.tabs;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

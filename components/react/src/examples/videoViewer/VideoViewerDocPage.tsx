@@ -124,11 +124,11 @@ const VIDEO_VIEWER_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<VideoViewerDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.videoViewer;
+    return mowsContext.t.example.examples.videoViewer;
 };
 
 type VideoViewerStrings = ReturnType<typeof useDocStrings>;

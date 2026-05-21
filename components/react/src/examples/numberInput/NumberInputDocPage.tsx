@@ -70,9 +70,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<NumberInputDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.numberInput;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<NumberInputDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.numberInput;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

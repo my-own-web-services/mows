@@ -59,11 +59,11 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<SettingsPanelDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.settingsPanel;
+    return mowsContext.t.example.examples.settingsPanel;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

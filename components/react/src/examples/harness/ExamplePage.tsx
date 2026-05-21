@@ -17,11 +17,11 @@ interface ExamplePageProps {
 }
 
 export const ExamplePage = ({ examples, idPrefix = `example` }: ExamplePageProps) => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<ExamplePage> must be rendered inside <MowsProvider>`);
     }
-    const t = ctx.t.example;
+    const t = mowsContext.t.example;
 
     const indexItems: PageIndexItem[] = examples.map((example) => ({
         id: `${idPrefix}-${example.id}`,

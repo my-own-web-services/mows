@@ -90,4 +90,4 @@ contents — not as a sibling of `ResizablePanelGroup`.
 - Translations come from `t.primaryMenu`; the inline variant does not introduce
   new strings.
 - Do not wrap the trigger or content in raw HTML controls — extend behavior
-  through `extraItems` or open a new modal via `ctx.changeActiveModal`.
+  through `extraItems` or open a new modal via `mowsContext.changeActiveModal`.

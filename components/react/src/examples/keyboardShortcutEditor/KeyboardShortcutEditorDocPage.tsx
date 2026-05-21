@@ -49,9 +49,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<KeyboardShortcutEditorDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.keyboardShortcutEditor;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<KeyboardShortcutEditorDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.keyboardShortcutEditor;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

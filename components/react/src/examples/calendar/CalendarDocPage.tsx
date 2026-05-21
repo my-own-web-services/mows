@@ -122,11 +122,11 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<CalendarDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.calendar;
+    return mowsContext.t.example.examples.calendar;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

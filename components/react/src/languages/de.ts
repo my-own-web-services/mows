@@ -3420,7 +3420,7 @@ const translation: Translation = {
                 doc: {
                     installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
                     usage: { title: `Verwendung`, body: `<CommandPalette> wird einmal global innerhalb von <MowsProvider> eingebunden. Sie registriert sich als Handler für CoreActionIds.OPEN_COMMAND_PALETTE und listet alle aktuell beim ActionManager registrierten Aktionen.` },
-                    composition: { title: `Komposition`, body: `Öffnen via ctx.actionManager.dispatchAction(CoreActionIds.OPEN_COMMAND_PALETTE) oder per Tastenkombination über den HotkeyManager. open / onOpenChange erlauben externes Steuern des Zustands.` },
+                    composition: { title: `Komposition`, body: `Öffnen via mowsContext.actionManager.dispatchAction(CoreActionIds.OPEN_COMMAND_PALETTE) oder per Tastenkombination über den HotkeyManager. open / onOpenChange erlauben externes Steuern des Zustands.` },
                     examples: { title: `Beispiele`, default: { title: `Standard`, description: `Klicke die Schaltfläche, um die Befehlspalette zu öffnen, und tippe, um die registrierten Aktionen zu filtern.` } },
                     definedBehaviour: {
                         title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <CommandPalette> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
@@ -3441,7 +3441,7 @@ const translation: Translation = {
                 doc: {
                     installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
                     usage: { title: `Verwendung`, body: `<ModalHandler> wird einmal global innerhalb von <MowsProvider> eingebunden. Er beobachtet currentlyOpenModal und rendert den passenden Kerndialog (Theme / Sprache / Tastenkürzel / Code-Theme / Einstellungen).` },
-                    composition: { title: `Komposition`, body: `Registriere app-spezifische Dialoge über extraModals. Öffne jeden Modal mit ctx.changeActiveModal(id).` },
+                    composition: { title: `Komposition`, body: `Registriere app-spezifische Dialoge über extraModals. Öffne jeden Modal mit mowsContext.changeActiveModal(id).` },
                     examples: { title: `Beispiele`, default: { title: `Standard`, description: `Löse die Theme-, Sprach- und Tastenkürzel-Dialoge über den Action Manager aus.` } },
                     definedBehaviour: {
                         title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <ModalHandler> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,

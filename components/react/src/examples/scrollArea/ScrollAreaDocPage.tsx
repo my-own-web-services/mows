@@ -98,11 +98,11 @@ const BAR_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<ScrollAreaDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.scrollArea;
+    return mowsContext.t.example.examples.scrollArea;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

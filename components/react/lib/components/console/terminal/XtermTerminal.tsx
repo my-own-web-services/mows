@@ -36,7 +36,7 @@ const buildXtermTheme = (codeTheme: MowsCodeTheme | undefined): ITheme =>
 
 const XtermTerminal = React.forwardRef<TerminalHandle, TerminalProps>(
     ({ className, style, onData, onResize, onReady, fontSize = 13 }, forwardedRef) => {
-        const ctx = useMows();
+        const mowsContext = useMows();
         const containerRef = React.useRef<HTMLDivElement>(null);
         const termRef = React.useRef<Xterm | null>(null);
         const fitRef = React.useRef<FitAddon | null>(null);
@@ -45,9 +45,9 @@ const XtermTerminal = React.forwardRef<TerminalHandle, TerminalProps>(
         // app/workbench theme. We still combine the workbench theme id into
         // the change signal so the CSS-var fallbacks (used when a code theme
         // ships no `colors`) refresh too.
-        const codeTheme = ctx?.currentCodeTheme;
+        const codeTheme = mowsContext?.currentCodeTheme;
         const codeThemeId = codeTheme?.id ?? `default`;
-        const workbenchThemeId = ctx?.currentTheme.id ?? `default`;
+        const workbenchThemeId = mowsContext?.currentTheme.id ?? `default`;
         const themeSignal = `${codeThemeId}|${workbenchThemeId}`;
         const [themeColors, setThemeColors] = React.useState<ITheme>(() =>
             buildXtermTheme(codeTheme)

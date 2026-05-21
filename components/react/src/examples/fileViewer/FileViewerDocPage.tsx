@@ -69,9 +69,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<FileViewerDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.fileViewer;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<FileViewerDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.fileViewer;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

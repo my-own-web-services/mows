@@ -65,11 +65,11 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<SliderDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.slider;
+    return mowsContext.t.example.examples.slider;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

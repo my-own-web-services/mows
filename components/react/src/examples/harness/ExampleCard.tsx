@@ -27,11 +27,11 @@ interface ExampleCardProps {
 const STATE_NOT_REPORTED = Symbol(`state-not-reported`);
 
 export const ExampleCard = ({ example, anchorId, hideHeader }: ExampleCardProps) => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<ExampleCard> must be rendered inside <MowsProvider>`);
     }
-    const t = ctx.t.example;
+    const t = mowsContext.t.example;
     const harness = t.examples._harness;
     const { title, description } = example.strings(t);
 

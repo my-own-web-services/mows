@@ -7,10 +7,10 @@ import baseEn from "../../../lib/languages/en-US/default";
 import { MowsContext, type MowsContextType } from "../../../lib/mowsContext/MowsContext";
 import ExpandableCode from "./ExpandableCode";
 
-const ctx = { t: baseEn } as unknown as MowsContextType;
+const mowsContext = { t: baseEn } as unknown as MowsContextType;
 
 const wrap = (children: ReactNode) =>
-    <MowsContext.Provider value={ctx}>{children}</MowsContext.Provider>;
+    <MowsContext.Provider value={mowsContext}>{children}</MowsContext.Provider>;
 
 // jsdom returns 0 for scrollHeight by default. Stub it per-element via
 // Object.defineProperty so we can drive the "needs expand" path without

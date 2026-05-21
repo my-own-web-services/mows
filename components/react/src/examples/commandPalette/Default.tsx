@@ -7,13 +7,13 @@ import { useExampleState } from "../harness/useExampleState";
 import type { ExampleModule } from "../harness/types";
 
 const Example = () => {
-    const ctx = useContext(MowsContext)!;
+    const mowsContext = useContext(MowsContext)!;
     const [open, setOpen] = useState(false);
     useExampleState({ open });
 
     return (
         <div className={`flex items-center gap-3`}>
-            <Button onClick={() => ctx.actionManager.dispatchAction(CoreActionIds.OPEN_COMMAND_PALETTE)}>
+            <Button onClick={() => mowsContext.actionManager.dispatchAction(CoreActionIds.OPEN_COMMAND_PALETTE)}>
                 Open via core action
             </Button>
             <Button variant={`outline`} onClick={() => setOpen(true)}>

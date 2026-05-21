@@ -54,9 +54,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<DateTimeDisplayDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.dateTimeDisplay;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<DateTimeDisplayDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.dateTimeDisplay;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

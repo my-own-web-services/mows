@@ -71,9 +71,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<OptionPickerDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.optionPicker;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<OptionPickerDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.optionPicker;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

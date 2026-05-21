@@ -7,18 +7,18 @@ import { useExampleState } from "../harness/useExampleState";
 import type { ExampleModule } from "../harness/types";
 
 const Example = () => {
-    const ctx = useContext(MowsContext)!;
-    useExampleState({ currentlyOpen: ctx.currentlyOpenModal });
+    const mowsContext = useContext(MowsContext)!;
+    useExampleState({ currentlyOpen: mowsContext.currentlyOpenModal });
 
     return (
         <div className={`flex flex-wrap gap-2`}>
-            <Button onClick={() => ctx.actionManager.dispatchAction(CoreActionIds.OPEN_THEME_SELECTOR)}>
+            <Button onClick={() => mowsContext.actionManager.dispatchAction(CoreActionIds.OPEN_THEME_SELECTOR)}>
                 Theme
             </Button>
-            <Button onClick={() => ctx.actionManager.dispatchAction(CoreActionIds.OPEN_LANGUAGE_SETTINGS)}>
+            <Button onClick={() => mowsContext.actionManager.dispatchAction(CoreActionIds.OPEN_LANGUAGE_SETTINGS)}>
                 Language
             </Button>
-            <Button onClick={() => ctx.actionManager.dispatchAction(CoreActionIds.OPEN_KEYBOARD_SHORTCUTS)}>
+            <Button onClick={() => mowsContext.actionManager.dispatchAction(CoreActionIds.OPEN_KEYBOARD_SHORTCUTS)}>
                 Shortcuts
             </Button>
             {/* Mounted here to keep the example self-contained. In a real app

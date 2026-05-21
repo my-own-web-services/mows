@@ -52,9 +52,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<ThemePickerDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.themePicker;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<ThemePickerDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.themePicker;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

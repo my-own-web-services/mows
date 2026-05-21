@@ -70,11 +70,11 @@ const PICKER_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<CodeThemePickerDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.codeThemePicker;
+    return mowsContext.t.example.examples.codeThemePicker;
 };
 
 type CodeThemePickerStrings = ReturnType<typeof useDocStrings>;

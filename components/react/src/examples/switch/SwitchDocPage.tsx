@@ -87,11 +87,11 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<SwitchDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.switch;
+    return mowsContext.t.example.examples.switch;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

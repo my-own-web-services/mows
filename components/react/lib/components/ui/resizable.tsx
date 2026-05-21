@@ -85,7 +85,7 @@ const ResizableHandle = ({
 }: React.ComponentProps<typeof ResizablePrimitive.PanelResizeHandle> & {
   withHandle?: boolean
 }) => {
-  const ctx = React.useContext(ResizableContext)
+  const mowsContext = React.useContext(ResizableContext)
   return (
     // The bar itself is `bg-border` so it blends with neighbour borders.
     // The `after:` pseudo expands a few px on each side to give a generous
@@ -96,7 +96,7 @@ const ResizableHandle = ({
     // enclosing PanelGroup to its declared default layout.
     <ResizablePrimitive.PanelResizeHandle
       onDoubleClick={(event) => {
-        ctx?.resetLayout()
+        mowsContext?.resetLayout()
         onDoubleClick?.(event)
       }}
       className={cn(

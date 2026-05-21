@@ -80,14 +80,14 @@ const setup = (
             ? { demoAction: { keyCombinations: opts.hotkeys } }
             : {}
     });
-    return { ctx: buildContext(am, hm, label), action };
+    return { mowsContext: buildContext(am, hm, label), action };
 };
 
 describe(`ActionDisplay`, () => {
     it(`renders the action label from the translation table`, () => {
-        const { ctx, action } = setup(`Greet`);
+        const { mowsContext, action } = setup(`Greet`);
         render(
-            <MowsContext.Provider value={ctx}>
+            <MowsContext.Provider value={mowsContext}>
                 <ActionDisplay action={action} />
             </MowsContext.Provider>
         );
@@ -99,9 +99,9 @@ describe(`ActionDisplay`, () => {
         const action = makeAction(`untranslated`);
         am.defineAction(action);
         const hm = new HotkeyManager(am, { configStorageKey: `t-hk`, defaultHotkeys: {} });
-        const ctx = buildContext(am, hm);
+        const mowsContext = buildContext(am, hm);
         render(
-            <MowsContext.Provider value={ctx}>
+            <MowsContext.Provider value={mowsContext}>
                 <ActionDisplay action={action} />
             </MowsContext.Provider>
         );
@@ -109,9 +109,9 @@ describe(`ActionDisplay`, () => {
     });
 
     it(`renders the icon returned by the action state`, () => {
-        const { ctx, action } = setup(`Greet`, { iconText: `✋` });
+        const { mowsContext, action } = setup(`Greet`, { iconText: `✋` });
         render(
-            <MowsContext.Provider value={ctx}>
+            <MowsContext.Provider value={mowsContext}>
                 <ActionDisplay action={action} />
             </MowsContext.Provider>
         );
@@ -119,9 +119,9 @@ describe(`ActionDisplay`, () => {
     });
 
     it(`exposes disabledReasonText via the title attribute`, () => {
-        const { ctx, action } = setup(`Greet`, { disabledReason: `needs auth` });
+        const { mowsContext, action } = setup(`Greet`, { disabledReason: `needs auth` });
         const { container } = render(
-            <MowsContext.Provider value={ctx}>
+            <MowsContext.Provider value={mowsContext}>
                 <ActionDisplay action={action} />
             </MowsContext.Provider>
         );
@@ -130,9 +130,9 @@ describe(`ActionDisplay`, () => {
     });
 
     it(`renders one KeyComboDisplay per registered hotkey`, () => {
-        const { ctx, action } = setup(`Greet`, { hotkeys: [`mod+k`, `alt+g`] });
+        const { mowsContext, action } = setup(`Greet`, { hotkeys: [`mod+k`, `alt+g`] });
         const { container } = render(
-            <MowsContext.Provider value={ctx}>
+            <MowsContext.Provider value={mowsContext}>
                 <ActionDisplay action={action} />
             </MowsContext.Provider>
         );

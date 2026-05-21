@@ -74,11 +74,11 @@ const ADDON_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<InputGroupDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.inputGroup;
+    return mowsContext.t.example.examples.inputGroup;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

@@ -53,9 +53,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<TimezoneSelectorDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.timezoneSelector;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<TimezoneSelectorDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.timezoneSelector;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

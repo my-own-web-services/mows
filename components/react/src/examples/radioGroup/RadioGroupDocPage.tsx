@@ -76,11 +76,11 @@ const ITEM_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<RadioGroupDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.radioGroup;
+    return mowsContext.t.example.examples.radioGroup;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

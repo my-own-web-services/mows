@@ -83,11 +83,11 @@ const SECTION_HEADING_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<SectionHeadingDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.sectionHeading;
+    return mowsContext.t.example.examples.sectionHeading;
 };
 
 type SectionHeadingStrings = ReturnType<typeof useDocStrings>;

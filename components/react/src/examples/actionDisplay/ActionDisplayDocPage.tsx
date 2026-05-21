@@ -34,7 +34,7 @@ const PACKAGE_INSTALL = `add mows-components-react`;
 
 const USAGE_SNIPPET = `import { ActionDisplay } from "mows-components-react";
 
-const action = ctx.actionManager.getAction("myAction");
+const action = mowsContext.actionManager.getAction("myAction");
 
 {action && <ActionDisplay action={action} />}`;
 
@@ -54,9 +54,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<ActionDisplayDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.actionDisplay;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<ActionDisplayDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.actionDisplay;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

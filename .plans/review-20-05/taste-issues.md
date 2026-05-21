@@ -407,7 +407,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-32
+- **ID:** ✅ TASTE-32
+- **Status:** Fixed — Global `ctx` → `mowsContext` rename across 93 files in `components/react/lib/` and `components/react/src/`. The audit confirmed every `\bctx\b` occurrence in the package referred to a `MowsContext` value (not a 2D-canvas / audio / generic context), so the mechanical sed swap was safe. All 1489 React tests pass. `npx tsc --noEmit` matches main's pre-existing 13 errors (no new errors introduced).
 - **Status:** Deferred — `ctx` → `mowsContext`/`context` rename across 267+ sites (verified via `grep -rn "\bctx\b" lib/ src/`). Mechanical but spans hundreds of files; the regression risk is non-trivial because `ctx` is overloaded in places (`canvas2dContext`, `audioContext`, etc.) where the wholesale rename would create false matches. Wants its own focused branch with a careful regex + manual review of each match.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/lib/ (267 occurrences)

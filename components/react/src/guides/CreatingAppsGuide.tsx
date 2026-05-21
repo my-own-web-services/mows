@@ -155,9 +155,9 @@ const SidebarLayoutPreview = () => (
 );
 
 const useGuideStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<CreatingAppsGuide> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.guides.creatingApps;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<CreatingAppsGuide> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.guides.creatingApps;
 };
 
 export const CreatingAppsGuide = () => {

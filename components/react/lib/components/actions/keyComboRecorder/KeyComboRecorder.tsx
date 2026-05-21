@@ -35,11 +35,11 @@ const MODIFIER_KEYS = [`Shift`, `Control`, `Alt`, `Meta`];
  * `HotkeyManager` for combo formatting and translations).
  */
 export const KeyComboRecorder = ({ className, style, onCombo }: KeyComboRecorderProps) => {
-    const ctx = useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<KeyComboRecorder> must be rendered inside <MowsProvider>`);
     }
-    const t = ctx.t.keyComboRecorder;
+    const t = mowsContext.t.keyComboRecorder;
     const [recording, setRecording] = useState(false);
     const [combos, setCombos] = useState<ReadonlyArray<string>>([]);
     const nextIdRef = useRef(1);
@@ -79,7 +79,7 @@ export const KeyComboRecorder = ({ className, style, onCombo }: KeyComboRecorder
             event.preventDefault();
             event.stopPropagation();
             lastNonModifierAt = performance.now();
-            const combo = ctx.hotkeyManager.formatKeyCombo(event);
+            const combo = mowsContext.hotkeyManager.formatKeyCombo(event);
             setCombos((prev) => [...prev, combo]);
             onComboRef.current?.(combo);
         };
@@ -103,7 +103,7 @@ export const KeyComboRecorder = ({ className, style, onCombo }: KeyComboRecorder
             window.removeEventListener(`keydown`, onKeyDown, opts as EventListenerOptions);
             window.removeEventListener(`keyup`, onKeyUp, opts as EventListenerOptions);
         };
-    }, [recording, ctx.hotkeyManager]);
+    }, [recording, mowsContext.hotkeyManager]);
 
     return (
         <div className={cn(`flex flex-col gap-2`, className)} style={style}>

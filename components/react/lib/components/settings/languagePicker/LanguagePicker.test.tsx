@@ -65,11 +65,11 @@ const renderPicker = (
     opts: { setLanguage?: ReturnType<typeof vi.fn>; standalone?: boolean } = {}
 ) => {
     const setLanguage = opts.setLanguage ?? vi.fn();
-    const ctx = buildContext(setLanguage);
+    const mowsContext = buildContext(setLanguage);
     return {
         setLanguage,
         ...render(
-            <MowsContext.Provider value={ctx}>
+            <MowsContext.Provider value={mowsContext}>
                 <LanguagePicker standalone={opts.standalone} />
             </MowsContext.Provider>
         )

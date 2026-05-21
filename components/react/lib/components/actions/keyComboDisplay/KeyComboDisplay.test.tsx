@@ -5,11 +5,11 @@ import baseEn from "../../../lib/languages/en-US/default";
 import { MowsContext, type MowsContextType } from "../../../lib/mowsContext/MowsContext";
 import KeyComboDisplay from "./KeyComboDisplay";
 
-const ctx = { t: baseEn } as unknown as MowsContextType;
+const mowsContext = { t: baseEn } as unknown as MowsContextType;
 
 const renderCombo = (combo: string) =>
     render(
-        <MowsContext.Provider value={ctx}>
+        <MowsContext.Provider value={mowsContext}>
             <KeyComboDisplay keyCombo={combo} />
         </MowsContext.Provider>
     );

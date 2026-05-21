@@ -108,11 +108,11 @@ const colorizeCached = async (
 
 const MonacoColorizer = (props: CodeSnippetProps) => {
     const { code, language = `text`, mode = `block`, className, style } = props;
-    const ctx = useMows();
+    const mowsContext = useMows();
     // Mirrors the guard in MonacoCodeEditor: shikiToMonaco's wrapper
     // throws on unknown theme names, which would crash the whole
     // CodeSnippet render path. Fall back instead.
-    const requestedThemeId = ctx?.currentCodeTheme?.monacoThemeId ?? SHIKI_THEME_NAME;
+    const requestedThemeId = mowsContext?.currentCodeTheme?.monacoThemeId ?? SHIKI_THEME_NAME;
     const themeId = isSupportedThemeId(requestedThemeId)
         ? requestedThemeId
         : SHIKI_THEME_NAME;

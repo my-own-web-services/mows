@@ -106,11 +106,11 @@ const STEP_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<StepsDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.steps;
+    return mowsContext.t.example.examples.steps;
 };
 
 type StepsStrings = ReturnType<typeof useDocStrings>;

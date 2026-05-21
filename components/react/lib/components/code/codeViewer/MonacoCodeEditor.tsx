@@ -86,8 +86,8 @@ const monacoLanguageFor = (lang: CodeViewerProps[`language`]): string => {
 };
 
 const MonacoCodeEditor = (props: CodeViewerProps) => {
-    const ctx = useMows();
-    const editorDefaults = ctx?.codeEditorSettings;
+    const mowsContext = useMows();
+    const editorDefaults = mowsContext?.codeEditorSettings;
 
     const {
         className,
@@ -111,7 +111,7 @@ const MonacoCodeEditor = (props: CodeViewerProps) => {
     // be able to crash the entire page — fall back to the always-present
     // shiki theme and warn, instead of letting the error bubble up.
     const requestedThemeId =
-        (ctx?.currentCodeTheme?.monacoThemeId as string | undefined) ?? SHIKI_THEME_NAME;
+        (mowsContext?.currentCodeTheme?.monacoThemeId as string | undefined) ?? SHIKI_THEME_NAME;
     const themeId = isSupportedThemeId(requestedThemeId)
         ? requestedThemeId
         : (console.warn(

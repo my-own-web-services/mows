@@ -34,7 +34,7 @@ export class VideoFrameGrabber {
     private video: HTMLVideoElement | null = null;
     private host: HTMLDivElement | null = null;
     private canvas: HTMLCanvasElement | null = null;
-    private ctx: CanvasRenderingContext2D | null = null;
+    private mowsContext: CanvasRenderingContext2D | null = null;
     private metadataReady: Promise<void> | null = null;
     private duration = 0;
     private cache: CacheEntry[] = [];
@@ -96,7 +96,7 @@ export class VideoFrameGrabber {
         this.canvas = document.createElement(`canvas`);
         this.canvas.width = PREVIEW_WIDTH;
         this.canvas.height = PREVIEW_HEIGHT;
-        this.ctx = this.canvas.getContext(`2d`);
+        this.mowsContext = this.canvas.getContext(`2d`);
         this.metadataReady = new Promise((resolve, reject) => {
             const onLoaded = () => {
                 this.duration = videoElement.duration;
@@ -117,7 +117,7 @@ export class VideoFrameGrabber {
 
     private seekAndGrab = async (time: number): Promise<string | null> => {
         const videoElement = this.ensureVideo();
-        if (!this.ctx || !this.canvas) return null;
+        if (!this.mowsContext || !this.canvas) return null;
         await this.metadataReady;
         if (this.destroyed) return null;
         const safeTime = Math.max(0, Math.min(this.duration - 0.05, time));
@@ -164,10 +164,10 @@ export class VideoFrameGrabber {
         const destinationHeight = sourceHeight * scale;
         const destinationX = (PREVIEW_WIDTH - destinationWidth) / 2;
         const destinationY = (PREVIEW_HEIGHT - destinationHeight) / 2;
-        this.ctx.fillStyle = `#000`;
-        this.ctx.fillRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
+        this.mowsContext.fillStyle = `#000`;
+        this.mowsContext.fillRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
         try {
-            this.ctx.drawImage(
+            this.mowsContext.drawImage(
                 videoElement,
                 0,
                 0,
@@ -258,6 +258,6 @@ export class VideoFrameGrabber {
         }
         this.host = null;
         this.canvas = null;
-        this.ctx = null;
+        this.mowsContext = null;
     };
 }

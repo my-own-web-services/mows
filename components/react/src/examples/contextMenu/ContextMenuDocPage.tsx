@@ -78,11 +78,11 @@ const ITEM_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<ContextMenuDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.contextMenu;
+    return mowsContext.t.example.examples.contextMenu;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

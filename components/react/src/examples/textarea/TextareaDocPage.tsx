@@ -96,11 +96,11 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<TextareaDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.textarea;
+    return mowsContext.t.example.examples.textarea;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

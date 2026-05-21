@@ -75,11 +75,11 @@ const HANDLE_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<ResizableDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.resizable;
+    return mowsContext.t.example.examples.resizable;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

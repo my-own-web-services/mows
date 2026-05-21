@@ -65,27 +65,27 @@ const setupContext = (registered: { id: string; combos?: string[] }[]): MowsCont
     } as unknown as MowsContextType;
 };
 
-const renderEditor = (ctx: MowsContextType) =>
+const renderEditor = (mowsContext: MowsContextType) =>
     render(
-        <MowsContext.Provider value={ctx}>
+        <MowsContext.Provider value={mowsContext}>
             <KeyboardShortcutEditor />
         </MowsContext.Provider>
     );
 
 describe(`KeyboardShortcutEditor`, () => {
     it(`lists every registered action`, () => {
-        const ctx = setupContext([
+        const mowsContext = setupContext([
             { id: `actionA`, combos: [`mod+a`] },
             { id: `actionB`, combos: [`mod+b`] }
         ]);
-        renderEditor(ctx);
+        renderEditor(mowsContext);
         expect(screen.getByText(`actionA`)).toBeInTheDocument();
         expect(screen.getByText(`actionB`)).toBeInTheDocument();
     });
 
     it(`renders the currently-bound key combos for each action`, () => {
-        const ctx = setupContext([{ id: `act`, combos: [`mod+shift+p`] }]);
-        const { container } = renderEditor(ctx);
+        const mowsContext = setupContext([{ id: `act`, combos: [`mod+shift+p`] }]);
+        const { container } = renderEditor(mowsContext);
         // KeyComboDisplay renders one <kbd> per segment — mod+shift+p has 3.
         const kbds = container.querySelectorAll(`kbd`);
         expect(kbds.length).toBeGreaterThanOrEqual(3);
@@ -93,11 +93,11 @@ describe(`KeyboardShortcutEditor`, () => {
 
     it(`filters by the search query`, async () => {
         const user = userEvent.setup();
-        const ctx = setupContext([
+        const mowsContext = setupContext([
             { id: `greet`, combos: [`mod+g`] },
             { id: `submit`, combos: [`mod+enter`] }
         ]);
-        renderEditor(ctx);
+        renderEditor(mowsContext);
         const input = screen.getByRole(`searchbox`);
         await user.type(input, `gree`);
         expect(screen.getByText(`greet`)).toBeInTheDocument();
@@ -106,8 +106,8 @@ describe(`KeyboardShortcutEditor`, () => {
 
     it(`shows the empty state when no actions match`, async () => {
         const user = userEvent.setup();
-        const ctx = setupContext([{ id: `greet`, combos: [`mod+g`] }]);
-        renderEditor(ctx);
+        const mowsContext = setupContext([{ id: `greet`, combos: [`mod+g`] }]);
+        renderEditor(mowsContext);
         await user.type(screen.getByRole(`searchbox`), `xxxxx`);
         expect(screen.queryByText(`greet`)).not.toBeInTheDocument();
     });

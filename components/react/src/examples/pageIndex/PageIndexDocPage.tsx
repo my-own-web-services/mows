@@ -88,11 +88,11 @@ const PAGE_INDEX_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<PageIndexDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.pageIndex;
+    return mowsContext.t.example.examples.pageIndex;
 };
 
 type PageIndexStrings = ReturnType<typeof useDocStrings>;

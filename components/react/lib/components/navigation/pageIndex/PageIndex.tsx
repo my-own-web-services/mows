@@ -217,8 +217,8 @@ export const PageIndex = ({
     ariaLabel,
     heading
 }: PageIndexProps) => {
-    const ctx = React.useContext(MowsContext);
-    const t = ctx?.t.pageIndex;
+    const mowsContext = React.useContext(MowsContext);
+    const t = mowsContext?.t.pageIndex;
     const resolvedAriaLabel = ariaLabel ?? t?.ariaLabel ?? `On this page`;
     const resolvedHeading = heading === undefined ? (t?.heading ?? `On this page`) : heading;
 

@@ -110,11 +110,11 @@ const MARKER_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<CompassDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.compass;
+    return mowsContext.t.example.examples.compass;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

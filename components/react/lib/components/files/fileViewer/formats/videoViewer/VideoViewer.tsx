@@ -450,15 +450,15 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
             this.liveCaptureCtx = this.liveCaptureCanvas.getContext(`2d`);
         }
         const canvas = this.liveCaptureCanvas;
-        const ctx = this.liveCaptureCtx;
-        if (!ctx) return null;
+        const mowsContext = this.liveCaptureCtx;
+        if (!mowsContext) return null;
         const scale = Math.min(160 / v.videoWidth, 90 / v.videoHeight);
         const dw = v.videoWidth * scale;
         const dh = v.videoHeight * scale;
-        ctx.fillStyle = `#000`;
-        ctx.fillRect(0, 0, 160, 90);
+        mowsContext.fillStyle = `#000`;
+        mowsContext.fillRect(0, 0, 160, 90);
         try {
-            ctx.drawImage(v, 0, 0, v.videoWidth, v.videoHeight, (160 - dw) / 2, (90 - dh) / 2, dw, dh);
+            mowsContext.drawImage(v, 0, 0, v.videoWidth, v.videoHeight, (160 - dw) / 2, (90 - dh) / 2, dw, dh);
         } catch (error: unknown) {
             log.debug(`VideoViewer: drawImage failed (likely tainted canvas — cross-origin without CORS)`, error);
             this.captureBlocked = true;

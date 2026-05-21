@@ -15,11 +15,11 @@ interface StepsContextValue {
 const StepsContext = React.createContext<StepsContextValue | null>(null);
 
 const useStepsContext = (): StepsContextValue => {
-    const ctx = React.useContext(StepsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(StepsContext);
+    if (!mowsContext) {
         throw new Error(`<Step> must be rendered inside <Steps>`);
     }
-    return ctx;
+    return mowsContext;
 };
 
 interface StepsProps extends React.HTMLAttributes<HTMLOListElement> {

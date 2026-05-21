@@ -71,9 +71,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<DateTimePickerDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.dateTimePicker;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<DateTimePickerDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.dateTimePicker;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

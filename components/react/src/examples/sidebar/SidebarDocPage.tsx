@@ -150,11 +150,11 @@ const SIDEBAR_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<SidebarDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.sidebar;
+    return mowsContext.t.example.examples.sidebar;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

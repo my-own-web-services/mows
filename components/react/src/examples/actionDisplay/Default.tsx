@@ -6,8 +6,8 @@ import { useExampleState } from "../harness/useExampleState";
 import type { ExampleModule } from "../harness/types";
 
 const Example = () => {
-    const ctx = useContext(MowsContext)!;
-    const action = ctx.actionManager.getAction(ExampleActionIds.GREET);
+    const mowsContext = useContext(MowsContext)!;
+    const action = mowsContext.actionManager.getAction(ExampleActionIds.GREET);
     useExampleState({ actionId: ExampleActionIds.GREET, registered: !!action });
 
     return (

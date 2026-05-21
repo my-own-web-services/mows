@@ -79,9 +79,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<ConsoleManagerDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.consoleManager;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<ConsoleManagerDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.consoleManager;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

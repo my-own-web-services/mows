@@ -78,14 +78,23 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
         },
         [CoreModalTypes.settings]: {
             component: () => (
-                <DialogContent className={`sm:max-w-3xl max-h-[80vh]`}>
-                    <DialogHeader>
+                // Wider modal + flush inner panel: drop DialogContent's
+                // default `p-6` outer padding and the gap between header
+                // and body so the SettingsPanel reaches the modal edges.
+                // The header keeps its own padding via a wrapper so the
+                // title doesn't sit against the border.
+                <DialogContent
+                    className={`sm:max-w-5xl max-h-[85vh] !p-0 gap-0 overflow-hidden`}
+                >
+                    <DialogHeader className={`px-6 pt-6`}>
                         <DialogTitle>{this.context?.t.settings.title}</DialogTitle>
                         <DialogDescription>
                             {this.context?.t.settings.description}
                         </DialogDescription>
                     </DialogHeader>
-                    <SettingsPanel className={`overflow-y-auto px-6 pb-6`} />
+                    <SettingsPanel
+                        className={`min-h-0 flex-1 overflow-y-auto px-6 pb-6`}
+                    />
                 </DialogContent>
             )
         }

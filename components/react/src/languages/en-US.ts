@@ -3426,7 +3426,7 @@ const translation: Translation = {
                 doc: {
                     installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
                     usage: { title: `Usage`, body: `<CommandPalette> is mounted once globally inside <MowsProvider>. It registers itself as the handler for CoreActionIds.OPEN_COMMAND_PALETTE and lists every action currently registered with the ActionManager.` },
-                    composition: { title: `Composition`, body: `Open via ctx.actionManager.dispatchAction(CoreActionIds.OPEN_COMMAND_PALETTE) or by binding a hotkey through HotkeyManager. Pass open / onOpenChange to control state externally.` },
+                    composition: { title: `Composition`, body: `Open via mowsContext.actionManager.dispatchAction(CoreActionIds.OPEN_COMMAND_PALETTE) or by binding a hotkey through HotkeyManager. Pass open / onOpenChange to control state externally.` },
                     examples: { title: `Examples`, default: { title: `Default`, description: `Click the button to open the palette, then type to filter the registered actions.` } },
                     definedBehaviour: {
                         title: `Defined behaviour`, intro: `Statements describing how <CommandPalette> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
@@ -3447,7 +3447,7 @@ const translation: Translation = {
                 doc: {
                     installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
                     usage: { title: `Usage`, body: `<ModalHandler> is mounted once globally inside <MowsProvider>. It listens to currentlyOpenModal and renders the matching core dialog (theme / language / keyboard shortcuts / code theme / settings).` },
-                    composition: { title: `Composition`, body: `Register app-specific dialogs via extraModals. Open any modal by calling ctx.changeActiveModal(id).` },
+                    composition: { title: `Composition`, body: `Register app-specific dialogs via extraModals. Open any modal by calling mowsContext.changeActiveModal(id).` },
                     examples: { title: `Examples`, default: { title: `Default`, description: `Trigger the theme, language, and keyboard-shortcut modals through the action manager.` } },
                     definedBehaviour: {
                         title: `Defined behaviour`, intro: `Statements describing how <ModalHandler> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,

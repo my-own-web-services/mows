@@ -65,9 +65,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<Image360ViewerDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.image360Viewer;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<Image360ViewerDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.image360Viewer;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

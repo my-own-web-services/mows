@@ -49,7 +49,7 @@ const COMPOSITION_SNIPPET = `// ModalHandler reads MowsContext.currentlyOpenModa
 />
 
 // Open programmatically:
-ctx.changeActiveModal("confirmDelete");`;
+mowsContext.changeActiveModal("confirmDelete");`;
 
 const PROPS: PropRow[] = [
     { name: `extraModals`, type: `Record<string, ModalEntry>`, default: `—`, description: `Register app-specific dialogs keyed by an arbitrary id; activate them via changeActiveModal(id).` },
@@ -58,9 +58,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<ModalHandlerDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.modalHandler;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<ModalHandlerDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.modalHandler;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

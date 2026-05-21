@@ -136,11 +136,11 @@ const INLINE_EDIT_PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<InlineEditDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.inlineEdit;
+    return mowsContext.t.example.examples.inlineEdit;
 };
 
 type InlineEditStrings = ReturnType<typeof useDocStrings>;

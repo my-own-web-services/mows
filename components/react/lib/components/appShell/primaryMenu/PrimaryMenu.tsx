@@ -120,10 +120,10 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
     render = () => {
         if (this.props.loading) return null;
 
-        const ctx = this.context!;
-        const { t } = ctx;
-        const authConfigured = ctx.authConfigured;
-        const loggedIn = authConfigured && !!ctx.auth?.isAuthenticated;
+        const mowsContext = this.context!;
+        const { t } = mowsContext;
+        const authConfigured = mowsContext.authConfigured;
+        const loggedIn = authConfigured && !!mowsContext.auth?.isAuthenticated;
         const userName = this.props.user?.displayName ?? undefined;
         const userId = this.props.user?.id ?? undefined;
         const variant = this.props.variant ?? `fixed`;
@@ -351,7 +351,7 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                         <DropdownMenuItem
                             className={`cursor-pointer`}
                             onClick={() => {
-                                ctx.changeActiveModal(CoreModalTypes.keyboardShortcutEditor);
+                                mowsContext.changeActiveModal(CoreModalTypes.keyboardShortcutEditor);
                             }}
                         >
                             <LiaKeyboard />
@@ -360,7 +360,7 @@ export default class PrimaryMenu extends PureComponent<PrimaryMenuProps, Primary
                         <DropdownMenuItem
                             className={`cursor-pointer`}
                             onClick={() => {
-                                ctx.changeActiveModal(CoreModalTypes.settings);
+                                mowsContext.changeActiveModal(CoreModalTypes.settings);
                             }}
                         >
                             <IoSettingsSharp />

@@ -37,8 +37,8 @@ export const ExpandableCode = ({
     expandLabel,
     collapseLabel
 }: ExpandableCodeProps) => {
-    const ctx = useMows();
-    const labels = ctx?.t.expandableCode;
+    const mowsContext = useMows();
+    const labels = mowsContext?.t.expandableCode;
     const resolvedExpand = expandLabel ?? labels?.expand ?? `Expand`;
     const resolvedCollapse = collapseLabel ?? labels?.collapse ?? `Collapse`;
 

@@ -70,11 +70,11 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) {
         throw new Error(`<LabelDocPage> must be rendered inside <MowsProvider>`);
     }
-    return ctx.t.example.examples.label;
+    return mowsContext.t.example.examples.label;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;

@@ -41,7 +41,7 @@ const COMPOSITION_SNIPPET = `// CommandPalette registers itself as the handler f
 // CoreActionIds.OPEN_COMMAND_PALETTE. Trigger it programmatically or via
 // the bound hotkey. Filter and click a row to dispatch the action.
 
-ctx.actionManager.dispatchAction(CoreActionIds.OPEN_COMMAND_PALETTE);
+mowsContext.actionManager.dispatchAction(CoreActionIds.OPEN_COMMAND_PALETTE);
 
 // Controlled mode:
 <CommandPalette open={open} onOpenChange={setOpen} />`;
@@ -54,9 +54,9 @@ const PROPS: PropRow[] = [
 ];
 
 const useDocStrings = () => {
-    const ctx = React.useContext(MowsContext);
-    if (!ctx) throw new Error(`<CommandPaletteDocPage> must be rendered inside <MowsProvider>`);
-    return ctx.t.example.examples.commandPalette;
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext) throw new Error(`<CommandPaletteDocPage> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.examples.commandPalette;
 };
 
 type Strings = ReturnType<typeof useDocStrings>;
