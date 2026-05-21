@@ -49,33 +49,8 @@ CREATE TABLE agents (
 CREATE INDEX agents_vm_idx ON agents(vm_id);
 CREATE INDEX agents_status_idx ON agents(status);
 
--- Persistent log of an agent's stdout/stderr (or, future, system messages).
--- The pty stream is also broadcast live; this table is for replay/scrollback.
-CREATE TABLE agent_logs (
-    agent_id  TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-    ts        TEXT NOT NULL,
-    stream    TEXT NOT NULL CHECK (stream IN ('stdout','stderr','supervisor')),
-    line      TEXT NOT NULL
-);
-
-CREATE INDEX agent_logs_agent_ts_idx ON agent_logs(agent_id, ts);
-
-CREATE TABLE chat_messages (
-    id        TEXT PRIMARY KEY,
-    agent_id  TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-    user_id   TEXT REFERENCES users(id) ON DELETE SET NULL,
-    role      TEXT NOT NULL CHECK (role IN ('user','agent','system')),
-    content   TEXT NOT NULL,
-    ts        TEXT NOT NULL
-);
-
-CREATE INDEX chat_messages_agent_ts_idx ON chat_messages(agent_id, ts);
-
-CREATE TABLE wg_peers (
-    id           TEXT PRIMARY KEY,
-    name         TEXT NOT NULL,
-    user_id      TEXT REFERENCES users(id) ON DELETE SET NULL,
-    pubkey       TEXT NOT NULL UNIQUE,
-    allowed_ips  TEXT NOT NULL,
-    created_at   TEXT NOT NULL
-);
+-- NOTE: `agent_logs`, `chat_messages`, and `wg_peers` were originally
+-- defined here as scaffolding for unimplemented features. They have
+-- been removed per SLOP-32 — committing schema for absent code violates
+-- the "everything is production-bound" rule. Add them back in the
+-- migration where the writing Rust code lands.

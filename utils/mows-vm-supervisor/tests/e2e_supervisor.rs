@@ -20,6 +20,11 @@ use std::time::Duration;
 use serde_json::json;
 
 const SUPERVISOR_BIN_ENV: &str = "MOWS_VM_SUPERVISOR_BIN";
+/// Static admin bearer token the harness sets via env, then re-attaches
+/// on every protected request. Sized so it never collides with whatever
+/// a developer might have in their shell.
+const HARNESS_API_TOKEN: &str =
+    "harness-static-token-fed3c1f8-e7b6-4f5e-a9b0-1ad7c0f51b2d";
 
 struct Harness {
     _tempdir: tempfile::TempDir,
@@ -37,23 +42,29 @@ impl Harness {
         let socket = tempdir.path().join("agent.sock");
         std::fs::create_dir_all(&image_dir).unwrap();
 
-        // Stub qcow2 so the spawn path is reachable.
-        let stub_image = image_dir.join("alpine-mows-agent-amd64.qcow2");
-        let st = Command::new("qemu-img")
-            .args([
-                "create",
-                "-f",
-                "qcow2",
-                stub_image.to_str().unwrap(),
-                "16M",
-            ])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-        if st.map(|s| !s.success()).unwrap_or(true) {
-            // qemu-img unavailable — skip the whole suite by panicking in setup.
-            // Cargo will surface the error clearly.
-            panic!("qemu-img is required for the e2e suite (skip with --skip e2e_supervisor)");
+        // Stub qcow2 so the spawn path is reachable. `locate_image` expects
+        // `<image>-<flavor>-mows-agent-<arch>.qcow2`; we create stubs for
+        // both `headless` (default) and `desktop` so display_mode tests
+        // don't 503 on missing artefacts.
+        for flavor in ["headless", "desktop"] {
+            let stub_image = image_dir.join(format!(
+                "alpine-{flavor}-mows-agent-amd64.qcow2"
+            ));
+            let st = Command::new("qemu-img")
+                .args([
+                    "create",
+                    "-f",
+                    "qcow2",
+                    stub_image.to_str().unwrap(),
+                    "16M",
+                ])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
+            if st.map(|s| !s.success()).unwrap_or(true) {
+                // qemu-img unavailable — skip the whole suite by panicking in setup.
+                panic!("qemu-img is required for the e2e suite (skip with --skip e2e_supervisor)");
+            }
         }
 
         let config_path = tempdir.path().join("config.yaml");
@@ -104,6 +115,10 @@ port_range:
             .arg("--config")
             .arg(&config_path)
             .env("RUST_LOG", "warn")
+            // SECURITY-1: TCP listener requires auth. Inject a static
+            // admin token so the harness can hit protected endpoints
+            // without going through `/v1/auth/login` first.
+            .env("MOWS_VM_SUPERVISOR_API_TOKEN", HARNESS_API_TOKEN)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -140,8 +155,21 @@ port_range:
     }
 
     fn client(&self) -> reqwest::blocking::Client {
+        // Inject the harness's static admin token on every request so
+        // protected routes (post-SECURITY-1) accept the call without an
+        // explicit per-test login flow. Health + login are unauthenticated
+        // anyway, so the extra header is harmless on those.
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!(
+                "Bearer {HARNESS_API_TOKEN}"
+            ))
+            .expect("static token is valid header value"),
+        );
         reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(5))
+            .default_headers(headers)
             .build()
             .unwrap()
     }
@@ -350,6 +378,41 @@ fn unknown_agent_kind_returns_400() {
     assert_eq!(resp.status(), reqwest::StatusCode::BAD_REQUEST);
 }
 
+/// QA-21: agent-create against an unknown VM with a VALID kind must 404,
+/// not 500. The kind validation passes; the missing VM is the next gate
+/// and must classify as not-found.
+#[test]
+fn create_agent_on_unknown_vm_returns_404() {
+    let h = Harness::start(next_port());
+    let resp = h
+        .client()
+        .post(h.url("/v1/vms/00000000-0000-0000-0000-000000000000/agents"))
+        .json(&json!({"kind": "shell"}))
+        .send()
+        .unwrap();
+    assert_eq!(resp.status(), reqwest::StatusCode::NOT_FOUND);
+}
+
+/// QA-21: a TCP request without a bearer token must 401, not 500, and
+/// must not leak internal-error noise into the body.
+#[test]
+fn protected_endpoint_without_token_returns_401() {
+    let h = Harness::start(next_port());
+    // Bypass the harness's auto-Authorization helper by building a bare
+    // reqwest client.
+    let bare = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(5))
+        .build()
+        .unwrap();
+    let resp = bare.get(h.url("/v1/vms")).send().unwrap();
+    assert_eq!(resp.status(), reqwest::StatusCode::UNAUTHORIZED);
+    let body: serde_json::Value = resp.json().unwrap();
+    assert!(
+        body.get("error").is_some(),
+        "401 body must be a structured {{ error: ... }} payload, got {body:?}"
+    );
+}
+
 #[test]
 fn user_create_then_login_then_list() {
     let h = Harness::start(next_port());
@@ -392,7 +455,9 @@ fn user_create_then_login_then_list() {
 #[test]
 fn duplicate_user_returns_409() {
     let h = Harness::start(next_port());
-    let body = json!({"username": "bob", "password": "abcdefgh", "role": "user"});
+    // Password length must satisfy MIN_PASSWORD_LEN (12) — set per
+    // SECURITY-2 in the same change set that added admin gating.
+    let body = json!({"username": "bob", "password": "abcdefghijkl", "role": "user"});
     let r1 = h.client().post(h.url("/v1/users")).json(&body).send().unwrap();
     assert!(r1.status().is_success());
     let r2 = h.client().post(h.url("/v1/users")).json(&body).send().unwrap();
@@ -454,7 +519,7 @@ fn display_websocket_streams_rfb_banner() {
     let ws_url = h
         .base_url
         .replacen("http://", "ws://", 1)
-        + &format!("/v1/vms/{id}/display");
+        + &format!("/v1/vms/{id}/display?token={HARNESS_API_TOKEN}");
 
     let banner = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -521,7 +586,7 @@ fn console_websocket_upgrade_succeeds() {
     let ws_url = h
         .base_url
         .replacen("http://", "ws://", 1)
-        + &format!("/v1/vms/{id}/console");
+        + &format!("/v1/vms/{id}/console?token={HARNESS_API_TOKEN}");
 
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -557,7 +622,9 @@ fn console_websocket_upgrade_succeeds() {
 fn display_websocket_unknown_vm_returns_404() {
     let h = Harness::start(next_port());
     let ws_url = h.base_url.replacen("http://", "ws://", 1)
-        + "/v1/vms/00000000-0000-0000-0000-000000000000/display";
+        + &format!(
+            "/v1/vms/00000000-0000-0000-0000-000000000000/display?token={HARNESS_API_TOKEN}"
+        );
     let err = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -570,4 +637,71 @@ fn display_websocket_unknown_vm_returns_404() {
         msg.contains("404") || msg.contains("Not Found"),
         "expected 404 from unknown vm, got: {msg}"
     );
+}
+
+/// QA-13: lock down the `display_mode` + `image` round-trip end-to-end.
+/// The migration-0002/0003 columns are stored in sqlite and read back via
+/// `GET /v1/vms/{id}` — a column-binding regression in either direction
+/// silently falls back to defaults (a desktop VM would silently launch
+/// headless). These tests fail loudly the moment that happens.
+#[test]
+fn create_with_explicit_desktop_mode_round_trips() {
+    let h = Harness::start(next_port());
+    let created: serde_json::Value = h
+        .client()
+        .post(h.url("/v1/vms"))
+        .json(&json!({
+            "name": "desktop-vm",
+            "image": "alpine",
+            "display_mode": "desktop",
+        }))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(created["display_mode"], "desktop");
+    assert_eq!(created["image"], "alpine");
+
+    let id = created["id"].as_str().unwrap();
+    let row: serde_json::Value = h
+        .client()
+        .get(h.url(&format!("/v1/vms/{id}")))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(row["display_mode"], "desktop");
+    assert_eq!(row["image"], "alpine");
+    assert_eq!(row["name"], "desktop-vm");
+}
+
+#[test]
+fn create_with_explicit_resources_round_trips() {
+    let h = Harness::start(next_port());
+    let created: serde_json::Value = h
+        .client()
+        .post(h.url("/v1/vms"))
+        .json(&json!({
+            "name": "tiny-vm",
+            "image": "alpine",
+            "cpus": 1,
+            "memory_mb": 512,
+        }))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let id = created["id"].as_str().unwrap();
+    let row: serde_json::Value = h
+        .client()
+        .get(h.url(&format!("/v1/vms/{id}")))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(row["cpus"], 1);
+    assert_eq!(row["memory_mb"], 512);
+    assert_eq!(row["image"], "alpine");
+    // `display_mode` defaults to "headless" when not specified.
+    assert_eq!(row["display_mode"], "headless");
 }

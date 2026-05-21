@@ -8,6 +8,12 @@ publish = false
 name = "mows-vm-supervisor"
 path = "src/main.rs"
 
+# Build-time OpenAPI dumper. No DB, no network — consumes the same
+# `OpenApiRouter` graph the live server uses. Invoked by scripts/codegen.sh.
+[[bin]]
+name = "openapi_dump"
+path = "src/bin/openapi_dump.rs"
+
 [lib]
 name = "mows_vm_supervisor"
 path = "src/lib.rs"
@@ -31,9 +37,8 @@ tower-http = { workspace = true, features = [
     "fs",
 ] }
 thiserror = { workspace = true, features = ["default"] }
-anyhow = { workspace = true, features = ["default"] }
 tracing = { workspace = true, features = ["default"] }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json", "fmt"] }
+tracing-subscriber = { workspace = true, features = ["env-filter", "json", "fmt"] }
 url = { workspace = true, features = ["serde"] }
 futures-util = { workspace = true, features = ["std", "sink"] }
 
@@ -46,6 +51,13 @@ password-hash = { version = "0.6.1", features = ["alloc", "rand_core"] }
 rand = { version = "0.9", features = ["std", "std_rng"] }
 rand_core = "0.9"
 base64 = "0.22"
+# Constant-time byte comparison for bearer-token validation.
+subtle = "2.6.1"
+# Per-IP rate limiting on /v1/auth/login.
+tower_governor = "0.8.0"
+# Re-exported by tower_governor; we name it directly to spell out the
+# `NoOpMiddleware` type parameter of `GovernorConfig`.
+governor = "0.10"
 
 # Time / IDs
 chrono = { version = "0.4", features = ["serde"] }
@@ -56,6 +68,7 @@ clap = { version = "4.5", features = ["derive", "env"] }
 
 # Static dir embed (for future web UI)
 include_dir = "0.7"
+petname = { workspace = true, features = ["default-rng", "default-words"] }
 
 [dev-dependencies]
 tempfile = "3.10"

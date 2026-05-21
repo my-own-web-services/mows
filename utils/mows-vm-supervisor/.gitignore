@@ -1,0 +1,4 @@
+# Generated at build time by scripts/codegen.sh — kept out of tracking so
+# every src/api/*.rs edit doesn't produce a noisy spec diff. Consumers
+# (web/src/api/, ../codegen/) regenerate from the source of truth.
+openapi.json

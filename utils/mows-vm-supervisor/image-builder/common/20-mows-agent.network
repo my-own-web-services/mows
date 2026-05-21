@@ -1,0 +1,15 @@
+# systemd-networkd config used by the Debian and Ubuntu guest images.
+# Matches the single virtio-net interface QEMU attaches and DHCPs on it.
+# The supervisor's user-mode netdev provides a DHCP server inside the guest's
+# private 10.0.2.0/24 network, so this works out-of-the-box.
+[Match]
+Name=en* eth*
+
+[Network]
+DHCP=yes
+IPv6AcceptRA=no
+
+[DHCPv4]
+UseDNS=yes
+UseHostname=yes
+UseRoutes=yes

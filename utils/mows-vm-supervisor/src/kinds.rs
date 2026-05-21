@@ -34,7 +34,9 @@ pub struct AgentKind {
 
 impl AgentKind {
     pub fn from_yaml(s: &str) -> Result<Self> {
-        Ok(serde_yaml_neo::from_str(s)?)
+        let parsed: Self = serde_yaml_neo::from_str(s)?;
+        parsed.validate()?;
+        Ok(parsed)
     }
 
     pub fn from_file(path: &Path) -> Result<Self> {
@@ -46,6 +48,37 @@ impl AgentKind {
         })?;
         Self::from_yaml(&contents)
     }
+
+    /// Reject env keys that aren't valid POSIX env-var names. The values
+    /// are escaped at the point of use (`agent_runtime` shell-quotes them),
+    /// but the keys are interpolated bare into the tmux launch command —
+    /// a key containing `;` or whitespace would turn the assignment into
+    /// a separate shell command. Builtin kinds always pass; this gate
+    /// fires when a kind is parsed from a user-supplied YAML file under
+    /// `kinds.d/`.
+    fn validate(&self) -> Result<()> {
+        for key in self.env.keys() {
+            if !is_valid_posix_env_name(key) {
+                return Err(SupervisorError::Config(format!(
+                    "agent kind `{}`: env key {key:?} is not a valid POSIX env-var name \
+                     (must match [A-Za-z_][A-Za-z0-9_]*)",
+                    self.name
+                )));
+            }
+        }
+        Ok(())
+    }
+}
+
+fn is_valid_posix_env_name(s: &str) -> bool {
+    let mut chars = s.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !(first.is_ascii_alphabetic() || first == '_') {
+        return false;
+    }
+    chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 /// Built-in `shell` kind — boots the VM and drops the user at a plain bash
@@ -151,12 +184,13 @@ pub fn builtin_claude() -> AgentKind {
             bootstrap.to_string(),
         ],
         login_command: Some("/usr/local/bin/claude login".to_string()),
-        env: {
-            let mut e = BTreeMap::new();
-            // Use the writable in-VM copy, not the read-only /creds mount.
-            e.insert("CLAUDE_CONFIG_DIR".to_string(), "/root/.claude".to_string());
-            e
-        },
+        // SLOP-37: the canonical `CLAUDE_CONFIG_DIR` is set by the bootstrap
+        // shell (under the `agent` user, pointing at /home/agent/.claude).
+        // Setting it here too would be either redundant or contradictory —
+        // the `su -c` in the bootstrap discards the parent env anyway, so a
+        // mismatch here is dead code at best, a foot-gun at worst. Keep
+        // `env` empty for the claude kind.
+        env: BTreeMap::new(),
         credentials_mount: Some("/creds".to_string()),
     }
 }
@@ -197,6 +231,36 @@ unknown_field: nope
         let yaml = serde_yaml_neo::to_string(&k).unwrap();
         let parsed = AgentKind::from_yaml(&yaml).unwrap();
         assert_eq!(parsed.name, "claude");
+    }
+
+    #[test]
+    fn rejects_env_key_with_shell_metacharacters() {
+        // A YAML manifest under `kinds.d/` that smuggles `;` into an env
+        // key would let the value-quoting in agent_runtime become a
+        // command separator. Block it at the parse boundary.
+        let yaml = r#"
+name: evil
+binary: /bin/sh
+env:
+  "FOO; rm -rf /tmp;": bar
+"#;
+        let err = AgentKind::from_yaml(yaml).unwrap_err();
+        let msg = format!("{err}");
+        assert!(
+            msg.contains("not a valid POSIX env-var name"),
+            "expected POSIX-name error, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn rejects_env_key_starting_with_digit() {
+        let yaml = r#"
+name: evil
+binary: /bin/sh
+env:
+  "1FOO": bar
+"#;
+        assert!(AgentKind::from_yaml(yaml).is_err());
     }
 
     #[test]

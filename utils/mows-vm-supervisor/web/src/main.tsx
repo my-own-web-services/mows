@@ -10,19 +10,12 @@ import { initialTranslation, languages } from "./lib/languages";
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <MowsProvider
         storagePrefix="mows-vm-supervisor"
-        oidc={{
-            // Local supervisor is bearer-token authed; OIDC is mounted only
-            // because mows-components-react requires the prop. A real issuer
-            // is wired in once the supervisor sits behind an SSO proxy.
-            issuerUrl: "https://example.invalid",
-            clientId: "mows-vm-supervisor"
-        }}
         defaultThemeId="dark"
         languages={languages}
         initialTranslation={initialTranslation}
         extraActions={buildExtraActions()}
     >
         <App />
-        <Toaster richColors closeButton position="bottom-right" />
+        <Toaster richColors closeButton />
     </MowsProvider>
 );

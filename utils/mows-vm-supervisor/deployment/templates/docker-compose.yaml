@@ -1,3 +1,7 @@
+# DEVOPS-49: no `networks:` block — this compose has a single service,
+# so the default bridge is intentionally fine. Once a sidecar (DB,
+# cache, observability target, etc.) is added, switch to a named
+# network per CLAUDE.md's "principle of least privilege" rule.
 services:
     supervisor:
         image: "{{ .image_name }}:{{ .image_tag }}"
@@ -5,10 +9,17 @@ services:
         # The supervisor needs:
         # - /dev/kvm to run guest VMs with KVM acceleration
         # - /dev/net/tun for WireGuard
-        # - NET_ADMIN for WG, SYS_ADMIN for the 9p mounts QEMU sets up
+        # - NET_ADMIN for WG
+        # - DAC_OVERRIDE + FOWNER + CHOWN for QEMU's `-fsdev local,
+        #   security_model=mapped-xattr` 9p share — these set/get
+        #   xattrs to store the guest-side ownership of workspace
+        #   files. DEVOPS-47: SYS_ADMIN was overkill; replaced with
+        #   these three narrower capabilities.
         cap_add:
             - NET_ADMIN
-            - SYS_ADMIN
+            - DAC_OVERRIDE
+            - FOWNER
+            - CHOWN
         devices:
             - /dev/kvm
             - /dev/net/tun
@@ -16,6 +27,13 @@ services:
             # Loopback HTTP (CLI talks here).
             - "127.0.0.1:{{ .http_port }}:7878"
             # WireGuard UDP (operators dial in from here).
+            #
+            # SECURITY (DEVOPS-48): this port is INTENTIONALLY reachable
+            # from the public internet — that's the whole point of
+            # WireGuard. Lock down inbound source IPs via the host's
+            # firewall (ufw/iptables/nftables); WireGuard's own auth
+            # gates the connection so a port scanner sees only a silent
+            # UDP socket.
             - "0.0.0.0:{{ .wireguard_port }}:51820/udp"
             # Future: HTTPS for the web UI on the WG interface.
             - "127.0.0.1:{{ .web_ui_port }}:8443"
@@ -25,9 +43,14 @@ services:
             - "../results/secrets/admin_password:/run/secrets/admin_password:ro"
             - "../results/secrets/wg_private_key:/run/secrets/wg_private_key:ro"
             - "./templates/config/config.yaml:/etc/mows-vm-supervisor/config.yaml:ro"
-            # Bind-mount the host workspace dir users plan to share into agents.
-            # The supervisor relays this into per-agent 9p shares at runtime.
-            - "${HOME}:/host-home:ro"
+            # Bind-mount the host's Claude credential dir for agents to read.
+            # SECURITY (DEVOPS-46): we DO NOT mount $HOME wholesale — that
+            # would expose SSH keys, password managers, and browser
+            # profiles to a privileged supervisor running as root with
+            # NET_ADMIN/SYS_ADMIN. Only `~/.claude` is shared; per-agent
+            # workspace shares are wired explicitly via the
+            # `create_vm` API's `cwd` parameter (validated to a
+            # whitelisted directory tree — see SECURITY-3).
             - "${HOME}/.claude:/host-creds:ro"
         environment:
             MOWS_VM_SUPERVISOR_CONFIG: /etc/mows-vm-supervisor/config.yaml

@@ -6,7 +6,6 @@ use tokio::sync::RwLock;
 use crate::agent_runtime::AgentRuntimeRegistry;
 use crate::config::SupervisorConfig;
 use crate::qemu::{PortAllocator, VmRegistry};
-use crate::ssh_keys::HostKeyPair;
 
 pub struct AppState {
     pub config: SupervisorConfig,
@@ -16,15 +15,10 @@ pub struct AppState {
     /// Tracks live agent SSH/pty processes per agent id.
     pub agent_runtimes: AgentRuntimeRegistry,
     pub port_allocator: PortAllocator,
-    pub host_keypair: HostKeyPair,
 }
 
 impl AppState {
-    pub fn new(
-        config: SupervisorConfig,
-        db: SqlitePool,
-        host_keypair: HostKeyPair,
-    ) -> Self {
+    pub fn new(config: SupervisorConfig, db: SqlitePool) -> Self {
         let port_allocator = PortAllocator::new(config.port_range.clone());
         Self {
             config,
@@ -32,7 +26,25 @@ impl AppState {
             vms: RwLock::new(VmRegistry::default()),
             agent_runtimes: AgentRuntimeRegistry::new(),
             port_allocator,
-            host_keypair,
+        }
+    }
+
+    /// Construct with an already-reserved set of ports. Used at startup to
+    /// recover allocator state from the `vms` table so the supervisor never
+    /// hands out a port still bound by a VM that survived the restart.
+    pub fn with_port_reservations(
+        config: SupervisorConfig,
+        db: SqlitePool,
+        reservations: impl IntoIterator<Item = u16>,
+    ) -> Self {
+        let port_allocator =
+            PortAllocator::with_reservations(config.port_range.clone(), reservations);
+        Self {
+            config,
+            db,
+            vms: RwLock::new(VmRegistry::default()),
+            agent_runtimes: AgentRuntimeRegistry::new(),
+            port_allocator,
         }
     }
 }

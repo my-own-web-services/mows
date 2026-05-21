@@ -1,0 +1,12 @@
+[Unit]
+Description=MOWS agent init (per-boot setup driven by /mowsinit)
+After=network-online.target sshd.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/mows-agent-init.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,61 +1,69 @@
-import CommandPalette from "mows-components-react/components/atoms/commandPalette/CommandPalette";
-import GlobalContextMenu from "mows-components-react/components/atoms/globalContextMenu/GlobalContextMenu";
-import ModalHandler from "mows-components-react/components/atoms/modalHandler/ModalHandler";
-import PrimaryMenu from "mows-components-react/components/atoms/primaryMenu/PrimaryMenu";
-import { useMows } from "mows-components-react/lib/mowsContext/MowsContext";
-import { BrowserRouter, Link, Route, Routes, useLocation } from "react-router-dom";
-import VmDetail from "./pages/VmDetail";
-import VmList from "./pages/VmList";
+// Bare app shell. Layout is split-pane via shadcn's `Resizable` primitive
+// (react-resizable-panels): sidebar on the left, main content on the right,
+// resizable divider in between. Persistence + double-click-reset come
+// from `<ResizablePanelGroup autoSaveId>` and the wrapper in
+// mows-components-react's `ResizableHandle`.
 
-const Header = () => {
-    const location = useLocation();
-    const { t } = useMows();
-    const onDetail = location.pathname.startsWith("/vms/");
-    return (
-        <header className="border-border bg-card sticky top-0 z-10 flex items-center justify-between border-b px-6 py-3">
-            <div className="flex items-center gap-4">
-                <Link to="/" className="text-foreground text-sm font-semibold">
-                    {t.supervisor.appName}
-                </Link>
-                {onDetail && (
-                    <Link
-                        to="/"
-                        className="text-muted-foreground hover:text-foreground text-sm"
-                    >
-                        {t.supervisor.navAllVms}
-                    </Link>
-                )}
-            </div>
-            <span className="text-muted-foreground font-mono text-xs">
-                {t.supervisor.connectedTo}: {window.location.host}
-            </span>
-        </header>
-    );
-};
+import CommandPalette from "mows-components-react/components/appShell/commandPalette/CommandPalette";
+import GlobalContextMenu from "mows-components-react/components/appShell/globalContextMenu/GlobalContextMenu";
+import ModalHandler from "mows-components-react/components/appShell/modalHandler/ModalHandler";
+import {
+    ResizableHandle,
+    ResizablePanel,
+    ResizablePanelGroup
+} from "mows-components-react/components/ui/resizable";
+import { SidebarProvider } from "mows-components-react/components/ui/sidebar";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import ModalHost from "./components/ModalHost";
+import Sidebar from "./components/Sidebar";
+import VmDetail from "./pages/VmDetail";
+
+const Home = () => (
+    <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
+        Select a VM from the sidebar to see its details.
+    </div>
+);
 
 const App = () => (
-    <div className="bg-background text-foreground min-h-screen w-full">
-        <BrowserRouter>
-            <Header />
-            <main className="w-full">
-                <Routes>
-                    <Route path="/" element={<VmList />} />
-                    <Route path="/vms/:id" element={<VmDetail />} />
-                </Routes>
-            </main>
-            {/*
-              Standard mows-components-react mounts. Required by every MOWS
-              frontend; the four below give the app a working primary menu
-              (theme/language/keyboard shortcuts/login), a global Ctrl-K
-              command palette, modal stacking, and right-click context
-              menus across the page.
-            */}
-            <PrimaryMenu />
+    <BrowserRouter>
+        {/* SidebarProvider stays so `useSidebar()` inside SidebarMenuButton etc.
+            still resolves; its own layout is bypassed by ResizablePanelGroup. */}
+        <SidebarProvider className="bg-background text-foreground h-screen min-h-0">
+            <ResizablePanelGroup
+                direction="horizontal"
+                autoSaveId="mows-vm-supervisor:layout"
+                className="h-screen"
+            >
+                <ResizablePanel
+                    id="sidebar"
+                    order={1}
+                    defaultSize={20}
+                    minSize={12}
+                    maxSize={45}
+                    className="bg-sidebar border-sidebar-border border-r"
+                >
+                    <Sidebar />
+                </ResizablePanel>
+                <ResizableHandle />
+                <ResizablePanel id="main" order={2}>
+                    <main className="h-full overflow-y-auto">
+                        <Routes>
+                            <Route path="/" element={<Home />} />
+                            <Route path="/vms/:id" element={<VmDetail />} />
+                        </Routes>
+                    </main>
+                </ResizablePanel>
+            </ResizablePanelGroup>
+            {/* PrimaryMenu is embedded inside `<Sidebar />` via
+                `<SidebarFooter><PrimaryMenu variant="inline" /></SidebarFooter>`
+                so it scrolls with the sidebar instead of floating over the
+                main content. */}
             <CommandPalette />
             <ModalHandler />
+            <ModalHost />
             <GlobalContextMenu />
-        </BrowserRouter>
-    </div>
+        </SidebarProvider>
+    </BrowserRouter>
 );
 
 export default App;

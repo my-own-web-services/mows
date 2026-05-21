@@ -9,31 +9,52 @@ use std::path::PathBuf;
 use axum::extract::ws::{Message, WebSocketUpgrade};
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
-use axum::routing::{get, post};
+use axum::routing::get;
 use axum::{Json, Router};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_axum::routes;
 
 use crate::agent_runtime::{self, AgentSpawnSpec};
+use crate::api::types::{ErrorResponse, OperationResult};
 use crate::error::{Result, SupervisorError};
+use crate::ssh_keys::vm_key_paths;
 use crate::state::SharedState;
 
-pub fn router() -> Router<SharedState> {
-    Router::new()
-        .route("/v1/agents", get(list_all_agents))
-        .route("/v1/vms/{vm_id}/agents", get(list_vm_agents).post(create_agent))
-        .route("/v1/agents/{id}", get(get_agent).delete(delete_agent))
-        .route("/v1/agents/{id}/stop", post(stop_agent))
-        .route("/v1/agents/{id}/io", get(get_agent_io))
+/// Agent REST endpoints that participate in the OpenAPI document.
+pub fn rest_router() -> OpenApiRouter<SharedState> {
+    OpenApiRouter::new()
+        .routes(routes!(list_all_agents))
+        .routes(routes!(list_vm_agents, create_agent))
+        .routes(routes!(get_agent, update_agent, delete_agent))
+        .routes(routes!(stop_agent))
 }
 
-#[derive(Deserialize)]
+/// Agent websocket endpoints — not part of OpenAPI.
+pub fn ws_router() -> Router<SharedState> {
+    Router::new().route("/v1/agents/{id}/io", get(get_agent_io))
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct UpdateAgentRequest {
+    /// New display name. Must be non-empty.
+    pub name: String,
+}
+
+#[derive(Deserialize, ToSchema)]
 pub struct CreateAgentRequest {
+    /// Agent kind. Omit (or pass `null`) to fall back to the built-in
+    /// `"shell"` kind — a plain `/bin/sh` session. Currently supported
+    /// values: `"shell"`, `"claude"`. Anything else returns
+    /// `400 Bad Request` with `UnknownKind`.
     pub kind: Option<String>,
+    /// Display name. Auto-generated from `kind` + UTC timestamp when omitted.
     pub name: Option<String>,
 }
 
-#[derive(Serialize, sqlx::FromRow, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, sqlx::FromRow, Clone)]
 pub struct AgentSummary {
     pub id: String,
     pub vm_id: String,
@@ -48,12 +69,33 @@ pub struct AgentSummary {
 const AGENT_COLUMNS: &str =
     "id, vm_id, name, kind, status, started_at, exited_at, exit_code";
 
+#[utoipa::path(
+    get,
+    path = "/v1/agents",
+    tag = "agents",
+    description = "List every agent across all VMs, newest first.",
+    responses(
+        (status = 200, description = "Agents in the database", body = Vec<AgentSummary>),
+        (status = 500, description = "Internal error", body = ErrorResponse),
+    )
+)]
 async fn list_all_agents(State(state): State<SharedState>) -> Result<Json<Vec<AgentSummary>>> {
     let sql = format!("SELECT {AGENT_COLUMNS} FROM agents ORDER BY started_at DESC");
     let rows: Vec<AgentSummary> = sqlx::query_as(&sql).fetch_all(&state.db).await?;
     Ok(Json(rows))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/vms/{vm_id}/agents",
+    tag = "agents",
+    description = "List agents inside a single VM.",
+    params(("vm_id" = String, Path, description = "VM id")),
+    responses(
+        (status = 200, description = "Agents in this VM", body = Vec<AgentSummary>),
+        (status = 500, description = "Internal error", body = ErrorResponse),
+    )
+)]
 async fn list_vm_agents(
     State(state): State<SharedState>,
     Path(vm_id): Path<String>,
@@ -68,6 +110,17 @@ async fn list_vm_agents(
     Ok(Json(rows))
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/agents/{id}",
+    tag = "agents",
+    description = "Fetch a single agent by id.",
+    params(("id" = String, Path, description = "Agent id")),
+    responses(
+        (status = 200, description = "The agent", body = AgentSummary),
+        (status = 404, description = "Not found", body = ErrorResponse),
+    )
+)]
 async fn get_agent(
     State(state): State<SharedState>,
     Path(id): Path<String>,
@@ -90,6 +143,19 @@ struct VmRow {
     host_ssh_port: Option<i64>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/vms/{vm_id}/agents",
+    tag = "agents",
+    description = "Spawn an agent inside a running VM.",
+    params(("vm_id" = String, Path, description = "VM id")),
+    request_body = CreateAgentRequest,
+    responses(
+        (status = 200, description = "Agent is starting", body = AgentSummary),
+        (status = 400, description = "Unknown kind / bad request", body = ErrorResponse),
+        (status = 404, description = "VM not found", body = ErrorResponse),
+    )
+)]
 async fn create_agent(
     State(state): State<SharedState>,
     Path(vm_id): Path<String>,
@@ -110,22 +176,33 @@ async fn create_agent(
             .await?
             .ok_or_else(|| SupervisorError::NotFound(format!("vm {vm_id} not found")))?;
     if vm.status != "running" {
-        return Err(SupervisorError::Internal(format!(
+        // SLOP-23: wrong-status is a caller error, not an internal error.
+        // 409 lets the client distinguish "transient — retry after the
+        // readiness probe flips status" from a 500.
+        return Err(SupervisorError::Conflict(format!(
             "vm {vm_id} is in status `{}`; agents can only be spawned in a running VM",
             vm.status
         )));
     }
+    // SLOP-24: a missing ssh port means create_vm's INSERT was inconsistent
+    // — the row got written without a port. That's data corruption, not an
+    // internal handler bug, so surface it as `InvalidState` (still 500 but
+    // distinct from generic Internal, and logged loudly on the operator
+    // side).
     let ssh_port_i64 = vm.host_ssh_port.ok_or_else(|| {
-        SupervisorError::Internal(format!("vm {vm_id} has no allocated ssh port"))
+        SupervisorError::InvalidState(format!("vm {vm_id} has no allocated ssh port"))
     })?;
     let ssh_port = u16::try_from(ssh_port_i64).map_err(|_| {
-        SupervisorError::Internal(format!("vm {vm_id} ssh port {ssh_port_i64} out of range"))
+        SupervisorError::InvalidState(format!(
+            "vm {vm_id} ssh port {ssh_port_i64} out of u16 range"
+        ))
     })?;
 
     let id = uuid::Uuid::new_v4().to_string();
-    let name = req
+    let raw_name = req
         .name
         .unwrap_or_else(|| format!("{}-{}", kind_name, Utc::now().format("%Y%m%d-%H%M%S")));
+    let name = crate::api::validation::validate_resource_name("name", &raw_name)?;
     let started_at = Utc::now().to_rfc3339();
 
     sqlx::query(
@@ -154,14 +231,20 @@ async fn create_agent(
     };
     let env: std::collections::BTreeMap<String, String> = kind.env.into_iter().collect();
 
+    let (vm_priv_key, _) = vm_key_paths(&state.config.state_dir, &vm_id);
+    let ssh_target = format!(
+        "{}@{}",
+        state.config.guest_ssh_user, state.config.external_host
+    );
     let spec = AgentSpawnSpec {
         agent_id: id.clone(),
         vm_id: vm_id.clone(),
         vm_ssh_port: ssh_port,
-        vm_ssh_key_path: PathBuf::from(&state.host_keypair.private_key_path),
+        vm_ssh_key_path: PathBuf::from(vm_priv_key),
         argv,
         env,
         log_path,
+        ssh_target,
     };
 
     // The runtimes registry needs to know to remove the entry on exit; bind
@@ -192,10 +275,21 @@ async fn create_agent(
     }))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/agents/{id}/stop",
+    tag = "agents",
+    description = "Stop a running agent. The VM hosting it stays up.",
+    params(("id" = String, Path, description = "Agent id")),
+    responses(
+        (status = 200, description = "Agent stopped", body = OperationResult),
+        (status = 404, description = "Unknown agent or already stopped", body = ErrorResponse),
+    )
+)]
 async fn stop_agent(
     State(state): State<SharedState>,
     Path(id): Path<String>,
-) -> Result<Json<serde_json::Value>> {
+) -> Result<Json<OperationResult>> {
     let exited_at = Utc::now().to_rfc3339();
     let res = sqlx::query(
         "UPDATE agents SET status = 'stopped', exited_at = ?1 \
@@ -213,13 +307,54 @@ async fn stop_agent(
     if let Some(handle) = state.agent_runtimes.remove(&id).await {
         agent_runtime::stop_handle(&handle).await;
     }
-    Ok(Json(serde_json::json!({"id": id, "status": "stopped"})))
+    Ok(Json(OperationResult::status(id, "stopped")))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/v1/agents/{id}",
+    tag = "agents",
+    description = "Update mutable fields of an agent (currently just `name`).",
+    params(("id" = String, Path, description = "Agent id")),
+    request_body = UpdateAgentRequest,
+    responses(
+        (status = 200, description = "Updated agent", body = AgentSummary),
+        (status = 400, description = "Empty name", body = ErrorResponse),
+        (status = 404, description = "Unknown agent", body = ErrorResponse),
+    )
+)]
+async fn update_agent(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+    Json(req): Json<UpdateAgentRequest>,
+) -> Result<Json<AgentSummary>> {
+    let trimmed = crate::api::validation::validate_resource_name("name", &req.name)?;
+    let res = sqlx::query("UPDATE agents SET name = ?1 WHERE id = ?2")
+        .bind(&trimmed)
+        .bind(&id)
+        .execute(&state.db)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(SupervisorError::NotFound(format!("agent {id} not found")));
+    }
+    Ok(Json(load_agent(&state, &id).await?))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/v1/agents/{id}",
+    tag = "agents",
+    description = "Delete an agent and its on-disk state. The VM stays running.",
+    params(("id" = String, Path, description = "Agent id")),
+    responses(
+        (status = 200, description = "Agent deleted", body = OperationResult),
+        (status = 404, description = "Unknown agent", body = ErrorResponse),
+    )
+)]
 async fn delete_agent(
     State(state): State<SharedState>,
     Path(id): Path<String>,
-) -> Result<Json<serde_json::Value>> {
+) -> Result<Json<OperationResult>> {
     let res = sqlx::query("DELETE FROM agents WHERE id = ?1")
         .bind(&id)
         .execute(&state.db)
@@ -227,7 +362,7 @@ async fn delete_agent(
     if res.rows_affected() == 0 {
         return Err(SupervisorError::NotFound(format!("agent {id} not found")));
     }
-    Ok(Json(serde_json::json!({"id": id, "deleted": true})))
+    Ok(Json(OperationResult::deleted(id)))
 }
 
 /// Bidirectional websocket bound to a fresh ssh+`tmux attach` session
@@ -241,7 +376,8 @@ async fn get_agent_io(
     Path(id): Path<String>,
     ws: WebSocketUpgrade,
 ) -> std::result::Result<axum::response::Response, SupervisorError> {
-    let _ = load_agent(&state, &id).await?;
+    // Confirm the agent exists before upgrading; loaded summary unused.
+    load_agent(&state, &id).await?;
     let runtime = state
         .agent_runtimes
         .get(&id)
@@ -279,6 +415,18 @@ async fn proxy_agent_io(
         ));
     let _ = tokio::fs::remove_file(&known_hosts).await;
 
+    // RAII guard: even if the WS proxy tasks below panic or are cancelled
+    // mid-flight, dropping the guard removes the per-attach known_hosts
+    // file so we don't accumulate orphans under state_dir/agents/.
+    // tokio::fs is async, so the Drop impl falls back to std::fs.
+    struct KnownHostsGuard(std::path::PathBuf);
+    impl Drop for KnownHostsGuard {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.0);
+        }
+    }
+    let _known_hosts_guard = KnownHostsGuard(known_hosts.clone());
+
     let argv = crate::agent_runtime::build_attach_argv(&handle, &known_hosts);
 
     let mut ssh = Command::new("ssh")
@@ -290,8 +438,18 @@ async fn proxy_agent_io(
         .spawn()
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("spawn ssh: {e}")))?;
 
-    let mut ssh_stdout = ssh.stdout.take().expect("piped stdout");
-    let mut ssh_stdin = ssh.stdin.take().expect("piped stdin");
+    let mut ssh_stdout = ssh.stdout.take().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::BrokenPipe,
+            "ssh child reported no stdout despite Stdio::piped()",
+        )
+    })?;
+    let mut ssh_stdin = ssh.stdin.take().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::BrokenPipe,
+            "ssh child reported no stdin despite Stdio::piped()",
+        )
+    })?;
 
     let (mut sink, mut stream) = ws.split();
 
@@ -317,14 +475,14 @@ async fn proxy_agent_io(
     };
 
     let ssh_to_ws = async move {
-        let mut buf = vec![0u8; 8192];
+        let mut read_buffer = vec![0u8; super::vms::WS_PROXY_CHUNK_BYTES];
         loop {
-            let n = ssh_stdout.read(&mut buf).await?;
-            if n == 0 {
+            let bytes_read = ssh_stdout.read(&mut read_buffer).await?;
+            if bytes_read == 0 {
                 break;
             }
             if sink
-                .send(Message::Binary(buf[..n].to_vec().into()))
+                .send(Message::Binary(read_buffer[..bytes_read].to_vec().into()))
                 .await
                 .is_err()
             {
@@ -335,10 +493,11 @@ async fn proxy_agent_io(
         Ok::<(), std::io::Error>(())
     };
 
-    let (a, b) = tokio::join!(ws_to_ssh, ssh_to_ws);
+    let (ws_to_ssh_result, ssh_to_ws_result) = tokio::join!(ws_to_ssh, ssh_to_ws);
     let _ = ssh.kill().await;
-    let _ = tokio::fs::remove_file(&known_hosts).await;
-    a?;
-    b?;
+    // _known_hosts_guard drops here, removing the file regardless of
+    // whether the proxy tasks returned cleanly.
+    ws_to_ssh_result?;
+    ssh_to_ws_result?;
     Ok(())
 }

@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+# OpenRC wrapper around the distro-agnostic mows-agent-init body.
+
+description="MOWS agent init"
+depend() {
+    need localmount
+    after sshd
+}
+
+start() {
+    ebegin "Preparing mows agent runtime"
+    /usr/local/sbin/mows-agent-init.sh
+    eend $?
+}

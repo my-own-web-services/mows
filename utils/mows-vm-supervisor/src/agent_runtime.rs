@@ -49,6 +49,10 @@ pub struct AgentSpawnSpec {
     /// Where the tmux pipe-pane log gets written inside the supervisor's
     /// state dir. `<state_dir>/agents/<agent_id>/agent.log`.
     pub log_path: PathBuf,
+    /// `<user>@<host>` ssh target. Built by the caller from
+    /// `SupervisorConfig::{guest_ssh_user, external_host}` so the agent
+    /// runtime stays unaware of config wiring.
+    pub ssh_target: String,
 }
 
 pub struct AgentHandle {
@@ -59,6 +63,11 @@ pub struct AgentHandle {
     /// lifetime; clients attach via `tmux attach -t <session>`.
     pub session: String,
     pub log_path: PathBuf,
+    /// Fully-qualified SSH target (`<guest_ssh_user>@<external_host>`)
+    /// computed once at spawn time from `SupervisorConfig`. Hoisted out
+    /// of the previously-duplicated `"root@127.0.0.1"` literals so a
+    /// change to the guest user or host name flows through one place.
+    pub ssh_target: String,
 }
 
 #[derive(Default, Clone)]
@@ -132,7 +141,7 @@ pub fn build_attach_argv(handle: &AgentHandle, known_hosts: &PathBuf) -> Vec<Str
         "ServerAliveInterval=15".into(),
         "-o".into(),
         "ConnectTimeout=10".into(),
-        "root@127.0.0.1".into(),
+        handle.ssh_target.clone(),
         format!("tmux attach -t {}", handle.session),
     ]
 }
@@ -154,7 +163,7 @@ async fn ssh_oneshot(handle: &AgentHandle, remote_cmd: &str) -> Result<std::proc
         .arg("ConnectTimeout=10")
         .arg("-o")
         .arg("BatchMode=yes")
-        .arg("root@127.0.0.1")
+        .arg(&handle.ssh_target)
         .arg(remote_cmd)
         .stdin(Stdio::null())
         .output()
@@ -178,8 +187,15 @@ pub async fn spawn(
             ))
         })?;
     }
-    // Truncate any stale log so scrollback only contains this run.
-    let _ = tokio::fs::write(&spec.log_path, b"").await;
+    // Truncate any stale log so scrollback only contains this run. SLOP-34:
+    // swallowing the error here would leave operators with a phantom
+    // "agent running, no log appearing" mystery. Surface the path + cause.
+    tokio::fs::write(&spec.log_path, b"").await.map_err(|e| {
+        SupervisorError::Internal(format!(
+            "failed to truncate agent log {}: {e}",
+            spec.log_path.display()
+        ))
+    })?;
 
     let session = session_name(&spec.agent_id);
 
@@ -220,6 +236,7 @@ pub async fn spawn(
         vm_ssh_key_path: spec.vm_ssh_key_path.clone(),
         session: session.clone(),
         log_path: spec.log_path.clone(),
+        ssh_target: spec.ssh_target.clone(),
     });
 
     let create_out = ssh_oneshot(&handle, &create_cmd).await?;

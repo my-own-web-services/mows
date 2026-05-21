@@ -1,19 +1,27 @@
 use argon2::password_hash::{rand_core::OsRng, SaltString};
 use argon2::{Argon2, PasswordHasher};
-use axum::extract::State;
-use axum::routing::get;
-use axum::{Json, Router};
+use axum::extract::{Extension, State};
+use axum::Json;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_axum::routes;
 
+use crate::api::auth_middleware::AuthContext;
+use crate::api::types::ErrorResponse;
 use crate::error::{Result, SupervisorError};
 use crate::state::SharedState;
 
-pub fn router() -> Router<SharedState> {
-    Router::new().route("/v1/users", get(list_users).post(create_user))
+/// Minimum length for user passwords. Argon2 makes weak passwords expensive
+/// for the attacker but cannot rescue a single-character password.
+const MIN_PASSWORD_LEN: usize = 12;
+
+pub fn rest_router() -> OpenApiRouter<SharedState> {
+    OpenApiRouter::new().routes(routes!(list_users, create_user))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateUserRequest {
     pub username: String,
     pub password: String,
@@ -25,7 +33,7 @@ fn default_role() -> String {
     "user".into()
 }
 
-#[derive(Serialize, sqlx::FromRow)]
+#[derive(Serialize, Deserialize, ToSchema, sqlx::FromRow)]
 pub struct UserSummary {
     pub id: String,
     pub username: String,
@@ -33,6 +41,15 @@ pub struct UserSummary {
     pub created_at: String,
 }
 
+#[utoipa::path(
+    get,
+    path = "/v1/users",
+    tag = "users",
+    description = "List every supervisor user, sorted by username.",
+    responses(
+        (status = 200, description = "Users", body = Vec<UserSummary>),
+    )
+)]
 async fn list_users(State(state): State<SharedState>) -> Result<Json<Vec<UserSummary>>> {
     let rows: Vec<UserSummary> =
         sqlx::query_as("SELECT id, username, role, created_at FROM users ORDER BY username")
@@ -41,15 +58,41 @@ async fn list_users(State(state): State<SharedState>) -> Result<Json<Vec<UserSum
     Ok(Json(rows))
 }
 
+#[utoipa::path(
+    post,
+    path = "/v1/users",
+    tag = "users",
+    description = "Create a new supervisor user.",
+    request_body = CreateUserRequest,
+    responses(
+        (status = 200, description = "User created", body = UserSummary),
+        (status = 400, description = "Invalid role", body = ErrorResponse),
+        (status = 409, description = "Username already exists", body = ErrorResponse),
+    )
+)]
 async fn create_user(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Json(req): Json<CreateUserRequest>,
 ) -> Result<Json<UserSummary>> {
+    if actor.role != "admin" {
+        return Err(SupervisorError::Forbidden);
+    }
     if req.role != "admin" && req.role != "user" {
         return Err(SupervisorError::BadRequest(format!(
             "role must be 'admin' or 'user', got {:?}",
             req.role
         )));
+    }
+    if req.password.len() < MIN_PASSWORD_LEN {
+        return Err(SupervisorError::BadRequest(format!(
+            "password must be at least {MIN_PASSWORD_LEN} characters"
+        )));
+    }
+    if req.username.trim().is_empty() {
+        return Err(SupervisorError::BadRequest(
+            "username must not be empty".into(),
+        ));
     }
     let id = uuid::Uuid::new_v4().to_string();
     let salt = SaltString::generate(&mut OsRng);

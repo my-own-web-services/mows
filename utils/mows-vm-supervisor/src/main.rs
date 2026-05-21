@@ -6,7 +6,6 @@ use mows_vm_supervisor::api;
 use mows_vm_supervisor::config::SupervisorConfig;
 use mows_vm_supervisor::db;
 use mows_vm_supervisor::error::Result;
-use mows_vm_supervisor::ssh_keys;
 use mows_vm_supervisor::state::AppState;
 use tracing_subscriber::EnvFilter;
 
@@ -32,7 +31,10 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     if cli.print_default_config {
-        let cfg = SupervisorConfig::defaults_for_tests();
+        // SLOP-39: use the production-safe constructor so the YAML an
+        // operator pipes into a real config file points at
+        // `/var/lib/mows-agent`, not the test sandbox.
+        let cfg = SupervisorConfig::defaults_for_user();
         println!("{}", serde_yaml_neo::to_string(&cfg)?);
         return Ok(());
     }
@@ -52,13 +54,35 @@ async fn main() -> Result<()> {
     let pool = db::open(&config.state_dir).await?;
     db::migrate(&pool).await?;
 
-    let host_keypair = ssh_keys::ensure_host_keypair(&config.state_dir).await?;
-    tracing::info!(
-        pubkey = %host_keypair.public_key,
-        "host ssh keypair ready"
-    );
+    // Recover port allocator state from the DB so a supervisor restart
+    // doesn't hand out ports already bound by surviving QEMU processes
+    // from the previous run.
+    let live_ports: Vec<u16> = sqlx::query_as::<_, (Option<i64>, Option<i64>)>(
+        "SELECT host_ssh_port, host_docker_port FROM vms \
+         WHERE status NOT IN ('stopped', 'failed')",
+    )
+    .fetch_all(&pool)
+    .await?
+    .into_iter()
+    .flat_map(|(ssh, docker)| {
+        [ssh, docker]
+            .into_iter()
+            .filter_map(|p| p.and_then(|v| u16::try_from(v).ok()))
+            .collect::<Vec<_>>()
+    })
+    .collect();
+    if !live_ports.is_empty() {
+        tracing::info!(
+            count = live_ports.len(),
+            "restored port reservations from previous supervisor run"
+        );
+    }
 
-    let state = Arc::new(AppState::new(config.clone(), pool, host_keypair));
+    let state = Arc::new(AppState::with_port_reservations(
+        config.clone(),
+        pool,
+        live_ports,
+    ));
 
     api::serve(state).await
 }

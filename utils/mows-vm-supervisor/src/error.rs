@@ -1,7 +1,8 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use serde_json::json;
 use thiserror::Error;
+
+use crate::api::types::ErrorResponse;
 
 pub type Result<T> = std::result::Result<T, SupervisorError>;
 
@@ -55,6 +56,9 @@ pub enum SupervisorError {
     #[error("guest image not available: {0}")]
     ImageMissing(String),
 
+    #[error("invalid state: {0}")]
+    InvalidState(String),
+
     #[error("internal: {0}")]
     Internal(String),
 }
@@ -85,6 +89,16 @@ impl IntoResponse for SupervisorError {
                 StatusCode::SERVICE_UNAVAILABLE,
                 format!("guest image not available: {msg}"),
             ),
+            Self::InvalidState(msg) => {
+                // Surface this loudly — it means a row in the DB violated an
+                // invariant the supervisor relies on. Caller sees 500 but the
+                // operator's log makes the corruption obvious.
+                tracing::error!(error = %msg, "invalid supervisor state");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("invalid state: {msg}"),
+                )
+            }
             Self::QemuSpawn(msg) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("qemu spawn failed: {msg}"),
@@ -97,7 +111,11 @@ impl IntoResponse for SupervisorError {
                 )
             }
         };
-        let body = axum::Json(json!({"error": public_message}));
+        // Use the typed `ErrorResponse` DTO so the runtime response and
+        // the OpenAPI schema can't drift apart silently (TECH-RUST-5).
+        let body = axum::Json(ErrorResponse {
+            error: public_message,
+        });
         (status, body).into_response()
     }
 }

@@ -16,7 +16,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU16, Ordering};
 
 use tokio::process::{Child, Command};
 
@@ -29,17 +28,83 @@ pub struct VmResources {
     pub memory_mb: u32,
 }
 
+/// Resolve a user-supplied workspace path to a safe, canonical absolute
+/// `PathBuf` that's safe to interpolate into a QEMU `-fsdev local,path=…`
+/// argument.
+///
+/// QEMU parses `-fsdev` as a comma-separated key=value list, so a path
+/// containing `,` would let the caller smuggle in extra options (e.g.
+/// `,security_model=passthrough`). Symlinks and `..` segments would also
+/// let the caller escape any intended workspace root. We canonicalize the
+/// path (resolving symlinks and traversals), require it to be an existing
+/// directory, and reject any embedded comma or newline.
+pub fn validate_workspace_path(raw: &str) -> Result<PathBuf> {
+    if raw.is_empty() {
+        return Err(SupervisorError::BadRequest(
+            "workspace path must not be empty".into(),
+        ));
+    }
+    let path = std::path::Path::new(raw);
+    if !path.is_absolute() {
+        return Err(SupervisorError::BadRequest(format!(
+            "workspace path must be absolute, got {raw:?}"
+        )));
+    }
+    let canonical = std::fs::canonicalize(path).map_err(|e| {
+        SupervisorError::BadRequest(format!(
+            "workspace path {raw:?} could not be resolved: {e}"
+        ))
+    })?;
+    if !canonical.is_dir() {
+        return Err(SupervisorError::BadRequest(format!(
+            "workspace path {} is not a directory",
+            canonical.display()
+        )));
+    }
+    let canonical_str = canonical.to_str().ok_or_else(|| {
+        SupervisorError::BadRequest(format!(
+            "workspace path {} is not valid UTF-8",
+            canonical.display()
+        ))
+    })?;
+    if canonical_str.contains(',') || canonical_str.contains('\n') {
+        return Err(SupervisorError::BadRequest(format!(
+            "workspace path {canonical_str:?} contains comma or newline, which \
+             would break QEMU -fsdev argument parsing"
+        )));
+    }
+    Ok(canonical)
+}
+
+/// Matches `api::vms::VmDisplayMode`; duplicated here to keep the qemu
+/// module independent of the API layer's serde derivations.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum DisplayMode {
+    #[default]
+    Headless,
+    Desktop,
+}
+
 #[derive(Debug, Clone)]
 pub struct VmLaunchSpec {
     pub vm_id: String,
     pub vm_name: String,
+    /// Backing qcow2. The image-builder writes one per (distro, flavor).
     pub image_path: PathBuf,
+    /// Kernel + initramfs extracted from the same rootfs as `image_path`.
+    /// The supervisor boots via `-kernel`/`-initrd` so the qcow2 doesn't
+    /// need its own bootloader.
+    pub kernel_path: PathBuf,
+    pub initrd_path: PathBuf,
     pub state_dir: PathBuf,
     pub workspace: Option<PathBuf>,
     pub host_ssh_port: u16,
     pub host_docker_port: u16,
     pub resources: VmResources,
     pub authorized_ssh_pubkey: String,
+    /// `headless` (default) emits `-display none`; `desktop` emits a virtio
+    /// GPU plus serial console for VNC access via the per-VM display socket.
+    pub display_mode: DisplayMode,
 }
 
 #[derive(Debug, Clone)]
@@ -59,31 +124,25 @@ impl QemuInvocation {
         let console_log_path = vm_dir.join("console.log");
         let display_socket_path = vm_dir.join("display.sock");
         let console_socket_path = vm_dir.join("console.sock");
-        let creds_host_path = std::env::var("MOWS_AGENT_HOST_CREDS_PATH")
-            .ok()
-            .map(PathBuf::from)
-            .or_else(|| {
-                let p = PathBuf::from("/host-creds");
-                if p.exists() {
-                    Some(p)
-                } else {
-                    None
-                }
-            })
-            .filter(|p| p.exists());
+        // Resolved at startup in `SupervisorConfig::load`; reading the env
+        // here on every VM spawn would violate the "all env vars upfront"
+        // rule and is also racy with `std::env::set_var`.
+        let creds_host_path = cfg.agent_host_creds_path.clone();
 
-        let arch = std::env::consts::ARCH;
-        let arch_name = match arch {
-            "x86_64" => "amd64",
-            "aarch64" => "arm64",
-            other => other,
+        // Borrow the spec's PathBufs directly — `spec` is already borrowed
+        // for the lifetime of `build`, so the clones (TECH-RUST-16) were
+        // gratuitous.
+        let kernel_path = &spec.kernel_path;
+        let initrd_path = &spec.initrd_path;
+        let display_args: Vec<String> = match spec.display_mode {
+            DisplayMode::Headless => vec!["-display".to_string(), "none".to_string()],
+            DisplayMode::Desktop => vec![
+                "-display".to_string(),
+                "none".to_string(),
+                "-device".to_string(),
+                "virtio-vga-gl".to_string(),
+            ],
         };
-        let kernel_path = cfg
-            .image_dir
-            .join(format!("alpine-mows-agent-{arch_name}.vmlinuz"));
-        let initrd_path = cfg
-            .image_dir
-            .join(format!("alpine-mows-agent-{arch_name}.initramfs"));
         let mut args: Vec<String> = vec![
             "-machine".to_string(),
             "type=q35,accel=kvm".to_string(),
@@ -93,8 +152,9 @@ impl QemuInvocation {
             spec.resources.cpus.to_string(),
             "-m".to_string(),
             format!("{}M", spec.resources.memory_mb),
-            "-display".to_string(),
-            "none".to_string(),
+        ];
+        args.extend(display_args);
+        args.extend([
             "-vnc".to_string(),
             format!("unix:{}", display_socket_path.display()),
             "-chardev".to_string(),
@@ -110,7 +170,7 @@ impl QemuInvocation {
                 "file={},if=virtio,cache=none,format=qcow2,discard=unmap",
                 overlay_path.display()
             ),
-        ];
+        ]);
         if kernel_path.exists() {
             args.extend([
                 "-kernel".to_string(),
@@ -219,7 +279,7 @@ impl GuestVmConfig {
 
 /// Prepare per-VM state directory: writes the run.yaml seed and creates a
 /// fresh qcow2 overlay over the cached image. Idempotent.
-pub async fn prepare_vm_dir(cfg: &SupervisorConfig, spec: &VmLaunchSpec) -> Result<()> {
+pub async fn prepare_vm_dir(spec: &VmLaunchSpec) -> Result<()> {
     let vm_dir = vm_dir_for(&spec.state_dir, &spec.vm_id);
     tokio::fs::create_dir_all(&vm_dir).await?;
 
@@ -235,6 +295,21 @@ pub async fn prepare_vm_dir(cfg: &SupervisorConfig, spec: &VmLaunchSpec) -> Resu
 
     let overlay = vm_dir.join("disk.qcow2");
     if !overlay.exists() {
+        // SLOP-48: store the backing reference as a path relative to the
+        // overlay's directory when possible. The absolute path would bake
+        // the supervisor's current state_dir into the qcow2 header and
+        // break the next boot if state_dir is renamed or the layout is
+        // copied to another host. `qemu-img create -b` resolves the
+        // backing path against the *overlay's* directory, so a relative
+        // form survives directory renames as long as image_dir and
+        // state_dir move together. Falls back to absolute when the two
+        // paths don't share enough of a common prefix (different mounts,
+        // etc.).
+        let backing_arg: std::ffi::OsString =
+            relative_backing_path(&overlay, &spec.image_path)
+                .map(Into::into)
+                .unwrap_or_else(|| spec.image_path.clone().into_os_string());
+
         let status = Command::new("qemu-img")
             .arg("create")
             .arg("-q")
@@ -243,7 +318,7 @@ pub async fn prepare_vm_dir(cfg: &SupervisorConfig, spec: &VmLaunchSpec) -> Resu
             .arg("-F")
             .arg("qcow2")
             .arg("-b")
-            .arg(&spec.image_path)
+            .arg(&backing_arg)
             .arg(&overlay)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
@@ -259,34 +334,109 @@ pub async fn prepare_vm_dir(cfg: &SupervisorConfig, spec: &VmLaunchSpec) -> Resu
             )));
         }
     }
-    let _ = cfg;
     Ok(())
 }
 
-/// Locate the cached qcow2 in `image_dir`. v1 keeps a single image per arch.
-pub fn locate_image(cfg: &SupervisorConfig) -> Result<PathBuf> {
+/// Compute the backing-image path relative to the overlay's directory.
+/// Returns `None` when the two paths don't share a common prefix (e.g.
+/// different mount points) — caller should fall back to the absolute
+/// path in that case.
+fn relative_backing_path(overlay: &Path, image: &Path) -> Option<PathBuf> {
+    let overlay_dir = overlay.parent()?;
+    let overlay_dir = overlay_dir.canonicalize().ok()?;
+    let image_canonical = image.canonicalize().ok()?;
+
+    let mut up_components = Vec::new();
+    let mut anchor: &Path = &overlay_dir;
+    loop {
+        if let Ok(rel) = image_canonical.strip_prefix(anchor) {
+            let mut path = PathBuf::new();
+            for _ in &up_components {
+                path.push("..");
+            }
+            path.push(rel);
+            return Some(path);
+        }
+        anchor = match anchor.parent() {
+            Some(parent) => {
+                up_components.push(());
+                parent
+            }
+            None => return None,
+        };
+    }
+}
+
+/// Resolve the qcow2 + kernel + initramfs paths for a (distro, flavor)
+/// combination. Each image-builder variant lands as
+/// `<distro>-<flavor>-mows-agent-<arch>.{qcow2,vmlinuz,initramfs}`.
+pub struct ImageArtifacts {
+    pub qcow2: PathBuf,
+    pub kernel: PathBuf,
+    pub initramfs: PathBuf,
+}
+
+pub fn locate_image(
+    cfg: &SupervisorConfig,
+    distro: &str,
+    flavor: &str,
+) -> Result<ImageArtifacts> {
     let arch = std::env::consts::ARCH;
     let arch_name = match arch {
         "x86_64" => "amd64",
         "aarch64" => "arm64",
         other => other,
     };
-    let candidate = cfg
-        .image_dir
-        .join(format!("alpine-mows-agent-{arch_name}.qcow2"));
-    if !candidate.exists() {
+    let prefix = format!("{distro}-{flavor}-mows-agent-{arch_name}");
+    let qcow2 = cfg.image_dir.join(format!("{prefix}.qcow2"));
+    let kernel = cfg.image_dir.join(format!("{prefix}.vmlinuz"));
+    let initramfs = cfg.image_dir.join(format!("{prefix}.initramfs"));
+    if !qcow2.exists() {
         return Err(SupervisorError::ImageMissing(format!(
-            "expected qcow2 at {} — run `mows vms build-image`",
-            candidate.display()
+            "expected qcow2 at {} — run `bash image-builder/build.sh --distro {distro} --flavor {flavor}`",
+            qcow2.display()
         )));
     }
-    Ok(candidate)
+    // TECH-RUST-11: catch the half-built case where the qcow2 exists but
+    // exactly one of `.vmlinuz` / `.initramfs` is missing — that's almost
+    // always an interrupted image-builder run, and silently booting
+    // without `-kernel`/`-initrd` would just hang. The e2e stub case
+    // ships NEITHER (so both `.exists()` are false), which we accept on
+    // purpose — `QemuInvocation::build` skips the `-kernel` flag and
+    // QEMU's BIOS path takes over, which the stub tests rely on.
+    let kernel_present = kernel.exists();
+    let initrd_present = initramfs.exists();
+    if kernel_present != initrd_present {
+        return Err(SupervisorError::ImageMissing(format!(
+            "half-built image set for {distro}-{flavor}-{arch_name}: \
+             kernel present={kernel_present}, initramfs present={initrd_present}. \
+             Re-run `bash image-builder/build.sh --distro {distro} --flavor {flavor}`"
+        )));
+    }
+    Ok(ImageArtifacts {
+        qcow2,
+        kernel,
+        initramfs,
+    })
 }
 
 /// Allocates host loopback ports out of the configured range.
+///
+/// Allocations are tracked in an in-memory `BTreeSet` so that ports freed
+/// by `release()` can be reused, and so that the supervisor can rebuild the
+/// allocator state from the DB on startup (see `from_db_state`). Without
+/// the in-memory reservation set the allocator would either (a) hand out
+/// a port already bound by a surviving QEMU process after restart, or
+/// (b) leak the range as VMs are stopped and the `next` counter only
+/// climbs.
 pub struct PortAllocator {
     range: PortRange,
-    next: AtomicU16,
+    inner: std::sync::Mutex<PortAllocatorInner>,
+}
+
+struct PortAllocatorInner {
+    in_use: std::collections::BTreeSet<u16>,
+    cursor: u16,
 }
 
 impl PortAllocator {
@@ -294,25 +444,63 @@ impl PortAllocator {
         let start = range.start;
         Self {
             range,
-            next: AtomicU16::new(start),
+            inner: std::sync::Mutex::new(PortAllocatorInner {
+                in_use: std::collections::BTreeSet::new(),
+                cursor: start,
+            }),
         }
+    }
+
+    /// Rebuild allocator state from a set of currently-occupied ports
+    /// (typically loaded from the `vms` table at startup). Any port within
+    /// the configured range that's already in use is reserved.
+    pub fn with_reservations(range: PortRange, reservations: impl IntoIterator<Item = u16>) -> Self {
+        let allocator = Self::new(range.clone());
+        {
+            let mut inner = allocator.inner.lock().expect("port allocator mutex poisoned");
+            for port in reservations {
+                if port >= range.start && port <= range.end {
+                    inner.in_use.insert(port);
+                }
+            }
+        }
+        allocator
     }
 
     pub fn allocate_pair(&self) -> Result<(u16, u16)> {
-        let ssh = self.advance()?;
-        let docker = self.advance()?;
+        let mut inner = self.inner.lock().expect("port allocator mutex poisoned");
+        let ssh = self.next_free(&mut inner)?;
+        inner.in_use.insert(ssh);
+        let docker = self.next_free(&mut inner)?;
+        inner.in_use.insert(docker);
         Ok((ssh, docker))
     }
 
-    fn advance(&self) -> Result<u16> {
-        let port = self.next.fetch_add(1, Ordering::SeqCst);
-        if port > self.range.end {
-            self.next.store(self.range.start, Ordering::SeqCst);
-            return Err(SupervisorError::Internal(
-                "port range exhausted; widen port_range in config".to_string(),
-            ));
+    /// Release a previously-allocated port so a future `allocate_pair()`
+    /// can hand it out again. Called from `stop_vm` / `delete_vm`.
+    pub fn release(&self, ports: impl IntoIterator<Item = u16>) {
+        let mut inner = self.inner.lock().expect("port allocator mutex poisoned");
+        for port in ports {
+            inner.in_use.remove(&port);
         }
-        Ok(port)
+    }
+
+    fn next_free(&self, inner: &mut PortAllocatorInner) -> Result<u16> {
+        let span = self.range.end - self.range.start + 1;
+        for _ in 0..span {
+            let candidate = inner.cursor;
+            inner.cursor = if candidate >= self.range.end {
+                self.range.start
+            } else {
+                candidate + 1
+            };
+            if !inner.in_use.contains(&candidate) {
+                return Ok(candidate);
+            }
+        }
+        Err(SupervisorError::Internal(
+            "port range exhausted; widen port_range in config".to_string(),
+        ))
     }
 }
 
@@ -392,12 +580,15 @@ mod tests {
             vm_id: "id-123".into(),
             vm_name: "demo".into(),
             image_path: PathBuf::from("/var/lib/mows-agent/images/alpine.qcow2"),
+            kernel_path: PathBuf::from("/var/lib/mows-agent/images/alpine.vmlinuz"),
+            initrd_path: PathBuf::from("/var/lib/mows-agent/images/alpine.initramfs"),
             state_dir: PathBuf::from("/tmp/mows-agent-test"),
             workspace: Some(PathBuf::from("/home/x/proj")),
             host_ssh_port: 22001,
             host_docker_port: 22501,
             resources: VmResources { cpus: 2, memory_mb: 2048 },
             authorized_ssh_pubkey: "ssh-ed25519 AAAA test".into(),
+            display_mode: DisplayMode::Headless,
         }
     }
 
@@ -412,6 +603,30 @@ mod tests {
         assert!(joined.contains("chardev:ser0"));
         assert!(joined.contains("logfile=/tmp/mows-agent-test/vms/id-123/console.log"));
         assert!(joined.contains("logappend=on"));
+    }
+
+    #[test]
+    fn invocation_desktop_mode_adds_virtio_vga() {
+        let cfg = SupervisorConfig::defaults_for_tests();
+        let mut spec = test_spec();
+        spec.display_mode = DisplayMode::Desktop;
+        let inv = QemuInvocation::build(&cfg, &spec).unwrap();
+        let joined = inv.args.join(" ");
+        assert!(
+            joined.contains("virtio-vga-gl"),
+            "desktop mode must wire a virtio GPU; got: {joined}"
+        );
+    }
+
+    #[test]
+    fn invocation_headless_mode_skips_gpu() {
+        let cfg = SupervisorConfig::defaults_for_tests();
+        let inv = QemuInvocation::build(&cfg, &test_spec()).unwrap();
+        let joined = inv.args.join(" ");
+        assert!(
+            !joined.contains("virtio-vga"),
+            "headless mode must NOT add a GPU; got: {joined}"
+        );
     }
 
     #[test]
@@ -475,5 +690,75 @@ mod tests {
         let _ = alloc.allocate_pair().unwrap();
         let result = alloc.allocate_pair();
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn port_allocator_release_reuses_freed_ports() {
+        let alloc = PortAllocator::new(PortRange { start: 22000, end: 22003 });
+        let (a, b) = alloc.allocate_pair().unwrap();
+        assert!(alloc.allocate_pair().is_ok());
+        // Range exhausted at this point.
+        assert!(alloc.allocate_pair().is_err());
+        // Free the first pair and confirm we can allocate them again.
+        alloc.release([a, b]);
+        let (c, d) = alloc.allocate_pair().unwrap();
+        // We may not get back the exact same ports because the cursor has
+        // already advanced, but both must come from the released set.
+        let released: std::collections::BTreeSet<u16> = [a, b].into_iter().collect();
+        assert!(released.contains(&c));
+        assert!(released.contains(&d));
+    }
+
+    #[test]
+    fn port_allocator_with_reservations_avoids_collision() {
+        let range = PortRange { start: 22000, end: 22003 };
+        let alloc = PortAllocator::with_reservations(range, [22000, 22001]);
+        // 22000 / 22001 are reserved; the next free pair must be 22002 / 22003.
+        let (a, b) = alloc.allocate_pair().unwrap();
+        assert_eq!(a, 22002);
+        assert_eq!(b, 22003);
+        // Range exhausted.
+        assert!(alloc.allocate_pair().is_err());
+    }
+
+    #[test]
+    fn validate_workspace_rejects_relative_paths() {
+        assert!(matches!(
+            validate_workspace_path("rel/path"),
+            Err(SupervisorError::BadRequest(_))
+        ));
+        assert!(matches!(
+            validate_workspace_path(""),
+            Err(SupervisorError::BadRequest(_))
+        ));
+    }
+
+    #[test]
+    fn validate_workspace_rejects_missing_paths() {
+        assert!(matches!(
+            validate_workspace_path("/absolutely/does/not/exist/0e1c"),
+            Err(SupervisorError::BadRequest(_))
+        ));
+    }
+
+    #[test]
+    fn validate_workspace_rejects_comma_in_canonical_path() {
+        let tmp = tempfile::tempdir().unwrap();
+        let evil = tmp.path().join("with,comma");
+        std::fs::create_dir(&evil).unwrap();
+        let raw = evil.to_string_lossy().to_string();
+        let err = validate_workspace_path(&raw).unwrap_err();
+        match err {
+            SupervisorError::BadRequest(msg) => assert!(msg.contains("comma")),
+            other => panic!("expected BadRequest, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn validate_workspace_accepts_clean_directory() {
+        let tmp = tempfile::tempdir().unwrap();
+        let raw = tmp.path().to_string_lossy().to_string();
+        let canonical = validate_workspace_path(&raw).unwrap();
+        assert!(canonical.is_dir());
     }
 }

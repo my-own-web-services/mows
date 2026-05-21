@@ -1,17 +1,35 @@
-use axum::routing::get;
-use axum::{Json, Router};
-use serde_json::{json, Value};
+use axum::Json;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_axum::routes;
 
 use crate::state::SharedState;
 
-pub fn router() -> Router<SharedState> {
-    Router::new().route("/v1/healthz", get(healthz))
+pub fn rest_router() -> OpenApiRouter<SharedState> {
+    OpenApiRouter::new().routes(routes!(healthz))
 }
 
-async fn healthz() -> Json<Value> {
-    Json(json!({
-        "status": "ok",
-        "service": "mows-vm-supervisor",
-        "version": env!("CARGO_PKG_VERSION"),
-    }))
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct HealthResponse {
+    pub status: String,
+    pub service: String,
+    pub version: String,
+}
+
+#[utoipa::path(
+    get,
+    path = "/v1/healthz",
+    tag = "health",
+    description = "Liveness probe. Always 200 if the process is up.",
+    responses(
+        (status = 200, description = "Service info", body = HealthResponse),
+    )
+)]
+async fn healthz() -> Json<HealthResponse> {
+    Json(HealthResponse {
+        status: "ok".into(),
+        service: "mows-vm-supervisor".into(),
+        version: env!("CARGO_PKG_VERSION").into(),
+    })
 }

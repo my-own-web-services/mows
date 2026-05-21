@@ -1,130 +1,284 @@
-// Web-UI extra actions, registered with `MowsProvider`'s `extraActions` prop.
-// These light up in the global Command Palette (Ctrl-K) and are also
-// invocable programmatically via `actionManager.executeAction(id)`.
+// Right-click actions for sidebar VM and agent rows.
 //
-// State that handlers need (current VM id from the URL, refresh callbacks,
-// etc.) is shared via a tiny mutable singleton — `webUiContext` — that the
-// pages update whenever they mount/unmount. The MowsProvider only takes a
-// snapshot of actions at construction time, so handlers must close over this
-// indirection rather than over component state.
+// The GlobalContextMenu only opens on elements that have an ancestor with
+// `data-actionscope=<scope>`. We register two scopes — `vm-row` and
+// `agent-row` — and stash the right-clicked row's target id in a module-
+// scoped singleton so handlers (called with no event context) can look it
+// up. The capture-phase listener runs before GlobalContextMenu's document
+// listener, so by the time an action fires the target id is already set.
 
-import { Action, ActionVisibility } from "mows-components-react/lib/mowsContext/ActionManager";
+import {
+    Action,
+    ActionVisibility
+} from "mows-components-react/lib/mowsContext/ActionManager";
+import { Pencil, Square, Trash2 } from "lucide-react";
+import { createElement, type JSX } from "react";
 import { toast } from "sonner";
-import { createAgent, createVm, listAgents, listVms } from "./api";
+import {
+    deleteAgent,
+    deleteVm,
+    describeApiError,
+    renameAgent,
+    renameVm,
+    stopAgent,
+    stopVm
+} from "./api";
+import { requestConfirm, requestPrompt } from "./modals";
 
 export enum WebActionIds {
-    REFRESH = "supervisor.refresh",
-    CREATE_VM = "supervisor.vm.create",
-    CREATE_CLAUDE_AGENT = "supervisor.agent.createClaude",
-    CREATE_SHELL_AGENT = "supervisor.agent.createShell",
-    COPY_CLI = "supervisor.copyCliInvocation"
+    STOP_VM = "supervisor.vm.stop",
+    RENAME_VM = "supervisor.vm.rename",
+    DELETE_VM = "supervisor.vm.delete",
+    STOP_AGENT = "supervisor.agent.stop",
+    RENAME_AGENT = "supervisor.agent.rename",
+    DELETE_AGENT = "supervisor.agent.delete"
 }
 
-interface WebUiContext {
-    /** Currently displayed VM id (when on the detail page), else null. */
-    currentVmId: string | null;
-    /** A page-supplied refresh callback so actions can re-poll data. */
-    refresh: (() => void) | null;
+export const VM_ROW_SCOPE = "vm-row";
+export const AGENT_ROW_SCOPE = "agent-row";
+
+interface ContextTarget {
+    scope: string;
+    id: string;
+    name: string | null;
+    status: string | null;
 }
 
-export const webUiContext: WebUiContext = {
-    currentVmId: null,
-    refresh: null
+let contextTarget: ContextTarget | null = null;
+
+// Sidebar registers its refresh callback here so the action handlers can
+// re-poll immediately after a mutation. Multiple listeners would normally
+// stack into a Set, but right now there is exactly one consumer (Sidebar).
+type RefreshFn = () => void;
+const refreshListeners = new Set<RefreshFn>();
+
+export const registerRefresh = (fn: RefreshFn): (() => void) => {
+    refreshListeners.add(fn);
+    return () => refreshListeners.delete(fn);
 };
 
-const handler = (
-    id: string,
-    fn: () => Promise<void> | void,
-    visibility: () => ActionVisibility = () => ActionVisibility.Shown,
-    disabledReasonText?: string
-) =>
-    new Map([
-        [
-            id,
-            {
-                id,
-                executeAction: () => {
-                    Promise.resolve(fn()).catch((e) => toast.error(String(e)));
-                },
-                getState: () => ({
-                    visibility: visibility(),
-                    disabledReasonText
-                })
-            }
-        ]
-    ]);
+const fireRefresh = () => {
+    refreshListeners.forEach((fn) => fn());
+};
 
-const requireVmContext = (): ActionVisibility =>
-    webUiContext.currentVmId ? ActionVisibility.Shown : ActionVisibility.Disabled;
+// Capture-phase so we run before GlobalContextMenu's bubble-phase listener.
+document.addEventListener(
+    "contextmenu",
+    (event) => {
+        const el = (event.target as HTMLElement | null)?.closest?.(
+            "[data-actionscope]"
+        ) as HTMLElement | null;
+        if (!el) {
+            contextTarget = null;
+            return;
+        }
+        const scope = el.getAttribute("data-actionscope");
+        const id = el.getAttribute("data-action-target-id");
+        if (!scope || !id) {
+            contextTarget = null;
+            return;
+        }
+        contextTarget = {
+            scope,
+            id,
+            name: el.getAttribute("data-action-target-name"),
+            status: el.getAttribute("data-action-target-status")
+        };
+    },
+    true
+);
+
+const isLive = (status: string | null): boolean =>
+    status !== null &&
+    status !== "stopped" &&
+    status !== "failed" &&
+    status !== "exited";
+
+const handler = (
+    actionId: string,
+    expectedScope: string,
+    fn: (target: ContextTarget) => Promise<void> | void,
+    icon: () => JSX.Element,
+    visibility: (target: ContextTarget | null) => ActionVisibility = () =>
+        ActionVisibility.Shown
+) => ({
+    id: actionId,
+    scopes: [expectedScope],
+    executeAction: () => {
+        const target = contextTarget;
+        if (!target || target.scope !== expectedScope) {
+            toast.error("no target");
+            return;
+        }
+        Promise.resolve(fn(target)).catch(async (e) =>
+            toast.error(await describeApiError(e))
+        );
+    },
+    getState: () => ({
+        visibility: visibility(contextTarget),
+        icon
+    })
+});
+
+const stopIcon = () => createElement(Square);
+const renameIcon = () => createElement(Pencil);
+const deleteIcon = () => createElement(Trash2);
 
 export const buildExtraActions = (): Action[] => [
     new Action({
-        id: WebActionIds.REFRESH,
+        id: WebActionIds.STOP_VM,
         category: "Supervisor",
-        actionHandlers: handler(WebActionIds.REFRESH, () => {
-            const fn = webUiContext.refresh;
-            if (fn) {
-                fn();
-                toast.success("refreshed");
-            } else {
-                // The list page registers a refresh callback. Fall back to a
-                // best-effort fetch so the action never silently no-ops.
-                Promise.all([listVms(), listAgents()])
-                    .then(() => toast.success("refreshed"))
-                    .catch((e) => toast.error(String(e)));
-            }
-        })
+        actionHandlers: new Map([
+            [
+                "vm-row",
+                handler(
+                    WebActionIds.STOP_VM,
+                    VM_ROW_SCOPE,
+                    async (target) => {
+                        await stopVm(target.id);
+                        toast.success(`stopping ${target.name ?? target.id}`);
+                        fireRefresh();
+                    },
+                    stopIcon,
+                    (target) =>
+                        isLive(target?.status ?? null)
+                            ? ActionVisibility.Shown
+                            : ActionVisibility.Disabled
+                )
+            ]
+        ])
     }),
     new Action({
-        id: WebActionIds.CREATE_VM,
+        id: WebActionIds.RENAME_VM,
         category: "Supervisor",
-        actionHandlers: handler(WebActionIds.CREATE_VM, async () => {
-            const vm = await createVm({});
-            toast.success(`vm ${vm.name} created`);
-            webUiContext.refresh?.();
-        })
+        actionHandlers: new Map([
+            [
+                "vm-row",
+                handler(
+                    WebActionIds.RENAME_VM,
+                    VM_ROW_SCOPE,
+                    async (target) => {
+                        const next = await requestPrompt({
+                            title: "Rename VM",
+                            description: `Current name: ${target.name ?? target.id}`,
+                            initial: target.name ?? "",
+                            placeholder: "new VM name",
+                            confirmLabel: "Rename"
+                        });
+                        if (next === null) return;
+                        const trimmed = next.trim();
+                        if (!trimmed || trimmed === target.name) return;
+                        await renameVm(target.id, trimmed);
+                        toast.success(`renamed to ${trimmed}`);
+                        fireRefresh();
+                    },
+                    renameIcon
+                )
+            ]
+        ])
     }),
     new Action({
-        id: WebActionIds.CREATE_CLAUDE_AGENT,
+        id: WebActionIds.DELETE_VM,
         category: "Supervisor",
-        actionHandlers: handler(
-            WebActionIds.CREATE_CLAUDE_AGENT,
-            async () => {
-                const id = webUiContext.currentVmId!;
-                const agent = await createAgent(id, { kind: "claude" });
-                toast.success(`spawning claude in ${agent.vm_id.slice(0, 8)}`);
-            },
-            requireVmContext,
-            "open a VM detail page first"
-        )
+        actionHandlers: new Map([
+            [
+                "vm-row",
+                handler(
+                    WebActionIds.DELETE_VM,
+                    VM_ROW_SCOPE,
+                    async (target) => {
+                        const ok = await requestConfirm({
+                            title: "Delete VM?",
+                            description: `Delete "${target.name ?? target.id}"?\n\nThis removes the VM and every on-disk artefact tied to it. This cannot be undone.`,
+                            confirmLabel: "Delete",
+                            danger: true
+                        });
+                        if (!ok) return;
+                        await deleteVm(target.id);
+                        toast.success(`deleted ${target.name ?? target.id}`);
+                        fireRefresh();
+                    },
+                    deleteIcon
+                )
+            ]
+        ])
     }),
     new Action({
-        id: WebActionIds.CREATE_SHELL_AGENT,
+        id: WebActionIds.STOP_AGENT,
         category: "Supervisor",
-        actionHandlers: handler(
-            WebActionIds.CREATE_SHELL_AGENT,
-            async () => {
-                const id = webUiContext.currentVmId!;
-                const agent = await createAgent(id, { kind: "shell" });
-                toast.success(`spawning shell in ${agent.vm_id.slice(0, 8)}`);
-            },
-            requireVmContext,
-            "open a VM detail page first"
-        )
+        actionHandlers: new Map([
+            [
+                "agent-row",
+                handler(
+                    WebActionIds.STOP_AGENT,
+                    AGENT_ROW_SCOPE,
+                    async (target) => {
+                        await stopAgent(target.id);
+                        toast.success(`stopping ${target.name ?? target.id}`);
+                        fireRefresh();
+                    },
+                    stopIcon,
+                    (target) =>
+                        isLive(target?.status ?? null)
+                            ? ActionVisibility.Shown
+                            : ActionVisibility.Disabled
+                )
+            ]
+        ])
     }),
     new Action({
-        id: WebActionIds.COPY_CLI,
+        id: WebActionIds.RENAME_AGENT,
         category: "Supervisor",
-        actionHandlers: handler(
-            WebActionIds.COPY_CLI,
-            async () => {
-                const id = webUiContext.currentVmId;
-                const cmd = id
-                    ? `mows agents create ${id} --kind claude`
-                    : "mows agents run";
-                await navigator.clipboard.writeText(cmd);
-                toast.success(`copied: ${cmd}`);
-            }
-        )
+        actionHandlers: new Map([
+            [
+                "agent-row",
+                handler(
+                    WebActionIds.RENAME_AGENT,
+                    AGENT_ROW_SCOPE,
+                    async (target) => {
+                        const next = await requestPrompt({
+                            title: "Rename agent",
+                            description: `Current name: ${target.name ?? target.id}`,
+                            initial: target.name ?? "",
+                            placeholder: "new agent name",
+                            confirmLabel: "Rename"
+                        });
+                        if (next === null) return;
+                        const trimmed = next.trim();
+                        if (!trimmed || trimmed === target.name) return;
+                        await renameAgent(target.id, trimmed);
+                        toast.success(`renamed to ${trimmed}`);
+                        fireRefresh();
+                    },
+                    renameIcon
+                )
+            ]
+        ])
+    }),
+    new Action({
+        id: WebActionIds.DELETE_AGENT,
+        category: "Supervisor",
+        actionHandlers: new Map([
+            [
+                "agent-row",
+                handler(
+                    WebActionIds.DELETE_AGENT,
+                    AGENT_ROW_SCOPE,
+                    async (target) => {
+                        const ok = await requestConfirm({
+                            title: "Delete agent?",
+                            description: `Delete "${target.name ?? target.id}"?\n\nThis removes the agent and its on-disk state. The VM stays running.`,
+                            confirmLabel: "Delete",
+                            danger: true
+                        });
+                        if (!ok) return;
+                        await deleteAgent(target.id);
+                        toast.success(`deleted ${target.name ?? target.id}`);
+                        fireRefresh();
+                    },
+                    deleteIcon
+                )
+            ]
+        ])
     })
 ];

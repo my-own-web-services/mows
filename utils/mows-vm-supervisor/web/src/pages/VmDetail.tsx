@@ -1,148 +1,274 @@
-import { Button } from "mows-components-react/components/ui/button";
+// VM detail panel — shown when a sidebar VM row is clicked.
+//
+// Layout (single column, two-column on wider screens for the bottom row):
+//   ┌─────────────────────────────────────────────────────────────┐
+//   │   ●  profitable-viper                          [...]        │
+//   │      running · started 5 minutes ago                        │
+//   ├──────────────┬──────────────┬──────────────┬───────────────┤
+//   │  CPU         │  Memory      │  Uptime      │  Agents       │
+//   │  2 vCPU      │  2 GB        │  5m 12s      │  0            │
+//   ├──────────────┴──────────────┴──────────────┴───────────────┤
+//   │   Connection                                                │
+//   │     SSH      ssh -p 32145 root@127.0.0.1     [copy]        │
+//   │     Docker   tcp://127.0.0.1:32146           [copy]        │
+//   │     Cwd      /home/paul/projects/foo         [copy]        │
+//   ├─────────────────────────────────────────────────────────────┤
+//   │   Agents in this VM                                         │
+//   │     (live list)                                             │
+//   └─────────────────────────────────────────────────────────────┘
+//
+// Polls `/v1/vms/{id}` every 2s so live status (uptime) stays fresh without
+// a page reload.
+
+import {
+    Card,
+    CardContent
+} from "mows-components-react/components/ui/card";
+import InlineEdit from "mows-components-react/components/input/inlineEdit/InlineEdit";
 import { useMows } from "mows-components-react/lib/mowsContext/MowsContext";
-import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+    Clock,
+    Cpu,
+    HardDrive,
+    MemoryStick,
+    Server
+} from "lucide-react";
+import {
+    useEffect,
+    useMemo,
+    useState,
+    type ReactNode
+} from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
-import AgentPane from "../components/AgentPane";
-import StatusBadge from "../components/StatusBadge";
-import VmConsole from "../components/VmConsole";
-import VmDisplay from "../components/VmDisplay";
+import { api, describeApiError, renameVm } from "../lib/api";
 import {
-    createAgent,
-    getVm,
-    listVmAgents,
-    type AgentSummary,
-    type VmSummary
-} from "../lib/api";
-import { webUiContext } from "../lib/actions";
+    formatBytes,
+    formatDuration,
+    formatRelative
+} from "../lib/format";
+import type { VmSummary } from "../api/generated/api-client";
+
+const POLL_MS = 2000;
+
+// Visual treatment per status. Labels themselves come from translations
+// (SLOP-10) — this constant only knows about colors. Once we add
+// semantic-token CSS variables (`bg-status-running`, …) the literal
+// Tailwind colors will move to `:root` themes.
+const STATUS_STYLE: Record<string, { dot: string; text: string }> = {
+    running: { dot: "bg-emerald-500", text: "text-emerald-500" },
+    starting: { dot: "bg-amber-500 animate-pulse", text: "text-amber-500" },
+    stopping: { dot: "bg-amber-500 animate-pulse", text: "text-amber-500" },
+    stopped: { dot: "bg-muted-foreground/40", text: "text-muted-foreground" },
+    failed: { dot: "bg-red-500", text: "text-red-500" },
+    exited: { dot: "bg-muted-foreground/40", text: "text-muted-foreground" }
+};
+
+const statusFor = (
+    status: string,
+    statusLabels: Record<string, string>
+): { dot: string; text: string; label: string } => {
+    const style =
+        STATUS_STYLE[status] ?? {
+            dot: "bg-muted-foreground/40",
+            text: "text-muted-foreground"
+        };
+    return {
+        ...style,
+        // Fall back to the raw status when an unknown value comes back —
+        // better to show the wire value than a missing-translation gap.
+        label: statusLabels[status] ?? status
+    };
+};
+
+interface StatProps {
+    icon: typeof Cpu;
+    label: string;
+    value: ReactNode;
+    sub?: ReactNode;
+}
+
+// Single stat cell rendered inside the shared overview Card; the *card* wraps
+// every stat together so they sit next to each other in one outlined surface.
+const Stat = ({ icon: Icon, label, value, sub }: StatProps) => (
+    <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <Icon className="text-muted-foreground size-4 shrink-0" aria-hidden />
+        <div className="min-w-0">
+            <div className="text-muted-foreground text-[10px] uppercase tracking-wider">
+                {label}
+            </div>
+            <div className="text-foreground truncate text-sm font-semibold tabular-nums">
+                {value}
+            </div>
+            {sub && (
+                <div className="text-muted-foreground text-xs">{sub}</div>
+            )}
+        </div>
+    </div>
+);
 
 const VmDetail = () => {
-    const { id } = useParams();
-    const { t } = useMows();
+    const { id } = useParams<{ id: string }>();
+    const mows = useMows();
+    const locale = mows.currentLanguage?.code;
     const [vm, setVm] = useState<VmSummary | null>(null);
-    const [agents, setAgents] = useState<AgentSummary[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [creating, setCreating] = useState(false);
+    const [now, setNow] = useState(() => new Date());
 
+    // Live VM + agent data.
     useEffect(() => {
         if (!id) return;
         let alive = true;
         const tick = async () => {
             try {
-                const [v, a] = await Promise.all([getVm(id), listVmAgents(id)]);
+                const vmRes = await api.v1.getVm(id);
                 if (!alive) return;
-                setVm(v);
-                setAgents(a);
+                setVm(vmRes.data);
+                setError(null);
             } catch (e) {
-                if (alive) setError(String(e));
+                if (!alive) return;
+                setError(await describeApiError(e));
             }
         };
         tick();
-        const handle = window.setInterval(tick, 2000);
-        // Expose VM context to action handlers (Ctrl-K → "Spawn claude").
-        webUiContext.currentVmId = id;
-        webUiContext.refresh = tick;
+        const h = window.setInterval(tick, POLL_MS);
         return () => {
             alive = false;
-            window.clearInterval(handle);
-            if (webUiContext.currentVmId === id) webUiContext.currentVmId = null;
-            if (webUiContext.refresh === tick) webUiContext.refresh = null;
+            window.clearInterval(h);
         };
     }, [id]);
 
-    const handleCreateAgent = async (kind: "claude" | "shell") => {
+    // Tick a clock every second so the relative time + uptime stay fresh
+    // even between data polls.
+    useEffect(() => {
+        const h = window.setInterval(() => setNow(new Date()), 1000);
+        return () => window.clearInterval(h);
+    }, []);
+
+    const commitRename = async (next: string) => {
         if (!vm) return;
-        setCreating(true);
         try {
-            await createAgent(vm.id, { kind });
-            toast.success(`spawning ${kind} in ${vm.name}`);
+            const updated = await renameVm(vm.id, next);
+            setVm(updated);
+            toast.success(
+                mows.t.supervisor.vmDetail.renamedTo.replace("{name}", next)
+            );
         } catch (e) {
-            toast.error(String(e));
-        } finally {
-            setCreating(false);
+            toast.error(await describeApiError(e));
         }
     };
 
+    const startedAt = useMemo(
+        () => (vm ? new Date(vm.started_at) : null),
+        [vm]
+    );
+    const endAt = useMemo(
+        () => (vm?.exited_at ? new Date(vm.exited_at) : null),
+        [vm]
+    );
+    const uptimeMs = useMemo(() => {
+        if (!startedAt) return 0;
+        return (endAt ?? now).getTime() - startedAt.getTime();
+    }, [startedAt, endAt, now]);
+
     if (!id) return null;
-    if (error) {
+
+    if (error && !vm) {
         return (
-            <div className="bg-destructive/20 text-destructive-foreground mx-auto mt-6 max-w-3xl rounded-md p-4 text-sm">
-                {error}
+            <div className="text-destructive p-10 text-sm">
+                {mows.t.supervisor.vmDetail.loadFailed} {error}
             </div>
         );
     }
+
     if (!vm) {
         return (
-            <div className="text-muted-foreground p-6 text-sm">Loading VM…</div>
+            <div className="text-muted-foreground p-10 text-sm">
+                {mows.t.supervisor.vmDetail.loading}
+            </div>
         );
     }
 
-    const canSpawn = vm.status === "running";
+    const status = statusFor(vm.status, mows.t.supervisor.vmDetail.status);
 
     return (
-        <div className="mx-auto max-w-7xl space-y-6 px-6 py-6">
-            <div className="flex items-baseline justify-between">
-                <div>
-                    <h1 className="text-xl font-semibold">{vm.name}</h1>
-                    <div className="text-muted-foreground mt-1 flex items-center gap-2 font-mono text-xs">
-                        <span>{vm.id}</span>
-                        <StatusBadge status={vm.status} />
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-8">
+            {/* Single outlined card: identity on the left, stats laid out
+                horizontally on the right, separated by vertical dividers. */}
+            <Card>
+                <CardContent className="flex flex-nowrap items-center gap-5 p-4">
+                    {/* Identity */}
+                    <div className="flex min-w-0 items-center gap-2.5">
+                        <Server className="text-muted-foreground size-5 shrink-0" aria-hidden />
+                        <div className="min-w-0">
+                            <InlineEdit
+                                as="h1"
+                                value={vm.name}
+                                onCommit={commitRename}
+                                ariaLabel="VM name"
+                                // Lock the editor width so typing long names
+                                // never reflows the hero row. 18rem fits a
+                                // realistic VM-name range; the caret scrolls
+                                // horizontally for longer values.
+                                width="18rem"
+                                className="text-foreground text-lg font-semibold tracking-tight"
+                            />
+                            <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-xs">
+                                <span
+                                    className={`${status.dot} inline-block size-1.5 shrink-0 rounded-full`}
+                                    aria-hidden
+                                />
+                                <span className={`${status.text} font-medium`}>
+                                    {status.label}
+                                </span>
+                                <span aria-hidden>·</span>
+                                <span className="truncate">
+                                    {startedAt
+                                        ? formatRelative(startedAt, now, locale)
+                                        : "—"}
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div className="text-muted-foreground text-xs">
-                    ssh: 127.0.0.1:{vm.host_ssh_port ?? "—"}
-                </div>
-            </div>
 
-            <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <VmDisplay vmId={vm.id} />
-                <div className="h-[300px]">
-                    <VmConsole vmId={vm.id} />
-                </div>
-            </section>
-
-            <section>
-                <header className="mb-3 flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">{t.supervisor.agents.heading}</h2>
-                    <div className="flex gap-2">
-                        <Button
-                            size="sm"
-                            onClick={() => handleCreateAgent("claude")}
-                            disabled={!canSpawn || creating}
-                            title={canSpawn ? undefined : t.supervisor.agents.disabledHint}
-                        >
-                            <Plus className="mr-1 h-4 w-4" />
-                            {t.supervisor.agents.createClaude}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleCreateAgent("shell")}
-                            disabled={!canSpawn || creating}
-                            title={canSpawn ? undefined : t.supervisor.agents.disabledHint}
-                        >
-                            <Plus className="mr-1 h-4 w-4" />
-                            {t.supervisor.agents.createShell}
-                        </Button>
+                    {/* Stats — fill remaining width, all on one line */}
+                    <div className="flex flex-1 flex-nowrap items-center gap-6">
+                        <Stat
+                            icon={Cpu}
+                            label={mows.t.supervisor.vmDetail.stat.cpu}
+                            value={
+                                vm.cpus
+                                    ? `${vm.cpus} ${mows.t.supervisor.vmDetail.stat.vcpuSuffix}`
+                                    : mows.t.supervisor.vmDetail.stat.unknown
+                            }
+                        />
+                        <Stat
+                            icon={MemoryStick}
+                            label={mows.t.supervisor.vmDetail.stat.memory}
+                            value={
+                                vm.memory_mb
+                                    ? formatBytes(vm.memory_mb)
+                                    : mows.t.supervisor.vmDetail.stat.unknown
+                            }
+                        />
+                        <Stat
+                            icon={Clock}
+                            label={mows.t.supervisor.vmDetail.stat.uptime}
+                            value={formatDuration(uptimeMs)}
+                            sub={endAt ? mows.t.supervisor.vmDetail.stoppedSub : undefined}
+                        />
+                        <Stat
+                            icon={HardDrive}
+                            label={mows.t.supervisor.vmDetail.stat.baseImage}
+                            value={
+                                <span className="capitalize">
+                                    {vm.image === "nixos" ? "NixOS" : vm.image}
+                                </span>
+                            }
+                        />
                     </div>
-                </header>
-                {agents.length === 0 ? (
-                    <div className="text-muted-foreground rounded-md border border-dashed p-6 text-center text-sm">
-                        {t.supervisor.agents.empty}{" "}
-                        {t.supervisor.agents.emptyHintCli}{" "}
-                        <code className="bg-muted rounded px-1 py-0.5 font-mono">
-                            mows agents create {vm.id.slice(0, 8)} --kind claude
-                        </code>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        {agents.map((a) => (
-                            <AgentPane key={a.id} agent={a} />
-                        ))}
-                    </div>
-                )}
-            </section>
+                </CardContent>
+            </Card>
         </div>
     );
 };

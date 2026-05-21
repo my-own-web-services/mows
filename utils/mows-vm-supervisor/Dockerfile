@@ -8,7 +8,9 @@ FROM scratch AS sources
 COPY --from=lock ./Cargo.lock ./
 COPY cargo-workspace-docker.toml ./Cargo.toml
 
-FROM clux/muslrust:nightly AS chef-builder
+# Pinned to match utils/mows-cli/Dockerfile — floating `:nightly` was
+# producing byte-different binaries on every rebuild (DEVOPS-15).
+FROM clux/muslrust:1.92.0-stable AS chef-builder
 ARG CARGO_CHEF_REF
 RUN cargo install --git https://github.com/firstdorsal/cargo-chef --rev=08314d0
 RUN cargo install --locked --no-default-features sccache
@@ -52,7 +54,12 @@ RUN if [ "${PROFILE}" = "dev" ]; then mv /build/target/x86_64-unknown-linux-musl
 RUN if [ "${PROFILE}" = "release" ]; then strip /${BINARY_NAME}; fi
 RUN if [ "${PROFILE}" = "release" ]; then upx --best --lzma /${BINARY_NAME}; fi
 
-RUN useradd -u 50050 -N ${SERVICE_NAME}
+# NOTE: the supervisor MUST run as root in the final stage — it needs
+# `NET_ADMIN`/`SYS_ADMIN` capabilities and access to `/dev/kvm` to spawn
+# QEMU. Per DEVOPS-17 we deliberately do NOT create an unprivileged
+# service user / `USER` switch here, since dropping privileges would
+# immediately break the KVM ioctl path. Document this explicitly so a
+# future hardening pass doesn't assume the useradd was just missing.
 
 # Final stage. Alpine (not scratch) so the container has qemu-system-x86_64,
 # wireguard-tools, and a shell — the supervisor spawns processes, and a
@@ -73,7 +80,6 @@ RUN apk add --no-cache \
         wget \
         curl
 COPY --from=builder /${BINARY_NAME} ./mows-vm-supervisor
-COPY --from=builder /etc/passwd /etc/passwd
 ENV SERVICE_NAME=${SERVICE_NAME}
 ENV SERVICE_VERSION=${SERVICE_VERSION}
 ENV MOWS_VM_SUPERVISOR_CONFIG=/etc/mows-vm-supervisor/config.yaml

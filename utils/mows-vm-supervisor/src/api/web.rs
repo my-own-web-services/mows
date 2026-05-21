@@ -51,6 +51,22 @@ async fn serve_static(uri: Uri) -> Response {
     (StatusCode::NOT_FOUND, body).into_response()
 }
 
+// Locked-down CSP for the supervisor UI. The backend is same-origin and
+// websockets terminate at the same host, so `'self'` everywhere is
+// sufficient. `style-src 'unsafe-inline'` is required because Tailwind
+// emits some inline styles; `img-src` and `media-src` allow data: + blob:
+// so VNC framebuffer canvases and console exports keep working.
+const CSP_HEADER: &str = "default-src 'self'; \
+img-src 'self' data: blob:; \
+media-src 'self' blob:; \
+worker-src 'self' blob:; \
+connect-src 'self' ws: wss:; \
+style-src 'self' 'unsafe-inline'; \
+script-src 'self'; \
+frame-ancestors 'none'; \
+base-uri 'self'; \
+form-action 'self'";
+
 fn file_response(path: &str, bytes: &'static [u8]) -> Response {
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -66,6 +82,31 @@ fn file_response(path: &str, bytes: &'static [u8]) -> Response {
         "no-cache"
     };
     headers.insert(header::CACHE_CONTROL, HeaderValue::from_static(cache));
+
+    // Defence-in-depth response headers. Apply to every static asset
+    // (HTML, JS, CSS, fonts, …) so an XSS landed via any of them is
+    // contained by the CSP, and so the UI cannot be iframed or sniffed
+    // into a script context.
+    headers.insert(
+        header::CONTENT_SECURITY_POLICY,
+        HeaderValue::from_static(CSP_HEADER),
+    );
+    headers.insert(
+        header::X_CONTENT_TYPE_OPTIONS,
+        HeaderValue::from_static("nosniff"),
+    );
+    headers.insert(
+        header::X_FRAME_OPTIONS,
+        HeaderValue::from_static("DENY"),
+    );
+    headers.insert(
+        header::REFERRER_POLICY,
+        HeaderValue::from_static("same-origin"),
+    );
+    headers.insert(
+        header::HeaderName::from_static("cross-origin-resource-policy"),
+        HeaderValue::from_static("same-origin"),
+    );
 
     (StatusCode::OK, headers, Body::from(bytes)).into_response()
 }

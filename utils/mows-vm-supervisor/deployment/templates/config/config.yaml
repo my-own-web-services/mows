@@ -3,7 +3,12 @@
 state_dir: /var/lib/mows-agent
 image_dir: /var/lib/mows-agent/images
 unix_socket: /run/mows-agent.sock
-http_listen: 0.0.0.0:7878
+# Bind the loopback HTTP listener to 127.0.0.1 inside the container.
+# Docker's port map (`127.0.0.1:7878:7878` in the compose template) is
+# what makes it reachable from the host; binding to 0.0.0.0 here would
+# expose the listener if anyone ran the container with `--network host`
+# by mistake. Defense in depth (DEVOPS-51).
+http_listen: 127.0.0.1:7878
 qemu_binary: qemu-system-x86_64
 vm_defaults:
     cpus: 2
