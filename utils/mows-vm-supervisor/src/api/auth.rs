@@ -54,11 +54,11 @@ struct UserRow {
 )]
 async fn login(
     State(state): State<SharedState>,
-    Json(req): Json<LoginRequest>,
+    Json(request): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>> {
     let row: Option<UserRow> =
         sqlx::query_as("SELECT id, argon2_hash FROM users WHERE username = ?1")
-            .bind(&req.username)
+            .bind(&request.username)
             .fetch_optional(&state.db)
             .await?;
 
@@ -72,7 +72,7 @@ async fn login(
     };
     let parsed = PasswordHash::new(&hash_to_verify)
         .map_err(|e| SupervisorError::PasswordHash(e.to_string()))?;
-    let verify = Argon2::default().verify_password(req.password.as_bytes(), &parsed);
+    let verify = Argon2::default().verify_password(request.password.as_bytes(), &parsed);
 
     let id = match (user_id, verify) {
         (Some(id), Ok(())) => id,

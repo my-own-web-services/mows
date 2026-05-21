@@ -4,7 +4,11 @@ import * as monaco from "monaco-editor";
 import * as React from "react";
 import type { CodeSnippetProps } from "./CodeSnippet";
 import type { CodeViewerLanguage } from "../codeViewer/CodeViewer";
-import { ensureShikiMonacoReady } from "../codeViewer/shikiBridge";
+import {
+    ensureShikiMonacoReady,
+    isSupportedThemeId,
+    SHIKI_THEME_NAME
+} from "../codeViewer/shikiBridge";
 
 const monacoLanguageFor = (lang: CodeViewerLanguage | undefined): string => {
     switch (lang) {
@@ -105,7 +109,13 @@ const colorizeCached = async (
 const MonacoColorizer = (props: CodeSnippetProps) => {
     const { code, language = `text`, mode = `block`, className, style } = props;
     const ctx = useMows();
-    const themeId = ctx?.currentCodeTheme?.monacoThemeId ?? `one-dark-nx`;
+    // Mirrors the guard in MonacoCodeEditor: shikiToMonaco's wrapper
+    // throws on unknown theme names, which would crash the whole
+    // CodeSnippet render path. Fall back instead.
+    const requestedThemeId = ctx?.currentCodeTheme?.monacoThemeId ?? SHIKI_THEME_NAME;
+    const themeId = isSupportedThemeId(requestedThemeId)
+        ? requestedThemeId
+        : SHIKI_THEME_NAME;
     const monacoLang = monacoLanguageFor(language);
     // Inline mode collapses newlines and clips to a single visual line.
     const sanitizedCode = mode === `inline` ? code.replace(/\s+/g, ` `).trim() : code;

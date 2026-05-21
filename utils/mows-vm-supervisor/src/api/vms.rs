@@ -260,14 +260,14 @@ pub(super) async fn load_vm(state: &SharedState, id: &str) -> Result<VmSummary> 
 )]
 async fn create_vm(
     State(state): State<SharedState>,
-    Json(req): Json<CreateVmRequest>,
+    Json(request): Json<CreateVmRequest>,
 ) -> Result<Json<VmSummary>> {
     let id = uuid::Uuid::new_v4().to_string();
 
     // Validate workspace path BEFORE any side effect. Rejects relative paths,
     // missing directories, and embedded commas/newlines that would inject
     // extra QEMU `-fsdev` options.
-    let workspace: Option<PathBuf> = req
+    let workspace: Option<PathBuf> = request
         .cwd
         .as_deref()
         .map(validate_workspace_path)
@@ -288,7 +288,7 @@ async fn create_vm(
             "petname dictionary returned no name — image rebuild may have missed an asset".into(),
         )
     })?;
-    let raw_name = req.name.unwrap_or_else(|| match cwd_basename {
+    let raw_name = request.name.unwrap_or_else(|| match cwd_basename {
         Some(base) => format!("{base}-{suffix}"),
         // `suffix` is consumed here (only branch that uses it bare); no
         // clone needed (TECH-RUST-17).
@@ -298,13 +298,13 @@ async fn create_vm(
     let started_at = Utc::now().to_rfc3339();
     let status = VmStatus::Starting;
 
-    let cpus = req.cpus.unwrap_or(state.config.vm_defaults.cpus);
-    let memory_mb = req.memory_mb.unwrap_or(state.config.vm_defaults.memory_mb);
+    let cpus = request.cpus.unwrap_or(state.config.vm_defaults.cpus);
+    let memory_mb = request.memory_mb.unwrap_or(state.config.vm_defaults.memory_mb);
     // SLOP-36: if the caller omits `image` we still default to Alpine to
     // keep the smoke-test surface ergonomic, but surface the implicit
     // choice so operators can grep for "image=alpine" + missing-image
     // requests instead of having the default silently mask a typo.
-    let image = match req.image {
+    let image = match request.image {
         Some(image) => image,
         None => {
             tracing::info!(
@@ -314,7 +314,7 @@ async fn create_vm(
             VmImage::default()
         }
     };
-    let display_mode = match req.display_mode {
+    let display_mode = match request.display_mode {
         Some(mode) => mode,
         None => {
             tracing::info!(
@@ -510,14 +510,14 @@ async fn stop_vm(
     .await?;
 
     let exited_at = Utc::now().to_rfc3339();
-    let res = sqlx::query(
+    let query_result = sqlx::query(
         "UPDATE vms SET status = 'stopped', exited_at = ?1 WHERE id = ?2 AND status != 'stopped'",
     )
     .bind(&exited_at)
     .bind(&id)
     .execute(&state.db)
     .await?;
-    if res.rows_affected() == 0 {
+    if query_result.rows_affected() == 0 {
         return Err(SupervisorError::NotFound(format!(
             "vm {id} not found or already stopped"
         )));
@@ -563,15 +563,15 @@ async fn stop_vm(
 async fn update_vm(
     State(state): State<SharedState>,
     Path(id): Path<String>,
-    Json(req): Json<UpdateVmRequest>,
+    Json(request): Json<UpdateVmRequest>,
 ) -> Result<Json<VmSummary>> {
-    let trimmed = validate_resource_name("name", &req.name)?;
-    let res = sqlx::query("UPDATE vms SET name = ?1 WHERE id = ?2")
+    let trimmed = validate_resource_name("name", &request.name)?;
+    let query_result = sqlx::query("UPDATE vms SET name = ?1 WHERE id = ?2")
         .bind(&trimmed)
         .bind(&id)
         .execute(&state.db)
         .await?;
-    if res.rows_affected() == 0 {
+    if query_result.rows_affected() == 0 {
         return Err(SupervisorError::NotFound(format!("vm {id} not found")));
     }
     Ok(Json(load_vm(&state, &id).await?))
@@ -599,11 +599,11 @@ async fn delete_vm(
             .fetch_optional(&state.db)
             .await?;
 
-    let res = sqlx::query("DELETE FROM vms WHERE id = ?1")
+    let query_result = sqlx::query("DELETE FROM vms WHERE id = ?1")
         .bind(&id)
         .execute(&state.db)
         .await?;
-    if res.rows_affected() == 0 {
+    if query_result.rows_affected() == 0 {
         return Err(SupervisorError::NotFound(format!("vm {id} not found")));
     }
     // Mark any agents this VM hosted as stopped (the rows survive for audit;

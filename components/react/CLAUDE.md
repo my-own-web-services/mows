@@ -32,7 +32,13 @@ app-specific imports (no `filez-client-typescript`, no filez-named constants).
 - All constants live in `lib/lib/constants.ts` (e.g. localStorage suffix names).
 - Run `pnpm lint:fix` to format files.
 - Do not use `bg-gray-50` and similar literal colors — use the semantic tokens
-  (`bg-background`, `bg-card`, `text-foreground`, etc.).
+  (`bg-background`, `bg-card`, `text-foreground`, etc.). This is enforced by an
+  ESLint `no-restricted-syntax` rule that bans `(bg|text|border|ring|…)-(zinc|
+  gray|slate|neutral|stone)-N` in both string and template literals: the
+  neutral palette doesn't flip between themes, so a surface built on it will
+  stay one shade regardless of light/dark (this caused the install-block
+  bug). Status colours (`text-destructive`, `text-amber-500`, …) and media
+  overlays (`bg-black/70`) are unaffected.
 
 # Component taxonomy
 

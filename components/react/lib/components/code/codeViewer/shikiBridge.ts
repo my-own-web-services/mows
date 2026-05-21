@@ -10,11 +10,18 @@ import * as monaco from "monaco-editor";
 import { shikiToMonaco } from "@shikijs/monaco";
 import {
     getShikiHighlighter,
+    isSupportedThemeId,
     SHIKI_LANG_IDS,
+    SHIKI_THEME_IDS,
     SHIKI_THEME_NAME
 } from "./shikiHighlighter";
 
-export { getShikiHighlighter, SHIKI_THEME_NAME };
+export {
+    getShikiHighlighter,
+    isSupportedThemeId,
+    SHIKI_THEME_IDS,
+    SHIKI_THEME_NAME
+};
 
 let monacoWired = false;
 let monacoReadyPromise: Promise<void> | null = null;

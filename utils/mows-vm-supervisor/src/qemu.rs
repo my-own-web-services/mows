@@ -118,7 +118,7 @@ pub struct QemuInvocation {
 }
 
 impl QemuInvocation {
-    pub fn build(cfg: &SupervisorConfig, spec: &VmLaunchSpec) -> Result<Self> {
+    pub fn build(config: &SupervisorConfig, spec: &VmLaunchSpec) -> Result<Self> {
         let vm_dir = vm_dir_for(&spec.state_dir, &spec.vm_id);
         let overlay_path = vm_dir.join("disk.qcow2");
         let console_log_path = vm_dir.join("console.log");
@@ -127,7 +127,7 @@ impl QemuInvocation {
         // Resolved at startup in `SupervisorConfig::load`; reading the env
         // here on every VM spawn would violate the "all env vars upfront"
         // rule and is also racy with `std::env::set_var`.
-        let creds_host_path = cfg.agent_host_creds_path.clone();
+        let creds_host_path = config.agent_host_creds_path.clone();
 
         // Borrow the spec's PathBufs directly — `spec` is already borrowed
         // for the lifetime of `build`, so the clones (TECH-RUST-16) were
@@ -234,7 +234,7 @@ impl QemuInvocation {
         ]);
 
         Ok(Self {
-            program: cfg.qemu_binary.clone(),
+            program: config.qemu_binary.clone(),
             args,
             overlay_path,
             console_log_path,
@@ -377,7 +377,7 @@ pub struct ImageArtifacts {
 }
 
 pub fn locate_image(
-    cfg: &SupervisorConfig,
+    config: &SupervisorConfig,
     distro: &str,
     flavor: &str,
 ) -> Result<ImageArtifacts> {
@@ -388,9 +388,9 @@ pub fn locate_image(
         other => other,
     };
     let prefix = format!("{distro}-{flavor}-mows-agent-{arch_name}");
-    let qcow2 = cfg.image_dir.join(format!("{prefix}.qcow2"));
-    let kernel = cfg.image_dir.join(format!("{prefix}.vmlinuz"));
-    let initramfs = cfg.image_dir.join(format!("{prefix}.initramfs"));
+    let qcow2 = config.image_dir.join(format!("{prefix}.qcow2"));
+    let kernel = config.image_dir.join(format!("{prefix}.vmlinuz"));
+    let initramfs = config.image_dir.join(format!("{prefix}.initramfs"));
     if !qcow2.exists() {
         return Err(SupervisorError::ImageMissing(format!(
             "expected qcow2 at {} — run `bash image-builder/build.sh --distro {distro} --flavor {flavor}`",
@@ -594,8 +594,8 @@ mod tests {
 
     #[test]
     fn invocation_includes_kvm_and_serial() {
-        let cfg = SupervisorConfig::defaults_for_tests();
-        let inv = QemuInvocation::build(&cfg, &test_spec()).unwrap();
+        let config = SupervisorConfig::defaults_for_tests();
+        let inv = QemuInvocation::build(&config, &test_spec()).unwrap();
         let joined = inv.args.join(" ");
         assert!(joined.contains("accel=kvm"));
         assert!(!joined.contains("-nographic"));
@@ -607,10 +607,10 @@ mod tests {
 
     #[test]
     fn invocation_desktop_mode_adds_virtio_vga() {
-        let cfg = SupervisorConfig::defaults_for_tests();
+        let config = SupervisorConfig::defaults_for_tests();
         let mut spec = test_spec();
         spec.display_mode = DisplayMode::Desktop;
-        let inv = QemuInvocation::build(&cfg, &spec).unwrap();
+        let inv = QemuInvocation::build(&config, &spec).unwrap();
         let joined = inv.args.join(" ");
         assert!(
             joined.contains("virtio-vga-gl"),
@@ -620,8 +620,8 @@ mod tests {
 
     #[test]
     fn invocation_headless_mode_skips_gpu() {
-        let cfg = SupervisorConfig::defaults_for_tests();
-        let inv = QemuInvocation::build(&cfg, &test_spec()).unwrap();
+        let config = SupervisorConfig::defaults_for_tests();
+        let inv = QemuInvocation::build(&config, &test_spec()).unwrap();
         let joined = inv.args.join(" ");
         assert!(
             !joined.contains("virtio-vga"),
@@ -631,8 +631,8 @@ mod tests {
 
     #[test]
     fn invocation_binds_vnc_unix_socket() {
-        let cfg = SupervisorConfig::defaults_for_tests();
-        let inv = QemuInvocation::build(&cfg, &test_spec()).unwrap();
+        let config = SupervisorConfig::defaults_for_tests();
+        let inv = QemuInvocation::build(&config, &test_spec()).unwrap();
         let joined = inv.args.join(" ");
         assert!(joined.contains("-vnc unix:/tmp/mows-agent-test/vms/id-123/display.sock"));
         assert_eq!(
@@ -643,8 +643,8 @@ mod tests {
 
     #[test]
     fn invocation_binds_console_unix_socket() {
-        let cfg = SupervisorConfig::defaults_for_tests();
-        let inv = QemuInvocation::build(&cfg, &test_spec()).unwrap();
+        let config = SupervisorConfig::defaults_for_tests();
+        let inv = QemuInvocation::build(&config, &test_spec()).unwrap();
         let joined = inv.args.join(" ");
         assert!(joined.contains("path=/tmp/mows-agent-test/vms/id-123/console.sock"));
         assert!(joined.contains("server=on,wait=off"));
@@ -656,8 +656,8 @@ mod tests {
 
     #[test]
     fn invocation_includes_port_forwards() {
-        let cfg = SupervisorConfig::defaults_for_tests();
-        let inv = QemuInvocation::build(&cfg, &test_spec()).unwrap();
+        let config = SupervisorConfig::defaults_for_tests();
+        let inv = QemuInvocation::build(&config, &test_spec()).unwrap();
         let joined = inv.args.join(" ");
         assert!(joined.contains("hostfwd=tcp:127.0.0.1:22001-:22"));
         assert!(joined.contains("hostfwd=tcp:127.0.0.1:22501-:2375"));
@@ -665,10 +665,10 @@ mod tests {
 
     #[test]
     fn invocation_omits_workspace_when_absent() {
-        let cfg = SupervisorConfig::defaults_for_tests();
+        let config = SupervisorConfig::defaults_for_tests();
         let mut spec = test_spec();
         spec.workspace = None;
-        let inv = QemuInvocation::build(&cfg, &spec).unwrap();
+        let inv = QemuInvocation::build(&config, &spec).unwrap();
         let joined = inv.args.join(" ");
         assert!(!joined.contains("mount_tag=workspace"));
         assert!(joined.contains("mount_tag=mowsinit"));

@@ -409,7 +409,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-33
+- **ID:** ✅ TASTE-33
+- **Status:** Fixed — `cfg` → `config` across the supervisor's Rust crate. Affected sites: `main.rs::--print-default-config` (1 site), `config.rs::load` (4 sites), `qemu.rs::QemuInvocation::build` parameter + body (4 sites), `qemu.rs::locate_image` parameter (1 site), `qemu.rs` tests (12 sites). `#[cfg(unix)]`/`#[cfg(test)]` attribute macros are NOT renamed — they're Rust syntax, not abbreviations. `cargo check --tests` clean; 29 unit tests pass.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/src/qemu.rs:62,173,218,272 + 28 occurrences across the supervisor
 - **Issue:** `cfg: &SupervisorConfig` parameter names. The function reads `cfg.qemu_binary`, `cfg.image_dir`, etc.
@@ -418,7 +419,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-34
+- **ID:** ✅ TASTE-34
+- **Status:** Fixed — `req` → `request` and `res` → `query_result` in every supervisor HTTP handler body. Renames: `users.rs::create_user`, `agents.rs::create_agent` + `update_agent` + `delete_agent` + `update_vm`, `vms.rs::create_vm` + `update_vm` + `delete_vm` + `stop_vm`, `auth.rs::login`. `auth_middleware.rs`'s `req: Request` parameter is intentionally NOT renamed — that's the axum middleware convention and matches every public middleware example. `cargo check --tests` clean; 29 unit tests pass.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/src/api/{vms,agents,users,auth}.rs (every handler)
 - **Issue:** `Json(req): Json<CreateVmRequest>` — `req` everywhere for the request body parameter, plus `res` for the SQLx `query` result everywhere (e.g. `let res = sqlx::query(...).execute(...).await?;`).

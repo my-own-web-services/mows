@@ -153,13 +153,13 @@ impl SupervisorConfig {
                 path.display()
             ))
         })?;
-        let mut cfg: Self = serde_yaml_neo::from_str(&raw)?;
-        cfg.api_token = read_secret(
+        let mut config: Self = serde_yaml_neo::from_str(&raw)?;
+        config.api_token = read_secret(
             "MOWS_VM_SUPERVISOR_API_TOKEN",
             "MOWS_VM_SUPERVISOR_API_TOKEN_FILE",
         )?;
-        cfg.agent_host_creds_path = resolve_agent_host_creds_path();
-        Ok(cfg)
+        config.agent_host_creds_path = resolve_agent_host_creds_path();
+        Ok(config)
     }
 
     /// In-memory default for unit tests — uses `/tmp/...` paths so a

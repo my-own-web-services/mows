@@ -34,8 +34,8 @@ async fn main() -> Result<()> {
         // SLOP-39: use the production-safe constructor so the YAML an
         // operator pipes into a real config file points at
         // `/var/lib/mows-agent`, not the test sandbox.
-        let cfg = SupervisorConfig::defaults_for_user();
-        println!("{}", serde_yaml_neo::to_string(&cfg)?);
+        let config = SupervisorConfig::defaults_for_user();
+        println!("{}", serde_yaml_neo::to_string(&config)?);
         return Ok(());
     }
 

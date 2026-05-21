@@ -6,7 +6,7 @@ import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import jsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
 import * as React from "react";
 import type { CodeViewerProps } from "./CodeViewer";
-import { ensureShikiMonacoReady, SHIKI_THEME_NAME } from "./shikiBridge";
+import { ensureShikiMonacoReady, isSupportedThemeId, SHIKI_THEME_NAME } from "./shikiBridge";
 import {
     estimateFitContentHeight,
     MONACO_LINE_HEIGHT_PX
@@ -104,8 +104,24 @@ const MonacoCodeEditor = (props: CodeViewerProps) => {
         revealLine
     } = props;
 
-    const themeId =
-        (ctx?.currentCodeTheme?.monacoThemeId as string | undefined) ?? `one-dark-nx`;
+    // Defence-in-depth: once `shikiToMonaco()` runs it replaces Monaco's
+    // theme dispatch with one that throws "Theme `X` not found" for any
+    // name not registered with shiki. A stale localStorage value, a
+    // misconfigured `codeThemes` prop, or a future regression must never
+    // be able to crash the entire page — fall back to the always-present
+    // shiki theme and warn, instead of letting the error bubble up.
+    const requestedThemeId =
+        (ctx?.currentCodeTheme?.monacoThemeId as string | undefined) ?? SHIKI_THEME_NAME;
+    const themeId = isSupportedThemeId(requestedThemeId)
+        ? requestedThemeId
+        : (console.warn(
+              `[CodeViewer] Unknown code theme "${requestedThemeId}", ` +
+                  `falling back to "${SHIKI_THEME_NAME}". ` +
+                  `Check that lib/lib/codeThemes.ts and ` +
+                  `lib/components/code/codeViewer/shikiHighlighter.ts ` +
+                  `agree on the theme list.`
+          ),
+          SHIKI_THEME_NAME);
 
     // Suspend editor mount until shiki + the TextMate tokens provider
     // have been wired into Monaco. Otherwise the first paint comes back

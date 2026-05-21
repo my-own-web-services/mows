@@ -73,23 +73,23 @@ async fn list_users(State(state): State<SharedState>) -> Result<Json<Vec<UserSum
 async fn create_user(
     State(state): State<SharedState>,
     Extension(actor): Extension<AuthContext>,
-    Json(req): Json<CreateUserRequest>,
+    Json(request): Json<CreateUserRequest>,
 ) -> Result<Json<UserSummary>> {
     if actor.role != "admin" {
         return Err(SupervisorError::Forbidden);
     }
-    if req.role != "admin" && req.role != "user" {
+    if request.role != "admin" && request.role != "user" {
         return Err(SupervisorError::BadRequest(format!(
             "role must be 'admin' or 'user', got {:?}",
-            req.role
+            request.role
         )));
     }
-    if req.password.len() < MIN_PASSWORD_LEN {
+    if request.password.len() < MIN_PASSWORD_LEN {
         return Err(SupervisorError::BadRequest(format!(
             "password must be at least {MIN_PASSWORD_LEN} characters"
         )));
     }
-    if req.username.trim().is_empty() {
+    if request.username.trim().is_empty() {
         return Err(SupervisorError::BadRequest(
             "username must not be empty".into(),
         ));
@@ -97,7 +97,7 @@ async fn create_user(
     let id = uuid::Uuid::new_v4().to_string();
     let salt = SaltString::generate(&mut OsRng);
     let hash = Argon2::default()
-        .hash_password(req.password.as_bytes(), &salt)?
+        .hash_password(request.password.as_bytes(), &salt)?
         .to_string();
     let created_at = Utc::now().to_rfc3339();
 
@@ -105,23 +105,23 @@ async fn create_user(
         "INSERT INTO users (id, username, argon2_hash, role, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
     )
     .bind(&id)
-    .bind(&req.username)
+    .bind(&request.username)
     .bind(&hash)
-    .bind(&req.role)
+    .bind(&request.role)
     .bind(&created_at)
     .execute(&state.db)
     .await
     .map_err(|e| match e {
         sqlx::Error::Database(ref db_err) if db_err.is_unique_violation() => {
-            SupervisorError::Conflict(format!("username {:?} already exists", req.username))
+            SupervisorError::Conflict(format!("username {:?} already exists", request.username))
         }
         other => SupervisorError::from(other),
     })?;
 
     Ok(Json(UserSummary {
         id,
-        username: req.username,
-        role: req.role,
+        username: request.username,
+        role: request.role,
         created_at,
     }))
 }

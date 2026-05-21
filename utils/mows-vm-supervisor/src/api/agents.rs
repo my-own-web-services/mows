@@ -159,9 +159,9 @@ struct VmRow {
 async fn create_agent(
     State(state): State<SharedState>,
     Path(vm_id): Path<String>,
-    Json(req): Json<CreateAgentRequest>,
+    Json(request): Json<CreateAgentRequest>,
 ) -> Result<Json<AgentSummary>> {
-    let kind_name = req.kind.unwrap_or_else(|| "shell".to_string());
+    let kind_name = request.kind.unwrap_or_else(|| "shell".to_string());
     let kind = match kind_name.as_str() {
         "shell" => crate::kinds::builtin_shell(),
         "claude" => crate::kinds::builtin_claude(),
@@ -199,7 +199,7 @@ async fn create_agent(
     })?;
 
     let id = uuid::Uuid::new_v4().to_string();
-    let raw_name = req
+    let raw_name = request
         .name
         .unwrap_or_else(|| format!("{}-{}", kind_name, Utc::now().format("%Y%m%d-%H%M%S")));
     let name = crate::api::validation::validate_resource_name("name", &raw_name)?;
@@ -291,7 +291,7 @@ async fn stop_agent(
     Path(id): Path<String>,
 ) -> Result<Json<OperationResult>> {
     let exited_at = Utc::now().to_rfc3339();
-    let res = sqlx::query(
+    let query_result = sqlx::query(
         "UPDATE agents SET status = 'stopped', exited_at = ?1 \
          WHERE id = ?2 AND status != 'stopped'",
     )
@@ -299,7 +299,7 @@ async fn stop_agent(
     .bind(&id)
     .execute(&state.db)
     .await?;
-    if res.rows_affected() == 0 {
+    if query_result.rows_affected() == 0 {
         return Err(SupervisorError::NotFound(format!(
             "agent {id} not found or already stopped"
         )));
@@ -326,15 +326,15 @@ async fn stop_agent(
 async fn update_agent(
     State(state): State<SharedState>,
     Path(id): Path<String>,
-    Json(req): Json<UpdateAgentRequest>,
+    Json(request): Json<UpdateAgentRequest>,
 ) -> Result<Json<AgentSummary>> {
-    let trimmed = crate::api::validation::validate_resource_name("name", &req.name)?;
-    let res = sqlx::query("UPDATE agents SET name = ?1 WHERE id = ?2")
+    let trimmed = crate::api::validation::validate_resource_name("name", &request.name)?;
+    let query_result = sqlx::query("UPDATE agents SET name = ?1 WHERE id = ?2")
         .bind(&trimmed)
         .bind(&id)
         .execute(&state.db)
         .await?;
-    if res.rows_affected() == 0 {
+    if query_result.rows_affected() == 0 {
         return Err(SupervisorError::NotFound(format!("agent {id} not found")));
     }
     Ok(Json(load_agent(&state, &id).await?))
@@ -355,11 +355,11 @@ async fn delete_agent(
     State(state): State<SharedState>,
     Path(id): Path<String>,
 ) -> Result<Json<OperationResult>> {
-    let res = sqlx::query("DELETE FROM agents WHERE id = ?1")
+    let query_result = sqlx::query("DELETE FROM agents WHERE id = ?1")
         .bind(&id)
         .execute(&state.db)
         .await?;
-    if res.rows_affected() == 0 {
+    if query_result.rows_affected() == 0 {
         return Err(SupervisorError::NotFound(format!("agent {id} not found")));
     }
     Ok(Json(OperationResult::deleted(id)))
