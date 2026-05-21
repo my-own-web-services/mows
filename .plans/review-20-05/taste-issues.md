@@ -184,7 +184,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-13
+- **ID:** ✅ TASTE-13
+- **Status:** Fixed — The favorite-star button in `App.tsx` (line 593) now uses the shadcn `<Button variant="ghost" size="icon">` primitive instead of a raw `<button>`. The custom flex/h-9/w-9/transition-colors styling collapses into the Button primitive's built-in surface; only the per-state foreground tint stays in `className`. The `<a>` inside `SidebarMenuButton asChild` flagged as the other half of TASTE-13 is the documented shadcn pattern for menu navigation; it stays.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/src/App.tsx:260-274,445-468
 - **Issue:** Raw `<a href>` (line 260-274) and raw `<button type="button">` (line 445-468) in the example app's sidebar. App-level violation of the library's no-raw-controls rule.
@@ -195,7 +196,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-14
+- **ID:** ✅ TASTE-14
+- **Status:** Fixed — `selectionFromPath` now parses the URL via WHATWG `new URL(pathname, window.location.origin)` and `split(\`/\`).filter(Boolean)` so query strings (`/Button?focus=variants`) and trailing slashes (`/Button/`) are handled uniformly. The base-path-prefix check is preserved so the deployed `/mows/` GitHub Pages layout keeps working. 988 harness tests still pass.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/src/App.tsx:107-114
 - **Issue:** `pathname.replace(DEFAULT_PATH_PREFIX, ``).split(`/`)[0]` for URL parsing instead of `new URL(window.location.href).pathname.split('/').filter(Boolean)[0]`.

@@ -261,9 +261,15 @@ export default class Image360Viewer extends PureComponent<
                     //
                     // `[&_.psv-loader-container]:!hidden` removes PSV's
                     // built-in circular loader — no in-app loading indicator
-                    // is shown while the panorama loads.
+                    // is shown on the initial mount.
                     className={`h-full w-full cursor-grab [&_*]:cursor-grab active:cursor-grabbing active:[&_*]:cursor-grabbing [&_.psv-loader-container]:!hidden`}
                 />
+                {this.state.isSwitching && (
+                    // Visible only during a hard-cut src swap; covers the
+                    // previous panorama immediately so the user reads the
+                    // switch as a deliberate cut rather than a blend.
+                    <Skeleton className={`absolute inset-0 rounded-none`} />
+                )}
             </div>
         );
     };

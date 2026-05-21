@@ -3518,7 +3518,9 @@ const translation: Translation = {
                         statements: {
                             mountsViewer: `Erzeugt einen Photo Sphere Viewer mit der angegebenen src.`,
                             subscribesPosition: `Abonniert das PSV-Event position-updated, um Heading-Änderungen weiterzuleiten.`,
-                            noLoadingIndicator: `Zeigt während des Ladens der Panoramaaufnahme keine Ladeanzeige.`,
+                            noLoadingIndicator: `Zeigt während des Ladens des initialen Panoramas keine Ladeanzeige.`,
+                            hardCutSwitch: `Blendet beim src-Wechsel sofort einen Skeleton über das alte Panorama und weist PSV an, das Crossfade zu überspringen — der Skeleton verschwindet, sobald die neue Textur bereit ist.`,
+                            crossfadeOptIn: `crossfadeOnSwitch={true} überspringt den Skeleton und lässt PSV stattdessen zwischen den Panoramen blenden.`,
                             forwardsClassName: `Reicht className an den äußeren Wrapper durch.`,
                             forwardsStyle: `Reicht Inline-Style an den äußeren Wrapper durch.`
                         }

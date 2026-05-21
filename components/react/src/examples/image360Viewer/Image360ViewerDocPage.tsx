@@ -59,6 +59,7 @@ const PROPS: PropRow[] = [
     { name: `markers`, type: `ReadonlyArray<Image360ViewerMarker>`, default: `—`, description: `Markers / hotspots / waypoints overlaid on the sphere. HTML markers, image markers, polygon overlays, and tooltips are all supported. Updating the prop diff-replaces the live set via setMarkers — perfect for virtual-tour scene swaps.` },
     { name: `onMarkerClick`, type: `(marker: Image360ViewerMarker) => void`, default: `—`, description: `Fires on any marker click. Use the marker's data payload to route, swap scenes, or open an info panel.` },
     { name: `smoothTransitions`, type: `boolean`, default: `false`, description: `Re-enable Photo Sphere Viewer's post-drag inertial glide. Default false produces snappier 1:1 pointer→yaw mapping.` },
+    { name: `crossfadeOnSwitch`, type: `boolean`, default: `false`, description: `Crossfade between panoramas when src changes (PSV's stock blend). Default false hides the old panorama immediately under a Skeleton overlay and tells PSV to skip the transition, so scene swaps read as deliberate cuts. No effect on the initial mount.` },
     { name: `className`, type: `string`, default: `—`, description: `Extra classes on the outer wrapper.` },
     { name: `style`, type: `CSSProperties`, default: `—`, description: `Inline style on the outer wrapper.` }
 ];
@@ -107,11 +108,13 @@ const TEST_FILE = `lib/components/files/fileViewer/formats/image360Viewer/Image3
 const buildBehaviourEntries = (
     statements: Strings[`doc`][`definedBehaviour`][`statements`]
 ): BehaviourEntry[] => [
-    { statement: statements.mountsViewer, testFile: TEST_FILE, testName: `mounts a Photo Sphere Viewer with the given src`, testLine: 59 },
-    { statement: statements.subscribesPosition, testFile: TEST_FILE, testName: `subscribes to PSV "position-updated" to forward heading changes`, testLine: 67 },
-    { statement: statements.noLoadingIndicator, testFile: TEST_FILE, testName: `renders no loading indicator while the panorama loads`, testLine: 73 },
-    { statement: statements.forwardsClassName, testFile: TEST_FILE, testName: `forwards className onto the outer wrapper`, testLine: 111 },
-    { statement: statements.forwardsStyle, testFile: TEST_FILE, testName: `forwards inline style onto the wrapper`, testLine: 120 }
+    { statement: statements.mountsViewer, testFile: TEST_FILE, testName: `mounts a Photo Sphere Viewer with the given src`, testLine: 71 },
+    { statement: statements.subscribesPosition, testFile: TEST_FILE, testName: `subscribes to PSV "position-updated" to forward heading changes`, testLine: 79 },
+    { statement: statements.noLoadingIndicator, testFile: TEST_FILE, testName: `renders no loading indicator while the panorama loads`, testLine: 85 },
+    { statement: statements.hardCutSwitch, testFile: TEST_FILE, testName: `shows a Skeleton overlay during a hard-cut src swap and clears it when setPanorama resolves`, testLine: 123 },
+    { statement: statements.crossfadeOptIn, testFile: TEST_FILE, testName: `crossfadeOnSwitch=true skips the Skeleton and asks PSV to crossfade`, testLine: 151 },
+    { statement: statements.forwardsClassName, testFile: TEST_FILE, testName: `forwards className onto the outer wrapper`, testLine: 166 },
+    { statement: statements.forwardsStyle, testFile: TEST_FILE, testName: `forwards inline style onto the wrapper`, testLine: 175 }
 ];
 
 export const Image360ViewerDocPage = () => {

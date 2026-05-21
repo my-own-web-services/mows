@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 // Mock @photo-sphere-viewer/core: jsdom has no WebGL context, so the real
@@ -9,6 +9,8 @@ interface ViewerMock {
     config: unknown;
     addedListeners: string[];
     listenerFns: Map<string, (event: unknown) => void>;
+    setPanoramaCalls: { src: string; options: unknown }[];
+    pendingSetPanorama: { resolve: () => void; reject: (e: unknown) => void } | null;
     fire(name: string, event: unknown): void;
 }
 
@@ -19,6 +21,10 @@ vi.mock(`@photo-sphere-viewer/core`, () => {
         config: unknown;
         addedListeners: string[] = [];
         listenerFns: Map<string, (event: unknown) => void> = new Map();
+        setPanoramaCalls: { src: string; options: unknown }[] = [];
+        pendingSetPanorama:
+            | { resolve: () => void; reject: (e: unknown) => void }
+            | null = null;
         constructor(config: unknown) {
             this.config = config;
             viewerInstances.push(this);
@@ -30,6 +36,12 @@ vi.mock(`@photo-sphere-viewer/core`, () => {
         removeEventListener(): void {}
         destroy(): void {}
         setOption(): void {}
+        setPanorama(src: string, options: unknown): Promise<void> {
+            this.setPanoramaCalls.push({ src, options });
+            return new Promise<void>((resolve, reject) => {
+                this.pendingSetPanorama = { resolve, reject };
+            });
+        }
         getPlugin(): unknown {
             return null;
         }
@@ -106,6 +118,49 @@ describe(`Image360Viewer`, () => {
         inst.fire(`panorama-loaded`, { data: { panoData: {} } });
         inst.fire(`position-updated`, { position: { yaw: 0, pitch: 0 } });
         expect(onHeadingChange).toHaveBeenLastCalledWith(0);
+    });
+
+    it(`shows a Skeleton overlay during a hard-cut src swap and clears it when setPanorama resolves`, async () => {
+        viewerInstances.length = 0;
+        const { container, rerender } = render(<Image360Viewer src={`/pano.jpg`} />);
+        // Initial mount: no Skeleton.
+        expect(container.querySelector(`.animate-pulse`)).toBeNull();
+
+        rerender(<Image360Viewer src={`/other.jpg`} />);
+
+        // The hard-cut Skeleton appears immediately on the swap.
+        expect(container.querySelector(`.animate-pulse`)).not.toBeNull();
+
+        // PSV is told to skip its crossfade (transition: false) and to
+        // keep its own loader suppressed — we're driving the visual.
+        const inst = viewerInstances[0]!;
+        expect(inst.setPanoramaCalls).toHaveLength(1);
+        expect(inst.setPanoramaCalls[0]!.src).toBe(`/other.jpg`);
+        expect(inst.setPanoramaCalls[0]!.options).toEqual({
+            transition: false,
+            showLoader: false
+        });
+
+        // Resolving the new texture clears the overlay.
+        inst.pendingSetPanorama!.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(container.querySelector(`.animate-pulse`)).toBeNull();
+    });
+
+    it(`crossfadeOnSwitch=true skips the Skeleton and asks PSV to crossfade`, () => {
+        viewerInstances.length = 0;
+        const { container, rerender } = render(
+            <Image360Viewer src={`/pano.jpg`} crossfadeOnSwitch />
+        );
+        rerender(<Image360Viewer src={`/other.jpg`} crossfadeOnSwitch />);
+        // No Skeleton — the user opted into PSV's stock blend.
+        expect(container.querySelector(`.animate-pulse`)).toBeNull();
+        const inst = viewerInstances[0]!;
+        expect(inst.setPanoramaCalls[0]!.options).toEqual({
+            transition: true,
+            showLoader: false
+        });
     });
 
     it(`forwards className onto the outer wrapper`, () => {

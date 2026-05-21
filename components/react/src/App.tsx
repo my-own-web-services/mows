@@ -26,6 +26,7 @@ import {
     ResizablePanel,
     ResizablePanelGroup
 } from "../lib/components/ui/resizable";
+import { Button } from "../lib/components/ui/button";
 import { ScrollArea } from "../lib/components/ui/scroll-area";
 import {
     Sidebar,
@@ -128,17 +129,27 @@ const GROUP_ICONS: Record<DemoGroupKey, LucideIcon> = {
 // `/guide/<PascalCaseName>` so they never collide with the component
 // namespace.
 const selectionFromPath = (pathname: string): Selection | undefined => {
-    if (pathname.startsWith(GUIDE_PATH_PREFIX)) {
-        const segment = pathname.slice(GUIDE_PATH_PREFIX.length).split(`/`)[0];
-        if (!segment) return undefined;
-        const lower = segment.toLowerCase();
-        const guide = guides.find((g) => g.name.toLowerCase() === lower);
+    // Parse via WHATWG URL so query strings ("/Button?focus=variants") and
+    // trailing slashes ("/Button/") are handled uniformly — naive
+    // `pathname.split('/')` would either keep the query string in the
+    // segment or stumble on an empty trailing entry (TASTE-14).
+    const url = new URL(pathname, window.location.origin);
+    const normalized = url.pathname;
+    if (normalized.startsWith(GUIDE_PATH_PREFIX)) {
+        const remainder = normalized.slice(GUIDE_PATH_PREFIX.length);
+        const guideSegment = remainder.split(`/`).filter(Boolean)[0];
+        if (!guideSegment) return undefined;
+        const guideLower = guideSegment.toLowerCase();
+        const guide = guides.find((entry) => entry.name.toLowerCase() === guideLower);
         return guide ? { kind: `guide`, id: guide.id } : undefined;
     }
-    const segment = pathname.replace(DEMO_PATH_PREFIX, ``).split(`/`)[0];
+    const remainder = normalized.startsWith(DEMO_PATH_PREFIX)
+        ? normalized.slice(DEMO_PATH_PREFIX.length)
+        : normalized;
+    const segment = remainder.split(`/`).filter(Boolean)[0];
     if (!segment) return undefined;
     const lower = segment.toLowerCase();
-    const demo = demos.find((d) => d.name.toLowerCase() === lower);
+    const demo = demos.find((entry) => entry.name.toLowerCase() === lower);
     return demo ? { kind: `demo`, id: demo.id } : undefined;
 };
 
@@ -580,8 +591,10 @@ export default class App extends PureComponent<AppProps, AppState> {
                                                                 ? t.sidebar.removeFromFavoritesAriaLabel
                                                                 : t.sidebar.addToFavoritesAriaLabel;
                                                             return (
-                                                                <button
+                                                                <Button
                                                                     type={`button`}
+                                                                    variant={`ghost`}
+                                                                    size={`icon`}
                                                                     onClick={() =>
                                                                         this.toggleFavorite(
                                                                             selected.id
@@ -591,7 +604,6 @@ export default class App extends PureComponent<AppProps, AppState> {
                                                                     aria-label={label}
                                                                     title={label}
                                                                     className={cn(
-                                                                        `flex h-9 w-9 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`,
                                                                         isFav
                                                                             ? `text-primary hover:text-primary/80`
                                                                             : `text-muted-foreground hover:text-foreground`
@@ -604,7 +616,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                                                                         )}
                                                                         aria-hidden
                                                                     />
-                                                                </button>
+                                                                </Button>
                                                             );
                                                         })()}
                                                     </div>

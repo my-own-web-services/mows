@@ -3524,7 +3524,9 @@ const translation: Translation = {
                         statements: {
                             mountsViewer: `Mounts a Photo Sphere Viewer with the given src.`,
                             subscribesPosition: `Subscribes to the PSV position-updated event to forward heading changes.`,
-                            noLoadingIndicator: `Renders no loading indicator while the panorama loads.`,
+                            noLoadingIndicator: `Renders no loading indicator while the initial panorama loads.`,
+                            hardCutSwitch: `Hides the old panorama under a Skeleton during an src swap and tells PSV to skip its crossfade — the Skeleton clears when the new texture is ready.`,
+                            crossfadeOptIn: `crossfadeOnSwitch={true} skips the Skeleton and asks PSV to crossfade between panoramas instead.`,
                             forwardsClassName: `Forwards className onto the outer wrapper.`,
                             forwardsStyle: `Forwards inline style onto the outer wrapper.`
                         }

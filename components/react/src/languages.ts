@@ -2391,6 +2391,8 @@ declare module "../lib/lib/languages" {
                                 mountsViewer: string;
                                 subscribesPosition: string;
                                 noLoadingIndicator: string;
+                                hardCutSwitch: string;
+                                crossfadeOptIn: string;
                                 forwardsClassName: string;
                                 forwardsStyle: string;
                             };
