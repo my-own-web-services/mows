@@ -1,0 +1,89 @@
+name: Publish mows-components-react docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'components/react/**'
+      - '.github/workflows/publish-docs.yml'
+  pull_request:
+    paths:
+      - 'components/react/**'
+      - '.github/workflows/publish-docs.yml'
+  workflow_dispatch:
+    inputs:
+      site_base:
+        description: 'Public base path the site is served from (must start AND end with "/"). Default "/mows/" matches a GitHub Pages project page at <user>.github.io/mows/.'
+        required: false
+        default: '/mows/'
+        type: string
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@26961cf329f22f6837d5f54c3efd76b480300ace # v4
+        with:
+          node-version: '22'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      # Cache pnpm's content-addressable store across runs so dependency
+      # installation stays reasonably fast without baking version assumptions
+      # into the workflow.
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('components/react/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Build docs site
+        env:
+          # Manual dispatch can override the base path (e.g. "/" for a user
+          # page or "/custom/" for a different repo name). On push events
+          # we default to the project-page path matching this repo.
+          SITE_BASE: ${{ github.event.inputs.site_base || '/mows/' }}
+        run: |
+          cd components/react
+          bash scripts/build-docs.sh
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658c3e0e431f8a1c5dceea27cd # v3
+        with:
+          path: components/react/dist-site
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
