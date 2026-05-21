@@ -16,7 +16,7 @@ const translation: Translation = {
             title: `Design & Sprache`,
             description: `Das PrimaryMenu oben rechts ist mit dem MowsProvider verbunden. Der Zustand wird im localStorage unter dem storagePrefix gespeichert.`,
             themeBadge: `Design`,
-            langBadge: `Sprache`,
+            languageBadge: `Sprache`,
             rightClickHint: `Rechtsklicke auf diese Karte, um das globale Kontextmenü zu öffnen (Aktionen mit Scope „exampleCard“).`
         },
         actionManagerCard: {
@@ -46,150 +46,43 @@ const translation: Translation = {
             searchPlaceholder: `Komponenten suchen…`,
             searchAriaLabel: `Komponenten suchen`,
             searchClearAriaLabel: `Suche zurücksetzen`,
-            noMatches: `Keine Komponenten passen zur Suche.`
+            noMatches: `Keine Komponenten passen zur Suche.`,
+            favorites: `Favoriten`,
+            addToFavoritesAriaLabel: `Zu Favoriten hinzufügen`,
+            removeFromFavoritesAriaLabel: `Aus Favoriten entfernen`,
+            guidesLabel: `Anleitungen`,
+            creatingAppsLabel: `Apps erstellen`
         },
-        ui: {
-            button: {
-                description: `Varianten und Größen der Basis-Schaltfläche.`,
-                iconButtonAriaLabel: `Einstellungen`,
-                disabledLabel: `deaktiviert`
-            },
-            badge: {
-                description: `Inline-Status-Abzeichen.`
-            },
-            card: {
-                description: `Container mit Header-, Inhalts- und Footer-Slots.`,
-                title: `Karten-Titel`,
-                descriptionText: `Kurzer ergänzender Text.`,
-                body: `Karten gruppieren zusammengehörige Inhalte und Aktionen.`,
-                confirm: `Bestätigen`,
-                cancel: `Abbrechen`
-            },
-            input: {
-                description: `Einfache Texteingabefelder in den gängigen Modi.`,
-                text: `Text`,
-                password: `Passwort`,
-                disabled: `Deaktiviert`,
-                placeholder: `Etwas eingeben…`,
-                disabledValue: `schreibgeschützter Wert`
-            },
-            textarea: {
-                description: `Mehrzeilige Texteingabe.`,
-                placeholder: `Eine längere Nachricht schreiben…`,
-                disabledValue: `deaktiviertes Textfeld`
-            },
-            label: {
-                description: `Formular-Label, klickbar um das zugehörige Feld zu fokussieren.`,
-                text: `Bedingungen akzeptieren`
-            },
-            checkbox: {
-                description: `Checkbox-Primitiv mit Drei-Zustand-Unterstützung.`,
-                checked: `Aktiv`,
-                unchecked: `Inaktiv`,
-                disabled: `Deaktiviert`
-            },
-            switch: {
-                description: `Ein/Aus-Umschalter.`,
-                on: `An`,
-                off: `Aus`,
-                disabled: `Deaktiviert`
-            },
-            select: {
-                description: `Einfachauswahl-Dropdown.`,
-                placeholder: `Eine Frucht wählen`,
-                apple: `Apfel`,
-                banana: `Banane`,
-                cherry: `Kirsche`
-            },
-            radioGroup: {
-                description: `Einfachauswahl-Gruppe von Optionsfeldern.`,
-                apple: `Apfel`,
-                banana: `Banane`,
-                cherry: `Kirsche`
-            },
-            slider: {
-                description: `Einzel- und Bereichsschieberegler.`
-            },
-            progress: {
-                description: `Linearer Fortschrittsindikator.`
-            },
-            tabs: {
-                description: `Wechsel zwischen Geschwister-Paneelen.`,
-                account: `Konto`,
-                password: `Passwort`,
-                notifications: `Benachrichtigungen`,
-                accountBody: `Aktualisiere deine Kontodaten.`,
-                passwordBody: `Ändere dein Passwort.`,
-                notificationsBody: `Benachrichtigungseinstellungen verwalten.`
-            },
-            dialog: {
-                description: `Modaler Dialog mit Fokus-Falle und Overlay.`,
-                open: `Dialog öffnen`,
-                title: `Bist du sicher?`,
-                descriptionText: `Diese Aktion kann nicht rückgängig gemacht werden.`,
-                confirm: `Bestätigen`,
-                cancel: `Abbrechen`
-            },
-            popover: {
-                description: `Schwebendes Panel, an einen Trigger gebunden.`,
-                open: `Popover öffnen`,
-                body: `Popovers sind nicht modal — Klicks außerhalb schließen sie.`
-            },
-            hoverCard: {
-                description: `Reiche Vorschau beim Hover, ideal für Benutzer-Erwähnungen.`,
-                handle: `mows`,
-                name: `MOWS Demo`,
-                bio: `Ein einfacher Beispielnutzer, der beim Hover über den Link angezeigt wird.`
-            },
-            dropdownMenu: {
-                description: `Aktions-Menü an einer Trigger-Schaltfläche.`,
-                open: `Menü öffnen`,
-                label: `Konto`,
-                profile: `Profil`,
-                settings: `Einstellungen`,
-                bookmarks: `Lesezeichen`
-            },
-            contextMenu: {
-                description: `Rechtsklick-Menü, das an seinen Triggerbereich gebunden ist.`,
-                rightClick: `hier rechtsklicken`,
-                action1: `Als gelesen markieren`,
-                action2: `Antworten`,
-                action3: `Löschen`
-            },
-            skeleton: {
-                description: `Animierter Platzhalter während Inhalte laden.`
-            },
-            scrollArea: {
-                description: `Container mit eigens gestylten Scrollbalken.`,
-                itemPrefix: `Eintrag`
-            },
-            resizable: {
-                description: `Vom Nutzer per Ziehen veränderbare geteilte Paneele.`,
-                panel: `Panel`
-            },
-            sonner: {
-                description: `Toast-Benachrichtigungen via sonner.`,
-                show: `Toast anzeigen`,
-                showSuccess: `Erfolg anzeigen`,
-                showError: `Fehler anzeigen`,
-                defaultMsg: `Nur eine Benachrichtigung.`,
-                successMsg: `Erfolgreich gespeichert.`,
-                errorMsg: `Etwas ist schiefgelaufen.`
-            },
-            inputGroup: {
-                description: `Eingabefeld mit vorangestelltem Icon oder Addon.`,
-                searchPlaceholder: `Suchen…`,
-                usernamePlaceholder: `Benutzername`,
-                emailPlaceholder: `du@beispiel.de`
-            },
-            calendar: {
-                description: `Einzeldatum-Kalender-Primitiv.`,
-                empty: `–`
+        guides: {
+            creatingApps: {
+                title: `Apps erstellen`,
+                placeholder: `Inhalt folgt — empfohlene Patterns, zu vermeidende Antipatterns und ein Seitenindex werden hier erscheinen.`,
+                setup: {
+                    title: `Setup`,
+                    intro: `Jede MOWS-App startet aus demselben minimalen Gerüst. Verdrahte es einmal am Root, danach kann jede Komponente im Baum geteilten State über \`useMows()\` abrufen.`,
+                    provider: {
+                        title: `MowsProvider`,
+                        body: `Wrappe deinen Root in \`<MowsProvider>\` mit einem \`storagePrefix\`, der für deine App eindeutig ist. Der Prefix umgrenzt alles, was wir in \`localStorage\` persistieren (Theme, Sprache, Favoriten, Hotkey-Overrides, kürzlich genutzte Actions, …), damit mehrere MOWS-Apps am selben Origin niemals den State der anderen überschreiben. Übergib \`oidc\` nur, wenn deine App selbst authentifiziert — lass es weg, wenn ein vorgelagerter Proxy bzw. ein Bearer-Token-API die Auth übernimmt.`
+                    },
+                    appShell: {
+                        title: `App-Shell-Mounts`,
+                        body: `Platziere \`<CommandPalette>\`, \`<ModalHandler>\`, \`<GlobalContextMenu>\` und \`<Toaster>\` jeweils einmal irgendwo innerhalb des Providers — typischerweise direkt neben dem Top-Level-\`<App />\`. Sie rendern nichts, solange sie nicht gerufen werden, aber \`useMows()\`, Action-Handler und Toast-Emitter werden still wirkungslos, sobald ein Mount fehlt. Das Auslassen eines dieser Mounts ist der häufigste Grund, warum ein Action- / Shortcut- / Toast-Aufruf scheinbar nichts tut — mounte stets alle vier.`
+                    }
+                },
+                patterns: {
+                    title: `Empfohlene Patterns`,
+                    intro: `Wiederkehrende Layouts und Verdrahtungen, die jede MOWS-App teilen soll. Kopiere die Snippets als Startpunkt und passe sie von dort aus an.`,
+                    sidebar: {
+                        title: `Sidebar-Layout`,
+                        body: `Greife zum \`<Sidebar>\`-Primitiv, sobald die App mehr als ein oder zwei Top-Level-Oberflächen hat. Fixiere oben einen Header mit dem eigenen Logo und Namen deiner App — verwende NICHT das MOWS-Logo, das gehört der Plattform und nicht deiner App. Navigiere zwischen den Oberflächen über \`<SidebarContent>\` und packe \`<PrimaryMenu variant="inline" />\` in den Footer, damit Theme- / Sprach- / Auth-Steuerungen über jede MOWS-App hinweg an einer konsistenten Stelle leben. Die Doku-Sidebar links nutzt genau diesen Aufbau.`
+                    }
+                }
             }
         },
         examples: {
             _harness: {
                 codeTab: `Code`,
+                stateTab: `State`,
                 noStateReported: `Dieses Beispiel meldet keinen Zustand.`
             },
             steps: {
@@ -481,6 +374,93 @@ const translation: Translation = {
                     description: `Findet der Upstream-Resolver keine spezifische Zuordnung, liefert er das generische File-Icon zurück. Nur wenn auch das SVG selbst nicht laden kann, zeigt FileIcon zusätzlich das lucide-File-Glyph als Fallback.`
                 }
             },
+            videoViewer: {
+                default: {
+                    title: `Progressives MP4`,
+                    description: `Standard-video/mp4 wird progressiv über MediaSource Extensions ausgeliefert. Der Seek-Bar-Tooltip zeigt eine Live-Vorschau des überfahrenen/gezogenen Frames: ein verstecktes off-screen <video> + <canvas> erfasst Frames on demand, und die Hauptplayer-Fläche aktualisiert sich live beim Scrubbing. Der Slider-Daumen bleibt am Cursor fixiert, bis der Seek tatsächlich landet — er springt nicht zurück, während der neue Bereich gepuffert wird.`
+                },
+                dash: {
+                    title: `DASH-Manifest`,
+                    description: `application/dash+xml mit mehreren Bitratenvarianten. Die Qualitäts-Schaltfläche zeigt, welche Variante Shakas ABR gerade abspielt; eine konkrete Variante deaktiviert ABR, der Eintrag „Auto“ schaltet ABR wieder ein. Liefert das Manifest ein Thumbnail-AdaptationSet, ersetzt die Seek-Vorschau das Frame-Grab-Bild automatisch durch das vorgerenderte Sprite.`
+                },
+                hls: {
+                    title: `HLS-Playlist`,
+                    description: `application/vnd.apple.mpegurl-Playlist mit mehreren Renditions. Gleicher Dispatch-Pfad wie DASH — Shaka parst beides mit demselben Player, dieselben Bedienverhalten (Qualität, Untertitel, Drag-Scrub-Vorschau) gelten.`
+                },
+                chapters: {
+                    title: `Kapitel`,
+                    description: `Übergib <VideoViewer> ein chapters-Array, und die Seek-Leiste erhält Strich-Marken an jeder Kapitelgrenze; der Hover/Drag-Tooltip blendet den passenden Kapiteltitel über dem Zeitstempel ein.`
+                },
+                controls: {
+                    title: `Steuerungs-Showcase`,
+                    description: `Wechsle zwischen progressiver, DASH- und HLS-Quelle, um alle Bedienelemente auszuprobieren. Bewege den Zeiger, damit die Leiste sichtbar bleibt; fokussiere den Player und drücke Leertaste, Pfeiltasten, m, f, p oder c für die Tastaturkürzel. Das Wiedergaberate-Popover bietet sowohl einen stufenlosen Schieberegler (0,25× – 3×) als auch Voreinstellungen.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere und füge den folgenden Code in dein Projekt ein.`,
+                        manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Übergib <VideoViewer> eine aufgelöste src-URL und einen mimeType. Standard-video/*-Formate werden progressiv (über MediaSource) abgespielt, DASH/HLS-Manifeste adaptiv. Das Backend muss HTTP-Range-Requests unterstützen und Content-Range / Accept-Ranges / Content-Length über CORS exponieren.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<VideoViewer> wird normalerweise über <FileViewer> erreicht; dieser lädt ihn lazy hinter einer Suspense-Grenze, damit Aufrufer ohne Video die ca. 256 kB shaka-player nicht bezahlen. Direkte Nutzung funktioniert ebenfalls — einfach in einen dimensionierten Container packen.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Progressives MP4`,
+                            description: `Standard-video/mp4 über MediaSource. Zeigt das Live-Drag-Scrubbing: die Hauptplayer-Fläche aktualisiert sich beim Ziehen, der schwebende Tooltip zeigt an jeder Position ein Frame-Grab-Thumbnail plus Zeitstempel, und der Slider bleibt an der Freigabeposition fixiert, bis <currentTime> ankommt (5-s-Watchdog falls der Seek stillschweigend fehlschlägt).`
+                        },
+                        dash: {
+                            title: `DASH-Manifest`,
+                            description: `Multi-Bitraten-DASH. Die Qualitäts-Schaltfläche zeigt, was ABR gewählt hat; der Auto-Menüeintrag spiegelt dasselbe in Klammern plus Stufen-Badge. Manifeste mit Thumbnail-Track ersetzen die Frame-Grab-Vorschau automatisch durch das vorgerenderte Sprite.`
+                        },
+                        hls: {
+                            title: `HLS-Playlist`,
+                            description: `Mehrere HLS-Renditions — gleicher Dispatch-Pfad wie DASH. Über/Ziehen über die Leiste, um zu sehen, dass der Frame-Grab-Fallback bei HLS-Dateien genauso funktioniert wie bei MP4.`
+                        },
+                        chapters: {
+                            title: `Kapitel`,
+                            description: `Übergib ein chapters-Array, und die Seek-Leiste erhält YouTube-artige Strich-Marken an jeder Kapitelgrenze. Der Hover/Drag-Tooltip blendet den passenden Kapiteltitel neben dem Zeitstempel ein, damit der Nutzer „wo im Clip“ und „welches Kapitel“ gleichzeitig sieht.`
+                        },
+                        controls: {
+                            title: `Steuerungs-Showcase`,
+                            description: `Wechsle zwischen progressiver, DASH- und HLS-Quelle, um alle Bedienelemente und Tastaturkürzel auszuprobieren. Das Wiedergaberate-Popover bietet sowohl einen stufenlosen Schieberegler (0,25× – 3×) als auch Voreinstellungen.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <VideoViewer> verhalten soll, jeweils mit dem Test verlinkt, der sie verifiziert.`,
+                        verifiedBy: `verifiziert durch`,
+                        statements: {
+                            dispatchByMime: `<FileViewer> reicht video/*-MIME-Typen an <VideoViewer> weiter.`,
+                            dispatchManifest: `<FileViewer> reicht DASH- und HLS-Manifest-MIME-Typen an <VideoViewer> weiter.`,
+                            recognisesManifests: `Die isVideoOrStream-Hilfsfunktion erkennt video/* und alle unterstützten Streaming-Manifest-MIME-Typen.`,
+                            constructsOnePlayer: `Jedes Mounten installiert Shaka-Polyfills einmalig und konstruiert genau einen Player.`,
+                            nativeFallback: `Wenn shaka.Player.isBrowserSupported() false liefert, fällt die Komponente auf ein natives <video controls> zurück.`,
+                            reusesOnSrcChange: `Ein Wechsel der src-Prop lädt den bestehenden Player neu, statt einen neuen zu konstruieren.`,
+                            cleansUpOnUnmount: `Beim Unmounten wird Player.destroy() genau einmal aufgerufen.`,
+                            keyboardTogglePlay: `Leertaste und k schalten Wiedergabe/Pause des fokussierten Players um.`,
+                            keyboardModifierGuard: `Tastaturkürzel ignorieren modifierkombinierte Tasten, damit Browser-Shortcuts (Cmd+F, Strg+R, …) weiterhin funktionieren.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Die Videofläche ist richtungsneutral. Die Steuerleiste ordnet ihre rechtsbündige Aktionsgruppe mit logischer (start/end) Flex-Reihenfolge an, sodass dir="rtl" die Gruppe korrekt spiegelt — ohne Zusatzverkabelung.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <VideoViewer> akzeptiert.`
+                    }
+                }
+            },
             codeThemePicker: {
                 popover: {
                     title: `Popover-Trigger`,
@@ -670,6 +650,2966 @@ const translation: Translation = {
                     title: `Sprachen`,
                     description: `Dieselbe Komponente, verschiedene Monaco-Sprach-IDs. plaintext liefert reinen Monospace-Text ohne Tokenfarben.`
                 }
+            },
+            primaryMenu: {
+                inline: {
+                    title: `Inline`,
+                    description: `Full-width-Trigger für eine Sidebar-Footer-Zeile — Klicks öffnen das Dropdown ober- oder unterhalb des Triggers.`
+                },
+                fixed: {
+                    title: `Fixiert`,
+                    description: `Pinnt den Trigger an eine Viewport-Ecke. In einer echten App liegt er über jeder Seite; die Vorschau verwendet einen positionierten Wrapper.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Mounte <PrimaryMenu> genau einmal innerhalb von <MowsProvider>. Es bietet Login / Logout, Sprache- / Theme- / Code-Theme-Picker, den Tastenkürzel-Editor und den Einstellungsdialog.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<PrimaryMenu> kombiniert <DropdownMenu> mit den Picker-Komponenten und dem Modal-Manager. Die "fixed"-Variante pinnt an eine Viewport-Ecke; "inline" passt sich einem Sidebar-Footer an.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        inline: {
+                            title: `Inline`,
+                            description: `variant="inline" — Full-width-Trigger.`
+                        },
+                        fixed: {
+                            title: `Fixiert`,
+                            description: `Standard-Variante — oben rechts angepinnt.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <PrimaryMenu> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            loginVisibleWhenAuthConfigured: `Zeigt den Login-Eintrag, wenn Auth konfiguriert ist und der Nutzer nicht angemeldet ist.`,
+                            loginHiddenWhenAuthNotConfigured: `Blendet den Login-Eintrag komplett aus, wenn keine OIDC-Konfiguration an <MowsProvider> übergeben wurde.`,
+                            providerWithoutOidcYieldsNoAuth: `Ein echter <MowsProvider> ohne oidc-Prop liefert authConfigured=false — und kein Login-Eintrag erscheint.`,
+                            dropsLeadingSeparator: `Lässt den führenden Separator über "Sprache" weg, wenn es keinen Auth-Bereich darüber zum Trennen gibt.`,
+                            keepsSeparatorWithLogin: `Behält den Separator zwischen Login und Sprache, wenn der Login-Eintrag sichtbar ist.`,
+                            inlineRendersFullWidth: `variant="inline" rendert einen Full-width-Trigger (keine fixed-Positionierung) und zeigt den Anzeigenamen neben dem Avatar, wenn angemeldet.`,
+                            inlineLoggedOutMenuIcon: `variant="inline" zeigt im abgemeldeten Zustand nur das Menü-Icon (kein Text) — die openMenu-Beschriftung lebt im title-Attribut.`,
+                            staleSessionTreatedAsLoggedOut: `Eine gecachte authentifizierte Session wird als abgemeldet behandelt, wenn authConfigured=false — weder Login- noch Logout-Eintrag erscheinen.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Das Menü erbt die Schreibrichtung vom Vorfahren. Ein umgebendes dir="rtl" spiegelt Avatar / Icon / Chevron im Trigger.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <PrimaryMenu> akzeptiert.`
+                    }
+                }
+            },
+            globalContextMenu: {
+                default: {
+                    title: `Rechtsklick-Ziel`,
+                    description: `Eine umrandete Drop-Zone, deren data-actionscope mit dem GlobalContextMenu verbunden ist. Rechtsklick in der Box öffnet das Menü an der Cursorposition.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Mounte <GlobalContextMenu> einmal innerhalb von <MowsProvider>. Jedes Nachkommen-Element mit data-actionscope="<scope>" fängt das native Kontextmenü ab und öffnet stattdessen das Menü an der Cursorposition.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<GlobalContextMenu> sucht vom Rechtsklick-Ziel im DOM nach dem nächsten [data-actionscope], fragt den <ActionManager> nach passenden Actions und rendert sie über <DropdownMenu>.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Rechtsklick-Ziel`,
+                            description: `Die gestrichelte Fläche unten trägt data-actionscope; mache einen Rechtsklick darauf.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <GlobalContextMenu> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            positionsAtCursor: `Positioniert den Trigger-Wrapper exakt auf den Cursorkoordinaten, damit das Menü unter dem Klick öffnet.`,
+                            sideOffsetZero: `Öffnet mit sideOffset=0, sodass die Menü-Oberkante am Cursor und nicht darunter beginnt.`,
+                            suppressesNativeOnlyWhenMatched: `Unterdrückt das native Kontextmenü nur dann, wenn der Action-Scope unter dem Cursor mindestens eine registrierte Action hat.`,
+                            doesNotSuppressWhenScopeEmpty: `Lässt das native Kontextmenü durch, wenn der Scope unter dem Cursor keine Actions hat.`,
+                            clickItemDispatches: `Beim Auswählen eines Eintrags wird die Action ausgelöst und das native Kontextmenü verhindert.`,
+                            updatesOnSecondClick: `Aktualisiert die Cursorposition bei jedem weiteren Rechtsklick, statt am ersten Klick zu kleben.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Das Menü erbt die Schreibrichtung vom Vorfahren; Einträge kippen unter dir="rtl". Die Cursor-Verankerung nutzt Viewport-Koordinaten und ist richtungsneutral.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <GlobalContextMenu> akzeptiert.`
+                    }
+                }
+            },
+            copyValueButton: {
+                label: {
+                    title: `Mit Label`,
+                    description: `Zeigt das Label neben dem Kopier-Icon. Verwende es, wenn der Wert sonst nicht sichtbar ist.`
+                },
+                iconOnly: {
+                    title: `Nur Icon`,
+                    description: `Lass das Label weg für kompakte Platzierungen (z. B. in einer Token-Zeile).`
+                },
+                withToast: {
+                    title: `Mit Toast`,
+                    description: `Setze toastOnCopy, um beim erfolgreichen Kopieren einen Sonner-Toast zu feuern. Ein String überschreibt den Standardtext "Copied".`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Übergib value. Klicks kopieren ihn in die Zwischenablage und schalten das Icon ca. 1,5 s lang auf ein Häkchen.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<CopyValueButton> kapselt navigator.clipboard mit einem transienten "kopiert"-Zustand und einem optionalen Sonner-Toast. Das sichtbare Label ist optional — über title lässt sich der vollständige Wert per nativem Tooltip anzeigen.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        label: {
+                            title: `Mit Label`,
+                            description: `Label neben dem Icon.`
+                        },
+                        iconOnly: {
+                            title: `Nur Icon`,
+                            description: `Kein Label — für Inline-Platzierungen.`
+                        },
+                        withToast: {
+                            title: `Mit Toast`,
+                            description: `Feuert beim Kopieren einen Sonner-Toast.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <CopyValueButton> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersLabelWhenProvided: `Rendert das Label, wenn eines übergeben wird.`,
+                            omitsLabelWhenAbsent: `Lässt das Label weg, wenn keines übergeben wurde.`,
+                            writesClipboardOnClick: `Schreibt den Wert beim Klick in die Zwischenablage.`,
+                            showsCopiedTitleTransient: `Zeigt nach erfolgreichem Kopieren ca. 1,5 s lang den "Copied!"-Titel und setzt ihn dann zurück.`,
+                            firesToastWhenTrue: `Feuert einen Toast, wenn toastOnCopy true ist (Standardtext).`,
+                            usesProvidedToastMessage: `Verwendet den übergebenen String als Toast-Nachricht, wenn toastOnCopy ein String ist.`,
+                            noToastWhenOmitted: `Feuert keinen Toast, wenn toastOnCopy weggelassen wird.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" tauschen Label und Icon die Reihenfolge — das Icon sitzt links vom Label.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <CopyValueButton> akzeptiert.`
+                    }
+                }
+            },
+            buttonSelect: {
+                default: {
+                    title: `Standard`,
+                    description: `Drei Optionen, gruppiert zu einem Segmented Control. Die ausgewählte Option erhält den Accent-Hintergrund; die anderen die Outline-Variante.`
+                },
+                disabled: {
+                    title: `Gruppe deaktiviert`,
+                    description: `disabled deaktiviert jede Option in der Gruppe. Für ein schreibgeschütztes Segmented Control.`
+                },
+                disabledOption: {
+                    title: `Option deaktiviert`,
+                    description: `Pro-Option-Deaktivierung — nur diese Option ist inaktiv; die übrigen reagieren weiterhin auf Klicks.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Übergib options als { id, icon, label?, disabled? } und einen kontrollierten selectedId. onSelectionChange feuert mit der neuen id.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<ButtonSelect> stapelt <Button>-Primitive zu einer Gruppe und teilt sich die Ränder — so liest sich das Ergebnis wie ein einziges Steuerelement. role="group" sitzt auf dem äußeren Wrapper; aria-pressed spiegelt die ausgewählte Option.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Drei Optionen, eine ausgewählt.`
+                        },
+                        disabled: {
+                            title: `Gruppe deaktiviert`,
+                            description: `Alle Optionen deaktiviert.`
+                        },
+                        disabledOption: {
+                            title: `Option deaktiviert`,
+                            description: `Eine Option deaktiviert.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <ButtonSelect> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersAllOptions: `Rendert jede Option als Button in der Gruppe.`,
+                            selectedDefaultVariant: `Markiert die ausgewählte Option mit dem Accent-Hintergrund.`,
+                            nonSelectedOutline: `Rendert nicht-ausgewählte Optionen mit der Outline-Variante.`,
+                            clickFiresChange: `Ruft onSelectionChange auf, wenn eine Option geklickt wird.`,
+                            disabledOptionNoChange: `Ruft onSelectionChange nicht auf, wenn eine deaktivierte Option geklickt wird.`,
+                            groupDisabledNoChange: `Ruft onSelectionChange nicht auf, wenn die gesamte Gruppe deaktiviert ist.`,
+                            forwardsClassName: `Reicht className an den äußeren Gruppen-Wrapper durch.`,
+                            forwardsStyle: `Reicht style an den äußeren Gruppen-Wrapper durch.`,
+                            accessibility: `Exponiert role="group" und ein aria-pressed-Attribut, das die ausgewählte Option widerspiegelt.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Das Segmented Control folgt der umgebenden Schreibrichtung. Unter dir="rtl" sitzt die erste Option rechts und rundet den rechten Rand.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <ButtonSelect> akzeptiert.`
+                    }
+                }
+            },
+            settingsPanel: {
+                default: {
+                    title: `Standard`,
+                    description: `Drei Sektionen: Erscheinungsbild, Code-Editor, Sprache. Ein zweiter Tab zeigt das Live-JSON, sodass Power-User einen Settings-Blob einfügen können.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Mounte <SettingsPanel> innerhalb von <MowsProvider>. Es liest / schreibt Theme, Code-Theme, Sprache, Code-Editor-Einstellungen und Toast-Einstellungen im umgebenden Context.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<SettingsPanel> verknüpft <ThemePicker>, <CodeThemePicker>, <LanguagePicker>, die Code-Editor-Toggles und den Toast-Position-Picker — plus einen JSON-Tab, der das gesamte MowsSettings-Objekt durchschleust.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Das gesamte Panel in einem 640px hohen Container.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <SettingsPanel> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            threeHeadings: `Rendert die drei Sektionsüberschriften (Erscheinungsbild, Code-Editor, Sprache).`,
+                            standalonePickersShowCurrent: `Verwendet die standalone-Variante der Theme- / Code-Theme- / Sprache-Picker und zeigt ihre aktuellen Werte.`,
+                            jsonTabShowsSettings: `Der JSON-Tab zeigt die aktuellen Einstellungen live an.`,
+                            jsonSaveAppliesEdit: `Editieren des JSONs und Klick auf Speichern überträgt die neuen Werte in den Context.`,
+                            notificationsSection: `Rendert die Sektion "Benachrichtigungen" mit dem Toast-Position-Picker.`,
+                            jsonIncludesToast: `Bezieht die Toast-Einstellungen in die JSON-Ansicht mit ein.`,
+                            toastPositionFromJson: `Übernimmt toast.position aus dem editierten JSON in den umgebenden Context.`,
+                            jsonErrorOnInvalid: `Zeigt eine Fehlermeldung, wenn das editierte JSON ungültig ist.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Das Sektionslayout spiegelt unter dir="rtl"; der JSON-Tab ist richtungsneutral.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <SettingsPanel> akzeptiert.`
+                    }
+                }
+            },
+            terminal: {
+                default: {
+                    title: `Standard`,
+                    description: `Lazy geladene xterm.js-Oberfläche mit einer kleinen Echo-„Shell", die über onData angebunden ist. „Clear" ruft das imperative Handle auf.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Terminal> ist eine lazy geladene xterm.js-Oberfläche. Der Konsument treibt das Terminal über das imperative TerminalHandle (write / writeln / clear / focus / fit) anstatt über einen "value"-Prop.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Kombiniere <Terminal> mit onData (Nutzereingabe) und onReady (Initial-Banner / Fokus). xterm + CSS (~250 KB) werden lazy geladen — Konsumenten ohne <Terminal> zahlen sie nie.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Echo-Shell`,
+                            description: `Kleine In-Process-„Shell", die getippte Zeichen echot und bei Enter einen Prompt schreibt.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Terminal> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            suspendsAndMounts: `Zeigt den Suspense-Fallback, während der xterm-Chunk lädt, und mountet danach xterm.`,
+                            forwardsHandle: `Reicht das imperative Handle (write / writeln / clear / focus / fit) durch die Lazy-Grenze.`,
+                            firesOnData: `Ruft onData auf, wenn xterm Nutzereingaben meldet.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Terminal-Output ist zeilenorientiert und richtungsneutral. xterm dreht Glyphen unter dir="rtl" nicht.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Terminal> akzeptiert, sowie das via ref bereitgestellte TerminalHandle.`
+                    }
+                }
+            },
+            logView: {
+                default: {
+                    title: `Zeilen anhängen`,
+                    description: `Jeder Klick hängt eine Zeile an und der View scrollt automatisch ans Ende. Das Suchfeld filtert case-insensitiv per Substring; das Mülleimer-Icon ruft onClear auf.`
+                },
+                hideToolbar: {
+                    title: `Ohne Toolbar`,
+                    description: `hideToolbar entfernt Suche + Clear — nützlich, wenn die umgebende Chrome diese Steuerung schon liefert.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<LogView> ist vollständig kontrolliert — der Konsument besitzt das lines-Array und den Clear-Handler. Solange der Nutzer unten steht, autoscrollt der View; sobald er nach oben scrollt, pausiert das Autoscroll bis er wieder ans Ende kommt.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<LogView> umschließt eine <ScrollArea> mit einer Toolbar (<SearchInput> + Clear-Button). Lokalisierbar via placeholders. Mit hideToolbar lebt die Toolbar außerhalb der View.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Zeilen anhängen`,
+                            description: `„Push line" hängt eine Beispielzeile an; die Suche filtert in Echtzeit.`
+                        },
+                        hideToolbar: {
+                            title: `Ohne Toolbar`,
+                            description: `Nur die scrollbare Anzeige — für Embeds, die die Toolbar woanders zeigen.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <LogView> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersAllLines: `Rendert jede Zeile aus dem lines-Prop.`,
+                            emptyPlaceholder: `Zeigt den Leer-Platzhalter, wenn keine Zeilen vorliegen.`,
+                            filtersBySearch: `Filtert Zeilen per case-insensitivem Substring.`,
+                            emptyWhenFilteredOut: `Zeigt den Leer-Platzhalter, wenn der Filter nichts trifft.`,
+                            hidesClearWhenNoCallback: `Blendet den Clear-Button aus, wenn onClear weggelassen wird.`,
+                            invokesOnClear: `Ruft onClear beim Klick auf den Clear-Button auf.`,
+                            hideToolbar: `Blendet die Toolbar aus, wenn hideToolbar gesetzt ist.`,
+                            reflectsLineUpdates: `Übernimmt Änderungen am lines-Prop sofort.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Zeilen bleiben in Quellreihenfolge; die Toolbar spiegelt unter dir="rtl", sodass der Clear-Button am führenden Rand sitzt.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <LogView> akzeptiert.`
+                    }
+                }
+            },
+            machineMonitor: {
+                default: {
+                    title: `Mit einem VNC-Server verbinden`,
+                    description: `Füge eine ws://- oder wss://-URL ein und klicke „Connect". Der Viewer lädt das react-vnc-Bundle bei der ersten Verbindung.`
+                },
+                readOnly: {
+                    title: `Read-only-Vorschau`,
+                    description: `readOnly impliziert viewOnly UND verhindert Auto-Focus beim Hover, unterdrückt den Punkt-Cursor und lässt die Seite durch das Canvas scrollen.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<MachineMonitor> ist ein lazy geladener react-vnc-/@novnc/novnc-Wrapper. Übergib entweder url oder einen vorab konstruierten websocket; alles weitere läuft über das imperative MachineMonitorHandle.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<MachineMonitor> kapselt das VncScreen mit einem Suspense-Fallback, optionaler pointer-events-Unterdrückung für readOnly-Vorschauen und einem imperativen Handle (connect / disconnect / sendCtrlAltDel / clipboardPaste / shutdown / reboot / reset).`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Live-Verbindung`,
+                            description: `Gib eine ws://-URL ein und verbinde dich. In der Doku ist kein Server angeschlossen.`
+                        },
+                        readOnly: {
+                            title: `Read-only-Vorschau`,
+                            description: `readOnly erzwingt viewOnly und unterdrückt Pointer-Events.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <MachineMonitor> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            remountsOnUrl: `Mountet das innere VncScreen neu, wenn sich das url-Prop ändert.`,
+                            readOnlyForcesViewOnly: `readOnly erzwingt viewOnly + deaktiviert focusOnClick und den Punkt-Cursor.`,
+                            readOnlyPointerEventsNone: `readOnly umschließt das Canvas mit einem pointer-events:none-Element, sodass die Seite hindurchscrollen kann.`,
+                            noPointerEventsWithoutReadOnly: `Setzt pointer-events:none nicht, wenn readOnly weggelassen wird.`,
+                            preservesExplicitViewOnly: `Behält ein explizit gesetztes viewOnly bei, wenn readOnly nicht gesetzt ist.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Das Remote-Framebuffer liegt in der Verantwortung des Servers; der Wrapper ist richtungsneutral.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <MachineMonitor> akzeptiert, sowie das via ref bereitgestellte MachineMonitorHandle.`
+                    }
+                }
+            },
+            sidebar: {
+                default: {
+                    title: `Header / Inhalt / Footer`,
+                    description: `Zusammengesetzt aus <SidebarHeader>, <SidebarContent> (mit <SidebarGroup> + <SidebarMenu>) und <SidebarFooter>. collapsible="icon" hält den Icon-Streifen sichtbar.`
+                },
+                collapsibleGroups: {
+                    title: `Aufklappbare Gruppen`,
+                    description: `Jedes <SidebarMenuItem> wird in <Collapsible> verpackt, die Unterpunkte liegen in <SidebarMenuSub>. Der Chevron rotiert anhand des data-state, und die Unterliste zeichnet die senkrechte Akzentlinie an der führenden Kante.`
+                },
+                resizable: {
+                    title: `Mit Größenänderung`,
+                    description: `Ziehe den rechten Rand, um die Breite zu ändern. Die Breite wird auf [minWidthPx, maxWidthPx] geklemmt und im Cookie sidebar_width gespeichert. Doppelklick auf den Griff setzt auf defaultWidthPx zurück.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Umschließe die umgebende Chrome mit <SidebarProvider> und platziere <Sidebar> dort, wo die Spalte leben soll. Der Provider besitzt open / collapsed / width; useSidebar() liefert das den Nachkommen.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<Sidebar> kombiniert Header- / Inhalt- / Footer-Slots, dazu Group / GroupLabel / GroupContent / Menu / MenuItem / MenuButton für Menübäume. <SidebarProvider> sichert open + width in Cookies, damit das Layout einen Reload überlebt.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Header / Inhalt / Footer`,
+                            description: `Eine statische Sidebar mit drei Menüeinträgen.`
+                        },
+                        collapsibleGroups: {
+                            title: `Aufklappbare Gruppen`,
+                            description: `Top-Level-Gruppen mit Icon und Chevron, der sich beim Aufklappen dreht. Unterpunkte werden unter einer senkrechten Akzentlinie gerendert.`
+                        },
+                        resizable: {
+                            title: `Mit Größenänderung`,
+                            description: `Ziehe den rechten Rand; Doppelklick setzt zurück.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Sidebar> + <SidebarProvider> verhalten sollen, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            cssVarApplies: `Verwendet Tailwind-v4-var()-Syntax, sodass die Breite tatsächlich greift.`,
+                            seedsDefaultWidth: `Initialisiert --sidebar-width beim Mount aus defaultWidthPx.`,
+                            rendersHandleWhenResizable: `Rendert den Resize-Griff, wenn resizable gesetzt ist.`,
+                            noHandleWhenNotResizable: `Rendert keinen Resize-Griff, wenn resizable false ist.`,
+                            dragPersists: `Aktualisiert die Breite beim Ziehen und persistiert sie im sidebar_width-Cookie.`,
+                            clampsToMax: `Klemmt das Ziehen auf maxWidthPx.`,
+                            clampsToMin: `Klemmt das Ziehen auf minWidthPx.`,
+                            doubleClickReset: `Doppelklick auf den Griff setzt die Breite auf defaultWidthPx zurück.`,
+                            restoresFromCookie: `Stellt eine gesicherte Breite beim Mount aus dem sidebar_width-Cookie wieder her.`,
+                            reclampsPersisted: `Klemmt eine gesicherte Breite neu, wenn sie außerhalb der aktuellen [min, max]-Grenzen liegt.`,
+                            dragsInwardOnRight: `Zieht nach innen, wenn die Sidebar rechts verankert ist.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" bleibt die Sidebar an ihrer deklarierten Seite verankert; nur der Innen-Inhalt spiegelt. side="right" + RTL spiegelt das LTR-Layout effektiv.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props der wichtigsten Sidebar-Oberflächen. Die volle Menge (Header / Footer / Group / Menu …) wird aus mows-components-react exportiert.`
+                    }
+                }
+            },
+            tabs: {
+                default: {
+                    title: `Standard`,
+                    description: `Unkontrolliert — übergib defaultValue und lass <Tabs> den aktiven Tab verwalten.`
+                },
+                disabled: {
+                    title: `Deaktivierter Trigger`,
+                    description: `Markiere einen Trigger als disabled, um den Panel-Eingang aus der UI-Navigation zu nehmen. Der Inhalt ist unerreichbar.`
+                },
+                controlled: {
+                    title: `Kontrolliert`,
+                    description: `Mit value + onValueChange steuerst du die Tabs von außen.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Tabs> ist Radix Tabs im new-york-Style von shadcn. Jeder <TabsTrigger value> muss exakt einem <TabsContent value> entsprechen.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Kombiniere <Tabs> mit <TabsList> (Trigger-Reihe) und <TabsContent>-Panels. defaultValue / value steuern den aktiven Panel; disabled deaktiviert einzelne Trigger; orientation tauscht die Pfeil-Navigation.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Drei Trigger, einer aktiv.`
+                        },
+                        disabled: {
+                            title: `Deaktivierter Trigger`,
+                            description: `Der dritte Trigger ist deaktiviert — sein Panel ist unerreichbar.`
+                        },
+                        controlled: {
+                            title: `Kontrolliert`,
+                            description: `value + onValueChange steuern den aktiven Tab von außen.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Tabs> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            showsDefaultPanel: `Zeigt beim ersten Render den Panel zu defaultValue.`,
+                            switchesOnClick: `Wechselt den sichtbaren Panel beim Klick auf einen Trigger.`,
+                            dataStateActive: `Markiert den aktiven Trigger via data-state="active" / "inactive".`,
+                            disabledNoActivate: `Aktiviert einen deaktivierten Trigger nicht.`,
+                            controlledValue: `Respektiert ein kontrolliertes value-Prop — der aktive Panel folgt dem Eltern-State.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegelt die Trigger-Reihe und die Pfeil-Navigation dreht sich, sodass Links/Rechts zum visuell benachbarten Trigger führen.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Tabs>, <TabsTrigger> und <TabsContent> akzeptieren.`
+                    }
+                }
+            },
+            badge: {
+                default: {
+                    title: `Standard`,
+                    description: `Die Standard-Variante nutzt die Primärfarbe und rendert solide auf dem Seitenhintergrund.`
+                },
+                variants: {
+                    title: `Varianten`,
+                    description: `Alle verfügbaren Varianten. Die vier Status-Varianten (success / warning / info / muted) sind app-übergreifende Konventionen für Ressourcen-Status.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Badge> ist ein kleines Inline-Element für Status. Übergib children als Label und optional eine variant für das Farbschema.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<Badge> umschließt children mit einem gestylten div. Alle HTML-div-Attribute werden durchgereicht.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Die Basis-Variante.`
+                        },
+                        variants: {
+                            title: `Varianten`,
+                            description: `Acht visuelle Behandlungen.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Badge> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersChildren: `Rendert children innerhalb der Badge-Fläche.`,
+                            defaultVariantClasses: `Wendet ohne variant-Prop die Default-Klassen (bg-primary / text-primary-foreground) an.`,
+                            eachVariantClasses: `Jede Variante wendet ihre erwarteten Tailwind-Klassen für Hintergrund + Vordergrund an (secondary / destructive / outline / success / warning / info / muted).`,
+                            forwardsClassName: `Reicht ein zusätzliches className durch, ohne die Variant-Klassen zu verlieren.`,
+                            forwardsAttributes: `Reicht beliebige HTML-Attribute (z. B. data-*) ans gerenderte Element durch.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Badges sind richtungsneutral — die Reihenfolge innerhalb folgt der Schreibrichtung des Containers.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Badge> akzeptiert.`
+                    }
+                }
+            },
+            button: {
+                default: {
+                    title: `Standard`,
+                    description: `Der Basis-Button — Primärhintergrund, Standard-Größe.`
+                },
+                variants: {
+                    title: `Varianten`,
+                    description: `Sechs eingebaute visuelle Behandlungen. iconStandalone ist eine transparente Variante für Icon-only-Buttons ohne Container-Chrome.`
+                },
+                sizes: {
+                    title: `Größen`,
+                    description: `sm / default / lg + drei icon-* Größen für quadratische Icon-Buttons.`
+                },
+                asChild: {
+                    title: `asChild`,
+                    description: `Rendert das Button-Styling per Radix Slot auf das einzige Kind-Element — typisch für Links mit Button-Look ohne <button> in einem <a> zu verschachteln.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Button> rendert ein natives <button> mit den shadcn-Variant- und Größenklassen. Alle nativen Button-Attribute (onClick, type, disabled …) werden durchgereicht.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Mit asChild wird das Styling stattdessen auf das einzige Kind-Element gelegt — der typische Fall ist das Umschließen eines <Link> / <a>.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Der Basis-Button.`
+                        },
+                        variants: {
+                            title: `Varianten`,
+                            description: `default / secondary / destructive / outline / ghost / link.`
+                        },
+                        sizes: {
+                            title: `Größen`,
+                            description: `sm / default / lg + drei icon-* Größen.`
+                        },
+                        asChild: {
+                            title: `asChild`,
+                            description: `Styling auf ein <a> übertragen.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Button> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersNativeButton: `Rendert ohne asChild ein natives <button>.`,
+                            defaultVariantAndSize: `Wendet ohne explizite variant/size die Default-Werte an.`,
+                            appliesVariants: `Jede Variante wendet ihre erwarteten Tailwind-Klassen an (destructive / outline / secondary / ghost / link / iconStandalone).`,
+                            appliesSizes: `Jede Größe wendet ihre erwarteten Höhen-/Padding-Klassen an (sm / lg / icon / icon-sm / icon-lg / icon-xs).`,
+                            firesOnClick: `Feuert onClick beim Klick.`,
+                            noClickWhenDisabled: `Feuert onClick nicht, wenn disabled gesetzt ist.`,
+                            asChildRendersChild: `asChild rendert das Kind-Element (z. B. <a>) statt eines nativen Buttons, mit dem Button-Styling.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Buttons erben die Schreibrichtung vom Vorfahren; Icon- und Label-Reihenfolge spiegelt unter dir="rtl".`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Button> akzeptiert.`
+                    }
+                }
+            },
+            card: {
+                default: {
+                    title: `Header / Inhalt / Footer`,
+                    description: `Eine vollständige Card mit Titel + Beschreibung im Header, Body und Aktions-Buttons im Footer.`
+                },
+                headerOnly: {
+                    title: `Nur Header`,
+                    description: `Cards funktionieren auch nur mit Header — jeder Slot ist optional.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Kombiniere <Card> mit den Slots Header / Title / Description / Content / Footer. Jeder Slot ist unabhängig — wenn du einen weglässt, bleibt das umgebende Spacing intakt.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Jeder Card-Slot ist ein einfacher forwardRef-div mit shadcn-Typo- und Padding-Klassen. Alle div-Attribute werden durchgereicht.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Header / Inhalt / Footer`,
+                            description: `Card mit allen Slots gefüllt.`
+                        },
+                        headerOnly: {
+                            title: `Nur Header`,
+                            description: `Nur <CardHeader> mit Titel + Beschreibung.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich die Card-Oberflächen verhalten sollen, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            shell: `Rendert das Card-Gehäuse mit abgerundetem Rand und Card-Hintergrund.`,
+                            slotOrder: `Rendert Header / Title / Description / Content / Footer in DOM-Reihenfolge.`,
+                            titleTypography: `<CardTitle> trägt die Heading-Typo-Klassen (font-semibold, text-2xl).`,
+                            descriptionColour: `<CardDescription> nutzt das muted-foreground-Farbtoken.`,
+                            refForwarding: `Jede Card-Unterkomponente reicht ein ref ans gerenderte div durch.`,
+                            classNameMerge: `Jede Card-Unterkomponente merged ein übergebenes className mit ihren Basis-Klassen.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Cards sind richtungsneutral; innere Flex-Container (Footer, Header) spiegeln unter dir="rtl", sodass Aktions-Buttons am führenden Rand bleiben.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Alle Card-Unterkomponenten teilen sich dieselben Props — jede ist ein forwardRef-div.`
+                    }
+                }
+            },
+            checkbox: {
+                default: {
+                    title: `Standard`,
+                    description: `In <Label> einwickeln, damit Klicks auf das Label die Checkbox umschalten.`
+                },
+                indeterminate: {
+                    title: `Unbestimmt`,
+                    description: `Übergib checked="indeterminate" für die Tri-State-Glyphe — nützlich für „Alle auswählen"-Header bei partieller Auswahl.`
+                },
+                disabled: {
+                    title: `Deaktiviert`,
+                    description: `disabled deaktiviert beide Zustände (unchecked und checked).`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Checkbox> ist tri-state — übergib true / false / "indeterminate" via checked. onCheckedChange feuert mit dem neuen Wert.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<Checkbox> kapselt die Radix-Checkbox und rendert das Lucide-Check-Icon als Indikator. In <Label> einwickeln für ein klickbares Label.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Kontrollierte Checkbox in einem <Label>.`
+                        },
+                        indeterminate: {
+                            title: `Unbestimmt`,
+                            description: `Tri-State-Modus.`
+                        },
+                        disabled: {
+                            title: `Deaktiviert`,
+                            description: `Beide Varianten (unchecked und checked) deaktiviert.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Checkbox> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            defaultUnchecked: `Rendert standardmäßig unchecked (data-state="unchecked").`,
+                            indicatorWhenChecked: `Rendert den Check-Indikator nur, wenn checked.`,
+                            defaultCheckedOnMount: `Übernimmt defaultChecked beim ersten Mount.`,
+                            firesOnCheckedChange: `Feuert onCheckedChange beim Klick im unkontrollierten Modus.`,
+                            fullyControllable: `Ist vollständig steuerbar via checked + onCheckedChange.`,
+                            noToggleWhenDisabled: `Schaltet nicht um, wenn disabled gesetzt ist.`,
+                            indeterminateDataState: `Exponiert den unbestimmten Zustand via data-state="indeterminate".`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Die Checkbox ist quadratisch — richtungsneutral. Label-/Checkbox-Reihenfolge folgt der Schreibrichtung.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Checkbox> akzeptiert.`
+                    }
+                }
+            },
+            switch: {
+                default: {
+                    title: `Standard`,
+                    description: `Boolesches On/Off — kein unbestimmter Zustand.`
+                },
+                disabled: {
+                    title: `Deaktiviert`,
+                    description: `disabled deaktiviert sowohl den Off- als auch den On-Zustand.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Switch> ist die Radix-Switch-Primitive — ein boolescher Ein/Aus-Toggle. onCheckedChange feuert mit dem neuen Boolean.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<Switch> kapselt die Radix-Switch-Primitive. In <Label> einwickeln, damit Klicks auf das Label umschalten. Im Gegensatz zu <Checkbox> gibt es keinen unbestimmten Zustand.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Kontrollierter Switch in einem <Label>.`
+                        },
+                        disabled: {
+                            title: `Deaktiviert`,
+                            description: `Deaktiviert Off / Deaktiviert On.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Switch> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            defaultUnchecked: `Rendert standardmäßig unchecked (data-state="unchecked").`,
+                            defaultCheckedOnMount: `Übernimmt defaultChecked beim ersten Mount.`,
+                            firesOnCheckedChange: `Feuert onCheckedChange beim Klick im unkontrollierten Modus.`,
+                            fullyControllable: `Ist vollständig steuerbar via checked + onCheckedChange.`,
+                            noToggleWhenDisabled: `Schaltet nicht um, wenn disabled gesetzt ist.`,
+                            thumbTranslates: `Der Thumb verschiebt sich nur, wenn checked.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Der Switch-Track liegt horizontal. Unter dir="rtl" gleitet der Thumb weiterhin von der führenden zur nachfolgenden Kante — visuell spiegelt das das LTR-Verhalten.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Switch> akzeptiert.`
+                    }
+                }
+            },
+            collapsible: {
+                default: {
+                    title: `Standard`,
+                    description: `Unkontrolliert — defaultOpen initialisiert den Zustand und der Trigger kippt ihn. data-state am Trigger erlaubt das Animieren des Chevrons.`
+                },
+                controlled: {
+                    title: `Kontrolliert`,
+                    description: `Steuere open aus eigenem State mit onOpenChange. Ein externer Button und der eingebettete Trigger teilen sich dieselbe Quelle.`
+                },
+                nested: {
+                    title: `Verschachtelte Menügruppen`,
+                    description: `Sidebar-ähnliche Menügruppen: Icon, Label, ein über data-state rotierender Chevron und eingerückte Unterpunkte hinter einer senkrechten Akzentlinie — dasselbe Muster wie im Sidebar-Beispiel "Aufklappbare Gruppen", aber nur mit Collapsible + Tailwind nachgebaut.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Collapsible> kapselt das Radix-Collapsible-Primitive. Platziere einen <CollapsibleTrigger> neben <CollapsibleContent>; beide Kinder erhalten data-state="open" | "closed", sodass CSS darauf reagieren kann.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Setze group/collapsible auf das Root-Element, damit Nachfahren den geöffneten Zustand abfragen können. Ein Chevron mit group-data-[state=open]/collapsible:rotate-180 ist die typische Affordance.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Unkontrolliert mit defaultOpen und Chevron-Icon.`
+                        },
+                        controlled: {
+                            title: `Kontrolliert`,
+                            description: `Zwei Trigger — externer Button und eingebetteter Trigger — teilen sich einen Zustand.`
+                        },
+                        nested: {
+                            title: `Verschachtelte Menügruppen`,
+                            description: `Icon + Chevron + eingerückte Unterpunkte mit senkrechter Akzentlinie — das Sidebar-Muster, aus Collapsible-Primitiven gebaut.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Collapsible> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            closedByDefault: `Rendert standardmäßig geschlossen (data-state="closed", aria-expanded="false").`,
+                            reflectsDefaultOpen: `Übernimmt defaultOpen beim ersten Mount.`,
+                            opensClosesOnClick: `Öffnet und schließt beim Klick auf den Trigger.`,
+                            firesOnOpenChange: `Feuert onOpenChange beim Umschalten.`,
+                            fullyControllable: `Ist vollständig steuerbar via open + onOpenChange.`,
+                            disabledNoToggle: `Schaltet nicht um, wenn disabled gesetzt ist.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `<Collapsible> ist richtungsneutral — es rendert selbst keine richtungsgebundene Affordance. Kinder erben das umliegende dir-Attribut, sodass das Layout unter dir="rtl" natürlich spiegelt.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Collapsible>, <CollapsibleTrigger> und <CollapsibleContent> akzeptieren.`
+                    }
+                }
+            },
+            input: {
+                default: {
+                    title: `Mit Label`,
+                    description: `Kombiniere <Input> mit <Label htmlFor> für barrierefreie Beschriftung.`
+                },
+                types: {
+                    title: `Häufige Typen`,
+                    description: `text / password / number — alle HTML-input-Typen werden durchgereicht.`
+                },
+                disabled: {
+                    title: `Deaktiviert`,
+                    description: `disabled deaktiviert das Eingabefeld und dimmt es ab.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Input> ist ein gestylter Wrapper um das native <input>. Alle nativen Attribute werden durchgereicht (type, value, onChange, placeholder, disabled, autoComplete …).`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Kombiniere mit <Label htmlFor> für barrierefreie Beschriftung. value + onChange für kontrollierten Modus.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Mit Label`,
+                            description: `Beschrifteter Email-Input.`
+                        },
+                        types: {
+                            title: `Häufige Typen`,
+                            description: `text / password / number.`
+                        },
+                        disabled: {
+                            title: `Deaktiviert`,
+                            description: `Deaktiviertes Nur-Lese-Feld.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Input> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersTextInput: `Rendert standardmäßig ein natives input-Element.`,
+                            forwardsType: `Reicht das type-Attribut (z. B. password) ans native input weiter.`,
+                            firesOnChange: `Feuert onChange beim Tippen.`,
+                            fullyControllable: `Ist vollständig steuerbar via value + onChange.`,
+                            noInputWhenDisabled: `Akzeptiert keine Eingabe, wenn disabled gesetzt ist.`,
+                            forwardsRef: `Reicht ein ref ans zugrundeliegende input-Element durch.`,
+                            classNameMerge: `Merged ein eigenes className mit den Basis-Klassen.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" dreht sich das Input: Cursor startet rechts, Placeholder und Auswahl folgen der Schreibrichtung.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Input> akzeptiert.`
+                    }
+                }
+            },
+            label: {
+                default: {
+                    title: `Einwickeln`,
+                    description: `Den Control im Label einwickeln — Klicks auf den Label-Bereich schalten den Control um.`
+                },
+                htmlFor: {
+                    title: `htmlFor`,
+                    description: `Wenn der Control außerhalb des Labels lebt, htmlFor verwenden. Klicks auf das Label fokussieren das passende Input.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Label> kapselt die Radix-Label-Primitive mit shadcn-Typo. Mit Form-Controls kombinieren — Klicks aufs Label fokussieren das zugehörige Input.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Zwei gleichwertige Muster: Control im Label einwickeln ODER htmlFor auf die ID des Controls setzen.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Einwickeln`,
+                            description: `Checkbox im <Label> verschachtelt.`
+                        },
+                        htmlFor: {
+                            title: `htmlFor`,
+                            description: `Label neben einem separaten Input.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Label> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersNativeLabel: `Rendert ein natives label-Element.`,
+                            typographyClasses: `Trägt die Heading-Typo-Klassen (text-sm, font-medium).`,
+                            htmlForFocuses: `Reicht htmlFor durch und fokussiert beim Klick das passende Input.`,
+                            classNameMerge: `Merged ein eigenes className mit den Basis-Klassen.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Labels folgen der umgebenden Schreibrichtung. Der Label-Text liest RTL, wenn in dir="rtl" eingewickelt.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Label> akzeptiert.`
+                    }
+                }
+            },
+            textarea: {
+                default: {
+                    title: `Mit Label`,
+                    description: `Mehrzeilige Eingabe. Mindesthöhe 60px; mit rows={n} oder einem className vergrößern.`
+                },
+                disabled: {
+                    title: `Deaktiviert`,
+                    description: `disabled deaktiviert das Tippen und dimmt das Textarea ab.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Textarea> ist ein gestylter Wrapper um das native <textarea>. Alle nativen Attribute werden durchgereicht (rows, value, onChange, placeholder, disabled …).`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Mit rows={n} oder h-{n} die Größe setzen. value + onChange für kontrollierten Modus.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Mit Label`,
+                            description: `Beschriftetes Bio-Textarea.`
+                        },
+                        disabled: {
+                            title: `Deaktiviert`,
+                            description: `Nur-Lese-Textarea mit Default-Wert.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Textarea> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersNativeTextarea: `Rendert ein natives textarea-Element.`,
+                            firesOnChange: `Feuert onChange beim Tippen.`,
+                            fullyControllable: `Ist vollständig steuerbar via value + onChange.`,
+                            forwardsRef: `Reicht ein ref ans zugrundeliegende textarea-Element durch.`,
+                            disabledPreventsTyping: `Disabled verhindert Tippen.`,
+                            baseStyling: `Trägt die Mindesthöhen- und Rundungs-Klassen.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" dreht sich das Textarea, sodass der Cursor rechts startet.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Textarea> akzeptiert.`
+                    }
+                }
+            },
+            skeleton: {
+                default: {
+                    title: `Avatar + Zeilen`,
+                    description: `Eine gängige Lade-Form: runder Avatar plus zwei Textzeilen.`
+                },
+                card: {
+                    title: `Card-Platzhalter`,
+                    description: `Block + Heading + Body-Zeilen — verwendet, während eine echte Card lädt.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Skeleton> ist ein pulsierend animiertes div. Mit Tailwind-Utility-Klassen (h-*, w-*, rounded-*) so dimensionieren, dass die ladende Inhalts-Form gespiegelt wird.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Mehrere Skeletons in derselben Form und DOM-Reihenfolge wie der echte Inhalt zusammenbauen. Beim Laden austauschen.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Avatar + Zeilen`,
+                            description: `Gängige Platzhalter-Form.`
+                        },
+                        card: {
+                            title: `Card-Platzhalter`,
+                            description: `Bildblock + Heading + Body-Zeilen.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Skeleton> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            baseClasses: `Rendert ein div mit den Basis-Klassen animate-pulse + rounded.`,
+                            forwardsClassName: `Reicht ein zusätzliches className für Größen-/Form-Overrides durch.`,
+                            forwardsAttributes: `Reicht beliebige HTML-Attribute (z. B. id, data-*) durch.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Skeletons sind rein visuelle Rechtecke — richtungsneutral.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Skeleton> akzeptiert.`
+                    }
+                }
+            },
+            progress: {
+                default: {
+                    title: `Statischer Wert`,
+                    description: `value=60 — der Indikator verschiebt sich um -(100 - value)%, um den gefüllten Teil freizulegen.`
+                },
+                animated: {
+                    title: `Animiert`,
+                    description: `Wert per Timer hochzählen, um eine animierte Fortschrittsanzeige zu treiben.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Progress> ist die Radix-Progress-Primitive — übergib value (0-100). Der Indikator ist GPU-beschleunigt via transform: translateX.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `value aus externem State treiben, etwa für Upload-Progress, lang laufende Tasks usw. undefined → unbestimmter Zustand.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Statischer Wert`,
+                            description: `Fester value=60.`
+                        },
+                        animated: {
+                            title: `Animiert`,
+                            description: `Timer-getriebener Fortschritt.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Progress> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersTrack: `Rendert die Spur als relativ positioniertes, overflow-hidden, rounded-full-Gehäuse.`,
+                            translateAtZero: `Verschiebt den Indikator bei value=0 um -100%.`,
+                            translateAtFifty: `Verschiebt den Indikator bei value=50 um -50%.`,
+                            translateAtHundred: `Verschiebt den Indikator bei value=100 um 0.`,
+                            omittedAsZero: `Behandelt einen weggelassenen / undefined Wert als 0.`,
+                            classNameMerge: `Merged ein eigenes className mit den Basis-Klassen auf der Spur.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" füllt sich der Indikator vom rechten zum linken Rand — Radix spiegelt die Transform-Richtung automatisch.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Progress> akzeptiert.`
+                    }
+                }
+            },
+            dialog: {
+                default: {
+                    title: `Destruktive Aktion bestätigen`,
+                    description: `Über den Button öffnet ein Modal-Dialog mit Titel, Body und Cancel/Delete-Aktionen im Footer.`
+                },
+                hideClose: {
+                    title: `Ohne Eck-X`,
+                    description: `showCloseButton={false} blendet das eingebaute Eck-X aus — nützlich, wenn das Schließen über eine explizite Footer-Aktion erfolgen muss.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Dialog> kapselt Radix Dialog. Kombiniere mit <DialogTrigger>, <DialogContent>, <DialogHeader> (mit <DialogTitle> + <DialogDescription>), <DialogFooter> und <DialogClose>.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `DialogContent rendert standardmäßig ein Eck-X — mit showCloseButton={false} ausblenden. Escape und Overlay-Klicks schließen den Dialog ebenfalls.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Destruktive Aktion bestätigen`,
+                            description: `Dialog mit Header + Body + Cancel/Delete-Footer.`
+                        },
+                        hideClose: {
+                            title: `Ohne Eck-X`,
+                            description: `showCloseButton={false} erzwingt explizite Footer-Aktion.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Dialog> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            closedByDefault: `Ist standardmäßig geschlossen — der Inhalt wird nicht gerendert.`,
+                            defaultOpen: `Rendert den Inhalt, wenn defaultOpen gesetzt ist.`,
+                            opensOnTrigger: `Öffnet sich beim Klick auf den Trigger.`,
+                            ariaWiring: `Exponiert role="dialog" mit aria-labelledby / aria-describedby auf Title / Description.`,
+                            closeButton: `Rendert einen eingebauten Schließen-Button mit Label "Close", der den Dialog beim Klick schließt.`,
+                            closesOnEscape: `Schließt sich bei Escape.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" wandert das Eck-X an die führende Kante; Footer-Aktionen folgen der Schreibrichtung.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Dialog> und <DialogContent> akzeptieren. Die anderen Slots akzeptieren die nativen Attribute ihres jeweiligen Elements.`
+                    }
+                }
+            },
+            popover: {
+                default: {
+                    title: `Trigger + Body`,
+                    description: `Minimaler Popover, am Trigger-Button verankert.`
+                },
+                form: {
+                    title: `Inline-Formular`,
+                    description: `Popovers sind nicht-modal — ideal für leichte Inline-Formulare (Umbenennen, Quick-Edit).`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Popover> kapselt die Radix-Popover-Primitive. Kombiniere mit <PopoverTrigger> und <PopoverContent>.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Popovers sind nicht-modal: Klicks außerhalb schließen, Fokus wird nicht eingefangen. Für modal blockierende Interaktionen <Dialog> verwenden.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Trigger + Body`,
+                            description: `Minimaler Popover.`
+                        },
+                        form: {
+                            title: `Inline-Formular`,
+                            description: `Leichtes Formular im Popover.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Popover> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            closedByDefault: `Ist standardmäßig geschlossen — der Inhalt wird nicht gerendert.`,
+                            defaultOpen: `Rendert den Inhalt, wenn defaultOpen gesetzt ist.`,
+                            opensOnTrigger: `Öffnet sich beim Klick auf den Trigger.`,
+                            closesOnEscape: `Schließt sich bei Escape.`,
+                            portalsToBody: `Portaliert den Inhalt zum document.body — nicht ins Eltern-div des Triggers.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegeln Anker und Alignment des Popovers — Radix dreht align="start"/"end" automatisch.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Popover> und <PopoverContent> akzeptieren.`
+                    }
+                }
+            },
+            scrollArea: {
+                default: {
+                    title: `Vertikal scrollen`,
+                    description: `30 Einträge in einem 48-hohen Viewport. Die Scrollleiste erscheint bei Überlauf.`
+                },
+                horizontal: {
+                    title: `Horizontal scrollen`,
+                    description: `Eine explizite <ScrollBar orientation="horizontal" /> rendern, um eine horizontale Scrollleiste zu bekommen — Radix rendert sie nicht automatisch.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<ScrollArea> kapselt die Radix-ScrollArea-Primitive. Container mit h-*/w-*-Utilities dimensionieren — bei Überlauf erscheint die custom-gestylte Scrollleiste.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Für horizontales Scrollen ein <ScrollBar orientation="horizontal" /> in der ScrollArea rendern. Über viewportRef kann man imperativ scrollen (z. B. Auto-Scroll bei LogView).`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Vertikal scrollen`,
+                            description: `30 Items in einem 48-hohen Viewport.`
+                        },
+                        horizontal: {
+                            title: `Horizontal scrollen`,
+                            description: `Horizontal angeordnete Karten mit expliziter ScrollBar.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <ScrollArea> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            shell: `Rendert ein relativ positioniertes, overflow-hidden Gehäuse.`,
+                            viewport: `Rendert die children in einem Viewport mit h-full / w-full.`,
+                            viewportRef: `Reicht viewportRef an den inneren Viewport durch.`,
+                            viewportClassName: `Merged viewportClassName auf den Viewport.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" sitzt die vertikale Scrollleiste am linken Rand; horizontales Scrollen folgt der Schreibrichtung.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <ScrollArea> und <ScrollBar> akzeptieren.`
+                    }
+                }
+            },
+            radioGroup: {
+                default: {
+                    title: `Kontrollierte Auswahl`,
+                    description: `Drei Optionen, eine ausgewählt — onValueChange feuert mit dem neuen Wert beim Klick.`
+                },
+                disabledOption: {
+                    title: `Option deaktiviert`,
+                    description: `Ein einzelnes <RadioGroupItem disabled> aus der Auswahl ausschließen; der Rest der Gruppe bleibt interaktiv.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<RadioGroup> kapselt Radix RadioGroup. Jedes <RadioGroupItem value> muss in der Gruppe eindeutig sein.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Jedes Item in einem <Label> einwickeln für barrierefreie Beschriftung. Einzelne Items oder die ganze Gruppe deaktivieren.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Kontrollierte Auswahl`,
+                            description: `Drei Optionen mit onValueChange.`
+                        },
+                        disabledOption: {
+                            title: `Option deaktiviert`,
+                            description: `Ein Item deaktiviert.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <RadioGroup> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersRadios: `Rendert jedes Item als radio.`,
+                            roleRadiogroup: `Setzt role="radiogroup" auf den Wrapper.`,
+                            defaultValueOnMount: `Übernimmt defaultValue beim ersten Mount.`,
+                            firesOnValueChange: `Feuert onValueChange beim Klick auf ein Item.`,
+                            fullyControllable: `Ist vollständig steuerbar via value + onValueChange.`,
+                            disabledNoSwitch: `Wechselt nicht zu einem deaktivierten Item.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegeln Indikator und Label; Pfeil-Navigation dreht sich, sodass Links/Rechts zum visuell benachbarten Item führen.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <RadioGroup> und <RadioGroupItem> akzeptieren.`
+                    }
+                }
+            },
+            slider: {
+                default: {
+                    title: `Einzelner Thumb`,
+                    description: `Standard 0-100-Slider mit einem Thumb. value ist immer ein number[].`
+                },
+                range: {
+                    title: `Range (zwei Thumbs)`,
+                    description: `Ein Zwei-Eintrag-Array für einen Range-Slider; der zweite Thumb kann den ersten nicht kreuzen.`
+                },
+                disabled: {
+                    title: `Deaktiviert`,
+                    description: `disabled ignoriert Pointer + Tastatur; der Wrapper wird per opacity-60 abgedimmt.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Slider> kapselt Radix Slider mit dem shadcn-Track/Thumb-Styling. Die Library rendert einen Thumb pro Eintrag in value / defaultValue.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `onValueChange feuert während des Ziehens; onValueCommit feuert einmal beim Loslassen.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Einzelner Thumb`,
+                            description: `Kontrollierter Single-Thumb-Slider.`
+                        },
+                        range: {
+                            title: `Range (zwei Thumbs)`,
+                            description: `Kontrollierter Range-Slider.`
+                        },
+                        disabled: {
+                            title: `Deaktiviert`,
+                            description: `Inaktiver Slider.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Slider> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            singleThumbDefault: `Rendert standardmäßig einen einzigen Thumb.`,
+                            thumbsFromDefaultValue: `Rendert einen Thumb pro Eintrag in defaultValue.`,
+                            thumbsFromControlledValue: `Rendert einen Thumb pro Eintrag im kontrollierten value.`,
+                            forwardsMinMax: `Reicht min / max an den darunterliegenden Slider durch (aria-valuemin / aria-valuemax).`,
+                            defaultRange: `Verwendet 0-100 als Standardbereich.`,
+                            disabledForwards: `disabled wird an die Thumbs durchgereicht (data-disabled).`,
+                            classNameMerge: `Merged ein eigenes className mit den Basis-Klassen.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" dreht sich die Slider-Richtung: Ziehen nach rechts senkt den Wert.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Slider> akzeptiert.`
+                    }
+                }
+            },
+            contextMenu: {
+                default: {
+                    title: `Rechtsklick-Ziel`,
+                    description: `Rechtsklick irgendwo in der gestrichelten Fläche öffnet ein region-spezifisches Kontextmenü. Mit Escape oder Klick außerhalb schließen.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<ContextMenu> ist das lokale, Radix-getriebene Kontextmenü. Kombiniere mit <ContextMenuTrigger>, <ContextMenuContent>, <ContextMenuItem> und <ContextMenuSeparator>.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `ContextMenu für regionale Menüs ohne ActionManager-Beteiligung verwenden. Für globale, action-scope-getriebene Menüs <GlobalContextMenu> verwenden.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Rechtsklick-Ziel`,
+                            description: `Rechtsklicke die gestrichelte Fläche, um das Menü zu öffnen.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <ContextMenu> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            closedByDefault: `Ist standardmäßig geschlossen — keine Menü-Items werden gerendert.`,
+                            opensOnContextmenu: `Öffnet sich beim contextmenu-Event auf dem Trigger.`,
+                            firesOnSelect: `Feuert onSelect beim Klick auf ein Item.`,
+                            disabledIgnored: `Deaktivierte Items setzen data-disabled und ignorieren Auswahl.`,
+                            closesOnSelect: `Schließt sich, wenn ein aktives Item ausgewählt wird.`,
+                            separator: `Rendert einen Separator zwischen Item-Gruppen.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegeln die Menü-Items; das Menü verankert weiterhin am Cursor.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <ContextMenu> und <ContextMenuItem> akzeptieren.`
+                    }
+                }
+            },
+            dropdownMenu: {
+                default: {
+                    title: `Standard`,
+                    description: `Der Trigger-Button öffnet ein Menü mit Label, Separator und drei Items.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<DropdownMenu> kapselt Radix DropdownMenu. Kombiniere mit Trigger, Content, Label, Separator und Item.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Beim Auswählen eines Items schließt das Menü standardmäßig. event.preventDefault() in onSelect hält das Menü offen (z. B. für Checkbox-artige Items, die externen State togglen).`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Standard`,
+                            description: `Account-Menü mit Icons.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <DropdownMenu> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            closedByDefault: `Ist standardmäßig geschlossen — keine Menü-Items werden gerendert.`,
+                            opensOnTrigger: `Öffnet sich beim Klick auf den Trigger.`,
+                            firesOnSelectAndCloses: `Feuert onSelect beim Klick auf ein Item und schließt das Menü.`,
+                            disabledData: `Deaktivierte Items setzen data-disabled.`,
+                            closesOnEscape: `Schließt sich bei Escape.`,
+                            labelNotMenuitem: `Das Label ist kein menuitem — es ist aus der Tastatur-Navigation ausgeschlossen.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegelt das Menü, sodass es am führenden Rand des Triggers öffnet.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <DropdownMenu> und <DropdownMenuItem> akzeptieren.`
+                    }
+                }
+            },
+            hoverCard: {
+                default: {
+                    title: `Username-Vorschau`,
+                    description: `Hover (oder Fokus) auf den Link zeigt eine Vorschau. Open-/Close-Delays sind am Root einstellbar.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<HoverCard> kapselt Radix HoverCard. Öffnet bei Hover oder Fokus auf den Trigger; tastatur-zugänglich.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Open-/Close-Delay am Root tunen. Der Trigger sollte ein Link / Button sein (die Card ist informativ, nicht handlungsaufrufend).`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Username-Vorschau`,
+                            description: `Hover über @mows zeigt die Vorschau.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <HoverCard> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            closedByDefault: `Ist standardmäßig geschlossen — Inhalt wird nicht gerendert.`,
+                            defaultOpenRenders: `Rendert den Inhalt, wenn defaultOpen gesetzt ist.`,
+                            contentStyling: `Wendet Breite + Popover-Hintergrund auf die Content-Oberfläche an.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegelt die Card, sodass sie am führenden Rand des Triggers öffnet.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <HoverCard> und <HoverCardContent> akzeptieren.`
+                    }
+                }
+            },
+            select: {
+                default: {
+                    title: `Kontrollierte Auswahl`,
+                    description: `Klick auf den Trigger öffnet die Listbox. value + onValueChange treiben den kontrollierten Zustand.`
+                },
+                disabledOption: {
+                    title: `Option deaktiviert`,
+                    description: `Ein einzelnes <SelectItem disabled> aus der Auswahl ausschließen.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Select> kapselt Radix Select. Kombiniere mit <SelectTrigger>+<SelectValue> für den Trigger und <SelectContent>+<SelectItem> für die Listbox.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Jedes <SelectItem value> muss in der Listbox eindeutig sein. value + onValueChange für externe Steuerung des aktiven Items.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Kontrollierte Auswahl`,
+                            description: `Drei Items mit kontrolliertem Zustand.`
+                        },
+                        disabledOption: {
+                            title: `Option deaktiviert`,
+                            description: `Eine Option deaktiviert.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Select> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            placeholderWhenEmpty: `Rendert einen Combobox-Trigger mit Placeholder-Text, wenn leer.`,
+                            reflectsDefaultValue: `Spiegelt defaultValue am Trigger.`,
+                            fullyControllable: `Ist vollständig steuerbar via value + onValueChange.`,
+                            firesOnExternalValueChange: `Der Trigger-Text folgt dem kontrollierten value, wenn er von außen geändert wird.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" wandert der Trigger-Pfeil an den führenden Rand; die Listbox richtet sich am Trigger aus.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Select> und <SelectItem> akzeptieren.`
+                    }
+                }
+            },
+            sonner: {
+                default: {
+                    title: `Toasts feuern`,
+                    description: `Drei Buttons feuern einen Standard-, Erfolgs- und Fehler-Toast.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Toaster> einmal nahe der Root mounten; Toasts von überall mit der toast()-Funktion aus sonner feuern.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `<Toaster> liest position standardmäßig aus MowsContext.toastSettings.position; ein position-Prop am Toaster überschreibt pro Mount.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Toasts feuern`,
+                            description: `Default / Success / Error.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Toaster> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            contextTopLeft: `Liest position aus MowsContext (top-left).`,
+                            contextBottomCenter: `Liest position aus MowsContext (bottom-center).`,
+                            propOverrides: `Ein explizites position-Prop überschreibt den Context.`,
+                            noProvider: `Rendert ohne <MowsProvider>, ohne zu werfen.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegelt das Toast-Layout, sodass der Action-Button am führenden Rand sitzt.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Toaster> akzeptiert.`
+                    }
+                }
+            },
+            inputGroup: {
+                default: {
+                    title: `Führendes Icon`,
+                    description: `Ein <InputGroupAddon> vor dem Input wirkt wie ein führendes Icon. Klick auf das Addon fokussiert das Input.`
+                },
+                trailingAddon: {
+                    title: `Nachgestelltes Addon`,
+                    description: `Nachgestellte Addons (z. B. Währungs-Code) mit align="inline-end" auf dem Addon — order-last verschiebt es ans Ende der Flex-Zeile.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<InputGroup> kombiniert <InputGroupAddon> und <InputGroupInput>. Addons können Icons, Buttons oder gestylter Text via <InputGroupButton> / <InputGroupText> sein.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Addon vor dem Input für führenden Inhalt, danach für nachgestellten — bei nachgestellten Addons align="inline-end" setzen.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Führendes Icon`,
+                            description: `Such-Icon vor dem Input.`
+                        },
+                        trailingAddon: {
+                            title: `Nachgestelltes Addon`,
+                            description: `Numerisches Input + EUR-Suffix.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <InputGroup> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersGroup: `Rendert einen role="group"-Wrapper mit Input und führendem Addon.`,
+                            focusOnAddonClick: `Fokussiert das innere Input beim Klick auf das Addon.`,
+                            alignInlineEnd: `align="inline-end" platziert das Addon zuletzt (data-align-Attribut + order-last).`,
+                            alignDefault: `Addon-align ist standardmäßig inline-start, wenn weggelassen.`,
+                            forwardsAriaInvalid: `Reicht aria-invalid ans innere Input durch.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" wandert das führende Addon nach rechts vom Input; align="inline-end"-Addons folgen entsprechend.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <InputGroup> und <InputGroupAddon> akzeptieren.`
+                    }
+                }
+            },
+            resizable: {
+                default: {
+                    title: `Horizontal mit drei Panels`,
+                    description: `Ziehe die Trennlinien, um zu skalieren. Doppelklick auf eine Trennlinie setzt alle Panels auf ihre deklarierte defaultSize zurück.`
+                },
+                vertical: {
+                    title: `Vertikal mit Griff`,
+                    description: `direction="vertical" legt die Panels von oben nach unten an. withHandle zeigt einen sichtbaren Griff-Indikator auf der Skalierungsleiste.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<ResizablePanelGroup> kapselt react-resizable-panels mit shadcn-Styling. Kombiniere mit <ResizablePanel> und <ResizableHandle>.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `defaultSize auf den relevanten Panels deklarieren — der Rest-Platz wird gleichmäßig auf undeklarierte Panels verteilt. Doppelklick auf eine Trennlinie setzt das Layout auf diese Defaults zurück.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Horizontal mit drei Panels`,
+                            description: `25/50/25-Aufteilung mit zwei ziehbaren Trennlinien.`
+                        },
+                        vertical: {
+                            title: `Vertikal mit Griff`,
+                            description: `Oben/Unten-Panels mit sichtbarem Griff-Indikator.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <ResizablePanelGroup> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            everyPanelDeclared: `Liefert die deklarierten Größen zurück, wenn jedes Panel eine angibt.`,
+                            fillsMissing: `Füllt fehlende Defaults mit dem gleichmäßig aufgeteilten Rest.`,
+                            splitsAcrossMany: `Verteilt den Rest auf mehrere undeklarierte Panels.`,
+                            returnsNullOnOverflow: `Liefert null zurück, wenn ein undeklariertes Panel einen negativen Rest brauchen würde.`,
+                            returnsNullWhenEmpty: `Liefert null zurück, wenn keine Panels vorhanden sind.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegelt das horizontale Layout — das erste Panel sitzt rechts.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <ResizablePanelGroup>, <ResizablePanel> und <ResizableHandle> akzeptieren.`
+                    }
+                }
+            },
+            calendar: {
+                default: {
+                    title: `Einzeldatum-Picker`,
+                    description: `mode="single" mit kontrolliertem selected + onSelect.`
+                },
+                disableFuture: {
+                    title: `disableFuture`,
+                    description: `Komfort für Geburtsdatum-Picker: jeder Tag nach heute ist deaktiviert.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Calendar> kapselt react-day-picker mit shadcn-Styling. mode + selected + onSelect für den Standard-Fluss.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `disableFuture für „keine Zukunftsdaten"; captionLayout="dropdown" für klickbare Monat-/Jahr-Selektoren; disabled mit Matcher für beliebige deaktivierte Bereiche.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Einzeldatum-Picker`,
+                            description: `Kontrollierte Einzelauswahl.`
+                        },
+                        disableFuture: {
+                            title: `disableFuture`,
+                            description: `Zukunftstage sind deaktiviert.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Calendar> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersGrid: `Rendert ein Tages-Grid für den sichtbaren Monat.`,
+                            marksSelected: `Markiert den ausgewählten Tag via data-selected*-Attribute auf Zelle oder Button.`,
+                            firesOnSelect: `Feuert onSelect, wenn der Nutzer einen Tag im single-Modus auswählt.`,
+                            disableFutureDisables: `disableFuture deaktiviert jeden Tag nach heute.`,
+                            navigatesMonths: `Wechselt zum nächsten Monat beim Klick auf den Nächster-Monat-Button.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegelt das Kalender-Grid; Wochentag-Header lesen rechts-nach-links.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Calendar> akzeptiert. Alle react-day-picker-Props werden ebenfalls durchgereicht.`
+                    }
+                }
+            },
+            compass: {
+                default: {
+                    title: `Slider-gesteuert`,
+                    description: `Ziehe den Slider 0-360°; die Leiste scrollt, sodass der Mittelmarker beim aktuellen Bearing bleibt.`
+                },
+                markers: {
+                    title: `Mit Wegpunkten`,
+                    description: `markers={[{ bearing, label }]} beschriftet zusätzliche Bearings auf der Leiste.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Compass> ist eine HUD-artige horizontale Kompass-Leiste. heading aus beliebiger yaw-Quelle treiben — Image360Viewer onHeadingChange, 3D-Controller, Fahrzeug-Telemetrie usw.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `fieldOfView für den Zoom, tickInterval für den Tick-Abstand, markers für zusätzliche Bearings. Negative oder > 360°-Werte werden automatisch normalisiert.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Slider-gesteuert`,
+                            description: `Leiste folgt einem 0-360°-Slider.`
+                        },
+                        markers: {
+                            title: `Mit Wegpunkten`,
+                            description: `Zwei zusätzliche beschriftete Bearings.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Compass> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            defaultReadout: `Rendert den Default-Readout als Ganzgrad + Himmelsrichtung.`,
+                            normalisesNegative: `Normalisiert ein negatives heading auf 0-359°.`,
+                            normalisesLarge: `Normalisiert ein heading > 360°.`,
+                            mapsCardinal: `Mappt Headings nahe einer Himmelsrichtung auf diese.`,
+                            cardinalsByDefault: `Rendert standardmäßig Himmelsrichtungs-Labels (N / E / S / W).`,
+                            readoutNullHides: `Blendet den Readout aus, wenn readout={null}.`,
+                            customReadout: `Akzeptiert einen eigenen Readout-Knoten.`,
+                            rendersMarkers: `Rendert zusätzliche Marker aus dem markers-Prop.`,
+                            hideCardinals: `hideCardinals entfernt die Default-Himmelsrichtungs-Labels von der Leiste.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Die Leiste scrollt horizontal unabhängig von der Schreibrichtung. Der numerische Readout folgt der Schreibrichtung.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Compass> akzeptiert.`
+                    }
+                }
+            },
+            avatar: {
+                default: {
+                    title: `Initialen`,
+                    description: `Der erste Buchstabe von displayName, großgeschrieben, in einem runden Outline.`
+                },
+                loading: {
+                    title: `Ladezustand`,
+                    description: `Ohne displayName rendert der Avatar einen Skeleton-Platzhalter — sinnvoll, während die Auth noch lädt.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<Avatar> rendert den groß geschriebenen ersten Buchstaben von displayName in einem Kreis. displayName weglassen für einen Skeleton-Platzhalter.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Über className Größenvarianten setzen (z. B. h-7 w-7 text-xs für einen Inline-Trigger, h-16 w-16 text-xl für eine Profil-Headline).`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Initialen`,
+                            description: `Vier Avatare — drei mit Namen, einer im Lade-Zustand.`
+                        },
+                        loading: {
+                            title: `Ladezustand`,
+                            description: `Einzelner Platzhalter, während die Auth lädt.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <Avatar> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            uppercasedInitial: `Zeigt den groß geschriebenen ersten Buchstaben von displayName.`,
+                            unicodeInitial: `Akzeptiert Nicht-ASCII-Anfangsbuchstaben (ü, é, ñ …).`,
+                            skeletonWhenMissing: `Rendert den Skeleton-Platzhalter, wenn displayName weggelassen wird.`,
+                            skeletonWhenEmpty: `Rendert den Skeleton-Platzhalter, wenn displayName der leere String ist.`,
+                            classNameMerge: `Merged className auf den äußeren Wrapper, ohne den Kreis-Outline zu verlieren.`,
+                            styleForwards: `Reicht inline style an den Wrapper durch.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Der Avatar ist richtungsneutral — die runde Initialen-Darstellung liest sich in jeder Schreibrichtung gleich.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <Avatar> akzeptiert.`
+                    }
+                }
+            },
+            actionDisplay: {
+                default: {
+                    title: `Registrierte Aktion`,
+                    description: `Liest die Greet-Action vom umgebenden ActionManager und rendert Label + Icon + gebundene Hotkeys.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<ActionDisplay> rendert eine einzelne Action — übersetztes Label, optionales Icon und gebundene Hotkeys. Action aus dem umgebenden actionManager holen.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Action-Handler können in ihrem State eine eigene component() liefern, die den gerenderten Inhalt vollständig überschreibt.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Registrierte Aktion`,
+                            description: `Greet + Tastenkürzel.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <ActionDisplay> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            translatesLabel: `Rendert das Action-Label aus MowsContext.t.actions[id].`,
+                            fallsBackToId: `Fällt auf die Action-ID zurück, wenn keine Übersetzung registriert ist.`,
+                            rendersIcon: `Rendert das vom Action-State zurückgegebene Icon.`,
+                            exposesDisabledReason: `Exponiert disabledReasonText via title-Attribut.`,
+                            rendersHotkeys: `Rendert ein KeyComboDisplay pro registriertem Hotkey.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegeln Label und nachfolgende Hotkey-Reihe um das Icon.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <ActionDisplay> akzeptiert.`
+                    }
+                }
+            },
+            keyComboDisplay: {
+                default: {
+                    title: `Häufige Kombinationen`,
+                    description: `Jede Kombination rendert ein <kbd> pro Segment; universelle Tasten (Enter, Pfeile, …) als Lucide-Icons.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<KeyComboDisplay> nimmt einen "+"-separierten Combo-String und rendert gestylte Keycaps. "mod" wird auf Mac zu ⌘, sonst Strg.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Universelle-Icon-Tasten (Enter, Tab, Pfeile, …) rendern immer als Icon. Modifier-Tasten als Mac-Glyphen (⌘ / ⌃ / ⌥) auf Apple, als übersetzte Wörter sonst.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Häufige Kombinationen`,
+                            description: `mod+k, mod+shift+p, alt+enter, escape, shift+arrowup.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <KeyComboDisplay> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            eachSegmentKbd: `Jedes Segment rendert in einem eigenen <kbd>.`,
+                            alphaUppercased: `Rendert Buchstaben großgeschrieben.`,
+                            modifiersTranslated: `Rendert Modifier auf Nicht-Mac als übersetzte Wörter.`,
+                            iconForUniversal: `Rendert universelle Tasten (z. B. Enter) als Icon.`,
+                            arrowupIcon: `Rendert arrowup als Icon, nicht als Text.`,
+                            plusSeparator: `Trennt zusammengesetzte Kombinationen mit einem "+" zwischen den kbds.`,
+                            escapeWord: `Rendert escape als übersetztes Wort.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" spiegelt die kbd-Sequenz; der erste Key liegt rechts.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <KeyComboDisplay> akzeptiert.`
+                    }
+                }
+            },
+            keyboardShortcutEditor: {
+                default: {
+                    title: `Kürzel bearbeiten`,
+                    description: `Listet jede beim ActionManager registrierte Action mit ihren aktuellen Tastenkombinationen. Über das Suchfeld filtern.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `Innerhalb von <MowsProvider> mounten. Der Editor liest jede registrierte Action vom actionManager und erlaubt das Neubelegen über einen Aufnahme-Dialog.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Bindings werden via HotkeyManager im localStorage gesichert. Zurücksetzen stellt die defaultHotkeys wieder her; das Mülleimer-Icon löscht ein Binding.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Kürzel bearbeiten`,
+                            description: `Live-Editor im Beispiel.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <KeyboardShortcutEditor> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            listsActions: `Listet jede registrierte Action.`,
+                            rendersCurrentCombos: `Rendert die aktuell gebundenen Tastenkombinationen pro Action.`,
+                            filtersBySearch: `Filtert die Action-Liste anhand der getippten Suchanfrage.`,
+                            emptyStateOnNoMatches: `Zeigt keine Einträge, wenn keine Action zur Suche passt.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Action-Labels und Tastenkürzel-Spalten spiegeln unter dir="rtl".`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <KeyboardShortcutEditor> akzeptiert.`
+                    }
+                }
+            },
+            expandableCode: {
+                default: {
+                    title: `Langer Snippet`,
+                    description: `Ein Snippet höher als 280px rendert hinter einem Gradient-Fade mit einem Expand-Button darunter.`
+                },
+                short: {
+                    title: `Kurzer Snippet`,
+                    description: `Inhalt kürzer als collapsedHeight rendert wie er ist — kein Knopf.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<ExpandableCode> umschließt beliebigen Inhalt (typisch <CodeViewer fitContent />) mit einem einklappbaren Container. Unterhalb von collapsedHeight rendert kein Knopf.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `Mit <CodeViewer fitContent /> kombinieren, damit der innere Editor seine natürliche Höhe meldet. ExpandableCode dimensioniert den Wrapper entsprechend.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Langer Snippet`,
+                            description: `40 Zeilen hinter dem Gradient geclippt.`
+                        },
+                        short: {
+                            title: `Kurzer Snippet`,
+                            description: `Kein Expand-Button — Inhalt passt.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <ExpandableCode> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersChildren: `Rendert die children unverändert.`,
+                            noButtonWhenFits: `Blendet den Expand-Button aus, wenn der Inhalt in collapsedHeight passt.`,
+                            buttonWhenOverflow: `Zeigt den Expand-Button, wenn der Inhalt collapsedHeight überschreitet.`,
+                            togglesLabels: `Wechselt zwischen Expand- und Collapse-Label.`,
+                            defaultExpanded: `Respektiert defaultExpanded.`,
+                            labelOverrides: `Respektiert expandLabel- und collapseLabel-Overrides.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Richtungsneutral — die Affordanz-Reihe bleibt unter dir="rtl" zentriert.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <ExpandableCode> akzeptiert.`
+                    }
+                }
+            },
+            searchInput: {
+                default: {
+                    title: `Mit Clear-Button`,
+                    description: `Tippen lässt den Clear-Button erscheinen; Hover oder Fokus zeigen ihn an.`
+                },
+                hideIcon: {
+                    title: `Ohne führendes Icon`,
+                    description: `hideIcon entfernt das führende Such-Icon — sinnvoll, wenn die umgebende Chrome bereits eines anzeigt.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<SearchInput> ist ein dünner Wrapper über <InputGroup>, der führendes Such-Icon, Clear-Button und Password-Manager-freundliche Autocomplete-Hinweise verdrahtet.`
+                    },
+                    composition: {
+                        title: `Komposition`,
+                        body: `hideIcon entfernt das führende Icon; hideClearButton entfernt den Clear-Button.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        default: {
+                            title: `Mit Clear-Button`,
+                            description: `Default-Styling — Icon + Input + Clear.`
+                        },
+                        hideIcon: {
+                            title: `Ohne führendes Icon`,
+                            description: `Icon unterdrückt.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <SearchInput> verhalten soll, jeweils mit Verweis auf den Test.`,
+                        verifiedBy: `geprüft durch`,
+                        statements: {
+                            typeSearch: `Rendert ein type="search"-Input.`,
+                            leadingIcon: `Rendert standardmäßig ein führendes Such-Icon.`,
+                            hideIcon: `hideIcon entfernt das führende Addon.`,
+                            firesOnValueChange: `Feuert onValueChange beim Tippen.`,
+                            showsClearWhenNonEmpty: `Zeigt den Clear-Button, sobald der Wert nicht-leer ist.`,
+                            clearResetsValue: `Klick auf den Clear-Button setzt den Wert auf "" zurück.`,
+                            hideClearButton: `hideClearButton unterdrückt den Clear-Button selbst bei Wert.`,
+                            disabledForwards: `disabled wird sowohl an das Input als auch an den Clear-Button durchgereicht.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" wechselt das führende Icon nach rechts und der Clear-Button nach links.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <SearchInput> akzeptiert.`
+                    }
+                }
+            },
+            numberInput: {
+                default: { title: `Ganzzahl mit Stepper`, description: `Klemmt auf [0, 64] mit step=1. Die − / + Buttons deaktivieren bei min/max.` },
+                decimal: { title: `Dezimalwert`, description: `integerOnly={false} akzeptiert Dezimalwerte; step=0.1 steuert den Schritt.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<NumberInput> ist ein kontrolliertes numerisches Input mit Inline-Stepper-Buttons und min/max/step-Klemmung. Leerer Wert wird als null durchgereicht.` },
+                    composition: { title: `Komposition`, body: `Über placeholder „was bei leer verwendet wird" kommunizieren. integerOnly={false} für Dezimalwerte; hideStepper entfernt die − / + Buttons.` },
+                    examples: { title: `Beispiele`, default: { title: `Ganzzahl mit Stepper`, description: `0-64 vCPUs, step=1.` }, decimal: { title: `Dezimalwert`, description: `0.1-10 GiB, step=0.1.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <NumberInput> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersValue: `Rendert ein Input mit dem kontrollierten Wert.`,
+                            nullRendersEmpty: `Rendert leer, wenn value null ist.`,
+                            clearEmitsNull: `Feuert onChange mit null, wenn das Feld geleert wird.`,
+                            bumpsByStepPlus: `Erhöht um step beim Klick auf +.`,
+                            bumpsByStepMinus: `Verringert um step beim Klick auf −.`,
+                            clampsToMin: `Klemmt auf min beim − .`,
+                            clampsToMax: `Klemmt auf max beim + .`,
+                            clampOnBlur: `Klemmt einen out-of-range-Wert beim Blur.`,
+                            hideStepper: `hideStepper entfernt die +/- Buttons.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Unter dir="rtl" bleiben die Stepper-Buttons am nachfolgenden Rand des Inputs.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <NumberInput> akzeptiert.` }
+                }
+            },
+            optionPicker: {
+                default: { title: `Multi-Select`, description: `Drei Optionen im Popover. Toggle hält das Menü offen; der Trigger zeigt „(enabled/total)" als Default.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<OptionPicker> ist ein Multi-Select-Dropdown auf Basis von DropdownMenuCheckboxItem. Optionen sind { id, label, enabled }; der Konsument togglet via onOptionChange.` },
+                    composition: { title: `Komposition`, body: `triggerComponent für ein eigenes Trigger-Label. Das Menü schließt absichtlich NICHT beim Auswählen, damit man mehrere Optionen in einem Zug togglen kann.` },
+                    examples: { title: `Beispiele`, default: { title: `Multi-Select`, description: `Drei Ansichts-Optionen.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <OptionPicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersLabel: `Rendert das Trigger-Label.`,
+                            showsCountByDefault: `Rendert standardmäßig die enabled/total-Anzeige am Trigger.`,
+                            hidesCountWhenFalse: `Lässt die Anzeige weg, wenn showCount={false}.`,
+                            menuItemsAfterOpen: `Rendert ein menuitemcheckbox pro Option nach dem Öffnen.`,
+                            firesOnToggle: `Feuert onOptionChange beim Toggle eines Eintrags.`,
+                            staysOpenOnToggle: `Bleibt nach dem Toggle offen (preventDefault auf onSelect).`,
+                            rendersHeader: `Rendert das optionale Header-Label.`,
+                            disabledForwards: `Deaktivierter Trigger reicht disabled durch und ignoriert Klicks.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Unter dir="rtl" spiegelt das Menü und öffnet am führenden Rand.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <OptionPicker> akzeptiert.` }
+                }
+            },
+            searchSelectPicker: {
+                standalone: { title: `Eigenständig`, description: `Inline-Suchliste — kein Popover-Trigger. Tippen zum Filtern, Klick zum Auswählen.` },
+                popover: { title: `Popover-Trigger`, description: `Standardform — der Picker lebt hinter einem Popover-Trigger.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<SearchSelectPicker> ist ein generischer Such-Single-Select. Er nimmt items + getId + matchesSearch + renderItemContent und funktioniert im Popover- und Standalone-Modus.` },
+                    composition: { title: `Komposition`, body: `<LanguagePicker>, <ThemePicker> und <CodeThemePicker> sind dünne Wrapper über <SearchSelectPicker>, die items + selected + matchers aus MowsProvider beziehen.` },
+                    examples: { title: `Beispiele`, standalone: { title: `Eigenständig`, description: `Inline-Liste mit fünf Items.` }, popover: { title: `Popover-Trigger`, description: `Drei Items hinter einem Popover.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <SearchSelectPicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersInlineList: `Rendert jedes Item inline im Standalone-Modus.`,
+                            filtersBySearch: `Filtert Items per Suche im Standalone-Modus.`,
+                            emptyTextOnNoMatches: `Zeigt den emptyText-Fallback, wenn die Suche nichts trifft.`,
+                            firesOnSelect: `Feuert onSelect mit dem gewählten Item im Standalone-Modus.`,
+                            fullyControllable: `Ist vollständig steuerbar via selected + onSelect.`,
+                            popoverTriggerOpens: `Im Popover-Modus rendert er einen Trigger, der die Suchliste öffnet.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Unter dir="rtl" spiegeln Suchinput + Liste; die Auswahlmarkierung dreht sich entsprechend.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <SearchSelectPicker> akzeptiert. Generisch in T — Item-Typ beim Verwenden übergeben.` }
+                }
+            },
+            languagePicker: {
+                popover: { title: `Popover-Trigger`, description: `Standardform — der Picker lebt hinter einem Popover.` },
+                standalone: { title: `Eigenständig`, description: `Suchliste inline, ohne Popover.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<LanguagePicker> innerhalb von <MowsProvider> mounten. Er liest die verfügbaren Sprachen und die aktuelle Sprache aus dem Context und ruft setLanguage bei der Auswahl auf.` },
+                    composition: { title: `Komposition`, body: `<LanguagePicker> ist ein dünner Wrapper um <SearchSelectPicker> mit auf { code, name, emoji } spezialisierten renderItemContent / renderTriggerContent.` },
+                    examples: { title: `Beispiele`, popover: { title: `Popover-Trigger`, description: `Trigger + Popover-Liste.` }, standalone: { title: `Eigenständig`, description: `Inline-Suchliste.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <LanguagePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            listsLanguages: `Listet jede Sprache im Standalone-Modus.`,
+                            firesSetLanguage: `Ruft setLanguage im umgebenden Context auf, wenn eine Sprache gewählt wird.`,
+                            popoverShowsCurrent: `Rendert den Popover-Trigger standardmäßig mit der aktuellen Sprache.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `In dir="rtl" eingewickelt drehen sich Trigger + Suchfeld nach rechts-nach-links.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <LanguagePicker> akzeptiert.` }
+                }
+            },
+            themePicker: {
+                popover: { title: `Popover-Trigger`, description: `Standardform — der Picker lebt hinter einem Popover.` },
+                standalone: { title: `Eigenständig`, description: `Suchliste inline, ohne Popover.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<ThemePicker> innerhalb von <MowsProvider> mounten. Er liest die verfügbaren Themes und das aktive Theme aus dem Context und ruft setTheme bei der Auswahl auf.` },
+                    composition: { title: `Komposition`, body: `<ThemePicker> ist ein dünner Wrapper um <SearchSelectPicker>. Der „system"-Eintrag zeigt in der Popover-Zeile die OS-aufgelöste Variante („(dark)" / „(light)").` },
+                    examples: { title: `Beispiele`, popover: { title: `Popover-Trigger`, description: `Trigger + Popover-Liste.` }, standalone: { title: `Eigenständig`, description: `Inline-Suchliste.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <ThemePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            listsThemes: `Listet jedes Theme im Standalone-Modus.`,
+                            firesSetTheme: `Ruft setTheme im umgebenden Context auf, wenn ein Theme gewählt wird.`,
+                            popoverShowsCurrent: `Rendert den Popover-Trigger standardmäßig mit dem aktuellen Theme.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `In dir="rtl" eingewickelt drehen sich Trigger + Suchfeld nach rechts-nach-links.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <ThemePicker> akzeptiert.` }
+                }
+            },
+            dateTimePicker: {
+                default: { title: `Standard`, description: `Ein Textfeld + Popover-Kalender + Time-Picker.` },
+                withTimezone: { title: `Mit Zeitzone`, description: `showTimezone fügt einen IANA-Timezone-Selektor im Popover hinzu.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<DateTimePicker> verdrahtet ein Textfeld mit einem Popover (Kalender + Time-Picker). value + onChange für kontrolliert, defaultValue für unkontrolliert.` },
+                    composition: { title: `Komposition`, body: `showSeconds für eine Sekunden-Spalte; showTimezone für den Timezone-Selektor; disableFuture, um Daten nach heute zu blocken (DOB-Picker).` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Textfeld + Kalender + Time-Picker.` }, withTimezone: { title: `Mit Zeitzone`, description: `Inklusive Timezone-Selektor.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <DateTimePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersTextInput: `Rendert ein Date+Time-Textfeld.`,
+                            seedsFromDefault: `Übernimmt defaultValue als Startwert.`,
+                            reflectsControlled: `Spiegelt ein kontrolliertes value-Prop.`,
+                            firesOnConfirm: `Feuert onChange beim Bearbeiten + Bestätigen des Textfelds.`,
+                            disabledForwards: `Rendert disabled, wenn disabled gesetzt ist.`,
+                            placeholderReflectsFormat: `Exponiert einen Placeholder, der timeFormat / showSeconds spiegelt.`,
+                            showsTimezoneSelector: `Zeigt den Timezone-Selektor, wenn showTimezone gesetzt ist.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Unter dir="rtl" spiegelt der Kalender-Header / Time-Picker.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <DateTimePicker> akzeptiert.` }
+                }
+            },
+            timePicker: {
+                default: { title: `24h + Sekunden`, description: `Drei Scroll-Spalten: Stunden, Minuten, Sekunden.` },
+                twelveHour: { title: `12h mit AM/PM`, description: `12h-Layout ergänzt eine AM/PM-Spalte.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<TimePicker> ist die innere Spalten-basierte Time-Auswahl in <DateTimePicker>. Über Date + onChange treiben; die Spalten sind vertikal scrollbare Listen.` },
+                    composition: { title: `Komposition`, body: `12h: 12 Stunden-Einträge + AM/PM-Spalte; 24h: 24 Einträge. showSeconds togglet die Sekunden-Spalte.` },
+                    examples: { title: `Beispiele`, default: { title: `24h + Sekunden`, description: `Drei Spalten.` }, twelveHour: { title: `12h mit AM/PM`, description: `Stunde + Minute + AM/PM-Spalte.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <TimePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersColumns24h: `Rendert im 24h-Modus eine Stunden- und eine Minuten-Spalte.`,
+                            secondsColumn: `Rendert eine Sekunden-Spalte, wenn showSeconds gesetzt ist.`,
+                            firesOnHourPick: `Feuert onChange mit einem neuen Date beim Klick auf eine Stunden-Zelle.`,
+                            fullyControllable: `Ist vollständig steuerbar via date + onChange.`,
+                            amPmColumn: `Rendert im 12h-Modus eine AM/PM-Spalte.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Unter dir="rtl" dreht sich die Spaltenreihenfolge, sodass Stunden rechts liegen.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <TimePicker> akzeptiert.` }
+                }
+            },
+            timezoneSelector: {
+                default: { title: `Standard`, description: `Ein Combobox-artiger Trigger, der eine suchbare IANA-Timezone-Liste öffnet.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<TimezoneSelector> kapselt Radix Popover + cmdk Command, um jede IANA-Timezone mit Offset-Info anzuzeigen. value / onChange nutzen die kanonische IANA-ID.` },
+                    composition: { title: `Komposition`, body: `Standalone für explizite „Log-Timezone"-Picker, und innerhalb <DateTimePicker>, wenn showTimezone gesetzt ist.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Suchbarer Timezone-Picker.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <TimezoneSelector> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersTrigger: `Rendert den Trigger-Button.`,
+                            showsSelected: `Zeigt die ausgewählte Timezone am Trigger.`,
+                            opensSearch: `Öffnet beim Klick eine Suchliste.`,
+                            firesOnChange: `Feuert onChange, wenn der Nutzer eine Timezone auswählt.`,
+                            fullyControllable: `Ist vollständig steuerbar via value + onChange.`,
+                            disabledNoOpen: `Disabled verhindert das Öffnen des Popovers.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Unter dir="rtl" spiegelt Trigger-Pfeil + Listbox.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <TimezoneSelector> akzeptiert.` }
+                }
+            },
+            dateTimeRangePicker: {
+                default: { title: `Standard`, description: `Zwei Date+Time-Inputs teilen sich ein Kalender-Popover. Tag klicken setzt Start; weiterer Klick setzt Ende. Endpunkte sind drag-bar.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<DateTimeRangePicker> bietet zwei Textfelder (Start / Ende) und ein gemeinsames Popover (Kalender + Time-Picker). range ist { from, to }.` },
+                    composition: { title: `Komposition`, body: `showDuration zeigt die berechnete Dauer („5 days 6h 30m") im Popover; showTimezone fügt den Timezone-Selektor hinzu; timeLayout="beside" setzt Time-Picker neben den Kalender.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Zwei Textfelder + gemeinsames Popover.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <DateTimeRangePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersBothInputs: `Rendert zwei Textfelder: Start und Ende.`,
+                            reflectsFrom: `Spiegelt defaultValue.from im Start-Input.`,
+                            reflectsTo: `Spiegelt defaultValue.to im End-Input.`,
+                            fullyControllable: `Ist vollständig steuerbar via value + onChange.`,
+                            disabledForwards: `Deaktiviert beide Inputs, wenn disabled gesetzt ist.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Unter dir="rtl" spiegelt die Input-Reihenfolge; der Kalender folgt der Schreibrichtung.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <DateTimeRangePicker> akzeptiert.` }
+                }
+            },
+            loggingConfig: {
+                default: { title: `Standard`, description: `Standard-Log-Level + Pro-Datei-Filter. Änderungen aktualisieren Logger.defaultLevel / Logger.fileFilter sofort.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<LoggingConfig> exponiert die globale Logger-Konfigurations-UI. Änderungen rufen Logger.saveConfig() auf, was in localStorage persistiert.` },
+                    composition: { title: `Komposition`, body: `In die Settings-Seite oder ein Modal ablegen. Keine Props außer className.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Vollständiges Logging-Settings-Panel.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <LoggingConfig> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersDefaultLevel: `Rendert den Standard-Level-Abschnitt.`,
+                            exposesFilterInput: `Bietet ein Input zum Anlegen eines Pro-Datei-Filters.`,
+                            addsFilter: `Fügt einen Datei-Filter hinzu, wenn der Add-Button geklickt wird.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Das Sektionslayout spiegelt unter dir="rtl".` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <LoggingConfig> akzeptiert.` }
+                }
+            },
+            inlineEdit: {
+                basic: {
+                    title: `Standard`,
+                    description: `Klicke auf den Text oder das Stiftsymbol, um zu bearbeiten. Mit Enter oder dem grünen Haken übernimmst du den Wert, mit Escape oder dem roten X verwirfst du ihn.`
+                },
+                heading: {
+                    title: `Überschrift`,
+                    description: `Mit dem as-Prop rendert die bearbeitbare Fläche als <h2> (oder eine andere Überschrift) — der Inline-Bearbeitungsmodus bleibt erhalten.`
+                },
+                placeholder: {
+                    title: `Platzhalter`,
+                    description: `Bei leerem Wert wird der Platzhalter in gedämpfter Kursivschrift angezeigt, bis etwas getippt wird.`
+                },
+                fixedWidth: {
+                    title: `Feste Breite`,
+                    description: `Mit dem width-Prop wird das Eingabefeld auf eine feste CSS-Breite fixiert. Tippen über die Breite hinaus scrollt horizontal, statt die Zeile zu vergrößern.`
+                },
+                disabled: {
+                    title: `Deaktiviert`,
+                    description: `disabled blendet die Bearbeitungs-Buttons aus und stellt den Text statisch dar.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Befehl`,
+                        manualTab: `Manuell`,
+                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+                        manualStep3: `Passe die Importpfade an dein Projekt an.`
+                    },
+                    usage: {
+                        title: `Verwendung`,
+                        body: `<InlineEdit> ist ein kontrolliertes Textfeld, das sich an Ort und Stelle bearbeiten lässt, ohne das umgebende Layout zu verändern. Statt eines <input> wird contentEditable verwendet, sodass Schriftmaße und Zeilenhöhe zwischen Anzeige- und Bearbeitungsmodus identisch bleiben.`
+                    },
+                    composition: {
+                        title: `Zusammensetzung`,
+                        body: `Die Aktionsleiste ist ein Grid mit zwei festen Slots. Die Buttons für Bearbeiten, Speichern und Abbrechen teilen sich diese Slots per Opazitäts-Wechsel — die Zeile behält im Ruhezustand, beim Hover und im Bearbeitungsmodus dieselbe Breite.`
+                    },
+                    examples: {
+                        title: `Beispiele`,
+                        basic: {
+                            title: `Standard`,
+                            description: `Eine kurze Zeichenkette inline umbenennen. Die Zeilenbreite ist vor, während und nach der Bearbeitung identisch.`
+                        },
+                        heading: {
+                            title: `Überschrift`,
+                            description: `Mit as wird die Bearbeitungsfläche als <h2> gerendert — nützlich für inline editierbare Seitentitel.`
+                        },
+                        placeholder: {
+                            title: `Platzhalter`,
+                            description: `Leere Werte zeigen den Platzhalter in gedämpfter Kursivschrift, bis Inhalt eingegeben wird.`
+                        },
+                        fixedWidth: {
+                            title: `Feste Breite`,
+                            description: `Ist das width-Prop gesetzt, behält das contentEditable-Element seine Größe beim Tippen bei. Der Überlauf wird abgeschnitten und der Cursor scrollt innerhalb der Box — die Zeilenbreite bleibt unverändert.`
+                        },
+                        disabled: {
+                            title: `Deaktiviert`,
+                            description: `Im deaktivierten Zustand werden die Buttons ausgeblendet und der Text statisch angezeigt. Die Zeilengeometrie entspricht weiterhin der bearbeitbaren Variante.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`,
+                        intro: `Aussagen darüber, wie sich <InlineEdit> verhalten soll — jeweils mit dem Test verlinkt, der sie verifiziert.`,
+                        verifiedBy: `verifiziert durch`,
+                        statements: {
+                            rendersValue: `Zeigt den aktuellen Wert im Anzeigemodus an.`,
+                            commitsOnEnter: `Enter beendet die Bearbeitung und ruft onCommit mit dem getrimmten Wert auf.`,
+                            cancelsOnEscape: `Escape verlässt den Bearbeitungsmodus ohne onCommit aufzurufen und stellt den ursprünglichen Wert wieder her.`,
+                            discardsUnchanged: `Leere oder unveränderte Werte werden stillschweigend verworfen — onCommit wird damit nie aufgerufen.`,
+                            hidesButtonsWhenDisabled: `Im deaktivierten Zustand werden Bearbeiten-/Speichern-/Abbrechen-Buttons nicht gerendert.`,
+                            stableAffordanceWidth: `Die Aktionsleiste hat eine feste Breite, sodass die Zeile beim Wechsel in/aus dem Bearbeitungsmodus nicht umbricht.`,
+                            fixedWidthDoesNotGrow: `Ist width gesetzt, behält das Eingabefeld unabhängig vom eingegebenen Wert exakt diese Breite.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Unter dir="rtl" wandert die Aktionsleiste auf die linke Seite des Texts; die feste Slotbreite garantiert eine unveränderte Zeilenbreite.`
+                    },
+                    apiReference: {
+                        title: `API-Referenz`,
+                        intro: `Props, die <InlineEdit> akzeptiert.`
+                    }
+                }
+            },
+            commandPalette: {
+                default: { title: `Standard`, description: `Wird über die registrierte Aktion geöffnet. Tippen filtert, Klick oder Eingabetaste löst die Aktion aus.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
+                    usage: { title: `Verwendung`, body: `<CommandPalette> wird einmal global innerhalb von <MowsProvider> eingebunden. Sie registriert sich als Handler für CoreActionIds.OPEN_COMMAND_PALETTE und listet alle aktuell beim ActionManager registrierten Aktionen.` },
+                    composition: { title: `Komposition`, body: `Öffnen via ctx.actionManager.dispatchAction(CoreActionIds.OPEN_COMMAND_PALETTE) oder per Tastenkombination über den HotkeyManager. open / onOpenChange erlauben externes Steuern des Zustands.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Klicke die Schaltfläche, um die Befehlspalette zu öffnen, und tippe, um die registrierten Aktionen zu filtern.` } },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <CommandPalette> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
+                        statements: {
+                            closedByDefault: `Ist standardmäßig geschlossen — keine Listeneinträge gerendert.`,
+                            opensOnControlled: `Öffnet sich, wenn die kontrollierte open-Prop auf true wechselt.`,
+                            rendersActions: `Rendert eine Zeile pro registrierter Aktion.`,
+                            filtersBySearch: `Filtert die Aktionsliste anhand der eingegebenen Suche.`,
+                            dispatchesOnClick: `Löst die Aktion aus, wenn ein Eintrag geklickt wird.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Unter dir="rtl" werden Suchfeld und Befehlsliste gespiegelt.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <CommandPalette> akzeptiert.` }
+                }
+            },
+            modalHandler: {
+                default: { title: `Standard`, description: `Klicke eine Schaltfläche, um einen der Kern-Dialoge zu öffnen; ModalHandler liest MowsContext.currentlyOpenModal und rendert den passenden Dialog.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
+                    usage: { title: `Verwendung`, body: `<ModalHandler> wird einmal global innerhalb von <MowsProvider> eingebunden. Er beobachtet currentlyOpenModal und rendert den passenden Kerndialog (Theme / Sprache / Tastenkürzel / Code-Theme / Einstellungen).` },
+                    composition: { title: `Komposition`, body: `Registriere app-spezifische Dialoge über extraModals. Öffne jeden Modal mit ctx.changeActiveModal(id).` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Löse die Theme-, Sprach- und Tastenkürzel-Dialoge über den Action Manager aus.` } },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <ModalHandler> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
+                        statements: {
+                            invisibleWhenNoModal: `Rendert nichts Sichtbares, wenn kein Modal aktiv ist.`,
+                            themeSelector: `Rendert den Theme-Auswahl-Dialog bei modal=themeSelector.`,
+                            languageSelector: `Rendert den Sprach-Auswahl-Dialog bei modal=languageSelector.`,
+                            keyboardShortcutEditor: `Rendert den Tastenkürzel-Editor bei modal=keyboardShortcutEditor.`,
+                            customModal: `Rendert einen über extraModals bereitgestellten, benutzerdefinierten Modal.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Der Dialoginhalt wird unter dir="rtl" gespiegelt.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <ModalHandler> akzeptiert.` }
+                }
+            },
+            fileViewer: {
+                default: { title: `Standard`, description: `Mitgeliefertes Landschaftsbild wird durch den ImageViewer gerendert. Vertausche URL, Name oder MIME-Typ, um andere Renderpfade zu testen.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
+                    usage: { title: `Verwendung`, body: `<FileViewer> nimmt eine bereits aufgelöste src-URL plus name und mimeType entgegen und rendert den passenden internen Viewer. URL-Auflösung (Auth, signierte URLs etc.) ist Aufgabe des Konsumenten.` },
+                    composition: { title: `Komposition`, body: `FileViewer wählt anhand des mimeType: image/* → ImageViewer (bzw. Image360Viewer, wenn is360 gesetzt ist); video/* sowie DASH-/HLS-Manifeste → VideoViewer. Unbekannte Typen fallen auf den Dateinamen oder einen eigenen Fallback zurück.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Zeige ein mitgeliefertes Bild. Ändere eines der drei Felder, um verschiedene Renderpfade zu prüfen.` } },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <FileViewer> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
+                        statements: {
+                            imageViewer: `Rendert ImageViewer für image/* ohne is360.`,
+                            image360Viewer: `Rendert Image360Viewer für image/* wenn is360 gesetzt ist.`,
+                            videoViewer: `Rendert VideoViewer für jeden video/*-MIME-Typ.`,
+                            dashHls: `Rendert VideoViewer für DASH- und HLS-Manifest-MIME-Typen.`,
+                            nameFallback: `Fällt auf den Namen zurück, wenn kein Viewer passt.`,
+                            customFallback: `Rendert den explizit übergebenen Fallback, wenn nichts passt.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Innere Viewer folgen ihrem eigenen RTL-Verhalten; der Wrapper selbst ist layout-neutral.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <FileViewer> akzeptiert.` }
+                }
+            },
+            image360Viewer: {
+                default: { title: `Standard`, description: `Schlichter Image360Viewer mit einem einzelnen äquirektangulären Panorama — ziehen zum Umsehen, scrollen zum Zoomen.` },
+                switchImages: {
+                    title: `Bilder wechseln`,
+                    description: `Zwei-Quellen-Umschalter, gesteuert durch Buttons unterhalb des Viewers. Jeder Klick aktualisiert die src-Prop; der Viewer nutzt seinen WebGL-Kontext per setPanorama weiter, statt neu zu mounten — das vorherige Bild bleibt sichtbar, bis die neue Textur geladen ist.`
+                },
+                compassOverlay: {
+                    title: `Compass-Overlay`,
+                    description: `Compass-Komponente absolut ÜBER dem Viewer positioniert (HUD-Stil) statt darunter, sodass die Richtungsanzeige beim Schwenken sichtbar bleibt.`
+                },
+                virtualTour: {
+                    title: `Virtueller Rundgang`,
+                    description: `Marker überlagern anklickbare Hotspots auf der Sphäre. Jeder Pin trägt eine data.target-Payload; onMarkerClick tauscht src und Marker-Set aus — das Muster für einen Szenenwechsel. Der türkise Punkt ist ein reiner Tooltip-Hotspot.`
+                },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
+                    usage: { title: `Verwendung`, body: `<Image360Viewer> umschließt Photo Sphere Viewer (three.js) mit shadcn-freundlichen Defaults: ausgeblendete Navbar, keine eigene Ladeanzeige und einen onHeadingChange-Callback für HUD-artige Yaw-Anzeigen.` },
+                    composition: { title: `Komposition`, body: `Kombiniere mit <Compass> für eine Richtungsanzeige, die dem Blick folgt. Über die Props markers und onMarkerClick werden anklickbare Hotspots eingeblendet — gestützt auf das markers-plugin von Photo Sphere Viewer, das HTML-/Bild-/Polygon-Marker und Tooltips unterstützt. Beim Aktualisieren der markers-Prop wird das Live-Set per setMarkers diff-ausgetauscht — exakt das Muster, das ein virtueller Rundgang für Szenenwechsel braucht.` },
+                    examples: {
+                        title: `Beispiele`,
+                        default: { title: `Standard`, description: `Schlichter Viewer, ohne Compass, ohne Marker.` },
+                        switchImages: {
+                            title: `Bilder wechseln`,
+                            description: `Zwei Buttons tauschen die src zwischen Panoramen aus; der Viewer nutzt seinen WebGL-Kontext per setPanorama weiter.`
+                        },
+                        compassOverlay: {
+                            title: `Compass-Overlay`,
+                            description: `Compass per absoluter Positionierung über dem Viewer.`
+                        },
+                        virtualTour: {
+                            title: `Virtueller Rundgang`,
+                            description: `markers-plugin-Hotspots mit Klick-Navigation zwischen zwei Szenen.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <Image360Viewer> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
+                        statements: {
+                            mountsViewer: `Erzeugt einen Photo Sphere Viewer mit der angegebenen src.`,
+                            subscribesPosition: `Abonniert das PSV-Event position-updated, um Heading-Änderungen weiterzuleiten.`,
+                            noLoadingIndicator: `Zeigt während des Ladens der Panoramaaufnahme keine Ladeanzeige.`,
+                            forwardsClassName: `Reicht className an den äußeren Wrapper durch.`,
+                            forwardsStyle: `Reicht Inline-Style an den äußeren Wrapper durch.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Die 3D-Szene ist richtungs-agnostisch; der Wrapper wird nicht gespiegelt.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <Image360Viewer> akzeptiert.` }
+                }
+            },
+            consoleManager: {
+                default: { title: `Standard`, description: `Konsolen-Multiplexer mit Reitern: ein Terminal-Tab und ein LogView-Tab. Doppelklick auf einen Tab benennt um, Ziehen sortiert, + erzeugt neue.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
+                    usage: { title: `Verwendung`, body: `<ConsoleManager> hostet einen oder mehrere registrierte Konsolentypen (Terminal, LogView, eigene) in einer Tab- und teilbaren Pane-Struktur. Tabs bleiben über Tab- und Pane-Wechsel hinweg gemountet, sodass laufende Konsolen niemals zurückgesetzt werden.` },
+                    composition: { title: `Komposition`, body: `ConsoleType.render() wird einmal pro neu erzeugtem Tab aufgerufen; das Ergebnis bleibt für die Lebensdauer dieses Tabs gemountet. defaultName(ordinal) steuert die typspezifische automatische Benennung.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Zwei registrierte Konsolentypen: ein interaktives Terminal und eine statische LogView-Pane.` } },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <ConsoleManager> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
+                        statements: {
+                            seedsTabs: `Rendert die initial vorgegebenen Tabs und markiert den ersten als aktiv.`,
+                            opensNewTab: `Drücken von + öffnet einen neuen Tab in der aktuell aktiven Pane (bei genau einem registrierten Typ).`,
+                            closesTab: `Schließt den aktiven Tab und fällt auf den vorherigen Tab zurück.`,
+                            renamesOnDblClick: `Doppelklick → Umbenennen → Eingabetaste übernimmt den neuen Namen.`,
+                            typePicker: `Zeigt den Typ-Auswahl-Chevron, wenn mehr als ein Konsolentyp registriert ist.`,
+                            splitRight: `"Rechts teilen" verwandelt das Blatt in eine horizontale Teilung mit einer neuen Schwester-Pane.`,
+                            collapseSplit: `Das Schließen des letzten Tabs in einer durch Split entstandenen Pane klappt die Teilung zurück in eine einzelne Pane.`,
+                            keepsInactiveMounted: `Hält inaktive Tab-Inhalte gemountet, damit sie einen Tab-Wechsel überleben.`,
+                            dragReorder: `Per Drag-and-drop innerhalb einer Pane wird die Reihenfolge der Tabs vertauscht.`,
+                            dragCrossPane: `Das Ziehen eines Tabs aus Pane 1 auf einen Tab in Pane 2 verschiebt ihn dorthin.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Tab-Liste und Split-Layout werden unter dir="rtl" gespiegelt; Tab-Inhalte behalten ihre eigene Richtung.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <ConsoleManager> akzeptiert.` }
+                }
+            },
+            dateTimeDisplay: {
+                default: { title: `Standard`, description: `Formatiert Timestamps und naive Datumsstrings über Intl.DateTimeFormat unter Nutzung der aktiven Sprache.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
+                    usage: { title: `Verwendung`, body: `<DateTimeDisplay> rendert einen UTC-Timestamp oder einen naiven Datumsstring, formatiert über Intl.DateTimeFormat mit dem aktiven Sprachcode.` },
+                    composition: { title: `Komposition`, body: `Übergib timestampMilliseconds (UTC) für absolute Zeiten oder dateTimeNaive für "YYYY-MM-DD HH:mm:ss"-Strings — utcTime erklärt den naiven String als UTC statt lokal.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Jetzt, ein fester Timestamp sowie derselbe naive String als lokal und als UTC interpretiert.` } },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <DateTimeDisplay> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
+                        statements: {
+                            formatsTimestamp: `Rendert einen formatierten Timestamp, ohne zu werfen.`,
+                            utcNaive: `Rendert ein naives UTC-Datum, wenn utcTime gesetzt ist.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Die Ausgabe folgt den BIDI-Regeln des Locales; der Wrapper ist layout-neutral.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <DateTimeDisplay> akzeptiert.` }
+                }
+            },
+            resourceList: {
+                default: { title: `Standard`, description: `Virtualisierte Liste mit In-Memory-Fetcher. Scrollen lädt weitere Fenster nach; Spaltenüberschriften klicken sortiert.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
+                    usage: { title: `Verwendung`, body: `<ResourceList> rendert eine große, paginierte und virtualisierte Liste beliebiger Ressourcen. Übergib eine getResourcesList-Funktion, die zusammenhängende Fenster vom Server lädt, und einen oder mehrere Row-Handler für das Layout.` },
+                    composition: { title: `Komposition`, body: `Stelle einen oder mehrere rowHandlers bereit (Column / Grid / custom) — der Nutzer kann im Header zwischen ihnen wechseln. Sortierungs-Zustand wird an getResourcesList weitergegeben, damit der Server die korrekte Seite liefert.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Eine In-Memory-Quelle speist 250 Zeilen; scrolle für weitere, klicke einen Spaltenkopf, um zu sortieren.` } },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <ResourceList> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
+                        statements: {
+                            callsFetcher: `Ruft getResourcesList beim Mounten auf.`,
+                            firstWindow: `Erster Fetch übergibt fromIndex=0 und ein endliches, positives limit.`,
+                            forwardsSort: `Leitet sortBy und sortDirection im Request-Body weiter.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Header-Buttons und Spaltenanordnung werden unter dir="rtl" gespiegelt.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <ResourceList> akzeptiert.` }
+                }
+            },
+            keyComboRecorder: {
+                default: { title: `Standard`, description: `Klicke „Aufzeichnung starten“ und drücke eine beliebige Kombination auf der Tastatur — jeder Tastendruck wird erfasst und an die Liste angehängt. Auch ein allein losgelassener Modifier (z. B. nur Umschalt) wird erfasst.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
+                    usage: { title: `Verwendung`, body: `<KeyComboRecorder> erfasst Tastenkombinationen live und formatiert sie über den aktiven HotkeyManager — die erzeugten Strings sind direkt mit HotkeyManager.setHotkey() und KeyComboDisplay kompatibel.` },
+                    composition: { title: `Komposition`, body: `Verbinde den onCombo-Callback mit dem, was die Combo-Strings konsumiert — ein Einstellungs-Editor, eine kurze Demo oder ein Debugger. Die Start- / Stop- / Leeren-Schaltflächen und die Verlaufsliste sind bereits enthalten.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Starte die Aufzeichnung und drücke eine Kombination. Die zuletzt erfasste Combo wird im Harness-State-Panel angezeigt.` } },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <KeyComboRecorder> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
+                        statements: {
+                            startsIdle: `Zeigt vor dem Aufzeichnen die Start-Schaltfläche und den Hinweistext.`,
+                            togglesListening: `Wechselt nach dem Start zur Stop-Schaltfläche und blendet den Lausch-Indikator ein.`,
+                            capturesCombo: `Erfasst eine echte Combo als Listeneintrag und feuert onCombo.`,
+                            capturesModifier: `Erfasst einen allein losgelassenen Modifier (Umschalt-Druck → Umschalt-Loslassen ohne Taste dazwischen).`,
+                            clearResets: `Die „Leeren“-Schaltfläche leert die Liste der erfassten Combos.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Layout wird unter dir="rtl" gespiegelt; Combos sind richtungs-agnostisch.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <KeyComboRecorder> akzeptiert.` }
+                }
             }
         },
         common: {
@@ -688,12 +3628,6 @@ const translation: Translation = {
             avatar: {
                 description: `Runder Avatar mit Anfangsbuchstaben.`
             },
-            buttonSelect: {
-                description: `Schaltflächengruppe mit Einfachauswahl.`,
-                grid: `Raster`,
-                list: `Liste`,
-                table: `Tabelle`
-            },
             codeThemePicker: {
                 description: `Wählt das Syntax-Highlighting-Design für den CodeViewer aus.`
             },
@@ -703,13 +3637,6 @@ const translation: Translation = {
             commandPalette: {
                 description: `Global eingebunden. Öffnen über die Aktion unten oder das Tastenkürzel.`,
                 openButton: `Befehlspalette öffnen`
-            },
-            copyValueButton: {
-                description: `Klicke, um einen Wert in die Zwischenablage zu kopieren.`,
-                tokenLabel: `Token kopieren`,
-                timeLabel: `Aktuelle Zeit kopieren`,
-                toastLabel: `Mit Toast kopieren`,
-                toastMessage: `Token in die Zwischenablage kopiert`
             },
             dateTime: {
                 description: `Anzeige eines Zeitstempels in der lokalen Sprache.`,
@@ -753,10 +3680,6 @@ const translation: Translation = {
                 photoBy: `Foto`,
                 sourceLink: `Quelle`
             },
-            globalContextMenu: {
-                description: `Rechtsklicke auf einen Bereich mit passendem data-actionscope, um das globale Kontextmenü zu öffnen. Ein Rechtsklick auf einen Eintrag führt ihn aus.`,
-                rightClickHere: `hier rechtsklicken`
-            },
             keyboardShortcutEditor: {
                 description: `Listet alle registrierten Aktionen auf und erlaubt das Neubelegen der Tastenkürzel.`
             },
@@ -793,48 +3716,20 @@ const translation: Translation = {
                 wrap: `Text umbrechen`,
                 lineNumbers: `Zeilennummern`
             },
-            settingsPanel: {
-                description: `Gebündeltes Panel mit Design-, Sprach-, Code-Design- und Editor-Einstellungen.`
-            },
-            primaryMenu: {
-                description: `Global oben rechts eingebunden — klicke den Avatar, um es zu öffnen.`,
-                topRightHint: `siehe oben rechts`
-            },
             themePicker: {
                 description: `Trigger (links) und eigenständige Variante (rechts).`
             },
             loggingConfig: {
                 description: `Datei-spezifische Log-Level-Überschreibungen, im localStorage gespeichert.`
             },
-            logView: {
-                description: `Einfache Log-Ansicht: Zeilen rein, Zeilen werden gerendert. Autoscroll; nach oben scrollen pausiert das Autoscrolling. Optional Filter und Leeren-Button.`,
-                hint: `"Zeile schicken" wiederholt klicken, um Beispiel-Serverausgabe anzuhängen. "Leeren" entleert die Ansicht über onClear.`,
-                searchPlaceholder: `Filtern…`,
-                empty: `Noch keine Log-Zeilen.`,
-                pushLine: `Zeile schicken`
-            },
-            terminal: {
-                description: `Interaktives Terminal auf Basis von xterm.js. Der xterm-Code liegt in einem Lazy-Chunk und wird erst geladen, wenn das erste Terminal eingehängt wird. Über das imperative Ref (write / writeln / clear / focus / fit) wird Serverausgabe eingespeist, onData leitet Tastatureingaben nach oben. Der onReady-Callback feuert, sobald der Lazy-Chunk geladen ist — ideal, um ein Begrüßungsbanner auszugeben.`,
-                hint: `Die Demo verdrahtet eine kleine "Shell" — eine Zeile tippen und mit Enter abschicken, um sie zurückgespiegelt zu sehen. Die Begrüßung wird beim Mount via onReady ausgegeben.`,
-                clear: `Leeren`
-            },
-            machineMonitor: {
-                description: `VNC-Anzeige auf Basis von react-vnc / noVNC. Der noVNC-Client liegt in einem Lazy-Chunk und wird erst geladen, wenn der erste MachineMonitor eingehängt wird. Eine WebSocket-URL zu einer VNC-WebSocket-Brücke füttern und es verbindet automatisch.`,
-                hint: `ws:// oder wss:// URL zu einer VNC-Brücke eintragen und auf Verbinden klicken. Ohne Server bleibt der Bildschirm getrennt — der Lazy-Chunk wird trotzdem nur beim ersten Mount geladen.`,
-                urlPlaceholder: `ws://localhost:5900`,
-                connect: `Verbinden`,
-                disconnect: `Trennen`,
-                sendCtrlAltDel: `Strg+Alt+Entf senden`,
-                readOnly: `Nur lesen (passiv eingebettet)`,
-                status: {
-                    connected: `Verbunden`,
-                    disconnected: `Getrennt`
-                },
-                loadingLabel: `VNC-Client wird geladen…`
-            },
             resourceList: {
                 description: `ResourceList benötigt eine paginierte Datenquelle — ein vollständiges Beispiel findet sich im filez-Frontend.`,
                 note: `Keine eigenständige Demo: Diese Komponente rendert große, unendlich scrollende Listen, die von einer serverseitigen getResourcesList-Funktion gespeist werden.`
+            },
+            consoleManager: {
+                description: `VSCode-artiges Konsolen-Host. Mit + neue Tabs öffnen, Doppelklick auf einen Tab zum Umbenennen, beim Hovern zum Schließen (×), und die Split-Buttons rechts teilen das Pane horizontal oder vertikal.`,
+                terminalLabel: `Terminal`,
+                logsLabel: `Logs`
             },
             searchInput: {
                 description: `Generisches Suchfeld mit führendem Symbol und Zurücksetzen-Schaltfläche. Wird in der Seitenleiste zum Filtern der Komponenten verwendet.`,

@@ -12,13 +12,21 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import {
     forwardRef,
     useEffect,
+    useRef,
     useState,
-    type CSSProperties,
     type ForwardedRef,
+    type HTMLAttributes,
     type ReactNode
 } from "react";
 
-export interface SearchSelectPickerProps<T> {
+// We accept arbitrary `<div>` props and forward them onto the popover
+// trigger element. This is what lets a parent `<DropdownMenuItem asChild>`
+// (or any Radix Slot) merge `role="menuitem"`, focus / keyboard handlers,
+// `onSelect`, etc. through to the trigger — without this passthrough the
+// merging stops at `<Popover>` (a context provider) and the trigger is
+// invisible to assistive tech that scans for menu items.
+export interface SearchSelectPickerProps<T>
+    extends Omit<HTMLAttributes<HTMLDivElement>, `onSelect` | `children`> {
     readonly items: readonly T[];
     readonly selected?: T;
     readonly onSelect: (item: T) => void;
@@ -36,10 +44,12 @@ export interface SearchSelectPickerProps<T> {
     readonly defaultOpen?: boolean;
     readonly autoFocus?: boolean;
     readonly onOpenChange?: (open: boolean) => void;
-    readonly className?: string;
-    readonly style?: CSSProperties;
     readonly popoverContentClassName?: string;
 }
+
+// Sentinel passed as cmdk's `defaultValue` so it doesn't auto-select an
+// item on mount — see comment at the `<Command>` usage below.
+const CMDK_NO_INITIAL_SELECTION = `__cmdk-no-initial-selection__`;
 
 // Hints that tell credential / autofill / TOTP detectors (KeePassXC, 1Password,
 // LastPass, Bitwarden, browser autofill) that this search field is unrelated to
@@ -82,15 +92,29 @@ const SearchSelectPickerInner = <T,>(
         onOpenChange,
         className,
         style,
-        popoverContentClassName
+        popoverContentClassName,
+        ...triggerProps
     }: SearchSelectPickerProps<T>,
     ref: ForwardedRef<HTMLDivElement>
 ) => {
+    // `defaultOpen` is a default initial value, not a controlled prop —
+    // useState seeds from it once and subsequent parent re-renders with the
+    // same value don't snap an already-dismissed picker back open
+    // (TECH-TS-8). For controlled behaviour callers should manage open
+    // state themselves and pass it explicitly.
     const [open, setOpen] = useState(defaultOpen);
+    const inputRef = useRef<HTMLInputElement>(null);
 
+    // We focus via ref + `preventScroll: true` instead of the HTML
+    // `autoFocus` attribute, because the browser's default focus behaviour
+    // scrolls the focused input into view — when the picker is rendered
+    // mid-page (e.g. inside a doc-page example) that jumps the surrounding
+    // scroll container away from the top.
     useEffect(() => {
-        setOpen(defaultOpen);
-    }, [defaultOpen]);
+        if (autoFocus) inputRef.current?.focus({ preventScroll: true });
+        // Run once on mount only.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const filter = (value: string, search: string) => {
         const item = items.find((i) => getId(i) === value);
@@ -110,10 +134,18 @@ const SearchSelectPickerInner = <T,>(
     };
 
     const command = (
-        <Command filter={filter}>
+        // `defaultValue` is set to a sentinel that doesn't match any item.
+        // cmdk auto-selects its first item on mount and calls
+        // `scrollIntoView({block:"nearest"})` on it, which scrolls the
+        // nearest ancestor scroll container — when the picker is rendered
+        // mid-page (e.g. inside a doc-page example) that jumps the
+        // surrounding page away from the top. With a non-matching default,
+        // cmdk leaves nothing selected on mount and only scrolls in
+        // response to user input (typing / arrow keys), which is desired.
+        <Command filter={filter} defaultValue={CMDK_NO_INITIAL_SELECTION}>
             <CommandInput
+                ref={inputRef}
                 placeholder={placeholder}
-                autoFocus={autoFocus}
                 {...ignoreCredentialManagersProps}
                 className={`[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none`}
             />
@@ -163,6 +195,7 @@ const SearchSelectPickerInner = <T,>(
         <Popover modal open={open} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
                 <div
+                    {...triggerProps}
                     ref={ref}
                     className={cn(
                         // Padding matches the surrounding DropdownMenuItem

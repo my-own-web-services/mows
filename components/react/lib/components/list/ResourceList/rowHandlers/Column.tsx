@@ -3,7 +3,7 @@ import { CSSProperties, JSX } from "react";
 import { FaThList } from "react-icons/fa";
 import { IoChevronUp } from "react-icons/io5";
 import { match } from "ts-pattern";
-import OptionPicker from "../../../atoms/optionPicker/OptionPicker";
+import OptionPicker from "../../../input/optionPicker/OptionPicker";
 import { Checkbox } from "../../../ui/checkbox";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../../../ui/resizable";
 import { cn } from "../../../../lib/utils";

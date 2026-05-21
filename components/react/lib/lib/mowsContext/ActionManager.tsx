@@ -4,6 +4,12 @@ import { log } from "../logging";
 export interface ActionState {
     visibility: ActionVisibility;
     disabledReasonText?: string;
+    /**
+     * Optional leading icon. Rendered to the left of the action label by
+     * `ActionDisplay`; ignored when `component` is set (which replaces the
+     * whole label cell).
+     */
+    icon?: () => JSX.Element;
     component?: () => JSX.Element;
 }
 
@@ -31,9 +37,9 @@ export class Action {
     constructor(params: ActionConstructorParams) {
         this.id = params.id;
         this.category = params.category;
-        this.actionHandlers = params.actionHandlers || new Map();
-        this.hideInCommandPalette = params.hideInCommandPalette || false;
-        this.doNotTrackUsage = params.doNotTrackUsage || false;
+        this.actionHandlers = params.actionHandlers ?? new Map();
+        this.hideInCommandPalette = params.hideInCommandPalette ?? false;
+        this.doNotTrackUsage = params.doNotTrackUsage ?? false;
     }
 
     getCurrentHandler = (): ActionHandler | undefined => {
@@ -209,7 +215,7 @@ export class ActionManager {
         const now = Date.now();
         const updatedCommands = [
             { actionId: action.id, timestamp: now },
-            ...recentCommands.filter((cmd) => cmd.actionId !== action.id)
+            ...recentCommands.filter((command) => command.actionId !== action.id)
         ].slice(0, this.config.maxRecentActions);
         this.recentActions = updatedCommands;
         this.saveRecentActions();

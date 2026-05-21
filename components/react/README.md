@@ -58,10 +58,10 @@ the CSS theme class — that is fixed (`theme-light`, `theme-dark`,
 ### Minimal `App.tsx`
 
 ```tsx
-import CommandPalette from "mows-components-react/components/atoms/commandPalette/CommandPalette";
-import GlobalContextMenu from "mows-components-react/components/atoms/globalContextMenu/GlobalContextMenu";
-import ModalHandler from "mows-components-react/components/atoms/modalHandler/ModalHandler";
-import PrimaryMenu from "mows-components-react/components/atoms/primaryMenu/PrimaryMenu";
+import CommandPalette from "mows-components-react/components/appShell/commandPalette/CommandPalette";
+import GlobalContextMenu from "mows-components-react/components/appShell/globalContextMenu/GlobalContextMenu";
+import ModalHandler from "mows-components-react/components/appShell/modalHandler/ModalHandler";
+import PrimaryMenu from "mows-components-react/components/appShell/primaryMenu/PrimaryMenu";
 
 export default class App extends PureComponent {
     render = () => (

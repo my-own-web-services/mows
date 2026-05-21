@@ -8,7 +8,7 @@ import { getBrowserLanguage, type Language, type Translation } from "../language
 import baseEnglishTranslation from "../languages/en-US/default";
 import { log } from "../logging";
 import { defaultThemes, loadThemeCSS, type MowsTheme } from "../themes";
-import { ActionManager } from "./ActionManager";
+import { type Action, ActionManager } from "./ActionManager";
 import { coreDefaultHotkeys, defineCoreActions } from "./coreActions";
 import { type HotkeyConfig, HotkeyManager } from "./HotkeyManager";
 
@@ -24,16 +24,48 @@ export interface MowsCodeEditorSettings {
     readonly showWhitespace: boolean;
     readonly wrap: boolean;
     readonly showLineNumbers: boolean;
+    readonly bracketPairColorization: boolean;
 }
 
 export const defaultCodeEditorSettings: MowsCodeEditorSettings = {
     showWhitespace: true,
     wrap: true,
-    showLineNumbers: true
+    showLineNumbers: true,
+    bracketPairColorization: true
+};
+
+export type ToastPosition =
+    | `top-left`
+    | `top-center`
+    | `top-right`
+    | `bottom-left`
+    | `bottom-center`
+    | `bottom-right`;
+
+export const TOAST_POSITIONS: readonly ToastPosition[] = [
+    `top-left`,
+    `top-center`,
+    `top-right`,
+    `bottom-left`,
+    `bottom-center`,
+    `bottom-right`
+] as const;
+
+export interface MowsToastSettings {
+    readonly position: ToastPosition;
+}
+
+export const defaultToastSettings: MowsToastSettings = {
+    position: `bottom-right`
 };
 
 export interface MowsContextType {
     readonly auth: AuthContextProps;
+    /** True if a `MowsOidcConfig` was passed to `MowsProvider`. UIs (e.g. the
+     * PrimaryMenu login entry) must hide auth-only affordances when this is
+     * false — `auth` is still a stub object in that case but calling
+     * `signinRedirect` / `signoutRedirect` on it would be a no-op or worse. */
+    readonly authConfigured: boolean;
     readonly mowsUser?: User | null;
     readonly storagePrefix: string;
     readonly setTheme: (theme: MowsTheme) => Promise<void>;
@@ -52,6 +84,8 @@ export interface MowsContextType {
     readonly setCodeTheme: (theme: MowsCodeTheme) => void;
     readonly codeEditorSettings: MowsCodeEditorSettings;
     readonly setCodeEditorSettings: (settings: Partial<MowsCodeEditorSettings>) => void;
+    readonly toastSettings: MowsToastSettings;
+    readonly setToastSettings: (settings: Partial<MowsToastSettings>) => void;
 }
 
 interface MowsClientManagerProps {
@@ -60,13 +94,13 @@ interface MowsClientManagerProps {
     readonly themes: MowsTheme[];
     readonly languages: Language[];
     readonly initialTranslation: Translation;
-    // eslint-disable-next-line quotes
-    readonly extraActions: import("./ActionManager").Action[];
+    readonly extraActions: Action[];
     readonly extraDefaultHotkeys: HotkeyConfig;
     readonly defaultThemeId: string;
     readonly codeThemes: MowsCodeTheme[];
     readonly defaultCodeThemeId: string;
     readonly auth?: AuthContextProps;
+    readonly authConfigured: boolean;
 }
 
 interface MowsClientManagerState {
@@ -76,12 +110,14 @@ interface MowsClientManagerState {
     readonly currentlyOpenModal?: string;
     readonly currentCodeTheme: MowsCodeTheme;
     readonly codeEditorSettings: MowsCodeEditorSettings;
+    readonly toastSettings: MowsToastSettings;
 }
 
 const buildStorageKeys = (prefix: string) => ({
     theme: `${prefix}_theme`,
     codeTheme: `${prefix}_code_theme`,
     codeEditorSettings: `${prefix}_code_editor_settings`,
+    toastSettings: `${prefix}_toast_settings`,
     selectedLanguage: `${prefix}_language`,
     hotkeyConfig: `${prefix}_hotkey_config`,
     recentActions: `${prefix}_recent_actions`,
@@ -97,6 +133,22 @@ const readCodeEditorSettings = (storageKey: string): MowsCodeEditorSettings => {
     } catch (error) {
         log.warn(`Failed to parse stored code editor settings; reverting to defaults`, error);
         return defaultCodeEditorSettings;
+    }
+};
+
+const readToastSettings = (storageKey: string): MowsToastSettings => {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return defaultToastSettings;
+    try {
+        const parsed = JSON.parse(raw);
+        const next = { ...defaultToastSettings, ...parsed };
+        if (!TOAST_POSITIONS.includes(next.position)) {
+            return defaultToastSettings;
+        }
+        return next;
+    } catch (error) {
+        log.warn(`Failed to parse stored toast settings; reverting to defaults`, error);
+        return defaultToastSettings;
     }
 };
 
@@ -136,7 +188,7 @@ export class MowsClientManagerBase extends Component<
         log.info(`Current theme ID:`, currentThemeId);
 
         const initialTheme =
-            props.themes.find((t) => t.id === currentThemeId) || props.themes[0];
+            props.themes.find((theme) => theme.id === currentThemeId) || props.themes[0];
 
         // Apply the theme class synchronously before React paints, so we don't
         // flash the default :root tokens (white surfaces on dark themes, etc.)
@@ -146,14 +198,15 @@ export class MowsClientManagerBase extends Component<
         const currentCodeThemeId =
             localStorage.getItem(this.storageKeys.codeTheme) || props.defaultCodeThemeId;
         const initialCodeTheme =
-            props.codeThemes.find((t) => t.id === currentCodeThemeId) || props.codeThemes[0];
+            props.codeThemes.find((codeTheme) => codeTheme.id === currentCodeThemeId) || props.codeThemes[0];
 
         this.state = {
             currentTheme: initialTheme,
             currentTranslation: props.initialTranslation,
             currentLanguage: getBrowserLanguage(props.languages, this.storageKeys.selectedLanguage),
             currentCodeTheme: initialCodeTheme,
-            codeEditorSettings: readCodeEditorSettings(this.storageKeys.codeEditorSettings)
+            codeEditorSettings: readCodeEditorSettings(this.storageKeys.codeEditorSettings),
+            toastSettings: readToastSettings(this.storageKeys.toastSettings)
         };
 
         this.actionManager = new ActionManager({
@@ -235,6 +288,16 @@ export class MowsClientManagerBase extends Component<
         this.setState({ codeEditorSettings: next });
     };
 
+    setToastSettings = (partial: Partial<MowsToastSettings>) => {
+        const next = { ...this.state.toastSettings, ...partial };
+        if (!TOAST_POSITIONS.includes(next.position)) {
+            log.warn(`Ignoring invalid toast position`, partial);
+            return;
+        }
+        localStorage.setItem(this.storageKeys.toastSettings, JSON.stringify(next));
+        this.setState({ toastSettings: next });
+    };
+
     setLanguage = async (languageToSet?: Language) => {
         if (!languageToSet) {
             log.error(`No language provided`);
@@ -250,11 +313,13 @@ export class MowsClientManagerBase extends Component<
     };
 
     render = () => {
-        const { children, auth, storagePrefix, themes, languages, codeThemes } = this.props;
-        const { currentTheme, currentCodeTheme, codeEditorSettings } = this.state;
+        const { children, auth, authConfigured, storagePrefix, themes, languages, codeThemes } =
+            this.props;
+        const { currentTheme, currentCodeTheme, codeEditorSettings, toastSettings } = this.state;
 
         const contextValue: MowsContextType = {
             auth: auth!,
+            authConfigured,
             mowsUser: auth?.user,
             storagePrefix,
             setTheme: this.setTheme,
@@ -272,7 +337,9 @@ export class MowsClientManagerBase extends Component<
             currentCodeTheme,
             setCodeTheme: this.setCodeTheme,
             codeEditorSettings,
-            setCodeEditorSettings: this.setCodeEditorSettings
+            setCodeEditorSettings: this.setCodeEditorSettings,
+            toastSettings,
+            setToastSettings: this.setToastSettings
         };
 
         return <MowsContext.Provider value={contextValue}>{children}</MowsContext.Provider>;
@@ -328,15 +395,17 @@ export const baseLanguages: Language[] = [
 interface MowsProviderProps {
     readonly children: ReactNode;
     readonly storagePrefix: string;
-    readonly oidc: MowsOidcConfig;
+    /** OIDC config. Omit to mount without auth — the PrimaryMenu and other
+     * components will hide login affordances. Useful for apps that sit behind
+     * a separate auth proxy or use a bearer-token-only API. */
+    readonly oidc?: MowsOidcConfig;
     readonly themes?: MowsTheme[];
     readonly languages?: Language[];
     readonly initialTranslation?: Translation;
     readonly defaultThemeId?: string;
     readonly codeThemes?: MowsCodeTheme[];
     readonly defaultCodeThemeId?: string;
-    // eslint-disable-next-line quotes
-    readonly extraActions?: import("./ActionManager").Action[];
+    readonly extraActions?: Action[];
     readonly extraDefaultHotkeys?: HotkeyConfig;
     readonly onSigninCallback?: (user: User | void) => void;
 }
@@ -365,10 +434,37 @@ export class MowsProvider extends Component<MowsProviderProps> {
             initialTranslation = baseEnglishTranslation as Translation,
             defaultThemeId = `system`,
             codeThemes = defaultCodeThemes,
-            defaultCodeThemeId = `vs-dark`,
+            defaultCodeThemeId = `one-dark-nx`,
             extraActions = [],
             extraDefaultHotkeys = {}
         } = this.props;
+
+        const managerCommonProps = {
+            storagePrefix,
+            themes,
+            languages,
+            initialTranslation,
+            defaultThemeId,
+            codeThemes,
+            defaultCodeThemeId,
+            extraActions,
+            extraDefaultHotkeys,
+            authConfigured: !!oidc
+        } as const;
+
+        if (!oidc) {
+            // No OIDC config — mount without `<AuthProvider>` and without the
+            // `withAuth` HOC (which would emit a console warning when no
+            // AuthContext is present). PrimaryMenu and friends consult
+            // `authConfigured` from the context to hide login affordances.
+            return (
+                <DndProvider backend={HTML5Backend}>
+                    <MowsClientManagerBase {...managerCommonProps}>
+                        {children}
+                    </MowsClientManagerBase>
+                </DndProvider>
+            );
+        }
 
         const oidcConfig = {
             userStore: new WebStorageStateStore({ store: window.localStorage }),
@@ -386,19 +482,7 @@ export class MowsProvider extends Component<MowsProviderProps> {
         return (
             <AuthProvider {...oidcConfig}>
                 <DndProvider backend={HTML5Backend}>
-                    <MowsClientManager
-                        storagePrefix={storagePrefix}
-                        themes={themes}
-                        languages={languages}
-                        initialTranslation={initialTranslation}
-                        defaultThemeId={defaultThemeId}
-                        codeThemes={codeThemes}
-                        defaultCodeThemeId={defaultCodeThemeId}
-                        extraActions={extraActions}
-                        extraDefaultHotkeys={extraDefaultHotkeys}
-                    >
-                        {children}
-                    </MowsClientManager>
+                    <MowsClientManager {...managerCommonProps}>{children}</MowsClientManager>
                 </DndProvider>
             </AuthProvider>
         );

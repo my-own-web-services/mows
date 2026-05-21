@@ -3,7 +3,7 @@ import CodeViewer from "../../../lib/components/code/codeViewer/CodeViewer";
 import ExpandableCode from "../../../lib/components/code/expandableCode/ExpandableCode";
 import { type PageIndexItem } from "../../../lib/components/navigation/pageIndex/PageIndex";
 import { MowsContext } from "../../../lib/lib/mowsContext/MowsContext";
-import { CommandBlock } from "../harness/CommandBlock";
+import { CommandBlock } from "../harness/docPage/CommandBlock";
 import { ExampleCard } from "../harness/ExampleCard";
 import {
     BehaviourList,
@@ -100,8 +100,6 @@ const buildIndexItems = (t: CodeSnippetStrings): PageIndexItem[] => {
     const doc = t.doc;
     return [
         { id: ANCHOR.installation, label: doc.installation.title },
-        { id: ANCHOR.usage, label: doc.usage.title },
-        { id: ANCHOR.composition, label: doc.composition.title },
         {
             id: ANCHOR.examples,
             label: doc.examples.title,
@@ -111,9 +109,11 @@ const buildIndexItems = (t: CodeSnippetStrings): PageIndexItem[] => {
                 { id: ANCHOR.languages, label: doc.examples.languages.title }
             ]
         },
+        { id: ANCHOR.usage, label: doc.usage.title },
+        { id: ANCHOR.composition, label: doc.composition.title },
         { id: ANCHOR.rtl, label: doc.rtl.title },
         { id: ANCHOR.definedBehaviour, label: doc.definedBehaviour.title },
-        { id: ANCHOR.apiReference, label: doc.apiReference.title }
+        { id: ANCHOR.apiReference, label: doc.apiReference.title },
     ];
 };
 
@@ -126,37 +126,37 @@ const buildBehaviourEntries = (
         statement: statements.blockFallback,
         testFile: TEST_FILE,
         testName: `renders a <pre> fallback in block mode that shows the raw code`,
-        testLine: 16
+        testLine: 17
     },
     {
         statement: statements.inlineFallback,
         testFile: TEST_FILE,
         testName: `renders a <code> fallback in inline mode`,
-        testLine: 23
+        testLine: 24
     },
     {
         statement: statements.defaultMode,
         testFile: TEST_FILE,
         testName: `defaults to block mode when no mode prop is provided`,
-        testLine: 32
+        testLine: 33
     },
     {
         statement: statements.forwardsClassName,
         testFile: TEST_FILE,
         testName: `forwards className and style to the rendered wrapper`,
-        testLine: 38
+        testLine: 39
     },
     {
         statement: statements.preservesMultiline,
         testFile: TEST_FILE,
         testName: `preserves multi-line code in the block fallback`,
-        testLine: 51
+        testLine: 52
     },
     {
         statement: statements.rendersWithoutProvider,
         testFile: TEST_FILE,
         testName: `renders a snippet without a MowsProvider (theme defaults apply)`,
-        testLine: 58
+        testLine: 59
     }
 ];
 
@@ -178,11 +178,11 @@ export const CodeSnippetDocPage = () => {
                     command={PACKAGE_INSTALL}
                     manual={
                         <ManualSteps>
-                            <ManualStep n={1}>
+                            <ManualStep stepNumber={1}>
                                 <p className={`text-sm`}>{doc.installation.manualStep1}</p>
                                 <CommandBlock command={PACKAGE_INSTALL} />
                             </ManualStep>
-                            <ManualStep n={2}>
+                            <ManualStep stepNumber={2}>
                                 <p className={`text-sm`}>{doc.installation.manualStep2}</p>
                                 <ExpandableCode>
                                     <CodeViewer
@@ -192,32 +192,12 @@ export const CodeSnippetDocPage = () => {
                                     />
                                 </ExpandableCode>
                             </ManualStep>
-                            <ManualStep n={3} isLast>
+                            <ManualStep stepNumber={3} isLast>
                                 <p className={`text-sm`}>{doc.installation.manualStep3}</p>
                             </ManualStep>
                         </ManualSteps>
                     }
                 />
-            </DocSection>
-
-            <DocSection
-                id={ANCHOR.usage}
-                title={doc.usage.title}
-                description={doc.usage.body}
-            >
-                <ExpandableCode>
-                    <CodeViewer code={USAGE_SNIPPET} language={`tsx`} fitContent />
-                </ExpandableCode>
-            </DocSection>
-
-            <DocSection
-                id={ANCHOR.composition}
-                title={doc.composition.title}
-                description={doc.composition.body}
-            >
-                <ExpandableCode>
-                    <CodeViewer code={COMPOSITION_SNIPPET} language={`tsx`} fitContent />
-                </ExpandableCode>
             </DocSection>
 
             <DocSection id={ANCHOR.examples} title={doc.examples.title}>
@@ -244,6 +224,26 @@ export const CodeSnippetDocPage = () => {
                         <ExampleCard example={codeSnippetExampleById(`languages`)} hideHeader />
                     </DocSubsection>
                 </div>
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.usage}
+                title={doc.usage.title}
+                description={doc.usage.body}
+            >
+                <ExpandableCode>
+                    <CodeViewer code={USAGE_SNIPPET} language={`tsx`} fitContent />
+                </ExpandableCode>
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.composition}
+                title={doc.composition.title}
+                description={doc.composition.body}
+            >
+                <ExpandableCode>
+                    <CodeViewer code={COMPOSITION_SNIPPET} language={`tsx`} fitContent />
+                </ExpandableCode>
             </DocSection>
 
             <DocSection

@@ -5,7 +5,7 @@ import React, { CSSProperties, Component, JSX, createRef } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList } from "react-window";
 import InfiniteLoader from "react-window-infinite-loader";
-import ButtonSelect from "../../atoms/buttonSelect/ButtonSelect";
+import ButtonSelect from "../../input/buttonSelect/ButtonSelect";
 import { Button } from "../../ui/button";
 import { log } from "../../../lib/logging";
 import { MowsContext } from "../../../lib/mowsContext/MowsContext";

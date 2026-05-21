@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-site
 *.local
 
 # Editor directories and files
@@ -24,3 +25,6 @@ dist-ssr
 
 *storybook.log
 storybook-static
+
+# Local debug artefacts (chrome-devtools MCP screenshots, etc.)
+.tmp

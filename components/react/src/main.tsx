@@ -31,10 +31,6 @@ const pickInitialTranslation = (): Translation => {
 ReactDOM.createRoot(document.getElementById(`root`)!).render(
     <MowsProvider
         storagePrefix={STORAGE_PREFIX}
-        oidc={{
-            issuerUrl: `https://example.invalid`,
-            clientId: `mows-example`
-        }}
         languages={languages}
         initialTranslation={pickInitialTranslation()}
         extraActions={exampleActions}

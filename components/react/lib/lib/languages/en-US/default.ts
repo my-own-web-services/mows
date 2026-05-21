@@ -2,6 +2,26 @@ import type { BaseTranslation } from "../../languages";
 import { CoreActionIds } from "../../mowsContext/coreActions";
 
 const translation: BaseTranslation = {
+    videoViewer: {
+        play: `Play`,
+        pause: `Pause`,
+        mute: `Mute`,
+        unmute: `Unmute`,
+        volume: `Volume`,
+        seek: `Seek`,
+        seekTo: `Seek to`,
+        quality: `Quality`,
+        qualityAuto: `Auto`,
+        captions: `Subtitles`,
+        captionsOff: `Off`,
+        playbackRate: `Playback speed`,
+        pictureInPicture: `Picture in picture`,
+        fullscreen: `Enter fullscreen`,
+        exitFullscreen: `Exit fullscreen`,
+        errorTitle: `Playback failed`,
+        errorRetry: `Retry`,
+        loading: `Loading…`
+    },
     primaryMenu: {
         loggedInAs: `Signed in as`,
         copyUserId: {
@@ -45,7 +65,8 @@ const translation: BaseTranslation = {
         sections: {
             appearance: `Appearance`,
             language: `Language`,
-            codeEditor: `Code editor`
+            codeEditor: `Code editor`,
+            notifications: `Notifications`
         },
         labels: {
             theme: `Theme`,
@@ -53,7 +74,17 @@ const translation: BaseTranslation = {
             codeTheme: `Code theme`,
             showWhitespace: `Show whitespace`,
             wrap: `Wrap long lines`,
-            showLineNumbers: `Show line numbers`
+            showLineNumbers: `Show line numbers`,
+            bracketPairColorization: `Colorize bracket pairs`,
+            toastPosition: `Toast position`
+        },
+        toastPositions: {
+            topLeft: `Top left`,
+            topCenter: `Top center`,
+            topRight: `Top right`,
+            bottomLeft: `Bottom left`,
+            bottomCenter: `Bottom center`,
+            bottomRight: `Bottom right`
         }
     },
     keyboardShortcuts: {
@@ -145,16 +176,44 @@ const translation: BaseTranslation = {
     resourceList: {
         reload: `Reload`
     },
+    pageIndex: {
+        heading: `On this page`,
+        ariaLabel: `On this page`
+    },
+    expandableCode: {
+        expand: `Expand`,
+        collapse: `Collapse`
+    },
+    keyComboRecorder: {
+        heading: `Record key combos`,
+        hint: `Click "Start recording" then press any combos on your keyboard — each press is appended to the list below. A modifier key released alone (e.g. just Shift) is also captured. Click "Stop recording" when you're done.`,
+        start: `Start recording`,
+        stop: `Stop recording`,
+        clear: `Clear`,
+        listening: `Listening — press any key combo…`
+    },
     keys: {
         ctrl: `Ctrl`,
         alt: `Alt`,
+        altgr: `AltGr`,
+        fn: `Fn`,
         shift: `Shift`,
         meta: `Win`,
         enter: `Enter`,
         esc: `Esc`,
         tab: `Tab`,
         space: `Space`,
-        backspace: `Backspace`
+        backspace: `Backspace`,
+        del: `Del`,
+        insert: `Ins`,
+        home: `Home`,
+        end: `End`,
+        pageUp: `Pg`,
+        pageDown: `Pg`,
+        pause: `Pause`,
+        scrollLock: `ScrLk`,
+        numLock: `NumLk`,
+        printScreen: `PrtSc`
     }
 };
 

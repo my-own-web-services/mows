@@ -3,7 +3,7 @@ import CodeViewer from "../../../lib/components/code/codeViewer/CodeViewer";
 import ExpandableCode from "../../../lib/components/code/expandableCode/ExpandableCode";
 import { type PageIndexItem } from "../../../lib/components/navigation/pageIndex/PageIndex";
 import { MowsContext } from "../../../lib/lib/mowsContext/MowsContext";
-import { CommandBlock } from "../harness/CommandBlock";
+import { CommandBlock } from "../harness/docPage/CommandBlock";
 import { ExampleCard } from "../harness/ExampleCard";
 import {
     BehaviourList,
@@ -83,8 +83,6 @@ const buildIndexItems = (t: CodeThemePickerStrings): PageIndexItem[] => {
     const doc = t.doc;
     return [
         { id: ANCHOR.installation, label: doc.installation.title },
-        { id: ANCHOR.usage, label: doc.usage.title },
-        { id: ANCHOR.composition, label: doc.composition.title },
         {
             id: ANCHOR.examples,
             label: doc.examples.title,
@@ -93,9 +91,11 @@ const buildIndexItems = (t: CodeThemePickerStrings): PageIndexItem[] => {
                 { id: ANCHOR.standalone, label: doc.examples.standalone.title }
             ]
         },
+        { id: ANCHOR.usage, label: doc.usage.title },
+        { id: ANCHOR.composition, label: doc.composition.title },
         { id: ANCHOR.rtl, label: doc.rtl.title },
         { id: ANCHOR.definedBehaviour, label: doc.definedBehaviour.title },
-        { id: ANCHOR.apiReference, label: doc.apiReference.title }
+        { id: ANCHOR.apiReference, label: doc.apiReference.title },
     ];
 };
 
@@ -108,25 +108,25 @@ const buildBehaviourEntries = (
         statement: statements.showsCurrent,
         testFile: TEST_FILE,
         testName: `shows the current code theme name`,
-        testLine: 70
+        testLine: 71
     },
     {
         statement: statements.listsAll,
         testFile: TEST_FILE,
         testName: `lists all theme options when opened (standalone)`,
-        testLine: 75
+        testLine: 76
     },
     {
         statement: statements.callsSetCodeTheme,
         testFile: TEST_FILE,
         testName: `calls setCodeTheme with the selected theme`,
-        testLine: 83
+        testLine: 84
     },
     {
         statement: statements.filtersBySearch,
         testFile: TEST_FILE,
         testName: `filters themes by search`,
-        testLine: 94
+        testLine: 95
     }
 ];
 
@@ -148,11 +148,11 @@ export const CodeThemePickerDocPage = () => {
                     command={PACKAGE_INSTALL}
                     manual={
                         <ManualSteps>
-                            <ManualStep n={1}>
+                            <ManualStep stepNumber={1}>
                                 <p className={`text-sm`}>{doc.installation.manualStep1}</p>
                                 <CommandBlock command={PACKAGE_INSTALL} />
                             </ManualStep>
-                            <ManualStep n={2}>
+                            <ManualStep stepNumber={2}>
                                 <p className={`text-sm`}>{doc.installation.manualStep2}</p>
                                 <ExpandableCode>
                                     <CodeViewer
@@ -162,32 +162,12 @@ export const CodeThemePickerDocPage = () => {
                                     />
                                 </ExpandableCode>
                             </ManualStep>
-                            <ManualStep n={3} isLast>
+                            <ManualStep stepNumber={3} isLast>
                                 <p className={`text-sm`}>{doc.installation.manualStep3}</p>
                             </ManualStep>
                         </ManualSteps>
                     }
                 />
-            </DocSection>
-
-            <DocSection
-                id={ANCHOR.usage}
-                title={doc.usage.title}
-                description={doc.usage.body}
-            >
-                <ExpandableCode>
-                    <CodeViewer code={USAGE_SNIPPET} language={`tsx`} fitContent />
-                </ExpandableCode>
-            </DocSection>
-
-            <DocSection
-                id={ANCHOR.composition}
-                title={doc.composition.title}
-                description={doc.composition.body}
-            >
-                <ExpandableCode>
-                    <CodeViewer code={COMPOSITION_SNIPPET} language={`tsx`} fitContent />
-                </ExpandableCode>
             </DocSection>
 
             <DocSection id={ANCHOR.examples} title={doc.examples.title}>
@@ -213,6 +193,26 @@ export const CodeThemePickerDocPage = () => {
                         />
                     </DocSubsection>
                 </div>
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.usage}
+                title={doc.usage.title}
+                description={doc.usage.body}
+            >
+                <ExpandableCode>
+                    <CodeViewer code={USAGE_SNIPPET} language={`tsx`} fitContent />
+                </ExpandableCode>
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.composition}
+                title={doc.composition.title}
+                description={doc.composition.body}
+            >
+                <ExpandableCode>
+                    <CodeViewer code={COMPOSITION_SNIPPET} language={`tsx`} fitContent />
+                </ExpandableCode>
             </DocSection>
 
             <DocSection

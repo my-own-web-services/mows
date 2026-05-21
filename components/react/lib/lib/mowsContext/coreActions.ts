@@ -132,6 +132,9 @@ export const defineCoreActions = (
                     {
                         id: `GlobalLogin`,
                         getState: () => {
+                            if (!provider.props.authConfigured) {
+                                return { visibility: ActionVisibility.Hidden };
+                            }
                             if (provider.props.auth?.isAuthenticated) {
                                 return {
                                     visibility: ActionVisibility.Disabled,
@@ -163,6 +166,9 @@ export const defineCoreActions = (
                     {
                         id: `GlobalLogout`,
                         getState: () => {
+                            if (!provider.props.authConfigured) {
+                                return { visibility: ActionVisibility.Hidden };
+                            }
                             if (!provider.props.auth?.isAuthenticated) {
                                 return {
                                     visibility: ActionVisibility.Disabled,

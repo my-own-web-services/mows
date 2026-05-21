@@ -2,6 +2,26 @@ import type { BaseTranslation } from "../../languages";
 import { CoreActionIds } from "../../mowsContext/coreActions";
 
 const translation: BaseTranslation = {
+    videoViewer: {
+        play: `Abspielen`,
+        pause: `Pause`,
+        mute: `Stummschalten`,
+        unmute: `Stummschaltung aufheben`,
+        volume: `Lautstärke`,
+        seek: `Suchen`,
+        seekTo: `Springe zu`,
+        quality: `Qualität`,
+        qualityAuto: `Auto`,
+        captions: `Untertitel`,
+        captionsOff: `Aus`,
+        playbackRate: `Wiedergabegeschwindigkeit`,
+        pictureInPicture: `Bild-in-Bild`,
+        fullscreen: `Vollbild`,
+        exitFullscreen: `Vollbild verlassen`,
+        errorTitle: `Wiedergabe fehlgeschlagen`,
+        errorRetry: `Erneut versuchen`,
+        loading: `Lädt…`
+    },
     primaryMenu: {
         loggedInAs: `Angemeldet als`,
         copyUserId: {
@@ -45,7 +65,8 @@ const translation: BaseTranslation = {
         sections: {
             appearance: `Erscheinungsbild`,
             language: `Sprache`,
-            codeEditor: `Code-Editor`
+            codeEditor: `Code-Editor`,
+            notifications: `Benachrichtigungen`
         },
         labels: {
             theme: `Design`,
@@ -53,7 +74,17 @@ const translation: BaseTranslation = {
             codeTheme: `Code-Design`,
             showWhitespace: `Leerzeichen anzeigen`,
             wrap: `Lange Zeilen umbrechen`,
-            showLineNumbers: `Zeilennummern anzeigen`
+            showLineNumbers: `Zeilennummern anzeigen`,
+            bracketPairColorization: `Klammerpaare einfärben`,
+            toastPosition: `Toast-Position`
+        },
+        toastPositions: {
+            topLeft: `Oben links`,
+            topCenter: `Oben mittig`,
+            topRight: `Oben rechts`,
+            bottomLeft: `Unten links`,
+            bottomCenter: `Unten mittig`,
+            bottomRight: `Unten rechts`
         }
     },
     keyboardShortcuts: {
@@ -146,16 +177,44 @@ const translation: BaseTranslation = {
     resourceList: {
         reload: `Neu laden`
     },
+    pageIndex: {
+        heading: `Auf dieser Seite`,
+        ariaLabel: `Auf dieser Seite`
+    },
+    expandableCode: {
+        expand: `Ausklappen`,
+        collapse: `Einklappen`
+    },
+    keyComboRecorder: {
+        heading: `Tastenkombinationen aufzeichnen`,
+        hint: `Klicke auf „Aufzeichnung starten“ und drücke dann beliebige Kombinationen auf deiner Tastatur — jeder Tastendruck wird der Liste unten angehängt. Auch eine allein losgelassene Modifikator-Taste (z. B. nur Umschalt) wird erfasst. Klicke „Aufzeichnung stoppen“, wenn du fertig bist.`,
+        start: `Aufzeichnung starten`,
+        stop: `Aufzeichnung stoppen`,
+        clear: `Leeren`,
+        listening: `Lausche — drücke eine beliebige Tastenkombination…`
+    },
     keys: {
         ctrl: `Strg`,
         alt: `Alt`,
+        altgr: `Alt Gr`,
+        fn: `Fn`,
         shift: `Umschalt`,
         meta: `Win`,
         enter: `Eingabe`,
         esc: `Esc`,
         tab: `Tab`,
         space: `Leertaste`,
-        backspace: `Rücktaste`
+        backspace: `Rücktaste`,
+        del: `Entf`,
+        insert: `Einfg`,
+        home: `Pos1`,
+        end: `Ende`,
+        pageUp: `Bild`,
+        pageDown: `Bild`,
+        pause: `Pause`,
+        scrollLock: `Rollen`,
+        numLock: `Num`,
+        printScreen: `Druck`
     }
 };
 

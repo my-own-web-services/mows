@@ -28,31 +28,31 @@ const Example = () => {
                     id={`pin-overview`}
                     className={`scroll-mt-20 rounded-md border bg-card p-4`}
                 >
-                    <p className={`font-medium`}>{`Overview`}</p>
+                    <p className={`font-medium`}>Overview</p>
                 </section>
                 <section
                     id={`pin-examples`}
                     className={`scroll-mt-20 rounded-md border bg-card p-4`}
                 >
-                    <p className={`font-medium`}>{`Examples`}</p>
+                    <p className={`font-medium`}>Examples</p>
                 </section>
                 <section
                     id={`pin-examples-default`}
                     className={`scroll-mt-20 rounded-md border bg-card p-4`}
                 >
-                    <p className={`font-medium`}>{`Examples · Default`}</p>
+                    <p className={`font-medium`}>Examples · Default</p>
                 </section>
                 <section
                     id={`pin-examples-nested`}
                     className={`scroll-mt-20 rounded-md border bg-card p-4`}
                 >
-                    <p className={`font-medium`}>{`Examples · Nested`}</p>
+                    <p className={`font-medium`}>Examples · Nested</p>
                 </section>
                 <section
                     id={`pin-api`}
                     className={`scroll-mt-20 rounded-md border bg-card p-4`}
                 >
-                    <p className={`font-medium`}>{`API`}</p>
+                    <p className={`font-medium`}>API</p>
                 </section>
             </div>
             <aside className={`w-44 flex-none self-start`}>

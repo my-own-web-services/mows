@@ -7,7 +7,7 @@ const Example = () => {
 
     return (
         <SectionHeading id={`sh-demo-default`} level={3} className={`text-xl font-semibold`}>
-            {`Hover me to reveal the # anchor`}
+            Hover me to reveal the # anchor
         </SectionHeading>
     );
 };

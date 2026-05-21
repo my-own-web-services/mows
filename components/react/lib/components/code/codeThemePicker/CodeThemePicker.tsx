@@ -5,9 +5,7 @@ import { Code2 } from "lucide-react";
 import * as React from "react";
 import { forwardRef } from "react";
 
-interface CodeThemePickerProps {
-    readonly className?: string;
-    readonly style?: React.CSSProperties;
+interface CodeThemePickerProps extends Omit<React.HTMLAttributes<HTMLDivElement>, `onSelect`> {
     readonly defaultOpen?: boolean;
     readonly onValueChange?: (value?: MowsCodeTheme) => void;
     readonly standalone?: boolean;
@@ -26,7 +24,10 @@ const ThemeSwatch = ({ theme }: { theme: MowsCodeTheme }) => (
 );
 
 const CodeThemePicker = forwardRef<HTMLDivElement, CodeThemePickerProps>(
-    ({ className, style, defaultOpen = false, onValueChange, standalone = false }, ref) => {
+    (
+        { className, style, defaultOpen = false, onValueChange, standalone = false, ...rest },
+        ref
+    ) => {
         const { t, codeThemes, currentCodeTheme, setCodeTheme } = useMows();
 
         const renderItemContent = (theme: MowsCodeTheme) => (
@@ -38,6 +39,7 @@ const CodeThemePicker = forwardRef<HTMLDivElement, CodeThemePickerProps>(
 
         return (
             <SearchSelectPicker<MowsCodeTheme>
+                {...rest}
                 ref={ref}
                 items={codeThemes}
                 selected={currentCodeTheme}

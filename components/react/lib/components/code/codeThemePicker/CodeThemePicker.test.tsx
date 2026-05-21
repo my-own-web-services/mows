@@ -9,6 +9,7 @@ import { ActionManager } from "../../../lib/mowsContext/ActionManager";
 import { HotkeyManager } from "../../../lib/mowsContext/HotkeyManager";
 import {
     defaultCodeEditorSettings,
+    defaultToastSettings,
     MowsContext,
     type MowsContextType
 } from "../../../lib/mowsContext/MowsContext";
@@ -28,8 +29,9 @@ const buildContext = (
     });
 
     return {
-         
+
         auth: {} as any,
+        authConfigured: false,
         mowsUser: null,
         storagePrefix: `test`,
         setTheme: async () => undefined,
@@ -37,6 +39,8 @@ const buildContext = (
         setLanguage: () => undefined,
         codeEditorSettings: defaultCodeEditorSettings,
         setCodeEditorSettings: () => undefined,
+        toastSettings: defaultToastSettings,
+        setToastSettings: () => undefined,
         t: enTranslation,
         currentLanguage: undefined,
         themes: [],

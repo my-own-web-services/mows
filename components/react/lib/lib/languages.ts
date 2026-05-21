@@ -1,4 +1,24 @@
 export interface BaseTranslation {
+    videoViewer: {
+        play: string;
+        pause: string;
+        mute: string;
+        unmute: string;
+        volume: string;
+        seek: string;
+        seekTo: string;
+        quality: string;
+        qualityAuto: string;
+        captions: string;
+        captionsOff: string;
+        playbackRate: string;
+        pictureInPicture: string;
+        fullscreen: string;
+        exitFullscreen: string;
+        errorTitle: string;
+        errorRetry: string;
+        loading: string;
+    };
     primaryMenu: {
         loggedInAs: string;
         copyUserId: {
@@ -43,6 +63,7 @@ export interface BaseTranslation {
             appearance: string;
             language: string;
             codeEditor: string;
+            notifications: string;
         };
         labels: {
             theme: string;
@@ -51,6 +72,16 @@ export interface BaseTranslation {
             showWhitespace: string;
             wrap: string;
             showLineNumbers: string;
+            bracketPairColorization: string;
+            toastPosition: string;
+        };
+        toastPositions: {
+            topLeft: string;
+            topCenter: string;
+            topRight: string;
+            bottomLeft: string;
+            bottomCenter: string;
+            bottomRight: string;
         };
     };
     keyboardShortcuts: {
@@ -133,9 +164,27 @@ export interface BaseTranslation {
     resourceList: {
         reload: string;
     };
+    pageIndex: {
+        heading: string;
+        ariaLabel: string;
+    };
+    expandableCode: {
+        expand: string;
+        collapse: string;
+    };
+    keyComboRecorder: {
+        heading: string;
+        hint: string;
+        start: string;
+        stop: string;
+        clear: string;
+        listening: string;
+    };
     keys: {
         ctrl: string;
         alt: string;
+        altgr: string;
+        fn: string;
         shift: string;
         meta: string;
         enter: string;
@@ -143,6 +192,16 @@ export interface BaseTranslation {
         tab: string;
         space: string;
         backspace: string;
+        del: string;
+        insert: string;
+        home: string;
+        end: string;
+        pageUp: string;
+        pageDown: string;
+        pause: string;
+        scrollLock: string;
+        numLock: string;
+        printScreen: string;
     };
 }
 

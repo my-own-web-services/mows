@@ -1,6 +1,6 @@
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, X } from "lucide-react";
 import * as React from "react";
 import {
     DayButton,
@@ -82,12 +82,38 @@ const Calendar = ({
         setYearPickerOpen(false);
     };
 
+    // Close the year picker on Escape so there's a keyboard escape route
+    // that doesn't change the selected year.
+    React.useEffect(() => {
+        if (!yearPickerOpen) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === `Escape`) {
+                e.preventDefault();
+                e.stopPropagation();
+                setYearPickerOpen(false);
+            }
+        };
+        window.addEventListener(`keydown`, onKeyDown, { capture: true });
+        return () =>
+            window.removeEventListener(
+                `keydown`,
+                onKeyDown,
+                { capture: true } as EventListenerOptions
+            );
+    }, [yearPickerOpen]);
+
     return (
         <div className={`relative`}>
             <DayPicker
                 showOutsideDays={showOutsideDays}
                 className={cn(
-                    `bg-background group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent`,
+                    // `rounded-md` matches both the year-picker overlay
+                    // below and any popover/card that wraps the calendar
+                    // (Popover/Card use the same token), so the
+                    // background carries the same corner radius as the
+                    // surrounding chrome instead of squaring off inside
+                    // a rounded wrapper.
+                    `bg-background group/calendar rounded-md p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent`,
                     String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
                     String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
                     yearPickerOpen && `invisible`,
@@ -146,7 +172,6 @@ const Calendar = ({
                             : `[&>svg]:text-muted-foreground flex h-8 items-center gap-1 rounded-md pl-2 pr-1 text-sm [&>svg]:size-3.5`,
                         defaultClassNames.caption_label
                     ),
-                    table: `w-full border-collapse`,
                     weekdays: cn(`flex`, defaultClassNames.weekdays),
                     weekday: cn(
                         `text-muted-foreground flex-1 select-none rounded-md text-[0.8rem] font-normal`,
@@ -280,7 +305,7 @@ const Calendar = ({
                     className={`bg-popover absolute inset-0 z-10 flex flex-col items-center rounded-md p-3`}
                 >
                     <div
-                        className={`mb-2 flex h-(--cell-size) w-full items-center justify-between`}
+                        className={`mb-2 flex h-(--cell-size) w-full items-center justify-between gap-1`}
                     >
                         <Button
                             type={`button`}
@@ -297,7 +322,7 @@ const Calendar = ({
                         >
                             <ChevronLeftIcon className={`size-4`} />
                         </Button>
-                        <span className={`text-sm font-medium`}>
+                        <span className={`flex-1 text-center text-sm font-medium`}>
                             {decadeStart} &ndash; {decadeStart + YEARS_PER_PAGE - 1}
                         </span>
                         <Button
@@ -314,6 +339,22 @@ const Calendar = ({
                             className={`h-(--cell-size) w-(--cell-size) p-0`}
                         >
                             <ChevronRightIcon className={`size-4`} />
+                        </Button>
+                        <Button
+                            type={`button`}
+                            variant={`ghost`}
+                            size={`icon`}
+                            onPointerDown={(e) => {
+                                if (e.button === 0) {
+                                    e.preventDefault();
+                                    setYearPickerOpen(false);
+                                }
+                            }}
+                            aria-label={`Close year picker`}
+                            title={`Close year picker`}
+                            className={`h-(--cell-size) w-(--cell-size) p-0`}
+                        >
+                            <X className={`size-4`} />
                         </Button>
                     </div>
                     <div className={`grid w-full flex-1 grid-cols-4 grid-rows-5 gap-1`}>
@@ -401,25 +442,28 @@ const CalendarDayButton = ({
     );
 };
 
-const CalendarNavButton = React.forwardRef<
-    HTMLButtonElement,
-    React.ButtonHTMLAttributes<HTMLButtonElement>
->(({ onClick, children, ...props }, ref) => {
-    const handlePointerDown = React.useCallback(
-        (e: React.PointerEvent<HTMLButtonElement>) => {
-            if (e.button !== 0) return;
-            e.preventDefault();
-            onClick?.(e as unknown as React.MouseEvent<HTMLButtonElement>);
-        },
-        [onClick]
-    );
+// `react-day-picker` v10 types `PreviousMonthButton`/`NextMonthButton` as
+// plain function components returning `Element` (not `ReactNode`), so a
+// `forwardRef` here trips the slot type. We don't need ref forwarding —
+// rdp never asks for the underlying ref — so a plain function component
+// is the right shape and the simplest fix.
+const CalendarNavButton = ({
+    onClick,
+    children,
+    ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+    const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        onClick?.(e as unknown as React.MouseEvent<HTMLButtonElement>);
+    };
 
     return (
-        <button ref={ref} type={`button`} {...props} onPointerDown={handlePointerDown}>
+        <button type={`button`} {...props} onPointerDown={handlePointerDown}>
             {children}
         </button>
     );
-});
+};
 CalendarNavButton.displayName = `CalendarNavButton`;
 
 export { Calendar, CalendarDayButton };

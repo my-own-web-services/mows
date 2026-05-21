@@ -37,9 +37,9 @@
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
 
-    --font-sans: var(--font-sans);
-    --font-mono: var(--font-mono);
-    --font-serif: var(--font-serif);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, "Cascadia Mono", "Liberation Mono", Consolas, "Courier New", monospace;
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
@@ -279,4 +279,33 @@
     body {
         @apply bg-background text-foreground;
     }
+    /*
+     * Tailwind/Preflight resets `button` to `cursor: default`. shadcn's
+     * `Button` primitive already opts back into `cursor-pointer`, but
+     * dozens of raw `<button>` elements live across this lib (app-shell
+     * close buttons, sidebar carets, inline-edit affordances, calendar
+     * day-cells, list-row toggles, doc-page test-source openers, …). We
+     * want a pointer cursor on every actionable control without
+     * threading `cursor-pointer` through every one of them. Disabled
+     * buttons explicitly get the not-allowed cursor instead, so the
+     * affordance still reads correctly when they're greyed out.
+     */
+    button:not(:disabled):not([aria-disabled="true"]) {
+        cursor: pointer;
+    }
+    button:disabled,
+    button[aria-disabled="true"] {
+        cursor: not-allowed;
+    }
+}
+
+/*
+ * Monaco line-decoration used by `<CodeViewer revealLine>`. Painted
+ * under the token spans so users still read syntax colours at full
+ * contrast; the inset left-bar mirrors how editors mark the active
+ * line in a diff view.
+ */
+.monaco-editor .mows-revealed-line {
+    background-color: oklch(75% 0.16 95 / 0.18);
+    box-shadow: inset 3px 0 0 oklch(75% 0.16 95 / 0.9);
 }
