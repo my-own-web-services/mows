@@ -7,6 +7,7 @@ import {
 } from "@photo-sphere-viewer/markers-plugin";
 import "@photo-sphere-viewer/markers-plugin/index.css";
 import { PureComponent, type CSSProperties, createRef } from "react";
+import { Skeleton } from "../../../../ui/skeleton";
 import { cn } from "../../../../../lib/utils";
 
 /**
@@ -77,9 +78,35 @@ export interface Image360ViewerProps {
      * where smooth deceleration reads better.
      */
     readonly smoothTransitions?: boolean;
+    /**
+     * When `src` changes, smoothly crossfade between the old and new
+     * panorama (PSV's stock behaviour). Default `false` — instead, the
+     * old panorama is hidden by a Skeleton overlay the instant the swap
+     * starts so the cut reads as deliberate rather than as a slow blend
+     * between unrelated scenes. Flip to `true` for cinematic
+     * walkthroughs where a crossfade between adjacent scenes reads
+     * better. Has no effect on the initial mount.
+     */
+    readonly crossfadeOnSwitch?: boolean;
 }
 
-export default class Image360Viewer extends PureComponent<Image360ViewerProps> {
+interface Image360ViewerState {
+    /**
+     * True between the moment `src` changes and the moment PSV's
+     * `setPanorama` resolves. Drives the Skeleton overlay so the old
+     * panorama disappears as soon as the swap starts (rather than
+     * lingering until the new texture is ready). Initial mount leaves
+     * this `false` — no overlay on first paint.
+     */
+    readonly isSwitching: boolean;
+}
+
+export default class Image360Viewer extends PureComponent<
+    Image360ViewerProps,
+    Image360ViewerState
+> {
+    state: Image360ViewerState = { isSwitching: false };
+
     private containerRef = createRef<HTMLDivElement>();
     private viewer: Viewer | null = null;
     // True-north offset in degrees, sourced from the panorama's
@@ -173,7 +200,25 @@ export default class Image360Viewer extends PureComponent<Image360ViewerProps> {
     componentDidUpdate = (previousProps: Image360ViewerProps) => {
         if (!this.viewer) return;
         if (previousProps.src !== this.props.src) {
-            void this.viewer.setPanorama(this.props.src).catch(() => undefined);
+            // Hard-cut default: hide the old panorama with a Skeleton the
+            // instant the swap starts, and tell PSV to skip its crossfade
+            // animation (`transition: false`) so the new texture pops in
+            // without blending. `showLoader: false` keeps PSV's own
+            // circular loader suppressed even if the CSS rule below ever
+            // regresses. `crossfadeOnSwitch` opts back into PSV's stock
+            // cinematic blend and skips the Skeleton overlay.
+            const crossfade = this.props.crossfadeOnSwitch === true;
+            if (!crossfade) this.setState({ isSwitching: true });
+            const clearSwitching = () => {
+                if (!crossfade) this.setState({ isSwitching: false });
+            };
+            void this.viewer
+                .setPanorama(this.props.src, {
+                    transition: crossfade,
+                    showLoader: false
+                })
+                .then(clearSwitching)
+                .catch(clearSwitching);
         }
         // Diff the marker list by identity — if the parent passes a new
         // array (e.g. swapped scenes in a virtual tour), refresh the

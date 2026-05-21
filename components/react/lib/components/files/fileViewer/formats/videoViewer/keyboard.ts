@@ -23,11 +23,11 @@ export interface KeyBindingInput {
     readonly altKey: boolean;
 }
 
-export const resolveVideoKeyAction = (e: KeyBindingInput): VideoKeyAction | null => {
+export const resolveVideoKeyAction = (event: KeyBindingInput): VideoKeyAction | null => {
     // Browser-native shortcuts (Cmd+F / Ctrl+F find page, Cmd+R reload, …)
     // must keep working; never claim modified key combinations.
-    if (e.metaKey || e.ctrlKey || e.altKey) return null;
-    switch (e.key) {
+    if (event.metaKey || event.ctrlKey || event.altKey) return null;
+    switch (event.key) {
         case ` `:
         case `Spacebar`:
         case `k`:
@@ -67,11 +67,11 @@ const SECONDS_IN_MINUTE = 60;
 
 export const formatTimestamp = (seconds: number): string => {
     if (!Number.isFinite(seconds) || seconds < 0) return `0:00`;
-    const total = Math.floor(seconds);
-    const h = Math.floor(total / SECONDS_IN_HOUR);
-    const m = Math.floor((total % SECONDS_IN_HOUR) / SECONDS_IN_MINUTE);
-    const s = total % SECONDS_IN_MINUTE;
-    const mm = h > 0 ? String(m).padStart(2, `0`) : String(m);
-    const ss = String(s).padStart(2, `0`);
-    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+    const totalSeconds = Math.floor(seconds);
+    const hours = Math.floor(totalSeconds / SECONDS_IN_HOUR);
+    const minutes = Math.floor((totalSeconds % SECONDS_IN_HOUR) / SECONDS_IN_MINUTE);
+    const remainingSeconds = totalSeconds % SECONDS_IN_MINUTE;
+    const minutesText = hours > 0 ? String(minutes).padStart(2, `0`) : String(minutes);
+    const secondsText = String(remainingSeconds).padStart(2, `0`);
+    return hours > 0 ? `${hours}:${minutesText}:${secondsText}` : `${minutesText}:${secondsText}`;
 };

@@ -461,7 +461,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-38
+- **ID:** ✅ TASTE-38
+- **Status:** Fixed — `frameGrabber.ts` renamed: `v` → `videoElement` (every site), `vw`/`vh` → `sourceWidth`/`sourceHeight`, `dw`/`dh` → `destinationWidth`/`destinationHeight`, `dx`/`dy` → `destinationX`/`destinationY`, the `find((c) => …)` callback's `c` → `entry`. The arithmetic in the letterbox + `drawImage` call now reads as English instead of cipher. 39 videoViewer tests pass.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/lib/components/files/fileViewer/formats/videoViewer/frameGrabber.ts
 - **Issue:** Multiple single-letter and abbreviated names: `private ctx`, local `v` (line 68, 95, 112, 146), `vw`, `vh`, `dw`, `dh`, `dx`, `dy`. Pure abbreviation farm.
@@ -479,7 +480,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-39
+- **ID:** ✅ TASTE-39
+- **Status:** Fixed — `keyboard.ts::resolveVideoKeyAction(e)` → `(event)`, with `e.metaKey`/`e.ctrlKey`/`e.altKey`/`e.key` updated. `formatTimestamp` body renamed: `total` → `totalSeconds`, `h`/`m`/`s` → `hours`/`minutes`/`remainingSeconds`, `mm`/`ss` → `minutesText`/`secondsText`. 39 videoViewer tests pass.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/lib/components/files/fileViewer/formats/videoViewer/keyboard.ts:26,68-77
 - **Issue:** `(e: KeyBindingInput)` — `e` for the event-shape parameter. Also `formatTimestamp` uses single-letter `h`, `m`, `s`, `mm`, `ss`.

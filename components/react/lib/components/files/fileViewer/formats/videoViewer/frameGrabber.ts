@@ -51,7 +51,7 @@ export class VideoFrameGrabber {
     constructor(private readonly src: string) {}
 
     private getCached = (time: number): string | null => {
-        const found = this.cache.find((c) => Math.abs(c.time - time) < 0.4);
+        const found = this.cache.find((entry) => Math.abs(entry.time - time) < 0.4);
         return found ? found.url : null;
     };
 
@@ -65,12 +65,12 @@ export class VideoFrameGrabber {
 
     private ensureVideo = (): HTMLVideoElement => {
         if (this.video) return this.video;
-        const v = document.createElement(`video`);
-        v.crossOrigin = `anonymous`;
-        v.preload = `auto`;
-        v.muted = true;
-        v.playsInline = true;
-        v.src = this.src;
+        const videoElement = document.createElement(`video`);
+        videoElement.crossOrigin = `anonymous`;
+        videoElement.preload = `auto`;
+        videoElement.muted = true;
+        videoElement.playsInline = true;
+        videoElement.src = this.src;
         // Chrome (and other Chromium-based browsers) throttle media on
         // elements that aren't attached to the document — seek can hang,
         // the `seeked` event may never fire, and `drawImage` ends up
@@ -89,34 +89,34 @@ export class VideoFrameGrabber {
             pointerEvents: `none`,
             opacity: `0`
         } satisfies Partial<CSSStyleDeclaration>);
-        host.appendChild(v);
+        host.appendChild(videoElement);
         document.body.appendChild(host);
         this.host = host;
-        this.video = v;
+        this.video = videoElement;
         this.canvas = document.createElement(`canvas`);
         this.canvas.width = PREVIEW_WIDTH;
         this.canvas.height = PREVIEW_HEIGHT;
         this.ctx = this.canvas.getContext(`2d`);
         this.metadataReady = new Promise((resolve, reject) => {
             const onLoaded = () => {
-                this.duration = v.duration;
-                v.removeEventListener(`loadedmetadata`, onLoaded);
-                v.removeEventListener(`error`, onError);
+                this.duration = videoElement.duration;
+                videoElement.removeEventListener(`loadedmetadata`, onLoaded);
+                videoElement.removeEventListener(`error`, onError);
                 resolve();
             };
             const onError = () => {
-                v.removeEventListener(`loadedmetadata`, onLoaded);
-                v.removeEventListener(`error`, onError);
+                videoElement.removeEventListener(`loadedmetadata`, onLoaded);
+                videoElement.removeEventListener(`error`, onError);
                 reject(new Error(`frame grabber: video failed to load metadata`));
             };
-            v.addEventListener(`loadedmetadata`, onLoaded);
-            v.addEventListener(`error`, onError);
+            videoElement.addEventListener(`loadedmetadata`, onLoaded);
+            videoElement.addEventListener(`error`, onError);
         });
-        return v;
+        return videoElement;
     };
 
     private seekAndGrab = async (time: number): Promise<string | null> => {
-        const v = this.ensureVideo();
+        const videoElement = this.ensureVideo();
         if (!this.ctx || !this.canvas) return null;
         await this.metadataReady;
         if (this.destroyed) return null;
@@ -124,45 +124,60 @@ export class VideoFrameGrabber {
         // If the seek would be a no-op (we're already at this time and a
         // frame is decoded), short-circuit. Otherwise the `seeked` event
         // never fires.
-        if (Math.abs(v.currentTime - safeTime) >= 0.05 || v.readyState < HAVE_CURRENT_DATA) {
+        if (
+            Math.abs(videoElement.currentTime - safeTime) >= 0.05 ||
+            videoElement.readyState < HAVE_CURRENT_DATA
+        ) {
             const seekResult = await new Promise<`seeked` | `timeout` | `error`>((resolve) => {
                 const onSeeked = () => {
-                    v.removeEventListener(`seeked`, onSeeked);
-                    v.removeEventListener(`error`, onError);
+                    videoElement.removeEventListener(`seeked`, onSeeked);
+                    videoElement.removeEventListener(`error`, onError);
                     clearTimeout(timer);
                     resolve(`seeked`);
                 };
                 const onError = () => {
-                    v.removeEventListener(`seeked`, onSeeked);
-                    v.removeEventListener(`error`, onError);
+                    videoElement.removeEventListener(`seeked`, onSeeked);
+                    videoElement.removeEventListener(`error`, onError);
                     clearTimeout(timer);
                     resolve(`error`);
                 };
                 const timer = setTimeout(() => {
-                    v.removeEventListener(`seeked`, onSeeked);
-                    v.removeEventListener(`error`, onError);
+                    videoElement.removeEventListener(`seeked`, onSeeked);
+                    videoElement.removeEventListener(`error`, onError);
                     resolve(`timeout`);
                 }, SEEK_TIMEOUT_MS);
-                v.addEventListener(`seeked`, onSeeked);
-                v.addEventListener(`error`, onError);
-                v.currentTime = safeTime;
+                videoElement.addEventListener(`seeked`, onSeeked);
+                videoElement.addEventListener(`error`, onError);
+                videoElement.currentTime = safeTime;
             });
             if (seekResult !== `seeked`) return null;
         }
         if (this.destroyed) return null;
-        const vw = v.videoWidth;
-        const vh = v.videoHeight;
-        if (!vw || !vh || v.readyState < HAVE_CURRENT_DATA) return null;
+        const sourceWidth = videoElement.videoWidth;
+        const sourceHeight = videoElement.videoHeight;
+        if (!sourceWidth || !sourceHeight || videoElement.readyState < HAVE_CURRENT_DATA) {
+            return null;
+        }
         // Letterbox: scale source to fit destination preserving aspect ratio.
-        const scale = Math.min(PREVIEW_WIDTH / vw, PREVIEW_HEIGHT / vh);
-        const dw = vw * scale;
-        const dh = vh * scale;
-        const dx = (PREVIEW_WIDTH - dw) / 2;
-        const dy = (PREVIEW_HEIGHT - dh) / 2;
+        const scale = Math.min(PREVIEW_WIDTH / sourceWidth, PREVIEW_HEIGHT / sourceHeight);
+        const destinationWidth = sourceWidth * scale;
+        const destinationHeight = sourceHeight * scale;
+        const destinationX = (PREVIEW_WIDTH - destinationWidth) / 2;
+        const destinationY = (PREVIEW_HEIGHT - destinationHeight) / 2;
         this.ctx.fillStyle = `#000`;
         this.ctx.fillRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
         try {
-            this.ctx.drawImage(v, 0, 0, vw, vh, dx, dy, dw, dh);
+            this.ctx.drawImage(
+                videoElement,
+                0,
+                0,
+                sourceWidth,
+                sourceHeight,
+                destinationX,
+                destinationY,
+                destinationWidth,
+                destinationHeight
+            );
         } catch {
             // Some browsers throw `SecurityError` when the video came from a
             // CORS-less origin and the canvas would become tainted. Bail
