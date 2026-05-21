@@ -7,7 +7,7 @@ export const keyComboDisplayExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const keyComboDisplayExampleById = (id: string): RegisteredExample => {
-    const found = keyComboDisplayExamples.find((e) => e.id === id);
+    const found = keyComboDisplayExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No keyComboDisplay example registered with id "${id}"`);
     return found;
 };

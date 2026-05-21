@@ -10,7 +10,7 @@ export const inputGroupExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const inputGroupExampleById = (id: string): RegisteredExample => {
-    const found = inputGroupExamples.find((e) => e.id === id);
+    const found = inputGroupExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No inputGroup example registered with id "${id}"`);
     return found;
 };

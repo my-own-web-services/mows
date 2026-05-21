@@ -7,7 +7,7 @@ export const globalContextMenuExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const globalContextMenuExampleById = (id: string): RegisteredExample => {
-    const found = globalContextMenuExamples.find((e) => e.id === id);
+    const found = globalContextMenuExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No globalContextMenu example registered with id "${id}"`);
     return found;
 };

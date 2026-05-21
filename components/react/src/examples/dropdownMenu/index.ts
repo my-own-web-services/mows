@@ -7,7 +7,7 @@ export const dropdownMenuExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const dropdownMenuExampleById = (id: string): RegisteredExample => {
-    const found = dropdownMenuExamples.find((e) => e.id === id);
+    const found = dropdownMenuExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No dropdownMenu example registered with id "${id}"`);
     return found;
 };

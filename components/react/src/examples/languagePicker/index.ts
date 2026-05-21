@@ -10,7 +10,7 @@ export const languagePickerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const languagePickerExampleById = (id: string): RegisteredExample => {
-    const found = languagePickerExamples.find((e) => e.id === id);
+    const found = languagePickerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No languagePicker example registered with id "${id}"`);
     return found;
 };

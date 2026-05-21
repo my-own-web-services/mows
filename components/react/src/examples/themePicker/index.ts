@@ -10,7 +10,7 @@ export const themePickerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const themePickerExampleById = (id: string): RegisteredExample => {
-    const found = themePickerExamples.find((e) => e.id === id);
+    const found = themePickerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No themePicker example registered with id "${id}"`);
     return found;
 };

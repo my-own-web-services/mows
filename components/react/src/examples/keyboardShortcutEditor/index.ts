@@ -7,7 +7,7 @@ export const keyboardShortcutEditorExamples: ReadonlyArray<RegisteredExample> = 
 ];
 
 export const keyboardShortcutEditorExampleById = (id: string): RegisteredExample => {
-    const found = keyboardShortcutEditorExamples.find((e) => e.id === id);
+    const found = keyboardShortcutEditorExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No keyboardShortcutEditor example registered with id "${id}"`);
     return found;
 };

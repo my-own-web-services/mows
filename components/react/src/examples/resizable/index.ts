@@ -10,7 +10,7 @@ export const resizableExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const resizableExampleById = (id: string): RegisteredExample => {
-    const found = resizableExamples.find((e) => e.id === id);
+    const found = resizableExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No resizable example registered with id "${id}"`);
     return found;
 };

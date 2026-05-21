@@ -10,7 +10,7 @@ export const expandableCodeExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const expandableCodeExampleById = (id: string): RegisteredExample => {
-    const found = expandableCodeExamples.find((e) => e.id === id);
+    const found = expandableCodeExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No expandableCode example registered with id "${id}"`);
     return found;
 };

@@ -7,7 +7,7 @@ export const optionPickerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const optionPickerExampleById = (id: string): RegisteredExample => {
-    const found = optionPickerExamples.find((e) => e.id === id);
+    const found = optionPickerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No optionPicker example registered with id "${id}"`);
     return found;
 };

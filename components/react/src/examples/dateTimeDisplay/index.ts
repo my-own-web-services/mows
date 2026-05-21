@@ -7,7 +7,7 @@ export const dateTimeDisplayExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const dateTimeDisplayExampleById = (id: string): RegisteredExample => {
-    const found = dateTimeDisplayExamples.find((e) => e.id === id);
+    const found = dateTimeDisplayExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No dateTimeDisplay example registered with id "${id}"`);
     return found;
 };

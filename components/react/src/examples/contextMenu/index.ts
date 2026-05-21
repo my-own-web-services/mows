@@ -7,7 +7,7 @@ export const contextMenuExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const contextMenuExampleById = (id: string): RegisteredExample => {
-    const found = contextMenuExamples.find((e) => e.id === id);
+    const found = contextMenuExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No contextMenu example registered with id "${id}"`);
     return found;
 };

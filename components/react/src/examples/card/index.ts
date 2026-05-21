@@ -10,7 +10,7 @@ export const cardExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const cardExampleById = (id: string): RegisteredExample => {
-    const found = cardExamples.find((e) => e.id === id);
+    const found = cardExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No card example registered with id "${id}"`);
     return found;
 };

@@ -10,7 +10,7 @@ export const progressExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const progressExampleById = (id: string): RegisteredExample => {
-    const found = progressExamples.find((e) => e.id === id);
+    const found = progressExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No progress example registered with id "${id}"`);
     return found;
 };

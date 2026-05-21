@@ -10,7 +10,7 @@ export const radioGroupExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const radioGroupExampleById = (id: string): RegisteredExample => {
-    const found = radioGroupExamples.find((e) => e.id === id);
+    const found = radioGroupExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No radioGroup example registered with id "${id}"`);
     return found;
 };

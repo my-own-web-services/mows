@@ -7,7 +7,7 @@ export const actionDisplayExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const actionDisplayExampleById = (id: string): RegisteredExample => {
-    const found = actionDisplayExamples.find((e) => e.id === id);
+    const found = actionDisplayExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No actionDisplay example registered with id "${id}"`);
     return found;
 };

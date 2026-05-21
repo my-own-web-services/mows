@@ -13,7 +13,7 @@ export const tabsExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const tabsExampleById = (id: string): RegisteredExample => {
-    const found = tabsExamples.find((e) => e.id === id);
+    const found = tabsExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No tabs example registered with id "${id}"`);
     return found;
 };

@@ -285,7 +285,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-21
+- **ID:** ✅ TASTE-21
+- **Status:** Fixed alongside REPO-2 in the first fix-batch — `.tmp/` added to `components/react/.gitignore`, the 8 PNGs deleted. `ls components/react/.tmp/` returns "directory does not exist."
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/.tmp/
 - **Issue:** 8 PNG screenshots (4-5 MB total) committed in the tree — `debug-thumb.png`, `videoviewer-*.png` etc. These are dev artifacts.
@@ -298,7 +299,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-22
+- **ID:** ✅ TASTE-22
+- **Status:** Fixed alongside SLOP-2 in the first fix-batch — `detach` field removed from `CreateVmRequest` entirely. `grep "detach" utils/mows-vm-supervisor/src/api/vms.rs` returns 0 matches.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/src/api/vms.rs:335
 - **Issue:** `let _ = req.detach;` — dead use-discard at the end of `create_vm`. The doc-comment above the field says "Reserved — `detach` is on the CLI side; the API always returns once QEMU is spawned and the readiness probe is in flight."
@@ -340,7 +342,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-26
+- **ID:** ✅ TASTE-26
+- **Status:** Fixed — `ExampleCard.test.tsx::StatefulExample`'s `[n, setN]` renamed to `[iterationCount, setIterationCount]`; the updater function's `(v) => v + 1` is now `(current) => current + 1`. The `useExampleState({ n: iterationCount })` call keeps the `n` key so the existing test assertions on the serialized state still match.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/src/examples/harness/ExampleCard.tsx:43
 - **Issue:** `setN((v) => v + 1)` in the test. Both abbreviations.
@@ -349,7 +352,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-27
+- **ID:** ✅ TASTE-27
+- **Status:** Fixed — Stale "Atoms reorganized 2026-05-12" comment is no longer at the top of `components/react/lib/main.ts` (first line is now the `ActionDisplay` re-export). Removed alongside the previous main.ts audit pass.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/lib/main.ts:1-2
 - **Issue:** Top-of-file comment `// Atoms reorganized 2026-05-12: components are now grouped by purpose / instead of one flat `atoms/` bucket. See CLAUDE.md for the taxonomy.`
@@ -378,7 +382,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-30
+- **ID:** ✅ TASTE-30
+- **Status:** Fixed — Swept `.find((e) => e.id === id)` → `.find((example) => example.id === id)` across all 68 `src/examples/<component>/index.ts` registry helpers (mechanical sed replacement, verified zero remaining matches). 1489 React tests still pass.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/src/examples/steps/index.ts:31
 - **Issue:** `stepsExamples.find((e) => e.id === id)` — single-letter `e` for an item type whose name is right there (`example` or `registeredExample`).

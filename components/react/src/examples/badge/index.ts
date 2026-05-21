@@ -10,7 +10,7 @@ export const badgeExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const badgeExampleById = (id: string): RegisteredExample => {
-    const found = badgeExamples.find((e) => e.id === id);
+    const found = badgeExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No badge example registered with id "${id}"`);
     return found;
 };

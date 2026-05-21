@@ -13,7 +13,7 @@ export const buttonSelectExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const buttonSelectExampleById = (id: string): RegisteredExample => {
-    const found = buttonSelectExamples.find((e) => e.id === id);
+    const found = buttonSelectExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No buttonSelect example registered with id "${id}"`);
     return found;
 };

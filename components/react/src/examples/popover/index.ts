@@ -10,7 +10,7 @@ export const popoverExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const popoverExampleById = (id: string): RegisteredExample => {
-    const found = popoverExamples.find((e) => e.id === id);
+    const found = popoverExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No popover example registered with id "${id}"`);
     return found;
 };

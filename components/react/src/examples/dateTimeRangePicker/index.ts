@@ -7,7 +7,7 @@ export const dateTimeRangePickerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const dateTimeRangePickerExampleById = (id: string): RegisteredExample => {
-    const found = dateTimeRangePickerExamples.find((e) => e.id === id);
+    const found = dateTimeRangePickerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No dateTimeRangePicker example registered with id "${id}"`);
     return found;
 };

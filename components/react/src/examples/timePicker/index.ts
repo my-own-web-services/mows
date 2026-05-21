@@ -10,7 +10,7 @@ export const timePickerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const timePickerExampleById = (id: string): RegisteredExample => {
-    const found = timePickerExamples.find((e) => e.id === id);
+    const found = timePickerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No timePicker example registered with id "${id}"`);
     return found;
 };

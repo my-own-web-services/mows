@@ -13,7 +13,7 @@ export const checkboxExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const checkboxExampleById = (id: string): RegisteredExample => {
-    const found = checkboxExamples.find((e) => e.id === id);
+    const found = checkboxExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No checkbox example registered with id "${id}"`);
     return found;
 };

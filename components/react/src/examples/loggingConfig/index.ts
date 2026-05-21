@@ -7,7 +7,7 @@ export const loggingConfigExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const loggingConfigExampleById = (id: string): RegisteredExample => {
-    const found = loggingConfigExamples.find((e) => e.id === id);
+    const found = loggingConfigExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No loggingConfig example registered with id "${id}"`);
     return found;
 };

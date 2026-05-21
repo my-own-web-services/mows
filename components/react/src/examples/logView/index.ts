@@ -10,7 +10,7 @@ export const logViewExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const logViewExampleById = (id: string): RegisteredExample => {
-    const found = logViewExamples.find((e) => e.id === id);
+    const found = logViewExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No logView example registered with id "${id}"`);
     return found;
 };

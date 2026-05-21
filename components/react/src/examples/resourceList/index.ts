@@ -7,7 +7,7 @@ export const resourceListExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const resourceListExampleById = (id: string): RegisteredExample => {
-    const found = resourceListExamples.find((e) => e.id === id);
+    const found = resourceListExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No resourceList example registered with id "${id}"`);
     return found;
 };

@@ -19,7 +19,7 @@ export const videoViewerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const videoViewerExampleById = (id: string): RegisteredExample => {
-    const found = videoViewerExamples.find((e) => e.id === id);
+    const found = videoViewerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No videoViewer example registered with id "${id}"`);
     return found;
 };

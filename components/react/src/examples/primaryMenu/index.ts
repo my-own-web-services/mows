@@ -10,7 +10,7 @@ export const primaryMenuExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const primaryMenuExampleById = (id: string): RegisteredExample => {
-    const found = primaryMenuExamples.find((e) => e.id === id);
+    const found = primaryMenuExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No primaryMenu example registered with id "${id}"`);
     return found;
 };

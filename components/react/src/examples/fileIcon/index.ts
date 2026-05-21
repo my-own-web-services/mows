@@ -13,7 +13,7 @@ export const fileIconExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const fileIconExampleById = (id: string): RegisteredExample => {
-    const found = fileIconExamples.find((e) => e.id === id);
+    const found = fileIconExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No fileIcon example registered with id "${id}"`);
     return found;
 };

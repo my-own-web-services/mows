@@ -10,7 +10,7 @@ export const textareaExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const textareaExampleById = (id: string): RegisteredExample => {
-    const found = textareaExamples.find((e) => e.id === id);
+    const found = textareaExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No textarea example registered with id "${id}"`);
     return found;
 };

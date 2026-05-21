@@ -16,7 +16,7 @@ export const buttonExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const buttonExampleById = (id: string): RegisteredExample => {
-    const found = buttonExamples.find((e) => e.id === id);
+    const found = buttonExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No button example registered with id "${id}"`);
     return found;
 };

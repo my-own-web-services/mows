@@ -10,7 +10,7 @@ export const searchInputExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const searchInputExampleById = (id: string): RegisteredExample => {
-    const found = searchInputExamples.find((e) => e.id === id);
+    const found = searchInputExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No searchInput example registered with id "${id}"`);
     return found;
 };

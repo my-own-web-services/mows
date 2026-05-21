@@ -16,7 +16,7 @@ export const image360ViewerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const image360ViewerExampleById = (id: string): RegisteredExample => {
-    const found = image360ViewerExamples.find((e) => e.id === id);
+    const found = image360ViewerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No image360Viewer example registered with id "${id}"`);
     return found;
 };

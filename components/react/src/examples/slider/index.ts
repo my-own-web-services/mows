@@ -13,7 +13,7 @@ export const sliderExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const sliderExampleById = (id: string): RegisteredExample => {
-    const found = sliderExamples.find((e) => e.id === id);
+    const found = sliderExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No slider example registered with id "${id}"`);
     return found;
 };

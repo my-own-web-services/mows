@@ -10,7 +10,7 @@ export const calendarExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const calendarExampleById = (id: string): RegisteredExample => {
-    const found = calendarExamples.find((e) => e.id === id);
+    const found = calendarExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No calendar example registered with id "${id}"`);
     return found;
 };

@@ -10,7 +10,7 @@ export const codeThemePickerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const codeThemePickerExampleById = (id: string): RegisteredExample => {
-    const found = codeThemePickerExamples.find((e) => e.id === id);
+    const found = codeThemePickerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No codeThemePicker example registered with id "${id}"`);
     return found;
 };

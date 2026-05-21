@@ -28,7 +28,7 @@ export const stepsExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const stepsExampleById = (id: string): RegisteredExample => {
-    const found = stepsExamples.find((e) => e.id === id);
+    const found = stepsExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No steps example registered with id "${id}"`);
     return found;
 };

@@ -13,7 +13,7 @@ export const copyValueButtonExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const copyValueButtonExampleById = (id: string): RegisteredExample => {
-    const found = copyValueButtonExamples.find((e) => e.id === id);
+    const found = copyValueButtonExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No copyValueButton example registered with id "${id}"`);
     return found;
 };

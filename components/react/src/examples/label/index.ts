@@ -10,7 +10,7 @@ export const labelExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const labelExampleById = (id: string): RegisteredExample => {
-    const found = labelExamples.find((e) => e.id === id);
+    const found = labelExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No label example registered with id "${id}"`);
     return found;
 };

@@ -10,7 +10,7 @@ export const skeletonExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const skeletonExampleById = (id: string): RegisteredExample => {
-    const found = skeletonExamples.find((e) => e.id === id);
+    const found = skeletonExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No skeleton example registered with id "${id}"`);
     return found;
 };

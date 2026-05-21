@@ -13,7 +13,7 @@ export const collapsibleExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const collapsibleExampleById = (id: string): RegisteredExample => {
-    const found = collapsibleExamples.find((e) => e.id === id);
+    const found = collapsibleExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No collapsible example registered with id "${id}"`);
     return found;
 };

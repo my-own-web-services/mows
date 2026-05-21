@@ -10,7 +10,7 @@ export const selectExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const selectExampleById = (id: string): RegisteredExample => {
-    const found = selectExamples.find((e) => e.id === id);
+    const found = selectExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No select example registered with id "${id}"`);
     return found;
 };

@@ -10,7 +10,7 @@ export const dialogExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const dialogExampleById = (id: string): RegisteredExample => {
-    const found = dialogExamples.find((e) => e.id === id);
+    const found = dialogExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No dialog example registered with id "${id}"`);
     return found;
 };

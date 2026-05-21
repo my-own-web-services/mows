@@ -7,7 +7,7 @@ export const fileViewerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const fileViewerExampleById = (id: string): RegisteredExample => {
-    const found = fileViewerExamples.find((e) => e.id === id);
+    const found = fileViewerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No fileViewer example registered with id "${id}"`);
     return found;
 };

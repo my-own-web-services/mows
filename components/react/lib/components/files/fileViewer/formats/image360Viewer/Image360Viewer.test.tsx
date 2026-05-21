@@ -143,9 +143,9 @@ describe(`Image360Viewer`, () => {
 
         // Resolving the new texture clears the overlay.
         inst.pendingSetPanorama!.resolve();
-        await Promise.resolve();
-        await Promise.resolve();
-        expect(container.querySelector(`.animate-pulse`)).toBeNull();
+        await waitFor(() => {
+            expect(container.querySelector(`.animate-pulse`)).toBeNull();
+        });
     });
 
     it(`crossfadeOnSwitch=true skips the Skeleton and asks PSV to crossfade`, () => {

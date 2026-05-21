@@ -10,7 +10,7 @@ export const compassExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const compassExampleById = (id: string): RegisteredExample => {
-    const found = compassExamples.find((e) => e.id === id);
+    const found = compassExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No compass example registered with id "${id}"`);
     return found;
 };

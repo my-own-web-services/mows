@@ -13,7 +13,7 @@ export const codeSnippetExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const codeSnippetExampleById = (id: string): RegisteredExample => {
-    const found = codeSnippetExamples.find((e) => e.id === id);
+    const found = codeSnippetExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No codeSnippet example registered with id "${id}"`);
     return found;
 };

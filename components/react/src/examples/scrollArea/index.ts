@@ -10,7 +10,7 @@ export const scrollAreaExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const scrollAreaExampleById = (id: string): RegisteredExample => {
-    const found = scrollAreaExamples.find((e) => e.id === id);
+    const found = scrollAreaExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No scrollArea example registered with id "${id}"`);
     return found;
 };

@@ -13,7 +13,7 @@ export const sidebarExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const sidebarExampleById = (id: string): RegisteredExample => {
-    const found = sidebarExamples.find((e) => e.id === id);
+    const found = sidebarExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No sidebar example registered with id "${id}"`);
     return found;
 };

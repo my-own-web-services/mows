@@ -7,7 +7,7 @@ export const settingsPanelExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const settingsPanelExampleById = (id: string): RegisteredExample => {
-    const found = settingsPanelExamples.find((e) => e.id === id);
+    const found = settingsPanelExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No settingsPanel example registered with id "${id}"`);
     return found;
 };

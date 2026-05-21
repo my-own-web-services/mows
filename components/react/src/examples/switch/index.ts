@@ -10,7 +10,7 @@ export const switchExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const switchExampleById = (id: string): RegisteredExample => {
-    const found = switchExamples.find((e) => e.id === id);
+    const found = switchExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No switch example registered with id "${id}"`);
     return found;
 };

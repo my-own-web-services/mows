@@ -7,7 +7,7 @@ export const terminalExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const terminalExampleById = (id: string): RegisteredExample => {
-    const found = terminalExamples.find((e) => e.id === id);
+    const found = terminalExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No terminal example registered with id "${id}"`);
     return found;
 };

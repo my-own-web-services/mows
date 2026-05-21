@@ -13,7 +13,7 @@ export const inputExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const inputExampleById = (id: string): RegisteredExample => {
-    const found = inputExamples.find((e) => e.id === id);
+    const found = inputExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No input example registered with id "${id}"`);
     return found;
 };

@@ -10,7 +10,7 @@ export const searchSelectPickerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const searchSelectPickerExampleById = (id: string): RegisteredExample => {
-    const found = searchSelectPickerExamples.find((e) => e.id === id);
+    const found = searchSelectPickerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No searchSelectPicker example registered with id "${id}"`);
     return found;
 };

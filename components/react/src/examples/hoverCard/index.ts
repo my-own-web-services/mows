@@ -7,7 +7,7 @@ export const hoverCardExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const hoverCardExampleById = (id: string): RegisteredExample => {
-    const found = hoverCardExamples.find((e) => e.id === id);
+    const found = hoverCardExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No hoverCard example registered with id "${id}"`);
     return found;
 };

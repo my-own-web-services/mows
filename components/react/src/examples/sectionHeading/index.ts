@@ -10,7 +10,7 @@ export const sectionHeadingExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const sectionHeadingExampleById = (id: string): RegisteredExample => {
-    const found = sectionHeadingExamples.find((e) => e.id === id);
+    const found = sectionHeadingExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No sectionHeading example registered with id "${id}"`);
     return found;
 };

@@ -10,7 +10,7 @@ export const machineMonitorExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const machineMonitorExampleById = (id: string): RegisteredExample => {
-    const found = machineMonitorExamples.find((e) => e.id === id);
+    const found = machineMonitorExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No machineMonitor example registered with id "${id}"`);
     return found;
 };

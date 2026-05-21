@@ -10,7 +10,7 @@ export const pageIndexExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const pageIndexExampleById = (id: string): RegisteredExample => {
-    const found = pageIndexExamples.find((e) => e.id === id);
+    const found = pageIndexExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No pageIndex example registered with id "${id}"`);
     return found;
 };

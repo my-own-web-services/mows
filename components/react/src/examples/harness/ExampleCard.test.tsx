@@ -38,11 +38,14 @@ const stubContext = (): MowsContextType =>
     }) as unknown as MowsContextType;
 
 const StatefulExample = () => {
-    const [n, setN] = useState(0);
-    useExampleState({ n });
+    const [iterationCount, setIterationCount] = useState(0);
+    useExampleState({ n: iterationCount });
     return (
-        <button type={`button`} onClick={() => setN((v) => v + 1)}>
-            tick {n}
+        <button
+            type={`button`}
+            onClick={() => setIterationCount((current) => current + 1)}
+        >
+            tick {iterationCount}
         </button>
     );
 };

@@ -10,7 +10,7 @@ export const avatarExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const avatarExampleById = (id: string): RegisteredExample => {
-    const found = avatarExamples.find((e) => e.id === id);
+    const found = avatarExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No avatar example registered with id "${id}"`);
     return found;
 };

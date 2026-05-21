@@ -7,7 +7,7 @@ export const timezoneSelectorExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const timezoneSelectorExampleById = (id: string): RegisteredExample => {
-    const found = timezoneSelectorExamples.find((e) => e.id === id);
+    const found = timezoneSelectorExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No timezoneSelector example registered with id "${id}"`);
     return found;
 };

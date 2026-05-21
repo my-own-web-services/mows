@@ -7,7 +7,7 @@ export const consoleManagerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const consoleManagerExampleById = (id: string): RegisteredExample => {
-    const found = consoleManagerExamples.find((e) => e.id === id);
+    const found = consoleManagerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No consoleManager example registered with id "${id}"`);
     return found;
 };

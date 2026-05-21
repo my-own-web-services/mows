@@ -13,7 +13,7 @@ export const codeViewerExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const codeViewerExampleById = (id: string): RegisteredExample => {
-    const found = codeViewerExamples.find((e) => e.id === id);
+    const found = codeViewerExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No codeViewer example registered with id "${id}"`);
     return found;
 };

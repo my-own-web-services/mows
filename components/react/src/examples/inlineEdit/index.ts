@@ -19,7 +19,7 @@ export const inlineEditExamples: ReadonlyArray<RegisteredExample> = [
 ];
 
 export const inlineEditExampleById = (id: string): RegisteredExample => {
-    const found = inlineEditExamples.find((e) => e.id === id);
+    const found = inlineEditExamples.find((example) => example.id === id);
     if (!found) throw new Error(`No inlineEdit example registered with id "${id}"`);
     return found;
 };
