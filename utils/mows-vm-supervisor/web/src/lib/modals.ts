@@ -50,21 +50,21 @@ export interface VmCreateRequest {
 
 export type ModalRequest = ConfirmRequest | PromptRequest | VmCreateRequest;
 
-type Listener = (r: ModalRequest | null) => void;
+type Listener = (request: ModalRequest | null) => void;
 
 let current: ModalRequest | null = null;
 const listeners = new Set<Listener>();
 
-const set = (r: ModalRequest | null): void => {
-    current = r;
-    listeners.forEach((fn) => fn(r));
+const set = (request: ModalRequest | null): void => {
+    current = request;
+    listeners.forEach((listener) => listener(request));
 };
 
 export const getCurrentModal = (): ModalRequest | null => current;
 
-export const subscribeModal = (fn: Listener): (() => void) => {
-    listeners.add(fn);
-    return () => listeners.delete(fn);
+export const subscribeModal = (listener: Listener): (() => void) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
 };
 
 export interface ConfirmOptions {

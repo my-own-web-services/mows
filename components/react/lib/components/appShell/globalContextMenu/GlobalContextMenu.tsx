@@ -1,11 +1,24 @@
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import ActionComponent from "@/components/actions/actionDisplay/ActionDisplay";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger
+} from "@/components/ui/dropdown-menu";
 import { log } from "@/lib/logging";
-import { Action, ActionVisibility } from "@/lib/mowsContext/ActionManager";
+import {
+    Action,
+    ActionVisibility,
+    resolveAction,
+    type ResolvedAction
+} from "@/lib/mowsContext/ActionManager";
 import { MowsContext } from "@/lib/mowsContext/MowsContext";
+import { useModifierState } from "@/lib/mowsContext/ModifierState";
 import { cn } from "@/lib/utils";
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
-import { PureComponent, type CSSProperties } from "react";
-import ActionComponent from "@/components/actions/actionDisplay/ActionDisplay";
+import { PureComponent, useContext, type CSSProperties, type MouseEvent } from "react";
 
 interface GlobalContextMenuProps {
     readonly className?: string;
@@ -17,6 +30,83 @@ interface GlobalContextMenuState {
     readonly actions?: Action[];
     readonly position?: { x: number; y: number };
 }
+
+/**
+ * Single recursive renderer for one entry in the global context menu.
+ *
+ * Subscribes to the live modifier mask so visible labels / icons / disabled
+ * state morph instantly while Shift, Alt, Ctrl or Meta are held. The
+ * *executed* behaviour is re-resolved from the click event itself, so a
+ * Shift-down → Shift-up race can never silently invoke a destructive
+ * variant.
+ */
+const ContextMenuActionItem = ({
+    action,
+    onDispatched
+}: {
+    action: Action;
+    onDispatched: () => void;
+}) => {
+    const mods = useModifierState();
+    const ctx = useContext(MowsContext);
+    const resolved: ResolvedAction = resolveAction(action, mods);
+
+    if (resolved.visibility === ActionVisibility.Hidden) return null;
+    const disabled = resolved.visibility === ActionVisibility.Disabled;
+
+    const dispatch = (event: MouseEvent<HTMLElement>) => {
+        ctx?.actionManager.dispatchAction(action.id, event.nativeEvent);
+        onDispatched();
+    };
+
+    if (resolved.children.length > 0) {
+        return (
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger
+                    className={`cursor-pointer`}
+                    disabled={disabled}
+                >
+                    <ActionComponent action={action} resolved={resolved} />
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                    {resolved.children.map((child) => (
+                        <ContextMenuActionItem
+                            key={child.id}
+                            action={
+                                ctx?.actionManager.getAction(child.id) ??
+                                // Children resolver returned an Action that
+                                // isn't registered globally — render it
+                                // directly from the resolved snapshot so the
+                                // user still sees the entry.
+                                ({ id: child.id, category: child.category } as Action)
+                            }
+                            onDispatched={onDispatched}
+                        />
+                    ))}
+                </DropdownMenuSubContent>
+            </DropdownMenuSub>
+        );
+    }
+
+    return (
+        <DropdownMenuItem
+            className={`cursor-pointer`}
+            disabled={disabled}
+            onClick={dispatch}
+            onContextMenu={(event) => {
+                // Right-click inside our menu behaves like a left-click:
+                // dispatch and swallow the browser's native menu + the
+                // document-level handler that would otherwise tear ours down.
+                event.preventDefault();
+                event.stopPropagation();
+                if (disabled) return;
+                dispatch(event);
+            }}
+        >
+            <ActionComponent action={action} resolved={resolved} />
+        </DropdownMenuItem>
+    );
+};
 
 export default class GlobalContextMenu extends PureComponent<
     GlobalContextMenuProps,
@@ -69,6 +159,8 @@ export default class GlobalContextMenu extends PureComponent<
         });
     };
 
+    close = () => this.setState({ open: false });
+
     render = () => (
         <div
             style={{
@@ -105,37 +197,13 @@ export default class GlobalContextMenu extends PureComponent<
                     // pinned exactly at the cursor with no slide/fade offset.
                     className={`!animate-none !duration-0 !data-[state=open]:animate-none !data-[state=closed]:animate-none !data-[state=open]:slide-in-from-top-0 !data-[state=open]:zoom-in-100 !data-[state=open]:fade-in-100 !data-[state=closed]:fade-out-100 !data-[state=closed]:zoom-out-100 !transition-none`}
                 >
-                    {this.state.actions?.map((action) => {
-                        const itemState = action.getState();
-                        const disabled = itemState?.visibility === ActionVisibility.Disabled;
-                        const trigger = () => {
-                            this.context?.actionManager.dispatchAction(action.id);
-                            this.setState({ open: false });
-                        };
-
-                        log.debug(`Rendering action in context menu:`, action.id);
-                        return (
-                            <DropdownMenuItem
-                                className={`cursor-pointer`}
-                                key={action.id}
-                                disabled={disabled}
-                                onClick={trigger}
-                                onContextMenu={(e) => {
-                                    // A right-click inside our menu should behave like
-                                    // a left-click — dispatch the action and prevent the
-                                    // browser's native context menu from showing. We also
-                                    // stop propagation so the document-level handler does
-                                    // not run and tear the menu down.
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    if (disabled) return;
-                                    trigger();
-                                }}
-                            >
-                                <ActionComponent action={action} />
-                            </DropdownMenuItem>
-                        );
-                    })}
+                    {this.state.actions?.map((action) => (
+                        <ContextMenuActionItem
+                            key={action.id}
+                            action={action}
+                            onDispatched={this.close}
+                        />
+                    ))}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>

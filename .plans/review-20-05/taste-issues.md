@@ -621,7 +621,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-51
+- **ID:** ✅ TASTE-51
+- **Status:** Fixed — `vite-plugins/fileIconsVirtual.ts` renames: `req` → `requireFn`, `dir` → `currentDirectory`, `let i = 0; i < 5; i++` → `let depth = 0; depth < 5; depth += 1`, `.filter((f) => f.endsWith(...))` → `(file) => file.endsWith(...)`.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/vite-plugins/fileIconsVirtual.ts:21,31,38,42,46,56,58
 - **Issue:** `const req = createRequire(...)`, `(f) => f.endsWith(".svg")`, `let dir = dirname(entry); for (let i = 0; i < 5; i++) { …`.
@@ -630,7 +631,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-52
+- **ID:** ✅ TASTE-52
+- **Status:** Fixed — `cleanExampleSource.ts::netParenDelta` renames: `i` → `index`, `ch` → `character`. The string-aware tokenization loop body now reads in full words.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/src/examples/harness/cleanExampleSource.ts:18-39,46-83
 - **Issue:** `const netParenDelta = (line: string) => { let depth = 0; let i = 0; …` — single-letter `i`. Also `(c) =>` style callbacks in this file.
@@ -639,7 +641,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-53
+- **ID:** ✅ TASTE-53
+- **Status:** Fixed alongside TASTE-32 — `MonacoColorizer.tsx`'s `const ctx = useMows()` is now `const mowsContext = useMows()`.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/lib/components/code/codeSnippet/MonacoColorizer.tsx:86-87
 - **Issue:** `const ctx = useMows();` (TASTE-32 instance).
@@ -648,7 +651,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-54
+- **ID:** ✅ TASTE-54
+- **Status:** Fixed — `CommandBlock.tsx` renames: `buildCommand(pm: PackageManager, suffix)` → `(packageManager: PackageManager, suffix)`; `const [pm, setPm] = React.useState<PackageManager>(...)` → `[packageManager, setPackageManager]`; the `.map((p) => ...)` over `PACKAGE_MANAGERS` → `.map((manager) => ...)`. No external API change (the `PackageManager` type stays).
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/src/examples/harness/CommandBlock.tsx:11-12,20-25,48-49,72-79
 - **Issue:** Type alias `type PackageManager = (typeof PACKAGE_MANAGERS)[number];` is fine, but the local variable is `pm`/`setPm`: `const [pm, setPm] = React.useState<PackageManager>(`pnpm`);`. Also `(p) => …`. `pm` is on the BAD list.
@@ -695,7 +699,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-59
+- **ID:** ✅ TASTE-59
+- **Status:** Fixed alongside TASTE-32 + TASTE-41 — `ExpandableCode.tsx`'s `ctx`/`el` both renamed (sweep + isolated cleanup).
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/lib/components/code/expandableCode/ExpandableCode.tsx:40-41,50-59
 - **Issue:** `const ctx = useMows(); const labels = ctx?.t.expandableCode;` plus `const el = innerRef.current;`.
@@ -704,7 +709,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-60
+- **ID:** ✅ TASTE-60
+- **Status:** Fixed alongside TASTE-32 — `KeyComboRecorder.tsx`'s `const ctx = useContext(MowsContext)` is now `const mowsContext = useContext(MowsContext)`.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/lib/components/actions/keyComboRecorder/KeyComboRecorder.tsx:38-42
 - **Issue:** Same `const ctx = useContext(MowsContext);` pattern.
@@ -713,7 +719,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-61
+- **ID:** ✅ TASTE-61
+- **Status:** Fixed alongside TASTE-32 — `PrimaryMenu.tsx`'s `const ctx = this.context!` is now `const mowsContext = this.context!`; all 4 downstream uses renamed.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/lib/components/appShell/primaryMenu/PrimaryMenu.tsx:123-126,354,363
 - **Issue:** `const ctx = this.context!;` then 4 further uses of `ctx`.
@@ -722,7 +729,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-62
+- **ID:** ✅ TASTE-62
+- **Status:** Fixed — `Sidebar.tsx::useLivePoll`'s `catch (e)` is now `catch (error)` (the inner `describeApiError(e)` call updated to match).
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/web/src/components/Sidebar.tsx:70-102
 - **Issue:** `useLivePoll = <T,>(fetcher: …) => { … }` — `const refresh = async () => { try {…} catch (e) {…} }; const tick = async () => {…};`. `e` for error.
@@ -731,7 +739,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-63
+- **ID:** ✅ TASTE-63
+- **Status:** Fixed — `web/src/lib/modals.ts` renames: `type Listener = (r: ...)` → `(request: ...)`; `const set = (r: ...)` → `(request: ...)`; `subscribeModal(fn: Listener)` → `(listener: Listener)`. `listeners.forEach((listener) => listener(request))` reads cleanly.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/web/src/lib/modals.ts:53,58,65
 - **Issue:** `type Listener = (r: ModalRequest | null) => void;` (`r`), then `const set = (r: ModalRequest | null) => …` and `subscribeModal = (fn: Listener)` (`fn`).
@@ -740,7 +749,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-64
+- **ID:** ✅ TASTE-64
+- **Status:** Fixed — All 5 `demos.find((d) => d.id === ...)` / `demos.find((d) => d.name.toLowerCase() === ...)` / `guides.find((g) => ...)` sites in `App.tsx` renamed to `(demo) => demo.*` and `(guide) => guide.*`.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/src/App.tsx:113,117
 - **Issue:** `demos.find((d) => d.name.toLowerCase() === lower)`, `demos.find((d) => d.id === id)`.
@@ -749,7 +759,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-65
+- **ID:** ✅ TASTE-65
+- **Status:** Fixed — All 3 sidebar `onClick={(e) => { ... e.metaKey ... e.preventDefault() }}` handlers in `App.tsx` renamed to `(event) => { ... event.* }`.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/src/App.tsx:262
 - **Issue:** `onClick={(e) => { if (e.metaKey || …)`.
@@ -759,6 +770,7 @@ See per-item status blocks for the specific rationale.
 ---
 
 - **ID:** ⁉️ TASTE-66
+- **Status:** Accepted — `initialMarkers = this.props.markers ? (this.props.markers as MarkerConfig[]) : []` is the documented adapter between the public `Image360ViewerMarker` re-export (which is just `MarkerConfig`) and the third-party `MarkersPlugin` constructor's signature. Removing the cast would force every consumer to import the upstream type directly. The "naming" complaint applies only to the local `initialMarkers` binding which already reads clearly.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/lib/components/files/fileViewer/formats/Image360Viewer.tsx:101
 - **Issue:** `const initialMarkers = this.props.markers ? (this.props.markers as MarkerConfig[]) : [];`

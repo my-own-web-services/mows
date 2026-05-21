@@ -17,24 +17,24 @@
 // are honored.
 const netParenDelta = (line: string): number => {
     let depth = 0;
-    let i = 0;
+    let index = 0;
     let inString: false | `"` | `'` | `\`` = false;
-    while (i < line.length) {
-        const ch = line[i];
+    while (index < line.length) {
+        const character = line[index];
         if (inString) {
-            if (ch === `\\`) {
-                i += 2;
+            if (character === `\\`) {
+                index += 2;
                 continue;
             }
-            if (ch === inString) inString = false;
-        } else if (ch === `"` || ch === `'` || ch === `\``) {
-            inString = ch;
-        } else if (ch === `(`) {
+            if (character === inString) inString = false;
+        } else if (character === `"` || character === `'` || character === `\``) {
+            inString = character;
+        } else if (character === `(`) {
             depth++;
-        } else if (ch === `)`) {
+        } else if (character === `)`) {
             depth--;
         }
-        i++;
+        index++;
     }
     return depth;
 };

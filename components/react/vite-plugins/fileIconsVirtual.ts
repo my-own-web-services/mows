@@ -35,24 +35,24 @@ const encodeSvgDataUrl = (svg: string): string => {
 };
 
 const findIconsDir = (root: string): string => {
-    const req = createRequire(resolve(root, `package.json`));
+    const requireFn = createRequire(resolve(root, `package.json`));
     // The package doesn't expose ./package.json under its "exports" field,
     // so resolve via the published entry and walk up to the package root.
-    const entry = req.resolve(`vscode-material-icons`);
+    const entry = requireFn.resolve(`vscode-material-icons`);
     // entry is typically `<pkg>/dist/index.js`; walk up until we hit the
     // dir that contains `generated/icons` (handles future entry changes).
-    let dir = dirname(entry);
-    for (let i = 0; i < 5; i++) {
-        const candidate = resolve(dir, `generated/icons`);
+    let currentDirectory = dirname(entry);
+    for (let depth = 0; depth < 5; depth += 1) {
+        const candidate = resolve(currentDirectory, `generated/icons`);
         try {
             statSync(candidate);
             return candidate;
         } catch {
             /* keep walking */
         }
-        const parent = dirname(dir);
-        if (parent === dir) break;
-        dir = parent;
+        const parent = dirname(currentDirectory);
+        if (parent === currentDirectory) break;
+        currentDirectory = parent;
     }
     throw new Error(
         `mows-file-icons-virtual: could not locate generated/icons under vscode-material-icons`
@@ -60,7 +60,7 @@ const findIconsDir = (root: string): string => {
 };
 
 const buildModule = (iconsDir: string): string => {
-    const files = readdirSync(iconsDir).filter((f) => f.endsWith(`.svg`));
+    const files = readdirSync(iconsDir).filter((file) => file.endsWith(`.svg`));
     const map: Record<string, string> = {};
     for (const file of files) {
         const name = file.slice(0, -4);

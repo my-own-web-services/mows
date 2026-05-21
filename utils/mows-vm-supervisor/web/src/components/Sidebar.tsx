@@ -79,8 +79,8 @@ const useLivePoll = <T,>(fetcher: () => Promise<T[]>): SectionHandle<T> => {
         try {
             const items = await fetcher();
             setState({ items, error: null });
-        } catch (e) {
-            const errorText = await describeApiError(e);
+        } catch (error) {
+            const errorText = await describeApiError(error);
             setState((prev) => ({ items: prev.items, error: errorText }));
         }
     };

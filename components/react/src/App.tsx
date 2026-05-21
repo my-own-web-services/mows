@@ -155,10 +155,10 @@ const selectionFromPath = (pathname: string): Selection | undefined => {
 
 const pathForSelection = (selection: Selection): string => {
     if (selection.kind === `guide`) {
-        const guide = guides.find((g) => g.id === selection.id);
+        const guide = guides.find((guide) => guide.id === selection.id);
         return `${GUIDE_PATH_PREFIX}${guide ? guide.name : selection.id}`;
     }
-    const demo = demos.find((d) => d.id === selection.id);
+    const demo = demos.find((demo) => demo.id === selection.id);
     return `${DEMO_PATH_PREFIX}${demo ? demo.name : selection.id}`;
 };
 
@@ -240,12 +240,12 @@ export default class App extends PureComponent<AppProps, AppState> {
     syncTitle = (selection: Selection) => {
         const t = this.context!.t;
         if (selection.kind === `guide`) {
-            const guide = guides.find((g) => g.id === selection.id);
+            const guide = guides.find((guide) => guide.id === selection.id);
             if (!guide) return;
             document.title = `${guide.label(t)} · ${t.example.pageTitle}`;
             return;
         }
-        const demo = demos.find((d) => d.id === selection.id);
+        const demo = demos.find((demo) => demo.id === selection.id);
         if (!demo) return;
         document.title = `${demo.name} · ${t.example.pageTitle}`;
     };
@@ -261,11 +261,11 @@ export default class App extends PureComponent<AppProps, AppState> {
         const t = this.context!.t.example;
         const isGuide = this.state.selected.kind === `guide`;
         const selectedGuide: GuideEntry | undefined = isGuide
-            ? guides.find((g) => g.id === this.state.selected.id)
+            ? guides.find((guide) => guide.id === this.state.selected.id)
             : undefined;
         const selected =
             !isGuide
-                ? demos.find((d) => d.id === this.state.selected.id) ?? demos[0]
+                ? demos.find((demo) => demo.id === this.state.selected.id) ?? demos[0]
                 : demos[0]; // unused when isGuide; harmless placeholder
         const groupOrder: DemoGroupKey[] = [
             `actions`,
@@ -333,17 +333,17 @@ export default class App extends PureComponent<AppProps, AppState> {
                     >
                         <a
                             href={pathForSelection({ kind: `demo`, id: demo.id })}
-                            onClick={(e) => {
+                            onClick={(event) => {
                                 if (
-                                    e.metaKey ||
-                                    e.ctrlKey ||
-                                    e.shiftKey ||
-                                    e.altKey ||
-                                    e.button !== 0
+                                    event.metaKey ||
+                                    event.ctrlKey ||
+                                    event.shiftKey ||
+                                    event.altKey ||
+                                    event.button !== 0
                                 ) {
                                     return;
                                 }
-                                e.preventDefault();
+                                event.preventDefault();
                                 this.select({ kind: `demo`, id: demo.id });
                             }}
                         >
@@ -356,12 +356,12 @@ export default class App extends PureComponent<AppProps, AppState> {
                         // filled star permanently visible so you can see
                         // at a glance what's already starred.
                         showOnHover={!isFav}
-                        onClick={(e) => {
+                        onClick={(event) => {
                             // The action sits on top of the menu button;
                             // stop propagation so toggling a star doesn't
                             // also navigate to the demo.
-                            e.preventDefault();
-                            e.stopPropagation();
+                            event.preventDefault();
+                            event.stopPropagation();
                             this.toggleFavorite(demo.id);
                         }}
                         aria-pressed={isFav}
@@ -455,17 +455,17 @@ export default class App extends PureComponent<AppProps, AppState> {
                                                     >
                                                         <a
                                                             href={pathForSelection(sel)}
-                                                            onClick={(e) => {
+                                                            onClick={(event) => {
                                                                 if (
-                                                                    e.metaKey ||
-                                                                    e.ctrlKey ||
-                                                                    e.shiftKey ||
-                                                                    e.altKey ||
-                                                                    e.button !== 0
+                                                                    event.metaKey ||
+                                                                    event.ctrlKey ||
+                                                                    event.shiftKey ||
+                                                                    event.altKey ||
+                                                                    event.button !== 0
                                                                 ) {
                                                                     return;
                                                                 }
-                                                                e.preventDefault();
+                                                                event.preventDefault();
                                                                 this.select(sel);
                                                             }}
                                                         >

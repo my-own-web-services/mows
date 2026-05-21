@@ -1,5 +1,5 @@
 import { MowsContext } from "@/lib/mowsContext/MowsContext";
-import { Action } from "@/lib/mowsContext/ActionManager";
+import { Action, type ResolvedAction } from "@/lib/mowsContext/ActionManager";
 import { cn } from "@/lib/utils";
 import { PureComponent, type CSSProperties } from "react";
 import KeyComboDisplay from "../keyComboDisplay/KeyComboDisplay";
@@ -8,6 +8,14 @@ interface ActionDisplayProps {
     readonly className?: string;
     readonly style?: CSSProperties;
     readonly action: Action;
+    /**
+     * Optional pre-resolved snapshot. When provided, its `label` / `icon` /
+     * `component` / `disabledReasonText` override the action's default
+     * state — letting modifier-variant menus morph the visible row without
+     * the display having to know about variants itself. Falls back to
+     * `action.getState()` when absent.
+     */
+    readonly resolved?: ResolvedAction;
 }
 
 type ActionDisplayState = Record<string, never>;

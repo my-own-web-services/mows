@@ -11,11 +11,11 @@ import { cn } from "../../../../lib/lib/utils";
 const PACKAGE_MANAGERS = [`pnpm`, `npm`, `yarn`, `bun`] as const;
 type PackageManager = (typeof PACKAGE_MANAGERS)[number];
 
-const buildCommand = (pm: PackageManager, suffix: string): string => {
-    if (pm === `npm`) {
+const buildCommand = (packageManager: PackageManager, suffix: string): string => {
+    if (packageManager === `npm`) {
         return `npm ${suffix.replace(/^add\b/, `install`)}`;
     }
-    return `${pm} ${suffix}`;
+    return `${packageManager} ${suffix}`;
 };
 
 interface CommandBlockProps {
@@ -41,8 +41,8 @@ interface CommandBlockProps {
  * rule `no-restricted-syntax` will block such usage in CI.
  */
 export const CommandBlock = ({ command, className }: CommandBlockProps) => {
-    const [pm, setPm] = React.useState<PackageManager>(`pnpm`);
-    const full = buildCommand(pm, command);
+    const [packageManager, setPackageManager] = React.useState<PackageManager>(`pnpm`);
+    const full = buildCommand(packageManager, command);
 
     return (
         <div
@@ -59,19 +59,19 @@ export const CommandBlock = ({ command, className }: CommandBlockProps) => {
                     <TerminalSquare className={`h-3.5 w-3.5`} />
                 </span>
                 <Tabs
-                    value={pm}
-                    onValueChange={(value) => setPm(value as PackageManager)}
+                    value={packageManager}
+                    onValueChange={(value) => setPackageManager(value as PackageManager)}
                 >
                     <TabsList
                         className={`text-muted-foreground h-auto gap-1 rounded-none bg-transparent p-0`}
                     >
-                        {PACKAGE_MANAGERS.map((p) => (
+                        {PACKAGE_MANAGERS.map((manager) => (
                             <TabsTrigger
-                                key={p}
-                                value={p}
+                                key={manager}
+                                value={manager}
                                 className={`text-muted-foreground hover:text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded px-2 py-0.5 font-mono text-sm transition-colors data-[state=active]:shadow-none`}
                             >
-                                {p}
+                                {manager}
                             </TabsTrigger>
                         ))}
                     </TabsList>

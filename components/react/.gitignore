@@ -28,3 +28,8 @@ storybook-static
 
 # Local debug artefacts (chrome-devtools MCP screenshots, etc.)
 .tmp
+
+# Playwright artefacts
+test-results
+playwright-report
+.playwright
