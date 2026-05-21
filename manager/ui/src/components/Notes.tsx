@@ -1,4 +1,4 @@
-import CopyValueButton from "mows-components-react/components/atoms/copyValueButton/CopyValueButton";
+import CopyValueButton from "mows-components-react/components/input/copyValueButton/CopyValueButton";
 import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
 import { PureComponent, type CSSProperties } from "react";
 

@@ -48,6 +48,6 @@ ReactDOM.createRoot(document.getElementById(`root`)!).render(
         initialTranslation={enInitial}
     >
         <App />
-        <Toaster richColors closeButton position={`bottom-right`} />
+        <Toaster richColors closeButton />
     </MowsProvider>
 );

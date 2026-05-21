@@ -1,7 +1,7 @@
-import CommandPalette from "mows-components-react/components/atoms/commandPalette/CommandPalette";
-import GlobalContextMenu from "mows-components-react/components/atoms/globalContextMenu/GlobalContextMenu";
-import ModalHandler from "mows-components-react/components/atoms/modalHandler/ModalHandler";
-import PrimaryMenu from "mows-components-react/components/atoms/primaryMenu/PrimaryMenu";
+import CommandPalette from "mows-components-react/components/appShell/commandPalette/CommandPalette";
+import GlobalContextMenu from "mows-components-react/components/appShell/globalContextMenu/GlobalContextMenu";
+import ModalHandler from "mows-components-react/components/appShell/modalHandler/ModalHandler";
+import PrimaryMenu from "mows-components-react/components/appShell/primaryMenu/PrimaryMenu";
 import { PureComponent } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Api } from "./api-client";

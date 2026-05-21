@@ -1,5 +1,5 @@
 import { effect } from "@preact/signals-react";
-import CodeViewer from "mows-components-react/components/atoms/codeViewer/CodeViewer";
+import CodeViewer from "mows-components-react/components/code/codeViewer/CodeViewer";
 import { Button } from "mows-components-react/components/ui/button";
 import { Input } from "mows-components-react/components/ui/input";
 import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
