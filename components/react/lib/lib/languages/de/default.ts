@@ -94,6 +94,11 @@ const translation: BaseTranslation = {
         edit: `Bearbeiten`,
         reset: `Zurücksetzen`,
         delete: `Löschen`,
+        searchPlaceholder: `Aktionen suchen...`,
+        searchAriaLabel: `Aktionen suchen`,
+        actionNotFound: `Aktion nicht gefunden`,
+        noActionsFound: `Keine Aktionen gefunden, die zu "{searchQuery}" passen`,
+        addHotkeyButton: `+ Tastenkombination hinzufügen`,
         hotkeyDialog: {
             editTitle: `Tastenkombination bearbeiten`,
             addTitle: `Neue Tastenkombination hinzufügen`,
@@ -106,6 +111,17 @@ const translation: BaseTranslation = {
             addHotkey: `Tastenkombination hinzufügen`,
             keyAlreadyInUse: `Diese Tastenkombination wird bereits von "{action}" verwendet`
         }
+    },
+    consoleManager: {
+        split: `Teilen`,
+        kill: `Beenden`,
+        rename: `Umbenennen`,
+        splitTerminal: `Terminal teilen`,
+        killTerminal: `Terminal beenden`
+    },
+    dateTimePicker: {
+        ariaLabel: `Datum und Uhrzeit`,
+        timezoneLabel: `Zeitzone`
     },
     actions: {
         [CoreActionIds.OPEN_COMMAND_PALETTE]: `Befehlspalette öffnen`,

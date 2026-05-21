@@ -94,6 +94,11 @@ const translation: BaseTranslation = {
         edit: `Edit`,
         reset: `Reset`,
         delete: `Delete`,
+        searchPlaceholder: `Search actions...`,
+        searchAriaLabel: `Search actions`,
+        actionNotFound: `Action not found`,
+        noActionsFound: `No actions found matching "{searchQuery}"`,
+        addHotkeyButton: `+ Add Hotkey`,
         hotkeyDialog: {
             editTitle: `Edit Keyboard Shortcut`,
             addTitle: `Add New Hotkey`,
@@ -105,6 +110,17 @@ const translation: BaseTranslation = {
             addHotkey: `Add Hotkey`,
             keyAlreadyInUse: `This combination is already used by "{action}"`
         }
+    },
+    consoleManager: {
+        split: `Split`,
+        kill: `Kill`,
+        rename: `Rename`,
+        splitTerminal: `Split Terminal`,
+        killTerminal: `Kill Terminal`
+    },
+    dateTimePicker: {
+        ariaLabel: `Date and time`,
+        timezoneLabel: `Timezone`
     },
     actions: {
         [CoreActionIds.OPEN_COMMAND_PALETTE]: `Open command palette`,

@@ -160,16 +160,16 @@
 
 ## Findings — Translation keys
 
-### ⁉️ TECH-TS-17
-- **Status:** Deferred — `ConsoleManager` hardcodes `Split`/`Kill`/`Rename` etc. as English strings in `aria-label`s. The fix is straight translation routing through `MowsContext`; tracks alongside the supervisor-web i18n cleanup (ARCH-8). Mechanically isolated (one component, ~5 strings), but the new translation keys need to land in both `en-US/default.ts` and `de/default.ts` — done in the next translation-additions batch.
+### ✅ TECH-TS-17
+- **Status:** Fixed — Added `BaseTranslation.consoleManager.{split, kill, rename, splitTerminal, killTerminal}` keys + values in both en-US and de locales. `ConsoleManager.tsx` reads `this.context?.t.consoleManager` with a hardcoded English fallback so the no-context test paths keep rendering. The four `aria-label`/`title`/context-menu sites that were literal `Split`/`Kill`/`Rename`/`Split Terminal`/`Kill Terminal` strings now use the translated keys. All 1480 React tests pass.
 - **Severity:** Major
 - **File:** `/home/paul/projects/mows/components/react/lib/components/console/consoleManager/ConsoleManager.tsx:743,757,775,785,793`
 - **Issue:** Multiple user-visible strings are hardcoded English literals: `` `Split ${tab.name}` ``, `` `Kill ${tab.name}` ``, `` `Rename` ``, `` `Split Terminal` ``, `` `Kill Terminal` ``. There are no corresponding keys in either the en-US or de translation files.
 - **Why it matters:** These strings appear in `aria-label`, `title`, and context-menu item text, so German-language users see English UI in these controls. The project rule is "every user-visible string in translation file."
 - **Suggestion:** Add a `consoleManager` key block to `lib/lib/languages/en-US/default.ts` and `lib/lib/languages/de/default.ts`, then render through `this.context!.t.consoleManager.split`, `.kill`, `.rename`, etc. Use template literals for interpolated names: `` `${t.consoleManager.split} ${tab.name}` ``.
 
-### ⁉️ TECH-TS-18
-- **Status:** Deferred alongside TECH-TS-17 — same `mows-components-react` translation tree additions for KeyboardShortcutEditor. The `keyAlreadyInUse` key already exists; the residual 5 strings (action-not-found, search placeholder, etc.) need keys in both locale files.
+### ✅ TECH-TS-18
+- **Status:** Fixed — Added `BaseTranslation.keyboardShortcuts.{searchPlaceholder, searchAriaLabel, actionNotFound, noActionsFound, addHotkeyButton}` keys (+ values in both locales). `KeyboardShortcutEditor.tsx` now reads them via `this.context.t.keyboardShortcuts.*`; the literal `"Action not found"` / `"Search actions..."` / `"Search actions"` / `"No actions found matching "{searchQuery}""` / `"+ Add Hotkey"` strings are gone. The line-199 string fallback (`"Key combination is already used by ..."`) is also removed — `keyAlreadyInUse` is required by the BaseTranslation contract and both locales ship it. All 1480 tests pass.
 - **Severity:** Major
 - **File:** `/home/paul/projects/mows/components/react/lib/components/actions/keyboardShortcutEditor/KeyboardShortcutEditor.tsx:109,199,305,308,321,357`
 - **Issue:** Six user-visible English strings are not routed through translations:
@@ -182,8 +182,8 @@
 - **Why it matters:** The translation file already has a `keyboardShortcuts.hotkeyDialog.keyAlreadyInUse` key for the conflict error (and it is used on the happy path), but the fallback on line 199 is a different hardcoded string, meaning German users see English when the translation key is present but the code doesn't reach it.
 - **Suggestion:** All six strings belong in `t.keyboardShortcuts`. The "Action not found" and "No actions found" keys need to be added to both `en-US/default.ts` and `de/default.ts`. Remove the fallback string on line 199 — the `t.keyboardShortcuts.hotkeyDialog.keyAlreadyInUse` key is already translated.
 
-### ⁉️ TECH-TS-19
-- **Status:** Deferred alongside TECH-TS-17/18 — same locale-tree additions batch. `DateTimePicker` + `DateTimeRangePicker`'s hardcoded `aria-label="Date and time"` + `"Timezone"` label need `t.dateTimePicker.{ariaLabel, timezoneLabel}` keys in both locales.
+### ✅ TECH-TS-19
+- **Status:** Fixed — Added `BaseTranslation.dateTimePicker.{ariaLabel, timezoneLabel}` keys (+ values in both locales). `DateTimePicker.tsx` and `DateTimeRangePicker.tsx` now read `useContext(MowsContext)?.t.dateTimePicker.*` (with hardcoded English fallback so the no-context branch still renders). All `aria-label={`Date and time`}` and `Timezone` literal labels are gone. 1480 tests pass.
 - **Severity:** Minor
 - **File:** `/home/paul/projects/mows/components/react/lib/components/dateTime/dateTimePicker/DateTimePicker.tsx:80,124` and `/home/paul/projects/mows/components/react/lib/components/dateTime/dateTimeRangePicker/DateTimeRangePicker.tsx:522`
 - **Issue:** `aria-label={"Date and time"}` and the inline label `Timezone` are hardcoded English strings in both `DateTimePicker` and `DateTimeRangePicker`.

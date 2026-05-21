@@ -107,11 +107,11 @@ const TEST_FILE = `lib/components/files/fileViewer/formats/image360Viewer/Image3
 const buildBehaviourEntries = (
     statements: Strings[`doc`][`definedBehaviour`][`statements`]
 ): BehaviourEntry[] => [
-    { statement: statements.mountsViewer, testFile: TEST_FILE, testName: `mounts a Photo Sphere Viewer with the given src`, testLine: 47 },
-    { statement: statements.subscribesPosition, testFile: TEST_FILE, testName: `subscribes to PSV "position-updated" to forward heading changes`, testLine: 55 },
-    { statement: statements.noLoadingIndicator, testFile: TEST_FILE, testName: `renders no loading indicator while the panorama loads`, testLine: 61 },
-    { statement: statements.forwardsClassName, testFile: TEST_FILE, testName: `forwards className onto the outer wrapper`, testLine: 75 },
-    { statement: statements.forwardsStyle, testFile: TEST_FILE, testName: `forwards inline style onto the wrapper`, testLine: 84 }
+    { statement: statements.mountsViewer, testFile: TEST_FILE, testName: `mounts a Photo Sphere Viewer with the given src`, testLine: 59 },
+    { statement: statements.subscribesPosition, testFile: TEST_FILE, testName: `subscribes to PSV "position-updated" to forward heading changes`, testLine: 67 },
+    { statement: statements.noLoadingIndicator, testFile: TEST_FILE, testName: `renders no loading indicator while the panorama loads`, testLine: 73 },
+    { statement: statements.forwardsClassName, testFile: TEST_FILE, testName: `forwards className onto the outer wrapper`, testLine: 111 },
+    { statement: statements.forwardsStyle, testFile: TEST_FILE, testName: `forwards inline style onto the wrapper`, testLine: 120 }
 ];
 
 export const Image360ViewerDocPage = () => {

@@ -104,7 +104,9 @@ export default class KeyboardShortcutEditor extends PureComponent<
             } else if (dialogMode === `add`) {
                 const action = this.context.actionManager.getAction(actionId);
                 if (!action) {
-                    this.setState({ error: `Action not found` });
+                    this.setState({
+                        error: this.context.t.keyboardShortcuts.actionNotFound
+                    });
                     return;
                 }
 
@@ -192,10 +194,13 @@ export default class KeyboardShortcutEditor extends PureComponent<
 
         if (conflictingActionId) {
             const conflictingDescription = t.actions?.[conflictingActionId] || conflictingActionId;
-            const errorTemplate =
-                t.keyboardShortcuts?.hotkeyDialog?.keyAlreadyInUse ||
-                `Key combination is already used by "{action}"`;
-            const errorMessage = errorTemplate.replace(`{action}`, conflictingDescription);
+            // `t.keyboardShortcuts.hotkeyDialog.keyAlreadyInUse` is required
+            // by the translation contract (see `BaseTranslation`); both
+            // shipped locales fill it in. No string fallback.
+            const errorMessage = t.keyboardShortcuts.hotkeyDialog.keyAlreadyInUse.replace(
+                `{action}`,
+                conflictingDescription
+            );
             this.setState({ error: errorMessage });
         } else {
             this.setState({ error: null });
@@ -300,10 +305,10 @@ export default class KeyboardShortcutEditor extends PureComponent<
                     <div className={`flex items-center justify-between gap-4`}>
                         <div className={`max-w-sm flex-1`}>
                             <SearchInput
-                                placeholder={`Search actions...`}
+                                placeholder={t.keyboardShortcuts.searchPlaceholder}
                                 value={this.state.searchQuery}
                                 onValueChange={this.handleSearchChange}
-                                aria-label={`Search actions`}
+                                aria-label={t.keyboardShortcuts.searchAriaLabel}
                             />
                         </div>
                         <Button variant={`outline`} onClick={this.handleResetAll}>
@@ -316,7 +321,12 @@ export default class KeyboardShortcutEditor extends PureComponent<
                 <div className={`space-y-6`}>
                     {categories.length === 0 && this.state.searchQuery ? (
                         <div className={`text-muted-foreground py-8 text-center`}>
-                            <p>No actions found matching "{this.state.searchQuery}"</p>
+                            <p>
+                                {t.keyboardShortcuts.noActionsFound.replace(
+                                    `{searchQuery}`,
+                                    this.state.searchQuery
+                                )}
+                            </p>
                         </div>
                     ) : (
                         categories.map((category) => (
@@ -352,7 +362,7 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                         }
                                                         className={`text-xs`}
                                                     >
-                                                        + Add Hotkey
+                                                        {t.keyboardShortcuts.addHotkeyButton}
                                                     </Button>
                                                 </div>
                                                 <div className={`space-y-1`}>

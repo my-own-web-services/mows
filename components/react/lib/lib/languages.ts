@@ -91,6 +91,11 @@ export interface BaseTranslation {
         edit: string;
         reset: string;
         delete: string;
+        searchPlaceholder: string;
+        searchAriaLabel: string;
+        actionNotFound: string;
+        noActionsFound: string;
+        addHotkeyButton: string;
         hotkeyDialog: {
             editTitle: string;
             addTitle: string;
@@ -102,6 +107,17 @@ export interface BaseTranslation {
             addHotkey: string;
             keyAlreadyInUse: string;
         };
+    };
+    consoleManager: {
+        split: string;
+        kill: string;
+        rename: string;
+        splitTerminal: string;
+        killTerminal: string;
+    };
+    dateTimePicker: {
+        ariaLabel: string;
+        timezoneLabel: string;
     };
     actions: {
         [key: string]: string;

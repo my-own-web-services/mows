@@ -123,7 +123,7 @@ const buildBehaviourEntries = (
     {
         statement: statements.noProvider,
         testFile: TEST_FILE,
-        testName: `renders outside a MowsProvider without throwing`,
+        testName: `renders outside a MowsProvider and mounts a working Sonner host`,
         testLine: 125
     }
 ];

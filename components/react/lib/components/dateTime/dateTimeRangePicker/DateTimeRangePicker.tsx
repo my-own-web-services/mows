@@ -1,6 +1,7 @@
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { getDetectedTimeFormat, getPlaceholder } from "@/lib/dateTimeUtils";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
 import { cn } from "@/lib/utils";
 import * as React from "react";
 import type { DayButton } from "react-day-picker";
@@ -224,6 +225,7 @@ const DateTimeRangePicker = ({
     showDuration,
     className
 }: DateTimeRangePickerProps) => {
+    const mowsContext = React.useContext(MowsContext);
     const picker = useDateTimeRangePicker({
         value,
         defaultValue,
@@ -519,7 +521,7 @@ const DateTimeRangePicker = ({
                                     <div
                                         className={`text-muted-foreground mb-1 text-xs font-medium`}
                                     >
-                                        Timezone
+                                        {mowsContext?.t.dateTimePicker.timezoneLabel ?? `Timezone`}
                                     </div>
                                     <TimezoneSelector
                                         value={timeZone}

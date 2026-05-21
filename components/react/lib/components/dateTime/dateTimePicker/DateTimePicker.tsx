@@ -1,7 +1,9 @@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { getDetectedTimeFormat, getPlaceholder } from "@/lib/dateTimeUtils";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
 import { cn } from "@/lib/utils";
+import { useContext } from "react";
 import DateTimeInput from "./DateTimeInput";
 import TimePicker from "./TimePicker";
 import TimezoneSelector from "./TimezoneSelector";
@@ -52,6 +54,7 @@ const DateTimePicker = ({
     disableFuture,
     className
 }: DateTimePickerProps) => {
+    const mowsContext = useContext(MowsContext);
     const picker = useDateTimePicker({
         value,
         defaultValue,
@@ -77,7 +80,7 @@ const DateTimePicker = ({
                     placeholder={formatPlaceholder}
                     disabled={disabled}
                     className={cn(`w-full`, className)}
-                    aria-label={`Date and time`}
+                    aria-label={mowsContext?.t.dateTimePicker.ariaLabel ?? `Date and time`}
                 />
             </PopoverAnchor>
             <PopoverContent
@@ -121,7 +124,7 @@ const DateTimePicker = ({
                                 <div
                                     className={`text-muted-foreground mb-1 text-xs font-medium`}
                                 >
-                                    Timezone
+                                    {mowsContext?.t.dateTimePicker.timezoneLabel ?? `Timezone`}
                                 </div>
                                 <TimezoneSelector
                                     value={timeZone}

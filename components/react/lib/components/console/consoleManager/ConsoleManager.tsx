@@ -640,6 +640,18 @@ export default class ConsoleManager extends PureComponent<
         const showAfter =
             indicator?.tabId === tab.id && indicator.position === `after`;
         const prefix = groupPrefix(groupIndexAmongTerminals, groupTerminalsCount);
+        // Optional-chain the context: ConsoleManager is the most-rendered
+        // surface in the doc-page harness and several tests stub the
+        // component without a MowsProvider. Fall back to English defaults
+        // so the no-context branch still renders something a user can
+        // operate, instead of throwing.
+        const cmLabels = this.context?.t.consoleManager ?? {
+            split: `Split`,
+            kill: `Kill`,
+            rename: `Rename`,
+            splitTerminal: `Split Terminal`,
+            killTerminal: `Kill Terminal`
+        };
         return (
             <ContextMenu key={tab.id}>
                 <ContextMenuTrigger asChild>
@@ -748,8 +760,8 @@ export default class ConsoleManager extends PureComponent<
                                 type="button"
                                 variant="ghost"
                                 size="icon-xs"
-                                aria-label={`Split ${tab.name}`}
-                                title={`Split ${tab.name}`}
+                                aria-label={`${cmLabels.split} ${tab.name}`}
+                                title={`${cmLabels.split} ${tab.name}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     this.splitTerminal(tab.id);
@@ -765,8 +777,8 @@ export default class ConsoleManager extends PureComponent<
                                 type="button"
                                 variant="ghost"
                                 size="icon-xs"
-                                aria-label={`Kill ${tab.name}`}
-                                title={`Kill ${tab.name}`}
+                                aria-label={`${cmLabels.kill} ${tab.name}`}
+                                title={`${cmLabels.kill} ${tab.name}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     this.closeTerminal(tab.id);
@@ -783,7 +795,7 @@ export default class ConsoleManager extends PureComponent<
                         onSelect={() => this.startRenameTab(tab.id)}
                         className={`cursor-pointer`}
                     >
-                        {`Rename`}
+                        {cmLabels.rename}
                     </ContextMenuItem>
                     <ContextMenuItem
                         onSelect={() => this.splitTerminal(tab.id)}
@@ -793,7 +805,7 @@ export default class ConsoleManager extends PureComponent<
                             className={`size-3.5`}
                             aria-hidden
                         />
-                        {`Split Terminal`}
+                        {cmLabels.splitTerminal}
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                     <ContextMenuItem
@@ -801,7 +813,7 @@ export default class ConsoleManager extends PureComponent<
                         className={`cursor-pointer text-destructive focus:text-destructive`}
                     >
                         <Trash2 className={`size-3.5`} aria-hidden />
-                        {`Kill Terminal`}
+                        {cmLabels.killTerminal}
                     </ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>

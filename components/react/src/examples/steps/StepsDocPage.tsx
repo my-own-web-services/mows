@@ -188,7 +188,7 @@ const buildBehaviourEntries = (
         statement: statements.throwsOutsideSteps,
         testFile: TEST_FILE,
         testName: `throws when <Step> is rendered outside <Steps>`,
-        testLine: 106
+        testLine: 140
     }
 ];
 
