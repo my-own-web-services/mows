@@ -9,8 +9,10 @@ contract documented in `components/react/CLAUDE.md` › "Doc pages".
 Each page:
 
 - Uses `<DocPage indexItems>` shell with nested `<PageIndex>` rail.
-- Has these sections in order: **Installation · Usage · Composition ·
-  Examples · RTL · Defined behaviour · API Reference**.
+- Has these sections in order: **Installation → Examples → Usage →
+  Composition → RTL → Defined behaviour → API Reference** — the shadcn
+  convention; canonical contract is in `components/react/CLAUDE.md`
+  under "Doc pages". This file just re-states it.
 - Uses only the harness primitives: `<DocSection>`, `<DocSubsection>`,
   `<InstallationTabs>`, `<CommandBlock>`, `<ManualSteps>`/`<ManualStep>`,
   `<ExampleCard hideHeader>`, `<ExpandableCode>` + `<CodeViewer fitContent>`,
@@ -46,8 +48,30 @@ Legend: ✅ done · 🔧 partial · ❌ todo · ➖ N/A
   examples. 2 behaviour statements (the test file only has 2).
 - ✅ CodeThemePicker — `CodeThemePickerDocPage`. Popover / Standalone
   examples. 4 behaviour statements linked.
+- ✅ PrimaryMenu — `PrimaryMenuDocPage`. Inline / Fixed examples. 8
+  behaviour statements linked.
+- ✅ GlobalContextMenu — `GlobalContextMenuDocPage`. Default
+  right-click-target example. 6 behaviour statements linked.
+- ✅ CopyValueButton — `CopyValueButtonDocPage`. Label / Icon-only /
+  With-toast examples. 7 behaviour statements linked.
+- ✅ ButtonSelect — `ButtonSelectDocPage`. Default / Disabled-group /
+  Disabled-option examples. 9 behaviour statements linked.
+- ✅ SettingsPanel — `SettingsPanelDocPage`. Default example. 8
+  behaviour statements linked.
+- ✅ InlineEdit — `InlineEditDocPage` (parallel migration). Basic /
+  Disabled / Heading / Placeholder examples.
+- ✅ Terminal — `TerminalDocPage`. Echo-shell example. 3 behaviour
+  statements linked.
+- ✅ LogView — `LogViewDocPage`. Push-lines / hide-toolbar examples. 8
+  behaviour statements linked.
+- ✅ MachineMonitor — `MachineMonitorDocPage`. Default / Read-only
+  examples. 5 behaviour statements linked.
+- ✅ ui/Sidebar — `SidebarDocPage`. Default / Resizable examples. 11
+  behaviour statements linked.
+- ✅ ui/Tabs — `TabsDocPage`. Default / Disabled / Controlled examples.
+  5 behaviour statements linked.
 
-### Not started — `lib/components/` library components (~30)
+### Not started — `lib/components/` library components (~20)
 
 Order of migration: navigation → code → input → ui primitives → bigger
 surfaces.
@@ -58,75 +82,82 @@ surfaces.
 
 **Group: code/**
 
-- ❌ ExpandableCode _(needs tests — no test file yet)_
+- ✅ ExpandableCode
 
 **Group: actions/**
 
-- ❌ ActionDisplay
-- ❌ KeyComboDisplay
-- ❌ KeyboardShortcutEditor
-- ❌ KeyComboRecorder
+- ✅ ActionDisplay
+- ✅ KeyComboDisplay
+- ✅ KeyboardShortcutEditor
+- ✅ KeyComboRecorder
 
 **Group: appShell/**
 
-- ❌ PrimaryMenu
-- ❌ CommandPalette
-- ❌ GlobalContextMenu
-- ❌ ModalHandler
+- ✅ PrimaryMenu
+- ✅ CommandPalette
+- ✅ GlobalContextMenu
+- ✅ ModalHandler
 
 **Group: console/**
 
-- ❌ Terminal
-- ❌ LogView
-- ❌ MachineMonitor
+- ✅ Terminal
+- ✅ LogView
+- ✅ MachineMonitor
+- ✅ ConsoleManager
 
 **Group: dateTime/**
 
-- ❌ DateTime (DateTimeDisplay)
-- ❌ DateTimePicker
-- ❌ TimePicker
-- ❌ TimezoneSelector
-- ❌ DateTimeRangePicker
+- ✅ DateTimeDisplay
+- ✅ DateTimePicker
+- ✅ TimePicker
+- ✅ TimezoneSelector
+- ✅ DateTimeRangePicker
 
 **Group: files/**
 
-- ❌ FileViewer
-- ❌ Image360Viewer
+- ✅ FileViewer
+- ✅ Image360Viewer
+- ✅ VideoViewer
 
 **Group: identity/**
 
-- ❌ Avatar
+- ✅ Avatar
 
 **Group: input/**
 
-- ❌ ButtonSelect
-- ❌ CopyValueButton
-- ❌ InlineEdit
-- ❌ NumberInput
-- ❌ OptionPicker
-- ❌ SearchInput
-- ❌ SearchSelectPicker
+- ✅ ButtonSelect
+- ✅ CopyValueButton
+- ✅ InlineEdit
+- ✅ NumberInput
+- ✅ OptionPicker
+- ✅ SearchInput
+- ✅ SearchSelectPicker
 
 **Group: list/**
 
-- ❌ ResourceList
+- ✅ ResourceList
 
 **Group: settings/**
 
-- ❌ SettingsPanel
-- ❌ LanguagePicker
-- ❌ ThemePicker
-- ❌ LoggingConfig
+- ✅ SettingsPanel
+- ✅ LanguagePicker
+- ✅ ThemePicker
+- ✅ LoggingConfig
 
 ### Not started — `ui/` shadcn primitives (~25)
 
 These are smaller surfaces. Each gets a single DocPage with minimal
 sections (Installation / Composition / Examples / API Reference).
 
-- ❌ Badge · Button · Calendar · Card · Checkbox · ContextMenu · Dialog
-- ❌ DropdownMenu · HoverCard · Input · InputGroup · Label · Popover
-- ❌ Progress · RadioGroup · Resizable · ScrollArea · Select · Skeleton
-- ❌ Slider · Sonner · Switch · Tabs · Textarea · Compass
+- ✅ Badge · ✅ Button · ✅ Calendar · ✅ Card · ✅ Checkbox · ✅ Compass
+- ✅ ContextMenu · ✅ Dialog · ✅ DropdownMenu · ✅ HoverCard · ✅ Input
+- ✅ InputGroup · ✅ Label · ✅ Popover · ✅ Progress · ✅ RadioGroup
+- ✅ Resizable · ✅ ScrollArea · ✅ Select · ✅ Sidebar · ✅ Skeleton
+- ✅ Slider · ✅ Sonner · ✅ Switch · ✅ Tabs · ✅ Textarea
+
+**Group: identity/**
+
+- ✅ Avatar
 
 ## Execution rules
 
