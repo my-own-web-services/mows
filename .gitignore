@@ -4,3 +4,23 @@ node_modules
 .claude*
 .yalc
 yalc.lock
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build outputs
+dist/
+dist-ssr/
+
+# Local debug artefacts (chrome-devtools MCP screenshots, etc.)
+.tmp/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
