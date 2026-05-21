@@ -52,8 +52,8 @@ if (!globalThis.MonacoEnvironment) {
 const monacoTypescriptNs = (monaco.languages as { typescript?: unknown })
     .typescript as
     | {
-          javascriptDefaults?: { setDiagnosticsOptions?: (o: unknown) => void };
-          typescriptDefaults?: { setDiagnosticsOptions?: (o: unknown) => void };
+          javascriptDefaults?: { setDiagnosticsOptions?: (options: unknown) => void };
+          typescriptDefaults?: { setDiagnosticsOptions?: (options: unknown) => void };
       }
     | undefined;
 monacoTypescriptNs?.javascriptDefaults?.setDiagnosticsOptions?.({
@@ -65,8 +65,8 @@ monacoTypescriptNs?.typescriptDefaults?.setDiagnosticsOptions?.({
     noSyntaxValidation: true
 });
 
-const monacoLanguageFor = (lang: CodeViewerProps[`language`]): string => {
-    switch (lang) {
+const monacoLanguageFor = (language: CodeViewerProps[`language`]): string => {
+    switch (language) {
         case `json`:
             return `json`;
         case `yaml`:

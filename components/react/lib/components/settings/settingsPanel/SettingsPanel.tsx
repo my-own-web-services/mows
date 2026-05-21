@@ -12,7 +12,6 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Translation } from "@/lib/languages";
 import {
     type MowsCodeEditorSettings,
@@ -203,24 +202,38 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
         return () => observer.disconnect();
     }, [sections]);
 
+    // Form/JSON view is a single binary mode, not a tabbed surface — a
+    // small toggle button at the top-right swaps the two views in place,
+    // freeing the full panel width for content instead of burning a full
+    // bar on two labels.
+    const [mode, setMode] = useState<`form` | `json`>(`form`);
+    const toggleMode = () => setMode((m) => (m === `form` ? `json` : `form`));
+    // The button advertises the target view, not the current one
+    // ("press to switch to JSON" / "press to switch to Form").
+    const toggleLabel = mode === `form` ? t.settings.jsonTab : t.settings.formTab;
+
     return (
         <div
             style={style}
-            className={cn(`SettingsPanel flex h-full flex-col gap-4`, className)}
+            className={cn(
+                `SettingsPanel relative flex h-full flex-col`,
+                className
+            )}
         >
-            <Tabs
-                defaultValue={`form`}
-                className={`flex h-full min-h-0 w-full flex-col`}
+            <Button
+                type={`button`}
+                variant={`outline`}
+                size={`sm`}
+                onClick={toggleMode}
+                aria-pressed={mode === `json`}
+                className={`absolute right-0 top-0 z-10`}
             >
-                <TabsList>
-                    <TabsTrigger value={`form`}>{t.settings.formTab}</TabsTrigger>
-                    <TabsTrigger value={`json`}>{t.settings.jsonTab}</TabsTrigger>
-                </TabsList>
+                {toggleLabel}
+            </Button>
 
-                <TabsContent
-                    value={`form`}
-                    className={`flex min-h-0 flex-1 gap-6 pt-4`}
-                >
+            {mode === `form` ? (
+                <div className={`flex min-h-0 flex-1 gap-6 pt-2`}>
+
                     <nav
                         className={`flex w-48 shrink-0 flex-col gap-1 border-r pr-3`}
                         aria-label={t.settings.title}
@@ -409,12 +422,9 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                             </div>
                         </section>
                     </div>
-                </TabsContent>
-
-                <TabsContent
-                    value={`json`}
-                    className={`flex min-h-0 flex-1 flex-col gap-2 pt-4`}
-                >
+                </div>
+            ) : (
+                <div className={`flex min-h-0 flex-1 flex-col gap-2 pt-2`}>
                     <CodeViewer
                         editable
                         wrap
@@ -433,8 +443,8 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                         </Button>
                         <Button onClick={onSaveJson}>{t.settings.save}</Button>
                     </div>
-                </TabsContent>
-            </Tabs>
+                </div>
+            )}
         </div>
     );
 };

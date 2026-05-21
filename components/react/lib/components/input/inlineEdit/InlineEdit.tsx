@@ -84,25 +84,25 @@ const InlineEdit = ({
     // we are NOT actively editing. Doing it during editing would move the
     // caret on every keystroke.
     useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        if (!editing && el.textContent !== value) {
-            el.textContent = value;
+        const element = ref.current;
+        if (!element) return;
+        if (!editing && element.textContent !== value) {
+            element.textContent = value;
         }
         // Leaving edit mode: reset horizontal scroll so display always
         // shows the start of the value. The browser would otherwise keep
         // the caret-driven scrollLeft from editing, causing the text to
         // appear "cut off on the left" once the user clicks away.
         if (!editing) {
-            el.scrollLeft = 0;
+            element.scrollLeft = 0;
         }
     }, [value, editing]);
 
     const selectAll = useCallback(() => {
-        const el = ref.current;
-        if (!el) return;
+        const element = ref.current;
+        if (!element) return;
         const range = document.createRange();
-        range.selectNodeContents(el);
+        range.selectNodeContents(element);
         const sel = window.getSelection();
         if (sel) {
             sel.removeAllRanges();
@@ -111,30 +111,30 @@ const InlineEdit = ({
     }, []);
 
     const focusAndSelect = useCallback(() => {
-        const el = ref.current;
-        if (!el) return;
-        el.focus();
+        const element = ref.current;
+        if (!element) return;
+        element.focus();
         selectAll();
     }, [selectAll]);
 
     const commit = useCallback(async () => {
-        const el = ref.current;
-        if (!el) return;
-        const next = (el.textContent ?? ``).trim();
+        const element = ref.current;
+        if (!element) return;
+        const next = (element.textContent ?? ``).trim();
         setEditing(false);
         if (!next || next === value) {
             // Restore the previous value visually.
-            el.textContent = value;
+            element.textContent = value;
             return;
         }
         await onCommit(next);
     }, [onCommit, value]);
 
     const cancel = useCallback(() => {
-        const el = ref.current;
-        if (el) {
-            el.textContent = value;
-            el.blur();
+        const element = ref.current;
+        if (element) {
+            element.textContent = value;
+            element.blur();
         }
         setEditing(false);
     }, [value]);

@@ -30,8 +30,8 @@ const VOLUME_CLAMP_MIN = 0;
 // catches peaks so the higher gain stays usable.
 const VOLUME_CLAMP_MAX = 4;
 
-const clampVolume = (v: number): number =>
-    Math.max(VOLUME_CLAMP_MIN, Math.min(VOLUME_CLAMP_MAX, v));
+const clampVolume = (volume: number): number =>
+    Math.max(VOLUME_CLAMP_MIN, Math.min(VOLUME_CLAMP_MAX, volume));
 
 const supportsPip = (): boolean =>
     typeof document !== `undefined` && `pictureInPictureEnabled` in document
@@ -257,10 +257,10 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
     };
 
     private bindVideoEvents = (): void => {
-        const v = this.videoRef.current;
-        if (!v) return;
-        v.addEventListener(`enterpictureinpicture`, this.handlePipEnter);
-        v.addEventListener(`leavepictureinpicture`, this.handlePipLeave);
+        const videoElement = this.videoRef.current;
+        if (!videoElement) return;
+        videoElement.addEventListener(`enterpictureinpicture`, this.handlePipEnter);
+        videoElement.addEventListener(`leavepictureinpicture`, this.handlePipLeave);
     };
 
     private handleLoadError = (err: unknown): void => {
@@ -346,18 +346,18 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
     };
 
     private handleTimeUpdate = (): void => {
-        const v = this.videoRef.current;
-        if (!v) return;
+        const videoElement = this.videoRef.current;
+        if (!videoElement) return;
         this.setState((s) => ({
-            status: { ...s.status, currentTime: v.currentTime }
+            status: { ...s.status, currentTime: videoElement.currentTime }
         }));
     };
 
     private handleLoadedMetadata = (): void => {
-        const v = this.videoRef.current;
-        if (!v) return;
+        const videoElement = this.videoRef.current;
+        if (!videoElement) return;
         this.setState((s) => ({
-            status: { ...s.status, duration: v.duration, buffering: false }
+            status: { ...s.status, duration: videoElement.duration, buffering: false }
         }));
     };
 
@@ -366,23 +366,29 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
     private handlePause = (): void =>
         this.setState((s) => ({ status: { ...s.status, playing: false } }));
     private handleVolumeChange = (): void => {
-        const v = this.videoRef.current;
-        if (!v) return;
+        const videoElement = this.videoRef.current;
+        if (!videoElement) return;
         this.setState((s) => {
             // When the user has pushed volume above 1.0 the GainNode owns
-            // the displayed level — v.volume is pinned at 1.0 and reading
+            // the displayed level — videoElement.volume is pinned at 1.0 and reading
             // it back would erase the boost. Preserve s.status.volume.
             if (s.status.volume > 1) {
-                return { status: { ...s.status, muted: v.muted } };
+                return { status: { ...s.status, muted: videoElement.muted } };
             }
-            return { status: { ...s.status, volume: v.volume, muted: v.muted } };
+            return {
+                status: {
+                    ...s.status,
+                    volume: videoElement.volume,
+                    muted: videoElement.muted
+                }
+            };
         });
     };
     private handleRateChange = (): void => {
-        const v = this.videoRef.current;
-        if (!v) return;
+        const videoElement = this.videoRef.current;
+        if (!videoElement) return;
         this.setState((s) => ({
-            status: { ...s.status, playbackRate: v.playbackRate }
+            status: { ...s.status, playbackRate: videoElement.playbackRate }
         }));
     };
     private handleEnded = (): void =>
@@ -400,12 +406,12 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
     };
 
     private togglePlay = (): void => {
-        const v = this.videoRef.current;
-        if (!v) return;
-        if (v.paused) {
-            void v.play().catch((err: unknown) => this.handleLoadError(err));
+        const videoElement = this.videoRef.current;
+        if (!videoElement) return;
+        if (videoElement.paused) {
+            void videoElement.play().catch((err: unknown) => this.handleLoadError(err));
         } else {
-            v.pause();
+            videoElement.pause();
         }
     };
 
@@ -424,10 +430,10 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
      * (`<VideoViewer ref={r} chapters={…} />` then `r.current?.seekTo(t)`).
      */
     seekTo = (seconds: number): void => {
-        const v = this.videoRef.current;
-        if (!v) return;
-        const max = Number.isFinite(v.duration) ? v.duration : seconds;
-        v.currentTime = Math.max(0, Math.min(max, seconds));
+        const videoElement = this.videoRef.current;
+        if (!videoElement) return;
+        const max = Number.isFinite(videoElement.duration) ? videoElement.duration : seconds;
+        videoElement.currentTime = Math.max(0, Math.min(max, seconds));
     };
 
     /**
@@ -440,8 +446,8 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
      */
     captureCurrentFrame = async (): Promise<ThumbnailFrame | null> => {
         if (this.captureBlocked) return null;
-        const v = this.videoRef.current;
-        if (!v || v.videoWidth === 0 || v.videoHeight === 0) return null;
+        const videoElement = this.videoRef.current;
+        if (!videoElement || videoElement.videoWidth === 0 || videoElement.videoHeight === 0) return null;
         if (typeof document === `undefined`) return null;
         if (!this.liveCaptureCanvas || !this.liveCaptureCtx) {
             this.liveCaptureCanvas = document.createElement(`canvas`);
@@ -450,15 +456,25 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
             this.liveCaptureCtx = this.liveCaptureCanvas.getContext(`2d`);
         }
         const canvas = this.liveCaptureCanvas;
-        const mowsContext = this.liveCaptureCtx;
-        if (!mowsContext) return null;
-        const scale = Math.min(160 / v.videoWidth, 90 / v.videoHeight);
-        const dw = v.videoWidth * scale;
-        const dh = v.videoHeight * scale;
-        mowsContext.fillStyle = `#000`;
-        mowsContext.fillRect(0, 0, 160, 90);
+        const canvasContext = this.liveCaptureCtx;
+        if (!canvasContext) return null;
+        const scale = Math.min(160 / videoElement.videoWidth, 90 / videoElement.videoHeight);
+        const destinationWidth = videoElement.videoWidth * scale;
+        const destinationHeight = videoElement.videoHeight * scale;
+        canvasContext.fillStyle = `#000`;
+        canvasContext.fillRect(0, 0, 160, 90);
         try {
-            mowsContext.drawImage(v, 0, 0, v.videoWidth, v.videoHeight, (160 - dw) / 2, (90 - dh) / 2, dw, dh);
+            canvasContext.drawImage(
+                videoElement,
+                0,
+                0,
+                videoElement.videoWidth,
+                videoElement.videoHeight,
+                (160 - destinationWidth) / 2,
+                (90 - destinationHeight) / 2,
+                destinationWidth,
+                destinationHeight
+            );
         } catch (error: unknown) {
             log.debug(`VideoViewer: drawImage failed (likely tainted canvas — cross-origin without CORS)`, error);
             this.captureBlocked = true;
@@ -481,7 +497,7 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
                             positionY: 0,
                             imageWidth: 160,
                             imageHeight: 90,
-                            startTime: v.currentTime,
+                            startTime: videoElement.currentTime,
                             duration: 0
                         });
                     },
@@ -506,15 +522,15 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
             this.resumeAudio();
             return this.gainNode;
         }
-        const v = this.videoRef.current;
-        if (!v || typeof window === `undefined`) return null;
+        const videoElement = this.videoRef.current;
+        if (!videoElement || typeof window === `undefined`) return null;
         const AC = window.AudioContext ?? (window as Window & {
             webkitAudioContext?: typeof AudioContext;
         }).webkitAudioContext;
         if (!AC) return null;
         try {
             this.audioContext = new AC();
-            this.mediaElementSource = this.audioContext.createMediaElementSource(v);
+            this.mediaElementSource = this.audioContext.createMediaElementSource(videoElement);
             // Compressor sits between source and gain so high boosts don't
             // clip ugly. Defaults: threshold -24 dB, ratio 4:1, fast
             // attack, soft knee. Sources that don't peak near 0 dB stay
@@ -553,44 +569,44 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
     };
 
     private setVolume = (level: number): void => {
-        const v = this.videoRef.current;
-        if (!v) return;
+        const videoElement = this.videoRef.current;
+        if (!videoElement) return;
         const clamped = clampVolume(level);
         if (clamped > 1) {
             const gain = this.ensureGainNode();
             if (gain) {
-                v.volume = 1;
+                videoElement.volume = 1;
                 gain.gain.value = clamped;
             } else {
-                v.volume = 1;
+                videoElement.volume = 1;
             }
         } else {
-            v.volume = clamped;
+            videoElement.volume = clamped;
             if (this.gainNode) this.gainNode.gain.value = 1;
         }
-        if (clamped > 0 && v.muted) v.muted = false;
-        // The volumechange event from setting v.volume only sees values
+        if (clamped > 0 && videoElement.muted) videoElement.muted = false;
+        // The volumechange event from setting videoElement.volume only sees values
         // up to 1.0; push the boosted level into state directly so the
         // displayed % reflects what the user asked for.
         this.setState((s) => ({ status: { ...s.status, volume: clamped } }));
     };
     private toggleMute = (): void => {
-        const v = this.videoRef.current;
-        if (!v) return;
-        v.muted = !v.muted;
+        const videoElement = this.videoRef.current;
+        if (!videoElement) return;
+        videoElement.muted = !videoElement.muted;
     };
     private setPlaybackRate = (rate: number): void => {
-        const v = this.videoRef.current;
-        if (!v) return;
-        v.playbackRate = rate;
+        const videoElement = this.videoRef.current;
+        if (!videoElement) return;
+        videoElement.playbackRate = rate;
     };
     private togglePictureInPicture = (): void => {
-        const v = this.videoRef.current;
-        if (!v || !supportsPip()) return;
+        const videoElement = this.videoRef.current;
+        if (!videoElement || !supportsPip()) return;
         if (this.state.status.pictureInPicture) {
             void document.exitPictureInPicture();
         } else {
-            void v.requestPictureInPicture().catch((err: unknown) => this.handleLoadError(err));
+            void videoElement.requestPictureInPicture().catch((err: unknown) => this.handleLoadError(err));
         }
     };
     private toggleFullscreen = (): void => {
@@ -672,8 +688,8 @@ export default class VideoViewer extends PureComponent<VideoViewerProps, VideoVi
         if (e.target !== e.currentTarget && e.target !== this.videoRef.current) return;
         // Pick the icon BEFORE toggling: a click while playing transitions
         // into pause, so the splash should show the pause icon.
-        const v = this.videoRef.current;
-        const wasPlaying = v ? !v.paused : this.state.status.playing;
+        const videoElement = this.videoRef.current;
+        const wasPlaying = videoElement ? !videoElement.paused : this.state.status.playing;
         this.togglePlay();
         this.flashSplash(wasPlaying ? `pause` : `play`);
     };

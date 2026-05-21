@@ -127,7 +127,7 @@ describe(`SettingsPanel`, () => {
         const user = userEvent.setup();
         renderPanel({ currentThemeId: `dark`, currentCodeThemeId: `hc-black` });
 
-        await user.click(screen.getByRole(`tab`, { name: `JSON` }));
+        await user.click(screen.getByRole(`button`, { name: `JSON` }));
         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
         const textarea = textareas.find(
             (el) => !(el as HTMLTextAreaElement).readOnly
@@ -142,7 +142,7 @@ describe(`SettingsPanel`, () => {
         const setCodeTheme = vi.fn();
         renderPanel({ setTheme, setCodeTheme });
 
-        await user.click(screen.getByRole(`tab`, { name: `JSON` }));
+        await user.click(screen.getByRole(`button`, { name: `JSON` }));
         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
         const textarea = textareas.find((el) => !(el as HTMLTextAreaElement).readOnly) as HTMLTextAreaElement;
 
@@ -170,7 +170,7 @@ describe(`SettingsPanel`, () => {
     it(`includes toast settings in the JSON view`, async () => {
         const user = userEvent.setup();
         renderPanel({ toastPosition: `top-center` });
-        await user.click(screen.getByRole(`tab`, { name: `JSON` }));
+        await user.click(screen.getByRole(`button`, { name: `JSON` }));
         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
         const textarea = textareas.find(
             (el) => !(el as HTMLTextAreaElement).readOnly
@@ -184,7 +184,7 @@ describe(`SettingsPanel`, () => {
         const setToastSettings = vi.fn();
         renderPanel({ setToastSettings });
 
-        await user.click(screen.getByRole(`tab`, { name: `JSON` }));
+        await user.click(screen.getByRole(`button`, { name: `JSON` }));
         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
         const textarea = textareas.find(
             (el) => !(el as HTMLTextAreaElement).readOnly
@@ -237,7 +237,7 @@ describe(`SettingsPanel`, () => {
         const user = userEvent.setup();
         renderPanel();
 
-        await user.click(screen.getByRole(`tab`, { name: `JSON` }));
+        await user.click(screen.getByRole(`button`, { name: `JSON` }));
         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
         const textarea = textareas.find((el) => !(el as HTMLTextAreaElement).readOnly) as HTMLTextAreaElement;
         await user.clear(textarea);

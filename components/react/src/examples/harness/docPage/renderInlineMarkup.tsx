@@ -42,22 +42,22 @@ const InlineCodeChip = ({ code }: InlineCodeChipProps) => (
  * Any text outside the matches is preserved verbatim.
  */
 export const renderInlineMarkup = (text: string): React.ReactNode[] => {
-    const out: React.ReactNode[] = [];
+    const output: React.ReactNode[] = [];
     let lastIndex = 0;
-    let i = 0;
-    const re = new RegExp(INLINE_CODE_REGEX);
+    let keyCounter = 0;
+    const regex = new RegExp(INLINE_CODE_REGEX);
     let match: RegExpExecArray | null;
-    while ((match = re.exec(text)) !== null) {
+    while ((match = regex.exec(text)) !== null) {
         if (match.index > lastIndex) {
-            out.push(text.slice(lastIndex, match.index));
+            output.push(text.slice(lastIndex, match.index));
         }
         const backtickMatch = match[1];
         const code = backtickMatch ? backtickMatch.slice(1, -1) : (match[2] ?? ``);
-        out.push(<InlineCodeChip key={`inline-${i++}`} code={code} />);
+        output.push(<InlineCodeChip key={`inline-${keyCounter++}`} code={code} />);
         lastIndex = match.index + match[0].length;
     }
-    if (lastIndex < text.length) out.push(text.slice(lastIndex));
-    return out;
+    if (lastIndex < text.length) output.push(text.slice(lastIndex));
+    return output;
 };
 
 /**

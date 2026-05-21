@@ -52,13 +52,13 @@ let contextTarget: ContextTarget | null = null;
 type RefreshFn = () => void;
 const refreshListeners = new Set<RefreshFn>();
 
-export const registerRefresh = (fn: RefreshFn): (() => void) => {
-    refreshListeners.add(fn);
-    return () => refreshListeners.delete(fn);
+export const registerRefresh = (listener: RefreshFn): (() => void) => {
+    refreshListeners.add(listener);
+    return () => refreshListeners.delete(listener);
 };
 
 const fireRefresh = () => {
-    refreshListeners.forEach((fn) => fn());
+    refreshListeners.forEach((listener) => listener());
 };
 
 // Capture-phase `contextmenu` listener that captures the right-clicked
@@ -104,7 +104,7 @@ const isLive = (status: string | null): boolean =>
 const handler = (
     actionId: string,
     expectedScope: string,
-    fn: (target: ContextTarget) => Promise<void> | void,
+    onInvoke: (target: ContextTarget) => Promise<void> | void,
     icon: () => JSX.Element,
     visibility: (target: ContextTarget | null) => ActionVisibility = () =>
         ActionVisibility.Shown
@@ -117,8 +117,8 @@ const handler = (
             toast.error("no target");
             return;
         }
-        Promise.resolve(fn(target)).catch(async (e) =>
-            toast.error(await describeApiError(e))
+        Promise.resolve(onInvoke(target)).catch(async (error) =>
+            toast.error(await describeApiError(error))
         );
     },
     getState: () => ({

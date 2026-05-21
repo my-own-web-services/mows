@@ -521,7 +521,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-41
+- **ID:** ✅ TASTE-41
+- **Status:** Fixed — `InlineEdit.tsx` all 19 `el = ref.current` / `el.foo` / `if (!el)` sites renamed to `element`.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/lib/components/input/inlineEdit/InlineEdit.tsx:79-152 (12 occurrences)
 - **Issue:** `const el = ref.current;` repeated everywhere. The `el` shorthand appears 12 times in this file alone.
@@ -530,7 +531,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-42
+- **ID:** ✅ TASTE-42
+- **Status:** Fixed — `actions.ts::registerRefresh` parameter `fn` → `listener`; same in `fireRefresh`'s `.forEach((listener) => listener())`. `handler()`'s `fn` callback parameter → `onInvoke`; the `catch (e)` block became `catch (error)`. The `el` parameter inside the `registerContextScopeListener()` capture-phase handler was already `target` from TASTE-15's earlier rewrite.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/web/src/lib/actions.ts:64-86,151
 - **Issue:** `const el = (event.target as HTMLElement | null)?.closest?.("[data-actionscope]")` — `el` again. Also `fn` for the listener callback (line 60).
@@ -539,7 +541,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-43
+- **ID:** ✅ TASTE-43
+- **Status:** Fixed — `renderInlineMarkup.tsx` renames: `out` → `output`, `i` → `keyCounter`, `re` → `regex`. The `regex.exec(text)` / `output.push(...)` flow now reads as English.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/src/examples/harness/docPage/renderInlineMarkup.tsx:44-58
 - **Issue:** `const out: React.ReactNode[] = []; let lastIndex = 0; let i = 0; const re = new RegExp(...);` — three single-letter / abbreviated names in one function.
@@ -558,7 +561,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-45
+- **ID:** ✅ TASTE-45
+- **Status:** Fixed — `MonacoCodeEditor.tsx`: `monacoLanguageFor(lang: ...)` → `(language: ...)` with the switch body updated; the two `setDiagnosticsOptions?: (o: unknown)` signatures → `(options: unknown)`. `mowsContext` is the post-TASTE-32 canonical name.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/lib/components/code/codeViewer/MonacoCodeEditor.tsx:68-86,89,107
 - **Issue:** `const monacoLanguageFor = (lang: CodeViewerProps[…])` (`lang` everywhere in the switch). Also `const ctx = useMows();` (TASTE-32 instance), and `o` inside the cast on line 55.
@@ -567,7 +571,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-46
+- **ID:** ✅ TASTE-46
+- **Status:** Fixed — supervisor `VmDetail.tsx` renames: `const mows = useMows()` → `const mowsContext = useMows()` (and every `mows.t.*` / `mows.currentLanguage.*` reference); `vmRes` → `vmResponse`; both `const h = window.setInterval(...)` sites → `intervalHandle`; both `catch (e)` blocks → `catch (error)`. `npx tsc --noEmit` clean.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/web/src/pages/VmDetail.tsx:110-131,134-141
 - **Issue:** `vm`, `mows`, `e`, `h` (setInterval handle). Lots of single-letter variables: `const vmRes = await api.v1.getVm(id)`, `const h = window.setInterval(…)`, `} catch (e) {`.
@@ -586,7 +591,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-48
+- **ID:** ✅ TASTE-48
+- **Status:** Fixed — `VideoViewer.tsx` `clampVolume = (v: number)` → `(volume: number)`. Every `const v = this.videoRef.current` block + downstream `v.foo` reads renamed to `videoElement.*` (8 distinct functions covered: PiP setup, time, duration, volume-change, rate-change, togglePlay, seekTo, splash). The captured-frame helper's `const ctx = this.liveCaptureCtx` was misleadingly renamed `mowsContext` by the TASTE-32 sweep; it's now `canvasContext` (it's a 2D canvas context, NOT a MowsContext). Local `dw`/`dh` → `destinationWidth`/`destinationHeight` in the same block. 39 videoViewer tests pass; 1489 total React tests pass.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/lib/components/files/fileViewer/formats/VideoViewer.tsx:32,442,452-456 (and many more)
 - **Issue:** `const clampVolume = (v: number)` (`v` for value), `const v = this.videoRef.current`, `const ctx = this.liveCaptureCtx`, plus `dw`/`dh` arithmetic locals.

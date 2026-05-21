@@ -109,8 +109,8 @@ const Stat = ({ icon: Icon, label, value, sub }: StatProps) => (
 
 const VmDetail = () => {
     const { id } = useParams<{ id: string }>();
-    const mows = useMows();
-    const locale = mows.currentLanguage?.code;
+    const mowsContext = useMows();
+    const locale = mowsContext.currentLanguage?.code;
     const [vm, setVm] = useState<VmSummary | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [now, setNow] = useState(() => new Date());
@@ -121,28 +121,28 @@ const VmDetail = () => {
         let alive = true;
         const tick = async () => {
             try {
-                const vmRes = await api.v1.getVm(id);
+                const vmResponse = await api.v1.getVm(id);
                 if (!alive) return;
-                setVm(vmRes.data);
+                setVm(vmResponse.data);
                 setError(null);
-            } catch (e) {
+            } catch (error) {
                 if (!alive) return;
-                setError(await describeApiError(e));
+                setError(await describeApiError(error));
             }
         };
         tick();
-        const h = window.setInterval(tick, POLL_MS);
+        const intervalHandle = window.setInterval(tick, POLL_MS);
         return () => {
             alive = false;
-            window.clearInterval(h);
+            window.clearInterval(intervalHandle);
         };
     }, [id]);
 
     // Tick a clock every second so the relative time + uptime stay fresh
     // even between data polls.
     useEffect(() => {
-        const h = window.setInterval(() => setNow(new Date()), 1000);
-        return () => window.clearInterval(h);
+        const intervalHandle = window.setInterval(() => setNow(new Date()), 1000);
+        return () => window.clearInterval(intervalHandle);
     }, []);
 
     const commitRename = async (next: string) => {
@@ -151,10 +151,10 @@ const VmDetail = () => {
             const updated = await renameVm(vm.id, next);
             setVm(updated);
             toast.success(
-                mows.t.supervisor.vmDetail.renamedTo.replace("{name}", next)
+                mowsContext.t.supervisor.vmDetail.renamedTo.replace("{name}", next)
             );
-        } catch (e) {
-            toast.error(await describeApiError(e));
+        } catch (error) {
+            toast.error(await describeApiError(error));
         }
     };
 
@@ -176,7 +176,7 @@ const VmDetail = () => {
     if (error && !vm) {
         return (
             <div className="text-destructive p-10 text-sm">
-                {mows.t.supervisor.vmDetail.loadFailed} {error}
+                {mowsContext.t.supervisor.vmDetail.loadFailed} {error}
             </div>
         );
     }
@@ -184,12 +184,12 @@ const VmDetail = () => {
     if (!vm) {
         return (
             <div className="text-muted-foreground p-10 text-sm">
-                {mows.t.supervisor.vmDetail.loading}
+                {mowsContext.t.supervisor.vmDetail.loading}
             </div>
         );
     }
 
-    const status = statusFor(vm.status, mows.t.supervisor.vmDetail.status);
+    const status = statusFor(vm.status, mowsContext.t.supervisor.vmDetail.status);
 
     return (
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-8">
@@ -235,31 +235,31 @@ const VmDetail = () => {
                     <div className="flex flex-1 flex-nowrap items-center gap-6">
                         <Stat
                             icon={Cpu}
-                            label={mows.t.supervisor.vmDetail.stat.cpu}
+                            label={mowsContext.t.supervisor.vmDetail.stat.cpu}
                             value={
                                 vm.cpus
-                                    ? `${vm.cpus} ${mows.t.supervisor.vmDetail.stat.vcpuSuffix}`
-                                    : mows.t.supervisor.vmDetail.stat.unknown
+                                    ? `${vm.cpus} ${mowsContext.t.supervisor.vmDetail.stat.vcpuSuffix}`
+                                    : mowsContext.t.supervisor.vmDetail.stat.unknown
                             }
                         />
                         <Stat
                             icon={MemoryStick}
-                            label={mows.t.supervisor.vmDetail.stat.memory}
+                            label={mowsContext.t.supervisor.vmDetail.stat.memory}
                             value={
                                 vm.memory_mb
                                     ? formatBytes(vm.memory_mb)
-                                    : mows.t.supervisor.vmDetail.stat.unknown
+                                    : mowsContext.t.supervisor.vmDetail.stat.unknown
                             }
                         />
                         <Stat
                             icon={Clock}
-                            label={mows.t.supervisor.vmDetail.stat.uptime}
+                            label={mowsContext.t.supervisor.vmDetail.stat.uptime}
                             value={formatDuration(uptimeMs)}
-                            sub={endAt ? mows.t.supervisor.vmDetail.stoppedSub : undefined}
+                            sub={endAt ? mowsContext.t.supervisor.vmDetail.stoppedSub : undefined}
                         />
                         <Stat
                             icon={HardDrive}
-                            label={mows.t.supervisor.vmDetail.stat.baseImage}
+                            label={mowsContext.t.supervisor.vmDetail.stat.baseImage}
                             value={
                                 <span className="capitalize">
                                     {vm.image === "nixos" ? "NixOS" : vm.image}
