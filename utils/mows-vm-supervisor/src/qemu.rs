@@ -498,8 +498,8 @@ impl PortAllocator {
                 return Ok(candidate);
             }
         }
-        Err(SupervisorError::Internal(
-            "port range exhausted; widen port_range in config".to_string(),
+        Err(SupervisorError::PortExhausted(
+            "widen port_range in config".to_string(),
         ))
     }
 }

@@ -477,7 +477,7 @@ async fn probe_until_ready(port: u16) -> Result<()> {
                 sleep(Duration::from_millis(750)).await;
             }
             Err(e) => {
-                return Err(SupervisorError::Internal(format!(
+                return Err(SupervisorError::VmBootTimeout(format!(
                     "sshd on 127.0.0.1:{port} did not present a banner within 180s: {e}"
                 )));
             }
@@ -675,7 +675,7 @@ async fn get_vm_ssh(
     })?;
     let (priv_path, pub_path) = vm_key_paths(&state.config.state_dir, &id);
     let private_key = tokio::fs::read_to_string(&priv_path).await.map_err(|e| {
-        SupervisorError::Internal(format!(
+        SupervisorError::FilesystemError(format!(
             "failed to read per-vm private key at {}: {e}",
             priv_path.display()
         ))
@@ -683,7 +683,7 @@ async fn get_vm_ssh(
     let public_key = tokio::fs::read_to_string(&pub_path)
         .await
         .map_err(|e| {
-            SupervisorError::Internal(format!(
+            SupervisorError::FilesystemError(format!(
                 "failed to read per-vm public key at {}: {e}",
                 pub_path.display()
             ))

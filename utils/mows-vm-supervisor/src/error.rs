@@ -59,6 +59,37 @@ pub enum SupervisorError {
     #[error("invalid state: {0}")]
     InvalidState(String),
 
+    /// External `ssh` / `ssh-keygen` / `tmux`-over-ssh process failure.
+    /// Mapped to 500 with a redacted public message ("upstream ssh
+    /// failed") so the caller doesn't see raw stderr.
+    #[error("ssh failure: {0}")]
+    SshFailed(String),
+
+    /// `PortAllocator` ran out of free ports in the configured range.
+    /// 503 — recoverable in principle (widen `port_range`); not the
+    /// caller's fault.
+    #[error("port range exhausted: {0}")]
+    PortExhausted(String),
+
+    /// Newly-created VM never presented an SSH banner inside the
+    /// readiness deadline. 504 (Gateway Timeout) — the supervisor
+    /// itself is healthy; the guest didn't come up in time.
+    #[error("vm boot timeout: {0}")]
+    VmBootTimeout(String),
+
+    /// Local filesystem op failed with a path-bearing message. Keeps
+    /// the path out of the public response body (so absolute paths
+    /// don't leak to API clients) while making the operator log
+    /// useful.
+    #[error("filesystem: {0}")]
+    FilesystemError(String),
+
+    /// Last-resort variant for truly unexpected conditions. Prefer the
+    /// typed variants above for anything classifiable — `Internal` is
+    /// reserved for "the operator needs to see this in the log, the
+    /// caller gets a redacted 500." All current production callsites
+    /// went through SLOP-46's typed-error sweep; new code should follow
+    /// suit.
     #[error("internal: {0}")]
     Internal(String),
 }
@@ -103,6 +134,30 @@ impl IntoResponse for SupervisorError {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("qemu spawn failed: {msg}"),
             ),
+            Self::SshFailed(msg) => {
+                // ssh stderr can carry hostnames + key paths; log it for
+                // the operator but keep the public body redacted.
+                tracing::error!(error = %msg, "ssh failure");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "upstream ssh failed".to_string(),
+                )
+            }
+            Self::PortExhausted(msg) => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                format!("port range exhausted: {msg}"),
+            ),
+            Self::VmBootTimeout(msg) => (
+                StatusCode::GATEWAY_TIMEOUT,
+                format!("vm boot timeout: {msg}"),
+            ),
+            Self::FilesystemError(msg) => {
+                tracing::error!(error = %msg, "filesystem error");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "filesystem error".to_string(),
+                )
+            }
             other => {
                 tracing::error!(error = ?other, "internal supervisor error");
                 (

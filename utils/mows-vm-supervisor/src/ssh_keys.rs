@@ -47,10 +47,10 @@ pub async fn ensure_vm_keypair(vm_dir: &Path, vm_id: &str) -> Result<VmKeyPair> 
             .status()
             .await
             .map_err(|e| {
-                SupervisorError::Internal(format!("ssh-keygen exec failed: {e}"))
+                SupervisorError::SshFailed(format!("ssh-keygen exec failed: {e}"))
             })?;
         if !status.success() {
-            return Err(SupervisorError::Internal(format!(
+            return Err(SupervisorError::SshFailed(format!(
                 "ssh-keygen exited with {status} for vm {vm_id}"
             )));
         }
@@ -64,7 +64,7 @@ pub async fn ensure_vm_keypair(vm_dir: &Path, vm_id: &str) -> Result<VmKeyPair> 
             tokio::fs::set_permissions(&priv_path, std::fs::Permissions::from_mode(0o600))
                 .await
                 .map_err(|e| {
-                    SupervisorError::Internal(format!(
+                    SupervisorError::FilesystemError(format!(
                         "failed to enforce 0600 on per-vm private key {}: {e}",
                         priv_path.display()
                     ))
@@ -72,7 +72,7 @@ pub async fn ensure_vm_keypair(vm_dir: &Path, vm_id: &str) -> Result<VmKeyPair> 
             tokio::fs::set_permissions(&pub_path, std::fs::Permissions::from_mode(0o644))
                 .await
                 .map_err(|e| {
-                    SupervisorError::Internal(format!(
+                    SupervisorError::FilesystemError(format!(
                         "failed to enforce 0644 on per-vm public key {}: {e}",
                         pub_path.display()
                     ))

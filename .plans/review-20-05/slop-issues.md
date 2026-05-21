@@ -516,8 +516,16 @@ Beyond those clusters, the security item to action first is **SLOP-31** (silent 
 - **Why it matters:** Same pattern as the supervisor's polling — wasted resources. The supervisor's status changes are also slow-changing; polling every 2s is excessive.
 - **Suggestion:** Either use the existing `/v1/vms/{id}/console` websocket to push status events, or use `document.visibilityState` to pause polling when hidden, plus exponential backoff on failures.
 
-### ⁉️ SLOP-46 — `Internal(...)` is used as a catch-all error variant — half the file's errors funnel through it
-- **Status:** Partially fixed — SLOP-23, SLOP-24, SLOP-25 already split the major caller-error cases out of `Internal` (`Conflict`, `InvalidState`, etc.). Remaining `Internal` callsites are genuine "shouldn't happen" paths (sqlx errors, fs errors that aren't caller's fault). The user's "introduce specific variants for every error class" goal is the next pass; the `error.rs` enum can grow without breaking the API surface because `IntoResponse` maps every variant to the right status. Tracking the residual scope here.
+### ✅ SLOP-46 — `Internal(...)` is used as a catch-all error variant — half the file's errors funnel through it
+- **Status:** Fixed — Added four typed variants (`SshFailed`, `PortExhausted`, `VmBootTimeout`, `FilesystemError`) and converted every remaining `SupervisorError::Internal(...)` callsite to the right typed variant:
+  - `agent_runtime.rs::ssh_oneshot` + tmux-new-session → `SshFailed` (500, redacted body, log carries the raw stderr).
+  - `agent_runtime.rs` log-dir mkdir + truncate → `FilesystemError`.
+  - `qemu.rs::PortAllocator::next` exhaustion → `PortExhausted` (503).
+  - `api/vms.rs::probe_until_ready` 180s deadline → `VmBootTimeout` (504 Gateway Timeout — the supervisor itself is healthy, the guest didn't come up).
+  - `api/vms.rs::get_vm_ssh` private/public key read → `FilesystemError`.
+  - `ssh_keys.rs::ensure_vm_keypair` ssh-keygen exec + chmod sites → `SshFailed` / `FilesystemError`.
+  - `grep -rn "SupervisorError::Internal" src/` returns 0 production sites. The `Internal` variant is kept in the enum with a docstring marking it as last-resort.
+  - `cargo check --tests` clean; 29 unit tests pass.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/src/error.rs:58, used at 11+ callsites across vms.rs, agents.rs, agent_runtime.rs, qemu.rs, ssh_keys.rs
 - **Issue:** `SupervisorError::Internal(String)` is the catch-all. Eleven of fifteen distinct error paths in `src/api/agents.rs` and `src/api/vms.rs` use it for things that are NOT internal errors (e.g. "wrong VM status", "missing port"). Per user CLAUDE.md, errors must be typed (thiserror) — the `Internal(String)` variant is anti-pattern.

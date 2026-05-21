@@ -168,7 +168,7 @@ async fn ssh_oneshot(handle: &AgentHandle, remote_cmd: &str) -> Result<std::proc
         .stdin(Stdio::null())
         .output()
         .await
-        .map_err(|e| SupervisorError::Internal(format!("ssh: {e}")))
+        .map_err(|e| SupervisorError::SshFailed(format!("ssh: {e}")))
 }
 
 /// Spawn the agent: SSH in, create a detached tmux session running the
@@ -181,7 +181,7 @@ pub async fn spawn(
 ) -> Result<Arc<AgentHandle>> {
     if let Some(parent) = spec.log_path.parent() {
         tokio::fs::create_dir_all(parent).await.map_err(|e| {
-            SupervisorError::Internal(format!(
+            SupervisorError::FilesystemError(format!(
                 "failed to create agent log dir {}: {e}",
                 parent.display()
             ))
@@ -191,7 +191,7 @@ pub async fn spawn(
     // swallowing the error here would leave operators with a phantom
     // "agent running, no log appearing" mystery. Surface the path + cause.
     tokio::fs::write(&spec.log_path, b"").await.map_err(|e| {
-        SupervisorError::Internal(format!(
+        SupervisorError::FilesystemError(format!(
             "failed to truncate agent log {}: {e}",
             spec.log_path.display()
         ))
@@ -242,7 +242,7 @@ pub async fn spawn(
     let create_out = ssh_oneshot(&handle, &create_cmd).await?;
     if !create_out.status.success() {
         let stderr = String::from_utf8_lossy(&create_out.stderr);
-        return Err(SupervisorError::Internal(format!(
+        return Err(SupervisorError::SshFailed(format!(
             "tmux new-session failed: {stderr}"
         )));
     }
