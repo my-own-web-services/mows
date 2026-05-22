@@ -33,14 +33,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # `configure-pages` (with enablement) needs pages:write so the first
-    # run can turn Pages on without a manual UI step. id-token isn't used
-    # in the build job but is required by `configure-pages` when it
-    # signs the Pages site config.
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
 
@@ -70,15 +62,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-
 
-      # Auto-enables Pages on the repo the first time the workflow runs
-      # (`enablement: true`) and configures the GitHub Actions source. This
-      # removes the manual Settings -> Pages step that would otherwise be a
-      # prerequisite for `deploy-pages`. Idempotent on subsequent runs.
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
-        with:
-          enablement: true
-
       - name: Build docs site
         env:
           # Manual dispatch can override the base path (e.g. "/" for a user
@@ -105,6 +88,14 @@ jobs:
       pages: write
       id-token: write
     steps:
+      # `configure-pages` reads the existing Pages config (built-in source =
+      # "GitHub Actions") and exposes the base URL via outputs. Pages must
+      # have been enabled manually in repo Settings -> Pages first
+      # ("Source: GitHub Actions") — the GITHUB_TOKEN doesn't carry the
+      # admin scope needed to create the Pages site programmatically.
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
