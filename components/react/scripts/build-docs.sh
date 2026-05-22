@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Build the mows-components-react docs SPA for static hosting.
+# Build the @mows/react-components docs SPA for static hosting.
 #
 # Output goes to `components/react/dist-site/`. The same script runs locally
-# and in the GitHub Pages workflow — CI must not invent its own build steps
+# and in the publish workflow — CI must not invent its own build steps
 # (per repo policy in CLAUDE.md). To preview the result locally:
 #
 #   bash scripts/build-docs.sh
@@ -10,19 +10,21 @@
 #
 # Or for a path-prefixed build matching the deployed site:
 #
-#   SITE_BASE=/mows/ bash scripts/build-docs.sh
+#   SITE_BASE=/mows-react-components/ bash scripts/build-docs.sh
 #
 # Environment variables:
 #   SITE_BASE   Public path the site will be served from. Must start AND end
-#               with a slash. Defaults to `/` (root-served). Set to `/mows/`
-#               (or your repo name) for a GitHub Pages project page.
+#               with a slash. Defaults to `/mows-react-components/`, matching
+#               the org Pages layout at https://my-own-web-services.github.io/
+#               mows-react-components/. Override to `/` for root-served local
+#               previews.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PKG_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${PKG_DIR}"
 
-SITE_BASE="${SITE_BASE:-/}"
+SITE_BASE="${SITE_BASE:-/mows-react-components/}"
 case "${SITE_BASE}" in
     /*/) ;;
     *)

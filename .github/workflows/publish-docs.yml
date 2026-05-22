@@ -1,6 +1,21 @@
-name: Publish mows-components-react docs
+name: Publish @mows/react-components docs
 
-# Deploys to https://my-own-web-services.github.io/mows/
+# Deploys to https://my-own-web-services.github.io/mows-react-components/
+#
+# Publishing model: this workflow builds the docs SPA, then pushes it into
+# the org Pages repo `my-own-web-services/my-own-web-services.github.io`
+# under the `mows-react-components/` subdirectory. That repo hosts every
+# project's docs as siblings (mows-react-components/, mows-vm-supervisor/,
+# …) so each docs workflow only owns its own subdir and never touches the
+# others.
+#
+# Prerequisites (one-time, done out-of-band):
+#   1. Org Pages repo `my-own-web-services/my-own-web-services.github.io`
+#      exists, public, Pages enabled with Source = "Deploy from a branch"
+#      (main, /).
+#   2. An SSH deploy key has been generated. The PUBLIC half is added to
+#      the org Pages repo as a deploy key with write access. The PRIVATE
+#      half is stored on THIS repo as the `DOCS_DEPLOY_KEY` secret.
 
 on:
   push:
@@ -16,21 +31,26 @@ on:
   workflow_dispatch:
     inputs:
       site_base:
-        description: 'Public base path the site is served from (must start AND end with "/"). Default "/mows/" matches a GitHub Pages project page at <user>.github.io/mows/.'
+        description: 'Public base path the site is served from (must start AND end with "/"). Default "/mows-react-components/" matches the org Pages layout.'
         required: false
-        default: '/mows/'
+        default: '/mows-react-components/'
         type: string
 
-# Serialise deploys so a newer main push supersedes an in-flight one; PRs
-# cancel each other freely since they never deploy. We deliberately do NOT
-# cancel in-progress deploys on main — once a Pages deploy starts, killing
-# it can leave the site half-published.
+# Serialise pushes to the org Pages repo so a newer commit on main always
+# wins. PRs run the build alone (no deploy) so they cancel freely.
 concurrency:
-  group: pages-${{ github.ref }}
+  group: publish-docs-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
+
+env:
+  # Slug used both as the URL path prefix and the subdirectory inside the
+  # org Pages repo. Changing this in one place keeps the build and the
+  # deploy in sync.
+  DOCS_SLUG: mows-react-components
+  PAGES_REPO: my-own-web-services/my-own-web-services.github.io
 
 jobs:
   build:
@@ -49,9 +69,6 @@ jobs:
           version: 9.15.9
           run_install: false
 
-      # Cache pnpm's content-addressable store across runs so dependency
-      # installation stays reasonably fast without baking version assumptions
-      # into the workflow.
       - name: Get pnpm store path
         id: pnpm-store
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
@@ -66,38 +83,95 @@ jobs:
 
       - name: Build docs site
         env:
-          # Manual dispatch can override the base path (e.g. "/" for a user
-          # page or "/custom/" for a different repo name). On push events
-          # we default to the project-page path matching this repo.
-          SITE_BASE: ${{ github.event.inputs.site_base || '/mows/' }}
+          SITE_BASE: ${{ github.event.inputs.site_base || format('/{0}/', env.DOCS_SLUG) }}
         run: |
           cd components/react
           bash scripts/build-docs.sh
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+      # Hand the built `dist-site/` to the deploy job via the standard
+      # artifact channel. Plain workflow artifact — NOT a Pages artifact —
+      # since we publish to a different repo, not this repo's Pages.
+      - name: Upload built site
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
+          name: docs-site
           path: components/react/dist-site
+          retention-days: 7
+          if-no-files-found: error
 
   deploy:
     needs: build
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      pages: write
-      id-token: write
+      name: docs-publish
+      url: https://my-own-web-services.github.io/${{ env.DOCS_SLUG }}/
     steps:
-      # `configure-pages` reads the existing Pages config (built-in source =
-      # "GitHub Actions") and exposes the base URL via outputs. Pages must
-      # have been enabled manually in repo Settings -> Pages first
-      # ("Source: GitHub Actions") — the GITHUB_TOKEN doesn't carry the
-      # admin scope needed to create the Pages site programmatically.
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Download built site
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        with:
+          name: docs-site
+          path: dist-site
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+      - name: Configure SSH for org Pages repo
+        env:
+          DEPLOY_KEY: ${{ secrets.DOCS_DEPLOY_KEY }}
+        run: |
+          if [ -z "${DEPLOY_KEY}" ]; then
+            echo "::error::DOCS_DEPLOY_KEY secret is not configured on this repo."
+            echo "Generate an ed25519 keypair, add the public half as a deploy key"
+            echo "(with write access) on ${PAGES_REPO}, and add the private half as"
+            echo "the DOCS_DEPLOY_KEY secret on this repo."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${DEPLOY_KEY}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Publish to org Pages repo
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # Shallow clone to keep the deploy fast; we only need HEAD to make
+          # one new commit on top of it.
+          git clone --depth 1 "git@github.com:${PAGES_REPO}.git" pages-repo
+          cd pages-repo
+
+          # Replace only OUR subdir; siblings (other docs projects) stay
+          # untouched. rsync --delete prunes files that disappeared
+          # between builds, but the --include patterns confine all
+          # deletes to ${DOCS_SLUG}/.
+          rm -rf "${DOCS_SLUG}"
+          mkdir "${DOCS_SLUG}"
+          cp -a ../dist-site/. "${DOCS_SLUG}/"
+
+          git config user.name "mows-docs-bot"
+          git config user.email "mows-docs-bot@users.noreply.github.com"
+          git add "${DOCS_SLUG}"
+
+          if git diff --staged --quiet; then
+            echo "No changes to publish (build is byte-identical to the live site)."
+            exit 0
+          fi
+
+          SHORT_SHA="${SOURCE_SHA:0:7}"
+          git commit -m "docs(${DOCS_SLUG}): publish ${SHORT_SHA}"
+
+          # Retry on push rejection — another docs workflow (e.g. a sibling
+          # project) may have pushed concurrently. We only touch our own
+          # subdir, so a rebase is always trivial; bail after a few tries
+          # to avoid burning runner time on a genuinely broken state.
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              echo "Published ${DOCS_SLUG}@${SHORT_SHA} -> ${PAGES_REPO}"
+              exit 0
+            fi
+            echo "Push attempt ${attempt} rejected; rebasing on latest main…"
+            git fetch --depth 1 origin main
+            git rebase origin/main
+          done
+          echo "::error::Failed to push after 5 attempts."
+          exit 1
