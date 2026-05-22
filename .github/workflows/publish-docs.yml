@@ -1,5 +1,7 @@
 name: Publish mows-components-react docs
 
+# Deploys to https://my-own-web-services.github.io/mows/
+
 on:
   push:
     branches:
