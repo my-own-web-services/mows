@@ -5,6 +5,36 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" type="image/svg+xml" href="%BASE_URL%apps_logo.svg" />
         <title>MOWS React Components</title>
+        <!--
+          SPA fallback for org Pages: when a user opens a deep route like
+          /mows-react-components/ActionDisplay, GitHub Pages returns its
+          default 404 page because per-subdir 404.html is not honored on
+          user/org Pages (only at the site root). The site-root 404.html
+          (in the my-own-web-services.github.io repo) redirects such
+          requests to /mows-react-components/?/<rest>; the snippet below
+          decodes that back into the original URL via history.replaceState
+          BEFORE React boots, so the existing path-based router sees the
+          real path. Pattern adapted from
+          https://github.com/rafgraph/spa-github-pages.
+        -->
+        <script>
+            (function (l) {
+                if (l.search[1] === "/") {
+                    var decoded = l.search
+                        .slice(1)
+                        .split("&")
+                        .map(function (s) {
+                            return s.replace(/~and~/g, "&");
+                        })
+                        .join("?");
+                    window.history.replaceState(
+                        null,
+                        "",
+                        l.pathname.slice(0, -1) + decoded + l.hash
+                    );
+                }
+            })(window.location);
+        </script>
     </head>
     <body>
         <div id="root"></div>
