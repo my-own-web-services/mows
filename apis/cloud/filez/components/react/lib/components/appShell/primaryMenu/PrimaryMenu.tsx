@@ -1,12 +1,12 @@
 import PrimaryMenu, {
     type PrimaryMenuProps as MowsPrimaryMenuProps
-} from "mows-components-react/components/appShell/primaryMenu/PrimaryMenu";
+} from "@mows/react-components/components/appShell/primaryMenu/PrimaryMenu";
 import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator
-} from "mows-components-react/components/ui/dropdown-menu";
-import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+} from "@mows/react-components/components/ui/dropdown-menu";
+import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
 import { type CSSProperties, PureComponent } from "react";
 import { IoCodeSlashSharp } from "react-icons/io5";
 import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";

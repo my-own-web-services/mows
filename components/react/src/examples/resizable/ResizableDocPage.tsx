@@ -31,13 +31,13 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
 const USAGE_SNIPPET = `import {
     ResizablePanelGroup,
     ResizablePanel,
     ResizableHandle
-} from "mows-components-react";
+} from "@mows/react-components";
 
 <ResizablePanelGroup direction="horizontal">
     <ResizablePanel defaultSize={25}>Sidebar</ResizablePanel>

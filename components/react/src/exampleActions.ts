@@ -40,18 +40,29 @@ export const EXAMPLE_REPO_LIST_ITEM_SCOPE = `exampleRepoListItem`;
 /**
  * Tiny per-list-id registry that lets the shared `REPO_DELETE` action route
  * an `executeAction(event)` back to the React state of the list that owns
- * the clicked row. Each `<ResourceList>` instance registers a delete sink
- * keyed by the same id it stamps onto its rows via `data-list-id`; the
- * handler reads that attribute off the right-clicked element and looks the
- * sink up here. Module scope is fine — this state is only meaningful while
- * the example is mounted, and `useEffect` cleanup unregisters on unmount.
+ * the clicked row. Each `<ResourceList>` instance registers:
+ *  - `deleteByIds(ids)`     — removes a batch of items from its state
+ *  - `getSelectedIds()`     — current multi-selection (so right-clicking
+ *                             one row in a multi-selection deletes all of
+ *                             them, not just the one targeted)
+ *
+ * The handler reads the listId from `data-list-id` on the right-click
+ * target, looks the registration up here, and either deletes the whole
+ * current selection (if the right-clicked row is part of it) or just the
+ * single row that was actually right-clicked.
+ *
+ * Module scope is fine — this state is only meaningful while the example
+ * is mounted, and `useEffect` cleanup unregisters on unmount.
  */
-type RepoDeleteSink = (itemId: string) => void;
-const repoDeleteSinks = new Map<string, RepoDeleteSink>();
-export const registerRepoDeleteSink = (listId: string, sink: RepoDeleteSink) => {
-    repoDeleteSinks.set(listId, sink);
+export interface RepoListRegistration {
+    readonly deleteByIds: (itemIds: ReadonlyArray<string>) => void;
+    readonly getSelectedIds: () => ReadonlyArray<string>;
+}
+const repoListRegistry = new Map<string, RepoListRegistration>();
+export const registerRepoList = (listId: string, reg: RepoListRegistration) => {
+    repoListRegistry.set(listId, reg);
     return () => {
-        if (repoDeleteSinks.get(listId) === sink) repoDeleteSinks.delete(listId);
+        if (repoListRegistry.get(listId) === reg) repoListRegistry.delete(listId);
     };
 };
 
@@ -299,14 +310,32 @@ export const exampleActions: Action[] = [
                         visibility: ActionVisibility.Shown,
                         icon: () => createElement(Trash2)
                     }),
-                    executeAction: (event) => {
-                        const target = (event?.target as HTMLElement | null) ?? null;
-                        const row = target?.closest?.(`[data-item-id]`) as HTMLElement | null;
-                        const listEl = target?.closest?.(`[data-list-id]`) as HTMLElement | null;
+                    executeAction: (_event, scopeElement) => {
+                        // GlobalContextMenu forwards the *right-click target*
+                        // as `scopeElement`. The dispatched event would
+                        // otherwise be the click on the menu item — whose
+                        // target is inside the floating menu DOM and has no
+                        // row attributes — so we read data-* off the
+                        // captured row element instead.
+                        const row = scopeElement?.closest?.(
+                            `[data-actionscope="${EXAMPLE_REPO_LIST_ITEM_SCOPE}"][data-item-id]`
+                        ) as HTMLElement | null;
+                        const listEl = row?.closest?.(`[data-list-id]`) as HTMLElement | null;
                         const itemId = row?.dataset.itemId;
                         const listId = listEl?.dataset.listId;
                         if (!itemId || !listId) return;
-                        repoDeleteSinks.get(listId)?.(itemId);
+                        const reg = repoListRegistry.get(listId);
+                        if (!reg) return;
+                        // If the right-clicked row is part of the current
+                        // multi-selection, the user means "delete all of
+                        // them". Otherwise — clicking an unselected row —
+                        // delete just that one.
+                        const selected = reg.getSelectedIds();
+                        const targets =
+                            selected.includes(itemId) && selected.length > 0
+                                ? selected
+                                : [itemId];
+                        reg.deleteByIds(targets);
                     }
                 }
             ]

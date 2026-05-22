@@ -32,13 +32,13 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
 const USAGE_SNIPPET = `import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger
-} from "mows-components-react";
+} from "@mows/react-components";
 
 <Collapsible defaultOpen>
     <CollapsibleTrigger>Toggle</CollapsibleTrigger>

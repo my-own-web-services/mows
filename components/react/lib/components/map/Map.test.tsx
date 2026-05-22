@@ -19,6 +19,7 @@ interface MapMock {
     constructorArgs: { transformRequest?: (url: string) => { url: string } } & Record<string, unknown>;
     listeners: Map<string, (event?: unknown) => void>;
     setStyleCalls: unknown[];
+    setProjectionCalls: unknown[];
     removed: boolean;
     bearing: number;
     pitch: number;
@@ -27,6 +28,7 @@ interface MapMock {
     flyToCalls: unknown[];
     on(name: string, fn: (event?: unknown) => void): MapMock;
     setStyle(style: unknown): void;
+    setProjection(projection: unknown): void;
     remove(): void;
     fire(name: string, event?: unknown): void;
     getCenter(): { lng: number; lat: number };
@@ -68,10 +70,12 @@ vi.mock(`./mapboxModule`, () => {
         zoomCalls: { dir: `in` | `out` }[];
         easeToCalls: unknown[];
         flyToCalls: unknown[];
+        setProjectionCalls: unknown[];
         constructor(args: MapMock[`constructorArgs`]) {
             this.constructorArgs = args;
             this.listeners = new Map();
             this.setStyleCalls = [];
+            this.setProjectionCalls = [];
             this.removed = false;
             this.bearing = 0;
             this.pitch = 0;
@@ -86,6 +90,9 @@ vi.mock(`./mapboxModule`, () => {
         }
         setStyle(style: unknown) {
             this.setStyleCalls.push(style);
+        }
+        setProjection(projection: unknown) {
+            this.setProjectionCalls.push(projection);
         }
         remove() {
             this.removed = true;
@@ -344,17 +351,13 @@ describe(`<Map>`, () => {
     it(`defaults the camera to globe projection`, async () => {
         renderMap();
         await waitFor(() => expect(mapInstances).toHaveLength(1));
-        expect(mapInstances[0]!.constructorArgs.projection).toEqual({
-            type: `globe`
-        });
+        expect(mapInstances[0]!.setProjectionCalls).toEqual([{ type: `globe` }]);
     });
 
     it(`switches to mercator projection when explicitly requested`, async () => {
         renderMap({ projection: `mercator` });
         await waitFor(() => expect(mapInstances).toHaveLength(1));
-        expect(mapInstances[0]!.constructorArgs.projection).toEqual({
-            type: `mercator`
-        });
+        expect(mapInstances[0]!.setProjectionCalls).toEqual([{ type: `mercator` }]);
     });
 
     it(`disables maplibre's native attribution control`, async () => {

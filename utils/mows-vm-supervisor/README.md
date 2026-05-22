@@ -51,7 +51,7 @@ A React + tailwind + shadcn SPA living under `web/` will be embedded into
 the supervisor binary via `include_dir!` and served from the same axum
 listener. Auth is local users + argon2 + session cookies; mobile-friendly
 chat UI talks to `/v1/agents/:id/chat` over WebSockets. The app **must**
-consume `mows-components-react` (yalc) per repo policy — see the user's
+consume `@mows/react-components` (yalc) per repo policy — see the user's
 global memory.
 
 ## Reproducible artifacts

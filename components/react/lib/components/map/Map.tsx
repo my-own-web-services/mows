@@ -62,6 +62,16 @@ export interface MapProps {
     readonly onLoad?: (map: MapLibre.Map) => void;
     /** Fired whenever the camera comes to rest after a user gesture. */
     readonly onMoveEnd?: (view: MapView) => void;
+    /**
+     * Fired when the user clicks (taps) anywhere on the map canvas.
+     * Receives the projected longitude/latitude under the pointer plus
+     * the raw maplibre-gl event for callers that need pixel coordinates
+     * or rendered features (e.g. `event.target.queryRenderedFeatures`).
+     */
+    readonly onClick?: (
+        event: { longitude: number; latitude: number },
+        rawEvent: MapLibre.MapMouseEvent
+    ) => void;
 }
 
 interface UserLocation {
@@ -201,11 +211,7 @@ export default class Map extends PureComponent<MapProps, MapState> {
             // MapLibre's stock attribution control fights the theme
             // (white pill on dark surfaces, custom font). We render our
             // own expandable info badge below.
-            attributionControl: false,
-            // Globe pulls back to a sphere when zoomed out and falls
-            // back to Mercator up close — Mapbox's default for world-
-            // scale data. Caller can pin to flat Mercator via the prop.
-            projection: { type: projection } as MapLibre.MapOptions[`projection`]
+            attributionControl: false
         };
         // MapLibre accepts `transformRequest` per-request token injection;
         // attach only when one is supplied so tokenless styles stay clean.
@@ -229,6 +235,16 @@ export default class Map extends PureComponent<MapProps, MapState> {
         }
 
         this.appliedStyleId = style.id;
+
+        // Projection isn't a constructor option in maplibre-gl — apply
+        // it via setProjection. Calling before the first style is loaded
+        // is supported and persists across subsequent setStyle() calls,
+        // so a settings-panel style switch keeps the globe.
+        try {
+            this.map.setProjection({ type: projection });
+        } catch (err) {
+            log.warn(`setProjection failed; falling back to mercator`, err);
+        }
 
         this.map.on(`load`, () => {
             this.setState({ status: `ready` });
@@ -257,6 +273,13 @@ export default class Map extends PureComponent<MapProps, MapState> {
                 bearing: this.map.getBearing(),
                 pitch: this.map.getPitch()
             });
+        });
+
+        this.map.on(`click`, (event) => {
+            this.props.onClick?.(
+                { longitude: event.lngLat.lng, latitude: event.lngLat.lat },
+                event
+            );
         });
 
         this.map.on(`error`, (event) => {

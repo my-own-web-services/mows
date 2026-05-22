@@ -29,6 +29,7 @@ import NumberInputDocPage from "./examples/numberInput/NumberInputDocPage";
 import OptionPickerDocPage from "./examples/optionPicker/OptionPickerDocPage";
 import SearchSelectPickerDocPage from "./examples/searchSelectPicker/SearchSelectPickerDocPage";
 import LanguagePickerDocPage from "./examples/languagePicker/LanguagePickerDocPage";
+import LocationPickerDocPage from "./examples/locationPicker/LocationPickerDocPage";
 import MapDocPage from "./examples/map/MapDocPage";
 import MapStylePickerDocPage from "./examples/mapStylePicker/MapStylePickerDocPage";
 import ThemePickerDocPage from "./examples/themePicker/ThemePickerDocPage";
@@ -47,6 +48,7 @@ import DateTimeDisplayDocPage from "./examples/dateTimeDisplay/DateTimeDisplayDo
 import KeyComboRecorderDocPage from "./examples/keyComboRecorder/KeyComboRecorderDocPage";
 import type { Translation } from "./languages";
 import { uiDemos } from "./uiDemos";
+import { registerDemoLinks } from "./componentLinkRegistry";
 
 // ARCH-20: previous `DemoFrame`, `useTranslations`, `ExampleT|DemosT|CommonT`
 // scaffolding was retired with the DocPage migration. Every entry in the
@@ -124,6 +126,7 @@ export const demos: DemoEntry[] = [
     { id: `inlineEdit`, name: `InlineEdit`, groupKey: `input`, render: () => <InlineEditDocPage />, searchTags: [`edit`, `rename`, `contenteditable`, `inplace`] },
     { id: `numberInput`, name: `NumberInput`, groupKey: `input`, render: () => <NumberInputDocPage />, searchTags: [`number`, `numeric`, `stepper`] },
     { id: `searchSelectPicker`, name: `SearchSelectPicker`, groupKey: `input`, render: () => <SearchSelectPickerDocPage />, searchTags: [`combobox`, `command`, `autocomplete`] },
+    { id: `locationPicker`, name: `LocationPicker`, groupKey: `input`, render: () => <LocationPickerDocPage />, searchTags: [`map`, `coordinates`, `lat`, `lng`, `geo`, `place`] },
     { id: `settingsPanel`, name: `SettingsPanel`, groupKey: `settings`, render: () => <SettingsPanelDocPage /> },
     { id: `languagePicker`, name: `LanguagePicker`, groupKey: `settings`, render: () => <LanguagePickerDocPage /> },
     { id: `themePicker`, name: `ThemePicker`, groupKey: `settings`, render: () => <ThemePickerDocPage /> },
@@ -160,3 +163,10 @@ export const demos: DemoEntry[] = [
         })
     )
 ];
+
+// Feed the cross-doc link registry. `renderInlineMarkup` consults the
+// registry whenever it encounters a `<PascalCaseName>` chip in prose and
+// wraps the chip in a doc-page anchor when the name resolves — that's
+// what turns plain mentions like `<PrimaryMenu>` in a `<Steps>`
+// description into clickable navigation.
+registerDemoLinks(demos);

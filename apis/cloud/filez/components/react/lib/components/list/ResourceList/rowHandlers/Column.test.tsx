@@ -1,14 +1,14 @@
 import { FilezProvider } from "@/lib/filezContext/FilezContext";
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
-import ResourceList from "mows-components-react/components/list/ResourceList/ResourceList";
+import ResourceList from "@mows/react-components/components/list/ResourceList/ResourceList";
 import {
     SortDirection,
     type BaseResource
-} from "mows-components-react/components/list/ResourceList/ResourceListTypes";
+} from "@mows/react-components/components/list/ResourceList/ResourceListTypes";
 import ColumnListRowHandler, {
     type Column
-} from "mows-components-react/components/list/ResourceList/rowHandlers/Column";
+} from "@mows/react-components/components/list/ResourceList/rowHandlers/Column";
 
 // Mock test resource type
 interface TestResource extends BaseResource {

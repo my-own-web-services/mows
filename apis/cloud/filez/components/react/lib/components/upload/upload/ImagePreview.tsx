@@ -1,8 +1,8 @@
-import FileIcon from "mows-components-react/components/files/fileIcon/FileIcon";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "mows-components-react/components/ui/hover-card";
-import { Skeleton } from "mows-components-react/components/ui/skeleton";
-import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
-import { log } from "mows-components-react/lib/logging";
+import FileIcon from "@mows/react-components/components/files/fileIcon/FileIcon";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@mows/react-components/components/ui/hover-card";
+import { Skeleton } from "@mows/react-components/components/ui/skeleton";
+import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
+import { log } from "@mows/react-components/lib/logging";
 import { cn, formatFileSizeToHumanReadable } from "@/lib/utils";
 import { Component, createRef } from "react";
 

@@ -30,7 +30,7 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
 const USAGE_SNIPPET = `import {
     ContextMenu,
@@ -38,7 +38,7 @@ const USAGE_SNIPPET = `import {
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuSeparator
-} from "mows-components-react";
+} from "@mows/react-components";
 
 <ContextMenu>
     <ContextMenuTrigger className="block h-32 w-full border-2 border-dashed">

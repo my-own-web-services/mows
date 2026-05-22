@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import type { Translation } from "../languages";
 import { CreatingAppsGuide } from "./CreatingAppsGuide";
+import { registerGuideLinks } from "../componentLinkRegistry";
 
 export interface GuideEntry {
     readonly id: string;
@@ -19,3 +20,8 @@ export const guides: ReadonlyArray<GuideEntry> = [
         render: () => <CreatingAppsGuide />
     }
 ];
+
+// Feed the cross-doc link registry — same pattern as `demos.tsx`. Lets
+// prose like `<CreatingApps>` (in any doc page's body string) resolve to
+// `/guide/CreatingApps` automatically.
+registerGuideLinks(guides);

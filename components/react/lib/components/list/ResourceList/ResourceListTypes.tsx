@@ -116,6 +116,8 @@ export type ResourceListHandlersOnItemRightClick<ResourceType> = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>
 ) => void;
 
+export type ResourceListHandlersOnReorder = (fromIndex: number, toIndex: number) => void;
+
 export interface ResourceListHandlers<ResourceType> {
     readonly onSearch?: ResourceListHandlersOnSearch;
     readonly onRefresh?: ResourceListHandlersOnRefresh;
@@ -132,6 +134,13 @@ export interface ResourceListHandlers<ResourceType> {
      * upstream.
      */
     readonly onItemRightClick?: ResourceListHandlersOnItemRightClick<ResourceType>;
+    /**
+     * Fires after the user drag-and-drops a row to a new position.
+     * Only invoked when `reorderable` is enabled on the list. The
+     * consumer owns the underlying data and is responsible for
+     * applying the move and re-fetching the next window.
+     */
+    readonly onReorder?: ResourceListHandlersOnReorder;
 }
 export enum RowRendererDirection {
     Vertical = `vertical`,
@@ -164,6 +173,16 @@ export interface RowComponentData<ResourceType> {
     readonly rowHandlers?: ListRowHandler<ResourceType>[];
     readonly listWidth: number;
     readonly listHeight: number;
+    /**
+     * When true, row handlers that opt in mark the whole row as
+     * `draggable` and emit `onReorder(fromIndex, toIndex)` after a
+     * drop. The single insertion indicator is owned by the list, not
+     * the row — `onDragIndicatorChange` reports the would-be insert
+     * position (or `null` to clear).
+     */
+    readonly reorderable?: boolean;
+    readonly onReorder?: ResourceListHandlersOnReorder;
+    readonly onDragIndicatorChange?: (insertBeforeIndex: number | null) => void;
 }
 
 export interface BaseResource {

@@ -32,9 +32,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
-const USAGE_SNIPPET = `import { GlobalContextMenu } from "mows-components-react";
+const USAGE_SNIPPET = `import { GlobalContextMenu } from "@mows/react-components";
 
 <GlobalContextMenu />
 
@@ -150,7 +150,7 @@ const buildBehaviourEntries = (
         statement: statements.updatesOnSecondClick,
         testFile: TEST_FILE,
         testName: `updates the cursor position on a second right-click`,
-        testLine: 250
+        testLine: 311
     }
 ];
 

@@ -1,6 +1,6 @@
 import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { FilezFile } from "filez-client-typescript";
-import FileViewer from "mows-components-react/components/files/fileViewer/FileViewer";
+import FileViewer from "@mows/react-components/components/files/fileViewer/FileViewer";
 import { PureComponent, type CSSProperties } from "react";
 
 const DEFAULT_IMAGE_APP_ID = `019a4a36-abf3-7f62-9df9-cdf5f60331cf`;

@@ -31,9 +31,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
-const USAGE_SNIPPET = `import { Label, Input } from "mows-components-react";
+const USAGE_SNIPPET = `import { Label, Input } from "@mows/react-components";
 
 <Label htmlFor="email">Email</Label>
 <Input id="email" type="email" />`;

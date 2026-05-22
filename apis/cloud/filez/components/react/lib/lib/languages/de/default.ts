@@ -1,5 +1,5 @@
-import baseDe from "mows-components-react/lib/languages/de/default";
-import { CoreActionIds } from "mows-components-react/lib/mowsContext/coreActions";
+import baseDe from "@mows/react-components/lib/languages/de/default";
+import { CoreActionIds } from "@mows/react-components/lib/mowsContext/coreActions";
 import { FilezActionIds } from "@/lib/filezActions";
 import type { Translation } from "@/lib/languages";
 

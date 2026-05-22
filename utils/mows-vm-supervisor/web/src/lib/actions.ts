@@ -10,7 +10,7 @@
 import {
     Action,
     ActionVisibility
-} from "mows-components-react/lib/mowsContext/ActionManager";
+} from "@mows/react-components/lib/mowsContext/ActionManager";
 import { Pencil, Square, Trash2 } from "lucide-react";
 import { createElement, type JSX } from "react";
 import { toast } from "sonner";

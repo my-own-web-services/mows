@@ -10,6 +10,8 @@ import multipleLayoutsModule from "./MultipleLayouts";
 import multipleLayoutsSource from "./MultipleLayouts.tsx?raw";
 import multipleListsSharedActionModule from "./MultipleListsSharedAction";
 import multipleListsSharedActionSource from "./MultipleListsSharedAction.tsx?raw";
+import reorderableModule from "./Reorderable";
+import reorderableSource from "./Reorderable.tsx?raw";
 import selectionModule from "./Selection";
 import selectionSource from "./Selection.tsx?raw";
 import type { RegisteredExample } from "../harness/types";
@@ -19,6 +21,7 @@ export const resourceListExamples: ReadonlyArray<RegisteredExample> = [
     { id: `grid`, source: gridSource, ...gridModule },
     { id: `multipleLayouts`, source: multipleLayoutsSource, ...multipleLayoutsModule },
     { id: `selection`, source: selectionSource, ...selectionModule },
+    { id: `reorderable`, source: reorderableSource, ...reorderableModule },
     { id: `contextMenu`, source: contextMenuSource, ...contextMenuModule },
     {
         id: `multipleListsSharedAction`,

@@ -3,7 +3,7 @@ import {
     RESOURCE_TAGS_NOT_ALL_RESOURCES_SUFFIX,
     RESOURCE_TAGS_SEPARATOR
 } from "@/lib/constants";
-import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
 import { cn } from "@/lib/utils";
 import { TagResourceType } from "filez-client-typescript";
 import { Search, TagIcon, Text, X } from "lucide-react";
@@ -12,11 +12,11 @@ import { PureComponent, type CSSProperties } from "react";
 import { IoClose } from "react-icons/io5";
 import { MdOutlineLibraryAdd } from "react-icons/md";
 import { match } from "ts-pattern";
-import { Badge } from "mows-components-react/components/ui/badge";
-import { Button } from "mows-components-react/components/ui/button";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "mows-components-react/components/ui/input-group";
-import { Textarea } from "mows-components-react/components/ui/textarea";
-import ButtonSelect from "mows-components-react/components/input/buttonSelect/ButtonSelect";
+import { Badge } from "@mows/react-components/components/ui/badge";
+import { Button } from "@mows/react-components/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@mows/react-components/components/ui/input-group";
+import { Textarea } from "@mows/react-components/components/ui/textarea";
+import ButtonSelect from "@mows/react-components/components/input/buttonSelect/ButtonSelect";
 
 export interface ResourceTagsChangeset {
     resourceIds: string[];

@@ -6,7 +6,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { IDisposable, ITerminalAddon, ITheme, Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
 import { CSSProperties, Component, createRef } from "react";
 
 interface TerminalComponentProps {

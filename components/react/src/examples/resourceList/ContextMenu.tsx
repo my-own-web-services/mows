@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, ExternalLink, Trash2 } from "lucide-react";
 import ResourceList from "../../../lib/components/list/ResourceList/ResourceList";
 import ColumnListRowHandler, { type Column } from "../../../lib/components/list/ResourceList/rowHandlers/Column";
@@ -49,34 +49,57 @@ const Example = () => {
 
     const closeMenu = () => setMenu(null);
 
+    // If the right-clicked row is part of the current multi-selection,
+    // the action targets every selected row. Otherwise — right-click on
+    // an unselected row — only that row is affected. This mirrors how
+    // OS file managers handle right-click in a multi-selection.
+    const resolveTargets = (anchor: Repo): ReadonlyArray<Repo> => {
+        const selected = listRef.current?.getSelectedItems() ?? [];
+        const selectedIds = new Set(selected.map((r) => r.id));
+        if (selectedIds.has(anchor.id) && selected.length > 0) return selected;
+        return [anchor];
+    };
+
     const runAction = (action: `open` | `duplicate` | `delete`) => {
         if (!menu) return;
-        const { item } = menu;
-        setLastAction(`${action}: ${item.name}`);
+        const targets = resolveTargets(menu.item);
+        setLastAction(`${action}: ${targets.map((t) => t.name).join(`, `)}`);
         if (action === `delete`) {
-            setRepos((prev) => prev.filter((r) => r.id !== item.id));
-            // refreshList re-runs getResourcesList against the new fixture
-            // so the deleted row actually disappears from the rendered
-            // window. Without this the list keeps the stale snapshot it
-            // captured at mount.
-            listRef.current?.refreshList();
+            const ids = new Set(targets.map((t) => t.id));
+            setRepos((prev) => prev.filter((r) => !ids.has(r.id)));
         } else if (action === `duplicate`) {
+            const targetIds = new Set(targets.map((t) => t.id));
+            const stamp = Date.now().toString(36);
             setRepos((prev) => {
-                const idx = prev.findIndex((r) => r.id === item.id);
-                if (idx < 0) return prev;
-                const copy: Repo = {
-                    ...item,
-                    id: `${item.id}-copy-${Date.now().toString(36)}`,
-                    name: `${item.name}-copy`
-                };
-                const next = [...prev];
-                next.splice(idx + 1, 0, copy);
+                const next: Repo[] = [];
+                prev.forEach((r) => {
+                    next.push(r);
+                    if (targetIds.has(r.id)) {
+                        next.push({
+                            ...r,
+                            id: `${r.id}-copy-${stamp}`,
+                            name: `${r.name}-copy`
+                        });
+                    }
+                });
                 return next;
             });
-            listRef.current?.refreshList();
         }
         closeMenu();
     };
+
+    // refreshList lives in an effect — not inline next to setRepos — so it
+    // runs *after* ResourceList has received the new getResourcesList prop
+    // closure. Calling it synchronously inside the same handler would
+    // re-fetch through the previous-render closure (still the old `repos`).
+    const isFirstRenderRef = useRef(true);
+    useEffect(() => {
+        if (isFirstRenderRef.current) {
+            isFirstRenderRef.current = false;
+            return;
+        }
+        listRef.current?.refreshList();
+    }, [repos]);
 
     const handlers = useMemo(() => {
         const columns: Column<Repo>[] = [
@@ -120,10 +143,21 @@ const Example = () => {
 
     const getResourcesList = async (
         req: ListResourceRequestBody
-    ): Promise<ListResourceResponseBody<Repo>> => ({
-        items: repos.slice(req.fromIndex, req.fromIndex + req.limit),
-        totalCount: repos.length
-    });
+    ): Promise<ListResourceResponseBody<Repo>> => {
+        const sorted = [...repos].sort((a, b) => {
+            const av = a[req.sortBy as keyof Repo];
+            const bv = b[req.sortBy as keyof Repo];
+            const cmp =
+                typeof av === `number` && typeof bv === `number`
+                    ? av - bv
+                    : String(av).localeCompare(String(bv));
+            return req.sortDirection === SortDirection.Descending ? -cmp : cmp;
+        });
+        return {
+            items: sorted.slice(req.fromIndex, req.fromIndex + req.limit),
+            totalCount: sorted.length
+        };
+    };
 
     useExampleState({
         menuOpen: menu !== null,
@@ -135,8 +169,9 @@ const Example = () => {
     return (
         <div className={`flex flex-col gap-3`}>
             <p className={`text-muted-foreground text-sm`}>
-                Right-click anywhere on a row to open the action menu. Delete removes the row;
-                duplicate inserts a copy right below it.
+                Right-click anywhere on a row to open the action menu. Ctrl/Cmd-click or
+                Shift-click to multi-select; right-clicking any selected row then deletes (or
+                duplicates) every selected row at once.
             </p>
             <div className={`h-[420px] w-full rounded-md border bg-background`}>
                 <ResourceList<Repo>

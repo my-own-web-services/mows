@@ -21,7 +21,7 @@ const buildCommand = (packageManager: PackageManager, suffix: string): string =>
 interface CommandBlockProps {
     /**
      * The command body without the package-manager prefix, e.g.
-     * `add mows-components-react` or `dlx some-cli@latest init`.
+     * `add @mows/react-components` or `dlx some-cli@latest init`.
      */
     readonly command: string;
     readonly className?: string;

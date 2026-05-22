@@ -1,5 +1,5 @@
-import CopyValueButton from "mows-components-react/components/input/copyValueButton/CopyValueButton";
-import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import CopyValueButton from "@mows/react-components/components/input/copyValueButton/CopyValueButton";
+import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
 import { PureComponent, type CSSProperties } from "react";
 
 interface NotesProps {

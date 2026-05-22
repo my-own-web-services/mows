@@ -5,7 +5,7 @@ import {
     JobPersistenceType,
     StorageQuota
 } from "filez-client-typescript";
-import { log } from "mows-components-react/lib/logging";
+import { log } from "@mows/react-components/lib/logging";
 
 export type UploadFileResponse = Record<string, never>;
 

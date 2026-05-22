@@ -68,7 +68,7 @@ behaviour.
 ## Example
 
 ```tsx
-import { PageIndex } from "mows-components-react";
+import { PageIndex } from "@mows/react-components";
 
 <div className="flex gap-6">
     <div className="flex-1 flex flex-col gap-6">

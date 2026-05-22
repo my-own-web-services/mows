@@ -1,6 +1,6 @@
 import { effect } from "@preact/signals-react";
-import { Button } from "mows-components-react/components/ui/button";
-import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { Button } from "@mows/react-components/components/ui/button";
+import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
 import { PureComponent, type CSSProperties } from "react";
 import { GrResume } from "react-icons/gr";
 import { TbSnowflake } from "react-icons/tb";

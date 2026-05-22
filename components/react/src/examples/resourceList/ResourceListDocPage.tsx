@@ -28,6 +28,7 @@ const ANCHOR = {
     grid: `examples-grid`,
     multipleLayouts: `examples-multiple-layouts`,
     selection: `examples-selection`,
+    reorderable: `examples-reorderable`,
     contextMenu: `examples-context-menu`,
     multipleListsSharedAction: `examples-multiple-lists-shared-action`,
     horizontalStrip: `examples-horizontal-strip`,
@@ -36,13 +37,13 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
 const USAGE_SNIPPET = `import {
     ResourceList,
     ColumnListRowHandler,
     SortDirection
-} from "mows-components-react";
+} from "@mows/react-components";
 
 interface User {
     id: string;
@@ -132,8 +133,9 @@ const PROPS: PropRow[] = [
     { name: `displayListHeader`, type: `boolean`, default: `true`, description: `Hide the header bar (row-handler picker / refresh) when false.` },
     { name: `listHeaderElement`, type: `JSX.Element`, default: `—`, description: `Custom content rendered inside the header bar.` },
     { name: `overscanCount`, type: `number`, default: `20`, description: `Number of items rendered outside the visible window for smoother scrolling.` },
-    { name: `handlers`, type: `ResourceListHandlers<T>`, default: `—`, description: `Optional event-handler bag: onSelect, onSearch, onRefresh, onCreateClick, onListTypeChange.` },
+    { name: `handlers`, type: `ResourceListHandlers<T>`, default: `—`, description: `Optional event-handler bag: onSelect, onSearch, onRefresh, onCreateClick, onListTypeChange, onItemRightClick, onReorder.` },
     { name: `dropTargetAcceptsTypes`, type: `string[]`, default: `—`, description: `Drag-and-drop: which payload types the list accepts as a drop target.` },
+    { name: `reorderable`, type: `boolean`, default: `false`, description: `When true, the Column row handler renders a drag grip on every row and the list emits handlers.onReorder(fromIndex, toIndex) after a successful drop.` },
     { name: `displayDebugBar`, type: `boolean`, default: `false`, description: `Show an internal debug bar with the current fetch / window state.` },
     { name: `className`, type: `string`, default: `—`, description: `Extra classes on the outer wrapper.` },
     { name: `style`, type: `CSSProperties`, default: `—`, description: `Inline style on the outer wrapper.` }
@@ -159,6 +161,7 @@ const buildIndexItems = (t: Strings): PageIndexItem[] => {
                 { id: ANCHOR.grid, label: doc.examples.grid.title },
                 { id: ANCHOR.multipleLayouts, label: doc.examples.multipleLayouts.title },
                 { id: ANCHOR.selection, label: doc.examples.selection.title },
+                { id: ANCHOR.reorderable, label: doc.examples.reorderable.title },
                 { id: ANCHOR.contextMenu, label: doc.examples.contextMenu.title },
                 {
                     id: ANCHOR.multipleListsSharedAction,
@@ -180,9 +183,10 @@ const TEST_FILE = `lib/components/list/ResourceList/ResourceList.test.tsx`;
 const buildBehaviourEntries = (
     statements: Strings[`doc`][`definedBehaviour`][`statements`]
 ): BehaviourEntry[] => [
-    { statement: statements.callsFetcher, testFile: TEST_FILE, testName: `calls getResourcesList on mount`, testLine: 117 },
-    { statement: statements.firstWindow, testFile: TEST_FILE, testName: `first fetch passes fromIndex=0 + a finite limit`, testLine: 126 },
-    { statement: statements.forwardsSort, testFile: TEST_FILE, testName: `forwards a sortBy + sortDirection in the request body`, testLine: 139 }
+    { statement: statements.callsFetcher, testFile: TEST_FILE, testName: `calls getResourcesList on mount`, testLine: 119 },
+    { statement: statements.firstWindow, testFile: TEST_FILE, testName: `first fetch passes fromIndex=0 + a finite limit`, testLine: 128 },
+    { statement: statements.forwardsSort, testFile: TEST_FILE, testName: `forwards a sortBy + sortDirection in the request body`, testLine: 141 },
+    { statement: statements.reorderFires, testFile: TEST_FILE, testName: `fires onReorder when a row is dropped onto another row`, testLine: 303 }
 ];
 
 export const ResourceListDocPage = () => {
@@ -250,6 +254,13 @@ export const ResourceListDocPage = () => {
                         description={doc.examples.selection.description}
                     >
                         <ExampleCard example={resourceListExampleById(`selection`)} hideHeader />
+                    </DocSubsection>
+                    <DocSubsection
+                        id={ANCHOR.reorderable}
+                        title={doc.examples.reorderable.title}
+                        description={doc.examples.reorderable.description}
+                    >
+                        <ExampleCard example={resourceListExampleById(`reorderable`)} hideHeader />
                     </DocSubsection>
                     <DocSubsection
                         id={ANCHOR.contextMenu}

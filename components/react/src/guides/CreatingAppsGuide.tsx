@@ -27,7 +27,7 @@ const ANCHOR = {
     patternSidebar: `pattern-sidebar`
 } as const;
 
-const PROVIDER_SNIPPET = `import { MowsProvider } from "mows-components-react";
+const PROVIDER_SNIPPET = `import { MowsProvider } from "@mows/react-components";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 
@@ -43,7 +43,7 @@ const APP_SHELL_SNIPPET = `import {
     ModalHandler,
     MowsProvider,
     Toaster
-} from "mows-components-react";
+} from "@mows/react-components";
 
 export const Root = () => (
     <MowsProvider storagePrefix="my-app">
@@ -66,7 +66,7 @@ const SIDEBAR_LAYOUT_SNIPPET = `import {
     SidebarHeader,
     SidebarInset,
     SidebarProvider
-} from "mows-components-react";
+} from "@mows/react-components";
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => (
     <SidebarProvider>

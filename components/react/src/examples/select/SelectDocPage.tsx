@@ -31,7 +31,7 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
 const USAGE_SNIPPET = `import {
     Select,
@@ -39,7 +39,7 @@ const USAGE_SNIPPET = `import {
     SelectValue,
     SelectContent,
     SelectItem
-} from "mows-components-react";
+} from "@mows/react-components";
 
 const [value, setValue] = useState<string>();
 

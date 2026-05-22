@@ -30,9 +30,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
-const USAGE_SNIPPET = `import { ActionDisplay } from "mows-components-react";
+const USAGE_SNIPPET = `import { ActionDisplay } from "@mows/react-components";
 
 const action = mowsContext.actionManager.getAction("myAction");
 

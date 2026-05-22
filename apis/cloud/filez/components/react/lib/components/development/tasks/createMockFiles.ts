@@ -1,5 +1,5 @@
 import {
-import { log } from "mows-components-react/lib/logging";
+import { log } from "@mows/react-components/lib/logging";
     createExampleUser,
     FileGroupType,
     FilezClient,

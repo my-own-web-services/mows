@@ -32,9 +32,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
-const USAGE_SNIPPET = `import { CopyValueButton } from "mows-components-react";
+const USAGE_SNIPPET = `import { CopyValueButton } from "@mows/react-components";
 
 <CopyValueButton value="my-token" label="Copy token" />`;
 

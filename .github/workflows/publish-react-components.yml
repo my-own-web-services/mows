@@ -1,0 +1,180 @@
+name: Publish @mows/react-components
+
+# Publishes the React component library at components/react to npm as
+# @mows/react-components.
+#
+# How to release a new version:
+#   1. Bump "version" in components/react/package.json
+#   2. Open a PR — this workflow's `verify` job runs on every PR so the
+#      tests and the lib build are exercised before a tag exists.
+#   3. Merge the PR.
+#   4. Create and push a tag `react-components-vX.Y.Z` matching the
+#      package.json version (e.g. `git tag react-components-v0.1.0 && git push origin react-components-v0.1.0`).
+#   5. The `publish` job below runs only on that tag, verifies the tag
+#      matches package.json, builds, runs tests, and runs `npm publish`
+#      with provenance.
+#
+# Required repository secrets:
+#   NPM_TOKEN — an "Automation" or "Granular" npm access token with
+#               publish rights on the @mows scope.
+# Required repository setup:
+#   The @mows org must exist on npmjs.org and the publishing user/org
+#   token must have permission to publish scoped packages with public
+#   access.
+
+on:
+  push:
+    tags:
+      - 'react-components-v*'
+  pull_request:
+    paths:
+      - 'components/react/**'
+      - '.github/workflows/publish-react-components.yml'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (build + npm publish --dry-run, do not actually publish)'
+        required: false
+        default: 'true'
+        type: boolean
+
+# Tag pushes always represent a unique release — never cancel an
+# in-flight publish. PRs cancel each other freely since they never
+# publish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    # Runs on every PR + on tag pushes. Acts as the gate that the lib
+    # builds and the tests pass before we even consider publishing.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@26961cf329f22f6837d5f54c3efd76b480300ace # v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('components/react/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        working-directory: components/react
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        working-directory: components/react
+        run: pnpm test
+
+      - name: Build library
+        working-directory: components/react
+        run: pnpm build:lib
+
+      - name: Upload built lib (for the publish job)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/react-components-v')
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4
+        with:
+          name: react-components-dist
+          path: components/react/dist
+          retention-days: 7
+
+  publish:
+    needs: verify
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/react-components-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required for npm provenance attestations (sigstore).
+      id-token: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@26961cf329f22f6837d5f54c3efd76b480300ace # v4
+        with:
+          node-version: '22'
+          # `registry-url` makes `setup-node` write an .npmrc that
+          # references NODE_AUTH_TOKEN — required for `npm publish`.
+          registry-url: 'https://registry.npmjs.org/'
+          scope: '@mows'
+
+      - name: Verify tag matches package.json version
+        working-directory: components/react
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#react-components-v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION). Bump package.json and re-tag."
+            exit 1
+          fi
+          echo "Tag and package.json agree on version $PKG_VERSION"
+
+      - name: Download built lib
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v4
+        with:
+          name: react-components-dist
+          path: components/react/dist
+
+      - name: Publish to npm
+        working-directory: components/react
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # `publishConfig` in package.json already sets access=public
+          # and provenance=true; we still pass --provenance explicitly so
+          # the run fails loudly if the OIDC token isn't available.
+          npm publish --provenance --access public
+
+  dry-run-publish:
+    needs: verify
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@26961cf329f22f6837d5f54c3efd76b480300ace # v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org/'
+          scope: '@mows'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Install dependencies
+        working-directory: components/react
+        run: pnpm install --frozen-lockfile
+
+      - name: Build library
+        working-directory: components/react
+        run: pnpm build:lib
+
+      - name: npm publish --dry-run
+        working-directory: components/react
+        run: npm publish --dry-run --access public

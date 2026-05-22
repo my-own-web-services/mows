@@ -6,8 +6,8 @@ import {
     type FilezUser,
     getClientConfig
 } from "filez-client-typescript";
-import { log } from "mows-components-react/lib/logging";
-import { MowsProvider } from "mows-components-react/lib/mowsContext/MowsContext";
+import { log } from "@mows/react-components/lib/logging";
+import { MowsProvider } from "@mows/react-components/lib/mowsContext/MowsContext";
 import React, { Component, createContext, type ReactNode } from "react";
 import { type AuthContextProps, withAuth } from "react-oidc-context";
 import { FilezActionHandlers, filezExtraActions, filezExtraDefaultHotkeys } from "../filezActions";

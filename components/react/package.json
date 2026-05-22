@@ -1,11 +1,42 @@
 {
-    "name": "mows-components-react",
+    "name": "@mows/react-components",
     "version": "0.0.1",
     "type": "module",
+    "description": "Shared React component + context library for MOWS frontend apps (auth, theme, language, action manager, hotkeys, modals, plus a large component set built on Radix UI and shadcn/ui).",
+    "license": "MIT",
+    "homepage": "https://github.com/my-own-web-services/mows#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/my-own-web-services/mows.git",
+        "directory": "components/react"
+    },
+    "bugs": {
+        "url": "https://github.com/my-own-web-services/mows/issues"
+    },
+    "keywords": [
+        "react",
+        "components",
+        "ui",
+        "shadcn",
+        "radix",
+        "tailwindcss",
+        "mows"
+    ],
+    "publishConfig": {
+        "access": "public",
+        "provenance": true,
+        "registry": "https://registry.npmjs.org/"
+    },
     "files": [
         "dist"
     ],
+    "main": "./dist/main.js",
+    "types": "./dist/main.d.ts",
     "exports": {
+        ".": {
+            "types": "./dist/main.d.ts",
+            "import": "./dist/main.js"
+        },
         "./main.css": "./dist/assets/main.css",
         "./*": {
             "types": "./dist/*.d.ts",
@@ -23,7 +54,7 @@
         "preview:site": "TARGET=site vite preview --port 5175 --strictPort",
         "lint": "eslint src lib",
         "lint:fix": "eslint src lib --fix",
-        "prepublish": "pnpm run test && pnpm run build",
+        "prepublishOnly": "pnpm run test && pnpm run build",
         "test": "vitest run --passWithNoTests",
         "test:watch": "vitest",
         "test:e2e": "playwright test",

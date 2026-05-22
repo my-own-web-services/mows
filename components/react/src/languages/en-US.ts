@@ -1230,7 +1230,7 @@ const translation: Translation = {
                     },
                     apiReference: {
                         title: `API Reference`,
-                        intro: `Props accepted by the most common Sidebar surfaces. The full set (Header / Footer / Group / Menu …) is exported from mows-components-react.`
+                        intro: `Props accepted by the most common Sidebar surfaces. The full set (Header / Footer / Group / Menu …) is exported from @mows/react-components.`
                     }
                 }
             },
@@ -3303,6 +3303,27 @@ const translation: Translation = {
                     apiReference: { title: `API Reference`, intro: `Props accepted by <Map>.` }
                 }
             },
+            locationPicker: {
+                default: { title: `Default`, description: `Click anywhere on the map to pick a coordinate; the picked value appears under the canvas.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
+                    usage: { title: `Usage`, body: `<LocationPicker> wraps <Map> and turns map clicks into a single picked point. Use value + onChange for controlled forms, or defaultValue for uncontrolled inputs.` },
+                    composition: { title: `Composition`, body: `LocationPicker reuses currentMapStyle from MowsContext, so the SettingsPanel's MapStylePicker controls its tiles. Clear via the inline button or by setting value to null.` },
+                    examples: { title: `Examples`, default: { title: `Default`, description: `Click-to-pin coordinate picker.` } },
+                    definedBehaviour: {
+                        title: `Defined behaviour`, intro: `Statements describing how <LocationPicker> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
+                        statements: {
+                            rendersMap: `Renders an embedded map with the empty-state hint until the user clicks.`,
+                            uncontrolledClickUpdates: `In uncontrolled mode a map click updates the internal value and shows the readout.`,
+                            controlledFiresOnChange: `In controlled mode a click fires onChange but leaves the visible value alone until the parent updates value.`,
+                            clearResets: `The clear button resets the picked value to null.`,
+                            mountsMarker: `Mounts a themed pin marker on the map once the first value is set.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `The map canvas is direction-agnostic; only the readout below mirrors when dir="rtl".` },
+                    apiReference: { title: `API Reference`, intro: `Props accepted by <LocationPicker>.` }
+                }
+            },
             dateTimePicker: {
                 default: { title: `Default`, description: `A text input + popover calendar + time picker.` },
                 withTimezone: { title: `With timezone`, description: `Set showTimezone to add an IANA timezone selector inside the popover.` },
@@ -3659,6 +3680,7 @@ const translation: Translation = {
                 grid: { title: `Grid`, description: `360 colour swatches rendered as a fixed-cell gallery via GridListRowHandler. Drag the slider in the header to change the column count.` },
                 multipleLayouts: { title: `Multiple layouts`, description: `Same product catalog under both a Column and a Grid row handler. Switch layouts via the icon picker in the header — the list keeps its scroll position.` },
                 selection: { title: `Selection`, description: `Selection state surfaced via the onSelect handler. Click rows, ctrl/cmd-click to toggle, or shift-click for a range; the panel above mirrors the current count and last selected id.` },
+                reorderable: { title: `Reorderable`, description: `Set reorderable on the list to render a drag grip on every row. Dropping a row above or below another fires onReorder(fromIndex, toIndex); the consumer owns the data and applies the move.` },
                 contextMenu: { title: `Context menu`, description: `Right-click any row to open an action menu (Open / Duplicate / Delete). The example wires a Radix DropdownMenu to onContextMenu inside the column render so the right-click target is the row itself.` },
                 multipleListsSharedAction: { title: `Shared action across lists`, description: `Two ResourceLists rendered side by side share a single "Delete" action via the global ActionManager. Each row is wrapped in [data-actionscope] + [data-list-id] + [data-item-id]; the one handler reads those attributes off the right-clicked element to dispatch back into the correct list's state.` },
                 horizontalStrip: { title: `Horizontal strip`, description: `Custom RowRendererDirection.Horizontal handler renders a horizontally-scrolling strip of cards. Each card embeds a FileViewer in "embedded" mode so the 60 thumbnails decode lazily as they scroll into view.` },
@@ -3672,6 +3694,7 @@ const translation: Translation = {
                         grid: { title: `Grid`, description: `360 colour swatches rendered as a fixed-cell gallery via GridListRowHandler. Drag the slider in the header to change the column count.` },
                         multipleLayouts: { title: `Multiple layouts`, description: `Same product catalog under both a Column and a Grid row handler. Switch layouts via the icon picker in the header — the list keeps its scroll position.` },
                         selection: { title: `Selection`, description: `Selection state surfaced via the onSelect handler. Click rows, ctrl/cmd-click to toggle, or shift-click for a range; the panel above mirrors the current count and last selected id.` },
+                        reorderable: { title: `Reorderable`, description: `Set reorderable on the list to render a drag grip on every row. Dropping a row above or below another fires onReorder(fromIndex, toIndex); the consumer owns the data and applies the move.` },
                         contextMenu: { title: `Context menu`, description: `Right-click any row to open an action menu (Open / Duplicate / Delete). The example wires a Radix DropdownMenu to onContextMenu inside the column render so the right-click target is the row itself.` },
                         multipleListsSharedAction: { title: `Shared action across lists`, description: `Two ResourceLists rendered side by side share a single "Delete" action via the global ActionManager. Each row is wrapped in [data-actionscope] + [data-list-id] + [data-item-id]; the one handler reads those attributes off the right-clicked element to dispatch back into the correct list's state.` },
                         horizontalStrip: { title: `Horizontal strip`, description: `Custom RowRendererDirection.Horizontal handler renders a horizontally-scrolling strip of cards. Each card embeds a FileViewer in "embedded" mode so the 60 thumbnails decode lazily as they scroll into view.` }
@@ -3681,7 +3704,8 @@ const translation: Translation = {
                         statements: {
                             callsFetcher: `Calls getResourcesList on mount.`,
                             firstWindow: `First fetch passes fromIndex=0 and a finite positive limit.`,
-                            forwardsSort: `Forwards sortBy and sortDirection in the request body.`
+                            forwardsSort: `Forwards sortBy and sortDirection in the request body.`,
+                            reorderFires: `Fires onReorder with the from / to indices after a drag-and-drop reorder.`
                         }
                     },
                     rtl: { title: `RTL`, body: `Header buttons and column order mirror under dir="rtl".` },

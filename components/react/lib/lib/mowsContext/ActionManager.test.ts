@@ -197,8 +197,34 @@ describe(`ActionManager.dispatchAction`, () => {
         manager.dispatchAction(`d2`, event);
 
         expect(shiftExec).toHaveBeenCalledOnce();
-        expect(shiftExec).toHaveBeenCalledWith(event);
+        // execute is invoked with (event, scopeElement); the second arg
+        // defaults to undefined when not supplied at the dispatch call.
+        expect(shiftExec).toHaveBeenCalledWith(event, undefined);
         expect(base).not.toHaveBeenCalled();
+    });
+
+    it(`forwards scopeElement through to the resolved executor`, () => {
+        const exec = vi.fn();
+        const action = makeAction(`d4`, {
+            getState: () => ({ visibility: ActionVisibility.Shown }),
+            executeAction: exec
+        });
+        const manager = new ActionManager({
+            recentActionsStorageKey: `t`,
+            maxRecentActions: 10
+        });
+        manager.defineAction(action);
+
+        // Stub element stands in for the right-clicked row element that
+        // GlobalContextMenu captured before opening the dropdown menu.
+        const scopeElement = { dataset: { itemId: `row-7` } } as unknown as HTMLElement;
+        const event = { button: 0 } as unknown as MouseEvent;
+        manager.dispatchAction(`d5-not-a-thing`, event, scopeElement); // unknown id no-ops
+        expect(exec).not.toHaveBeenCalled();
+
+        manager.dispatchAction(`d4`, event, scopeElement);
+        expect(exec).toHaveBeenCalledOnce();
+        expect(exec).toHaveBeenCalledWith(event, scopeElement);
     });
 
     it(`ignores variants that don't match the event modifiers`, () => {

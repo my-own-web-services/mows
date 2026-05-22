@@ -30,9 +30,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react maplibre-gl`;
+const PACKAGE_INSTALL = `add @mows/react-components maplibre-gl`;
 
-const USAGE_SNIPPET = `import { Map } from "mows-components-react";
+const USAGE_SNIPPET = `import { Map } from "@mows/react-components";
 
 <div style={{ height: 400 }}>
     <Map
@@ -45,7 +45,7 @@ const COMPOSITION_SNIPPET = `// Without a mapStyle prop, <Map> subscribes to cur
 // MowsContext — picking a new style in the SettingsPanel reflows every
 // mounted Map. Pass an explicit MowsMapStyle to opt out per instance.
 
-import { Map, type MowsMapStyle } from "mows-components-react";
+import { Map, type MowsMapStyle } from "@mows/react-components";
 
 const customStyle: MowsMapStyle = {
     id: "company-dark",
@@ -98,13 +98,13 @@ const TEST_FILE = `lib/components/map/Map.test.tsx`;
 const buildBehaviourEntries = (
     statements: Strings[`doc`][`definedBehaviour`][`statements`]
 ): BehaviourEntry[] => [
-    { statement: statements.lazyLoadsMapbox, testFile: TEST_FILE, testName: `shows a loading skeleton until the lazy chunk resolves`, testLine: 204 },
-    { statement: statements.usesContextStyle, testFile: TEST_FILE, testName: `instantiates a maplibre-gl Map with the context's current style by default`, testLine: 209 },
-    { statement: statements.propOverridesContext, testFile: TEST_FILE, testName: `uses the explicit mapStyle prop over the context value when provided`, testLine: 216 },
-    { statement: statements.appliesAccessToken, testFile: TEST_FILE, testName: `installs a transformRequest that appends the active style's accessToken`, testLine: 228 },
-    { statement: statements.reactsToContextChange, testFile: TEST_FILE, testName: `calls setStyle when the context's current map style changes`, testLine: 243 },
-    { statement: statements.firesOnLoad, testFile: TEST_FILE, testName: `fires onLoad once the underlying map emits "load"`, testLine: 261 },
-    { statement: statements.cleansUpOnUnmount, testFile: TEST_FILE, testName: `calls map.remove() on unmount`, testLine: 283 }
+    { statement: statements.lazyLoadsMapbox, testFile: TEST_FILE, testName: `shows a loading skeleton until the lazy chunk resolves`, testLine: 211 },
+    { statement: statements.usesContextStyle, testFile: TEST_FILE, testName: `instantiates a maplibre-gl Map with the context's current style by default`, testLine: 216 },
+    { statement: statements.propOverridesContext, testFile: TEST_FILE, testName: `uses the explicit mapStyle prop over the context value when provided`, testLine: 223 },
+    { statement: statements.appliesAccessToken, testFile: TEST_FILE, testName: `installs a transformRequest that appends the active style's accessToken`, testLine: 235 },
+    { statement: statements.reactsToContextChange, testFile: TEST_FILE, testName: `calls setStyle when the context's current map style changes`, testLine: 250 },
+    { statement: statements.firesOnLoad, testFile: TEST_FILE, testName: `fires onLoad once the underlying map emits "load"`, testLine: 268 },
+    { statement: statements.cleansUpOnUnmount, testFile: TEST_FILE, testName: `calls map.remove() on unmount`, testLine: 290 }
 ];
 
 export const MapDocPage = () => {

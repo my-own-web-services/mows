@@ -1230,7 +1230,7 @@ const translation: Translation = {
                     },
                     apiReference: {
                         title: `API-Referenz`,
-                        intro: `Props der wichtigsten Sidebar-Oberflächen. Die volle Menge (Header / Footer / Group / Menu …) wird aus mows-components-react exportiert.`
+                        intro: `Props der wichtigsten Sidebar-Oberflächen. Die volle Menge (Header / Footer / Group / Menu …) wird aus @mows/react-components exportiert.`
                     }
                 }
             },
@@ -3297,6 +3297,27 @@ const translation: Translation = {
                     apiReference: { title: `API-Referenz`, intro: `Props, die <Map> akzeptiert.` }
                 }
             },
+            locationPicker: {
+                default: { title: `Standard`, description: `Beliebige Stelle auf der Karte anklicken, um eine Koordinate zu wählen; der gewählte Wert erscheint unterhalb des Canvas.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<LocationPicker> wickelt <Map> ein und macht aus einem Klick einen einzelnen Punkt. value + onChange für kontrollierte Formulare, defaultValue für unkontrolliert.` },
+                    composition: { title: `Komposition`, body: `LocationPicker übernimmt currentMapStyle aus dem MowsContext, sodass der SettingsPanel-MapStylePicker die Kacheln auch hier steuert. Löschen über den Inline-Button oder value=null.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Klick-to-Pin-Koordinatenwähler.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <LocationPicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            rendersMap: `Rendert eine eingebettete Karte mit Hinweistext, bis der Nutzer klickt.`,
+                            uncontrolledClickUpdates: `Im unkontrollierten Modus aktualisiert ein Klick den internen Wert und zeigt das Ergebnis.`,
+                            controlledFiresOnChange: `Im kontrollierten Modus feuert ein Klick onChange, lässt aber den sichtbaren Wert unverändert, bis der Parent value aktualisiert.`,
+                            clearResets: `Der Lösch-Button setzt den gewählten Wert auf null zurück.`,
+                            mountsMarker: `Setzt einen themengestylten Pin auf die Karte, sobald der erste Wert gesetzt ist.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Das Karten-Canvas ist richtungsneutral; nur die Anzeige darunter spiegelt in dir="rtl".` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <LocationPicker> akzeptiert.` }
+                }
+            },
             dateTimePicker: {
                 default: { title: `Standard`, description: `Ein Textfeld + Popover-Kalender + Time-Picker.` },
                 withTimezone: { title: `Mit Zeitzone`, description: `showTimezone fügt einen IANA-Timezone-Selektor im Popover hinzu.` },
@@ -3653,6 +3674,7 @@ const translation: Translation = {
                 grid: { title: `Raster`, description: `360 Farbfelder als feste Kachel-Galerie über GridListRowHandler. Mit dem Slider im Header lässt sich die Anzahl der Spalten anpassen.` },
                 multipleLayouts: { title: `Mehrere Layouts`, description: `Derselbe Produktkatalog unter einem Spalten- und einem Raster-Row-Handler. Über den Icon-Picker im Header wechselst du das Layout — die Scrollposition bleibt erhalten.` },
                 selection: { title: `Auswahl`, description: `Auswahlzustand über den onSelect-Callback. Klicken, Strg/Cmd-Klick zum Umschalten, Shift-Klick für einen Bereich; das Panel darüber spiegelt Anzahl und zuletzt gewählte ID.` },
+                reorderable: { title: `Sortierbar per Drag & Drop`, description: `Setze reorderable an der Liste, um auf jeder Zeile einen Drag-Griff zu rendern. Wird eine Zeile über oder unter einer anderen abgelegt, feuert onReorder(fromIndex, toIndex); der Konsument hält die Daten und führt die Umordnung aus.` },
                 contextMenu: { title: `Kontextmenü`, description: `Rechtsklick auf eine Zeile öffnet ein Aktionsmenü (Öffnen / Duplizieren / Löschen). Das Beispiel hängt ein Radix-DropdownMenu in onContextMenu innerhalb des Spalten-Render — Ziel des Rechtsklicks ist die Zeile selbst.` },
                 multipleListsSharedAction: { title: `Gemeinsame Aktion über Listen hinweg`, description: `Zwei ResourceLists nebeneinander teilen sich eine einzige „Löschen“-Aktion über den globalen ActionManager. Jede Zeile bekommt [data-actionscope] + [data-list-id] + [data-item-id]; der eine Handler liest diese Attribute am rechtsangeklickten Element ab und dispatcht in den State der jeweils richtigen Liste.` },
                 horizontalStrip: { title: `Horizontaler Streifen`, description: `Ein eigener RowRendererDirection.Horizontal-Handler rendert einen horizontal scrollenden Streifen aus Karten. Jede Karte bettet FileViewer im „embedded“-Modus ein, sodass die 60 Vorschauen erst beim Scrollen geladen werden.` },
@@ -3666,6 +3688,7 @@ const translation: Translation = {
                         grid: { title: `Raster`, description: `360 Farbfelder als feste Kachel-Galerie über GridListRowHandler. Mit dem Slider im Header lässt sich die Anzahl der Spalten anpassen.` },
                         multipleLayouts: { title: `Mehrere Layouts`, description: `Derselbe Produktkatalog unter einem Spalten- und einem Raster-Row-Handler. Über den Icon-Picker im Header wechselst du das Layout — die Scrollposition bleibt erhalten.` },
                         selection: { title: `Auswahl`, description: `Auswahlzustand über den onSelect-Callback. Klicken, Strg/Cmd-Klick zum Umschalten, Shift-Klick für einen Bereich; das Panel darüber spiegelt Anzahl und zuletzt gewählte ID.` },
+                        reorderable: { title: `Sortierbar per Drag & Drop`, description: `Setze reorderable an der Liste, um auf jeder Zeile einen Drag-Griff zu rendern. Wird eine Zeile über oder unter einer anderen abgelegt, feuert onReorder(fromIndex, toIndex); der Konsument hält die Daten und führt die Umordnung aus.` },
                         contextMenu: { title: `Kontextmenü`, description: `Rechtsklick auf eine Zeile öffnet ein Aktionsmenü (Öffnen / Duplizieren / Löschen). Das Beispiel hängt ein Radix-DropdownMenu in onContextMenu innerhalb des Spalten-Render — Ziel des Rechtsklicks ist die Zeile selbst.` },
                         multipleListsSharedAction: { title: `Gemeinsame Aktion über Listen hinweg`, description: `Zwei ResourceLists nebeneinander teilen sich eine einzige „Löschen“-Aktion über den globalen ActionManager. Jede Zeile bekommt [data-actionscope] + [data-list-id] + [data-item-id]; der eine Handler liest diese Attribute am rechtsangeklickten Element ab und dispatcht in den State der jeweils richtigen Liste.` },
                         horizontalStrip: { title: `Horizontaler Streifen`, description: `Ein eigener RowRendererDirection.Horizontal-Handler rendert einen horizontal scrollenden Streifen aus Karten. Jede Karte bettet FileViewer im „embedded“-Modus ein, sodass die 60 Vorschauen erst beim Scrollen geladen werden.` }
@@ -3675,7 +3698,8 @@ const translation: Translation = {
                         statements: {
                             callsFetcher: `Ruft getResourcesList beim Mounten auf.`,
                             firstWindow: `Erster Fetch übergibt fromIndex=0 und ein endliches, positives limit.`,
-                            forwardsSort: `Leitet sortBy und sortDirection im Request-Body weiter.`
+                            forwardsSort: `Leitet sortBy und sortDirection im Request-Body weiter.`,
+                            reorderFires: `Feuert onReorder mit den from/to-Indizes nach einer Drag-&-Drop-Umordnung.`
                         }
                     },
                     rtl: { title: `RTL`, body: `Header-Buttons und Spaltenanordnung werden unter dir="rtl" gespiegelt.` },

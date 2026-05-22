@@ -1,20 +1,20 @@
-import ResourceList from "mows-components-react/components/list/ResourceList/ResourceList";
+import ResourceList from "@mows/react-components/components/list/ResourceList/ResourceList";
 import {
     ListResourceRequestBody,
     ListResourceResponseBody
-} from "mows-components-react/components/list/ResourceList/ResourceListTypes";
-import ColumnListRowHandler from "mows-components-react/components/list/ResourceList/rowHandlers/Column";
-import { Button } from "mows-components-react/components/ui/button";
-import { Checkbox } from "mows-components-react/components/ui/checkbox";
-import { Progress } from "mows-components-react/components/ui/progress";
-import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+} from "@mows/react-components/components/list/ResourceList/ResourceListTypes";
+import ColumnListRowHandler from "@mows/react-components/components/list/ResourceList/rowHandlers/Column";
+import { Button } from "@mows/react-components/components/ui/button";
+import { Checkbox } from "@mows/react-components/components/ui/checkbox";
+import { Progress } from "@mows/react-components/components/ui/progress";
+import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
 import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
-import { log } from "mows-components-react/lib/logging";
+import { log } from "@mows/react-components/lib/logging";
 import { cn, formatFileSizeToHumanReadable, generateRandomId } from "@/lib/utils";
 import { FileGroup, SortDirection, StorageQuota } from "filez-client-typescript";
 import { Folder, Upload as UploadIcon } from "lucide-react";
 import { createRef, PureComponent, type CSSProperties, type ReactNode } from "react";
-import DateTimeDisplay from "mows-components-react/components/dateTime/dateTimeDisplay/DateTimeDisplay";
+import DateTimeDisplay from "@mows/react-components/components/dateTime/dateTimeDisplay/DateTimeDisplay";
 import FileGroupPicker from "@/components/fileGroups/fileGroupPicker/FileGroupPicker";
 import StorageQuotaPicker from "@/components/storage/storageQuotaPicker/StorageQuotaPicker";
 import { handleFileUpload, UploadFileRequest, UploadProgressData } from "./handleUpload";

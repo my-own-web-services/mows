@@ -474,7 +474,7 @@ export class MowsProvider extends Component<MowsProviderProps> {
             codeThemes = defaultCodeThemes,
             defaultCodeThemeId = `one-dark-nx`,
             mapStyles = defaultMapStyles,
-            defaultMapStyleId = `maplibre-demo`,
+            defaultMapStyleId = `openfreemap-liberty`,
             extraActions = [],
             extraDefaultHotkeys = {}
         } = this.props;

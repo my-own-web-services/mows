@@ -1,9 +1,9 @@
-// Per-app language registry. The mows-components-react base translation is
+// Per-app language registry. The @mows/react-components base translation is
 // imported and extended with supervisor-specific keys (declared in
 // `./translations.ts`).
 
-import type { Language, Translation } from "mows-components-react/lib/languages";
-import baseEn from "mows-components-react/lib/languages/en-US/default";
+import type { Language, Translation } from "@mows/react-components/lib/languages";
+import baseEn from "@mows/react-components/lib/languages/en-US/default";
 import "./translations"; // module augmentation side-effect
 
 const enUS: Translation = {

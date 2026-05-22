@@ -9,7 +9,7 @@ const Example = () => {
         <div className={`flex flex-col gap-3 text-sm leading-relaxed`}>
             <p>
                 {`Install the package with `}
-                <CodeSnippet mode={`inline`} language={`text`} code={`pnpm add mows-components-react`} />
+                <CodeSnippet mode={`inline`} language={`text`} code={`pnpm add @mows/react-components`} />
                 , then import it in your entry file:
             </p>
             <p>

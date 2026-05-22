@@ -23,12 +23,12 @@
 import {
     Card,
     CardContent
-} from "mows-components-react/components/ui/card";
-import InlineEdit from "mows-components-react/components/input/inlineEdit/InlineEdit";
+} from "@mows/react-components/components/ui/card";
+import InlineEdit from "@mows/react-components/components/input/inlineEdit/InlineEdit";
 import ConsoleManager, {
     type ConsoleType
-} from "mows-components-react/components/console/consoleManager/ConsoleManager";
-import { useMows } from "mows-components-react/lib/mowsContext/MowsContext";
+} from "@mows/react-components/components/console/consoleManager/ConsoleManager";
+import { useMows } from "@mows/react-components/lib/mowsContext/MowsContext";
 import {
     Clock,
     Cpu,

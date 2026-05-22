@@ -14,8 +14,8 @@
 
 import Terminal, {
     type TerminalHandle
-} from "mows-components-react/components/console/terminal/Terminal";
-import { useMows } from "mows-components-react/lib/mowsContext/MowsContext";
+} from "@mows/react-components/components/console/terminal/Terminal";
+import { useMows } from "@mows/react-components/lib/mowsContext/MowsContext";
 import { PureComponent, createRef, type ReactNode } from "react";
 
 const TOKEN_STORAGE_KEY = "mows-vm-supervisor:token";

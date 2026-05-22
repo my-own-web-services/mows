@@ -31,9 +31,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
-const USAGE_SNIPPET = `import { TimePicker } from "mows-components-react";
+const USAGE_SNIPPET = `import { TimePicker } from "@mows/react-components";
 
 const [date, setDate] = useState(new Date());
 

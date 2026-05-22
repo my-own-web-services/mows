@@ -95,9 +95,16 @@ export interface ActionVariant {
     disabledReasonText?: string;
     /**
      * Replacement handler. If omitted, the action's base `executeAction` is
-     * used — handy when only the display should change.
+     * used — handy when only the display should change. The second arg is
+     * the element the user originally interacted with (for context-menu
+     * dispatch, the right-clicked element — *not* the menu item). Handlers
+     * read `data-*` off this element to identify which row / list / scope
+     * the action should target.
      */
-    execute?: (event?: KeyboardEvent | MouseEvent) => void;
+    execute?: (
+        event?: KeyboardEvent | MouseEvent,
+        scopeElement?: HTMLElement | null
+    ) => void;
 }
 
 /**
@@ -115,9 +122,14 @@ export interface ResolvedAction {
     /**
      * The handler to invoke when the user clicks / presses Enter. May be
      * `undefined` if the action has no executable handler at all (e.g. a
-     * pure submenu container).
+     * pure submenu container). Receives the triggering event plus the
+     * element the action was *aimed at* — for context-menu dispatch this
+     * is the right-clicked element, not the menu item the user clicked.
      */
-    readonly execute?: (event?: KeyboardEvent | MouseEvent) => void;
+    readonly execute?: (
+        event?: KeyboardEvent | MouseEvent,
+        scopeElement?: HTMLElement | null
+    ) => void;
     /**
      * Children of this action, already-resolved. Non-empty when the
      * underlying handler declared a `children` resolver. Renderers should
@@ -202,7 +214,10 @@ export class Action {
 export interface ActionHandler {
     id: string;
     scopes?: string[];
-    executeAction?: (event?: KeyboardEvent | MouseEvent) => void;
+    executeAction?: (
+        event?: KeyboardEvent | MouseEvent,
+        scopeElement?: HTMLElement | null
+    ) => void;
     getState: () => ActionState;
     /**
      * Modifier-keyed alternates. Evaluated in order; first match wins.
@@ -237,7 +252,11 @@ export class ActionManager {
         this.config = config;
     }
 
-    dispatchAction = (actionId: string, event?: KeyboardEvent | MouseEvent) => {
+    dispatchAction = (
+        actionId: string,
+        event?: KeyboardEvent | MouseEvent,
+        scopeElement?: HTMLElement | null
+    ) => {
         const action = this.actions.get(actionId);
 
         if (!action) {
@@ -256,7 +275,7 @@ export class ActionManager {
         }
 
         this.trackCommandUsage(action);
-        resolved.execute(event);
+        resolved.execute(event, scopeElement);
     };
 
     getAction = (actionId: string): Action | undefined => {

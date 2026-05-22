@@ -121,6 +121,11 @@ export {
     default as NumberInput,
     type NumberInputProps
 } from "./components/input/numberInput/NumberInput";
+export {
+    default as LocationPicker,
+    type LocationPickerProps,
+    type PickedLocation
+} from "./components/input/locationPicker/LocationPicker";
 export { default as OptionPicker } from "./components/input/optionPicker/OptionPicker";
 export {
     default as SearchInput,

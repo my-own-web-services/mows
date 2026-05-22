@@ -31,13 +31,13 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
 const USAGE_SNIPPET = `import {
     InputGroup,
     InputGroupAddon,
     InputGroupInput
-} from "mows-components-react";
+} from "@mows/react-components";
 
 <InputGroup>
     <InputGroupAddon><Search /></InputGroupAddon>

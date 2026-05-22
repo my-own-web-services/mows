@@ -3,7 +3,7 @@
 // <Dialog>. Dismissing (close/cancel/Esc) resolves the promise with a "no"
 // answer; pressing the confirm button resolves with "yes" / the input value.
 
-import { Button } from "mows-components-react/components/ui/button";
+import { Button } from "@mows/react-components/components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -11,21 +11,21 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle
-} from "mows-components-react/components/ui/dialog";
-import NumberInput from "mows-components-react/components/input/numberInput/NumberInput";
-import { Input } from "mows-components-react/components/ui/input";
-import { Label } from "mows-components-react/components/ui/label";
+} from "@mows/react-components/components/ui/dialog";
+import NumberInput from "@mows/react-components/components/input/numberInput/NumberInput";
+import { Input } from "@mows/react-components/components/ui/input";
+import { Label } from "@mows/react-components/components/ui/label";
 import {
     RadioGroup,
     RadioGroupItem
-} from "mows-components-react/components/ui/radio-group";
+} from "@mows/react-components/components/ui/radio-group";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue
-} from "mows-components-react/components/ui/select";
+} from "@mows/react-components/components/ui/select";
 import { useEffect, useState } from "react";
 import { getVmDefaults } from "../lib/api";
 import {

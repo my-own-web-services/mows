@@ -1,4 +1,4 @@
-import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
 import { PureComponent, type ReactNode } from "react";
 import { IoBug, IoHome } from "react-icons/io5";
 import { NavLink } from "react-router-dom";

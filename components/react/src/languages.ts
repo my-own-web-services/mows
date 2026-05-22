@@ -2122,6 +2122,39 @@ declare module "../lib/lib/languages" {
                         apiReference: { title: string; intro: string };
                     };
                 };
+                locationPicker: {
+                    default: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            default: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                rendersMap: string;
+                                uncontrolledClickUpdates: string;
+                                controlledFiresOnChange: string;
+                                clearResets: string;
+                                mountsMarker: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
                 dateTimePicker: {
                     default: { title: string; description: string };
                     withTimezone: { title: string; description: string };
@@ -2481,6 +2514,7 @@ declare module "../lib/lib/languages" {
                     grid: { title: string; description: string };
                     multipleLayouts: { title: string; description: string };
                     selection: { title: string; description: string };
+                    reorderable: { title: string; description: string };
                     contextMenu: { title: string; description: string };
                     multipleListsSharedAction: { title: string; description: string };
                     horizontalStrip: { title: string; description: string };
@@ -2501,6 +2535,7 @@ declare module "../lib/lib/languages" {
                             grid: { title: string; description: string };
                             multipleLayouts: { title: string; description: string };
                             selection: { title: string; description: string };
+                            reorderable: { title: string; description: string };
                             contextMenu: { title: string; description: string };
                             multipleListsSharedAction: { title: string; description: string };
                             horizontalStrip: { title: string; description: string };
@@ -2513,6 +2548,7 @@ declare module "../lib/lib/languages" {
                                 callsFetcher: string;
                                 firstWindow: string;
                                 forwardsSort: string;
+                                reorderFires: string;
                             };
                         };
                         rtl: { title: string; body: string };

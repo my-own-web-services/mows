@@ -1,7 +1,7 @@
-import CommandPalette from "mows-components-react/components/appShell/commandPalette/CommandPalette";
-import GlobalContextMenu from "mows-components-react/components/appShell/globalContextMenu/GlobalContextMenu";
-import ModalHandler from "mows-components-react/components/appShell/modalHandler/ModalHandler";
-import { Toaster } from "mows-components-react/components/ui/sonner";
+import CommandPalette from "@mows/react-components/components/appShell/commandPalette/CommandPalette";
+import GlobalContextMenu from "@mows/react-components/components/appShell/globalContextMenu/GlobalContextMenu";
+import ModalHandler from "@mows/react-components/components/appShell/modalHandler/ModalHandler";
+import { Toaster } from "@mows/react-components/components/ui/sonner";
 import PrimaryMenu from "@/components/appShell/primaryMenu/PrimaryMenu";
 import { FileList, JobList, Upload } from "@/main";
 import { type CSSProperties, PureComponent } from "react";

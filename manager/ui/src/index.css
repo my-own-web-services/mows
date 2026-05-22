@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "mows-components-react/main.css";
+@import "@mows/react-components/main.css";
 
 @theme {
     --font-sans: "Inter Variable", sans-serif;

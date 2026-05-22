@@ -249,74 +249,14 @@ export default class ColumnListRowHandler<ResourceType extends BaseResource>
     };
 
     rowRenderer = (rowProps: RowComponentProps<ResourceType>) => {
-        if (rowProps.data === undefined) return;
-        const item = rowProps.data?.items?.[rowProps.index]!;
-        const listId = rowProps.data?.listInstanceId;
-        if (!item) return;
-        const isSelected = rowProps.data.selectedItems[rowProps.index] === true;
-        const style = rowProps.style;
-        const isLastSelected = rowProps.data.lastSelectedItemIndex === rowProps.index;
-
-        const onItemClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-            rowProps.data?.handlers.onItemClick?.(e, getCurrentItem(), rowProps.index);
-        };
-
-        const getCurrentItem = (): ResourceType => {
-            return rowProps.data?.items?.[rowProps.index]!;
-        };
-
-        const columns = this.columns;
-
-        const onContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-            rowProps.data?.handlers.onItemClick?.(e, getCurrentItem(), rowProps.index, true);
-        };
-
-        const rowAttrs = this.props.rowAttributes?.(item) ?? {};
-
         return (
-            <div
-                style={{
-                    ...style
-                }}
-                {...rowAttrs}
-                onContextMenu={onContextMenu}
-                className={cn(
-                    `ColumnListRowRenderer hover:bg-secondary/100 flex w-full flex-row gap-[1px] overflow-hidden whitespace-nowrap select-none`,
-                    isSelected && `bg-secondary/60`,
-                    isLastSelected && `bg-secondary/100`
-                )}
-            >
-                {this.props.hideSelectionCheckboxColumn !== true && (
-                    <div
-                        onClick={(e) => {
-                            e.ctrlKey = true;
-                            onItemClick(e as any);
-                        }}
-                        className={`flex h-full w-8 cursor-pointer items-center justify-center`}
-                    >
-                        <Checkbox checked={isSelected}></Checkbox>
-                    </div>
-                )}
-
-                {columns
-                    .filter((c) => c.enabled)
-                    .map((column, index) => {
-                        return (
-                            <span
-                                onClick={onItemClick}
-                                key={column.field + index}
-                                className={`flex h-full items-center overflow-hidden text-ellipsis whitespace-nowrap`}
-                                style={{
-                                    flex: `${column.widthPercent} 1 0px`
-                                }}
-                            >
-                                <span className={`p-2`}>
-                                    {column.render(item, {}, `w-full`, listId)}
-                                </span>
-                            </span>
-                        );
-                    })}
-            </div>
+            <ColumnRow<ResourceType>
+                rowProps={rowProps}
+                columns={this.columns}
+                hideSelectionCheckboxColumn={this.props.hideSelectionCheckboxColumn === true}
+                rowAttributes={this.props.rowAttributes}
+                listInstanceId={rowProps.data?.listInstanceId}
+            />
         );
     };
 
@@ -387,6 +327,162 @@ export default class ColumnListRowHandler<ResourceType extends BaseResource>
         }
     };
 }
+
+const REORDER_DATA_TYPE = `application/x-mows-resourcelist-reorder`;
+
+interface ColumnRowProps<ResourceType extends BaseResource> {
+    rowProps: RowComponentProps<ResourceType>;
+    columns: Column<ResourceType>[];
+    hideSelectionCheckboxColumn: boolean;
+    rowAttributes?: (item: ResourceType) => Record<string, string>;
+    listInstanceId: string | undefined;
+}
+
+const ColumnRow = <ResourceType extends BaseResource>(props: ColumnRowProps<ResourceType>) => {
+    const { rowProps, columns, hideSelectionCheckboxColumn, rowAttributes, listInstanceId } = props;
+
+    if (rowProps.data === undefined) return null;
+    const item = rowProps.data.items?.[rowProps.index];
+    if (!item) return null;
+
+    const isSelected = rowProps.data.selectedItems[rowProps.index] === true;
+    const style = rowProps.style;
+    const isLastSelected = rowProps.data.lastSelectedItemIndex === rowProps.index;
+    const reorderable = rowProps.data.reorderable === true;
+    // Scope drag-and-drop reordering to a single list instance — without
+    // this, a row dragged out of list A could "land" in list B and fire
+    // its onReorder with an index from a different dataset.
+    const reorderScope = `${rowProps.data.listInstanceId}:${rowProps.data.resourceType}`;
+
+    const onItemClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        rowProps.data?.handlers.onItemClick?.(e, item, rowProps.index);
+    };
+
+    const onContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        rowProps.data?.handlers.onItemClick?.(e, item, rowProps.index, true);
+    };
+
+    const onDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+        if (!reorderable) return;
+        e.dataTransfer.effectAllowed = `move`;
+        e.dataTransfer.setData(REORDER_DATA_TYPE, `${reorderScope}:${rowProps.index}`);
+        // Some browsers require a non-empty payload on the standard
+        // text/plain MIME for the drag to actually start in jsdom-like
+        // environments — set a harmless string.
+        e.dataTransfer.setData(`text/plain`, String(rowProps.index));
+    };
+
+    const decodeFromIndex = (e: React.DragEvent<HTMLDivElement>): number | null => {
+        if (!reorderable) return null;
+        const payload = e.dataTransfer.getData(REORDER_DATA_TYPE);
+        if (!payload) return null;
+        const lastColon = payload.lastIndexOf(`:`);
+        if (lastColon === -1) return null;
+        const scope = payload.slice(0, lastColon);
+        if (scope !== reorderScope) return null;
+        const fromIndex = Number.parseInt(payload.slice(lastColon + 1), 10);
+        return Number.isFinite(fromIndex) ? fromIndex : null;
+    };
+
+    // Insert position derived from pointer Y relative to the row:
+    // upper half → before this row (index), lower half → after this
+    // row (index + 1). The list renders the single shared line at the
+    // returned boundary.
+    const computeInsertBefore = (e: React.DragEvent<HTMLDivElement>): number => {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const half = rect.top + rect.height / 2;
+        return e.clientY < half ? rowProps.index : rowProps.index + 1;
+    };
+
+    const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        if (!reorderable) return;
+        // dataTransfer is read-only during dragover, so we can only
+        // check the available types. Guarding by our reorder MIME
+        // means an unrelated drag (e.g. a file drag from the OS)
+        // doesn't draw an insertion line.
+        if (!e.dataTransfer.types.includes(REORDER_DATA_TYPE)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = `move`;
+        rowProps.data?.onDragIndicatorChange?.(computeInsertBefore(e));
+    };
+
+    const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        if (!reorderable) return;
+        const fromIndex = decodeFromIndex(e);
+        rowProps.data?.onDragIndicatorChange?.(null);
+        if (fromIndex === null) return;
+        e.preventDefault();
+        let toIndex = computeInsertBefore(e);
+        // Dropping at the boundary that already bounds the source is a
+        // no-op (insert position equals current position).
+        if (fromIndex === toIndex || fromIndex + 1 === toIndex) return;
+        // Removing the source shifts the insertion point one slot left.
+        if (fromIndex < toIndex) toIndex -= 1;
+        rowProps.data?.onReorder?.(fromIndex, toIndex);
+    };
+
+    const onDragEnd = () => {
+        if (!reorderable) return;
+        // Drag aborted or dropped outside an accepting target — clear
+        // the indicator either way.
+        rowProps.data?.onDragIndicatorChange?.(null);
+    };
+
+    const rowAttrs = rowAttributes?.(item) ?? {};
+
+    return (
+        <div
+            style={{ ...style }}
+            {...rowAttrs}
+            onContextMenu={onContextMenu}
+            draggable={reorderable}
+            onDragStart={reorderable ? onDragStart : undefined}
+            onDragOver={reorderable ? onDragOver : undefined}
+            onDrop={reorderable ? onDrop : undefined}
+            onDragEnd={reorderable ? onDragEnd : undefined}
+            className={cn(
+                `ColumnListRowRenderer hover:bg-secondary/100 relative flex w-full flex-row gap-[1px] overflow-hidden whitespace-nowrap select-none`,
+                isSelected && `bg-secondary/60`,
+                isLastSelected && `bg-secondary/100`
+            )}
+        >
+            {!hideSelectionCheckboxColumn && (
+                <div
+                    onClick={(e) => {
+                        e.ctrlKey = true;
+                        rowProps.data?.handlers.onItemClick?.(
+                            e as unknown as React.MouseEvent<HTMLDivElement, MouseEvent>,
+                            item,
+                            rowProps.index
+                        );
+                    }}
+                    className={`flex h-full w-8 cursor-pointer items-center justify-center`}
+                >
+                    <Checkbox checked={isSelected}></Checkbox>
+                </div>
+            )}
+
+            {columns
+                .filter((c) => c.enabled)
+                .map((column, index) => {
+                    return (
+                        <span
+                            onClick={onItemClick}
+                            key={column.field + index}
+                            className={`flex h-full items-center overflow-hidden text-ellipsis whitespace-nowrap`}
+                            style={{
+                                flex: `${column.widthPercent} 1 0px`
+                            }}
+                        >
+                            <span className={`p-2`}>
+                                {column.render(item, {}, `w-full`, listInstanceId ?? ``)}
+                            </span>
+                        </span>
+                    );
+                })}
+        </div>
+    );
+};
 
 export interface Column<ResourceType> {
     field: string;

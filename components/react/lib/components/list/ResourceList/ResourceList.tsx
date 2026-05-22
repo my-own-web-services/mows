@@ -74,6 +74,16 @@ interface ResourceListProps<ResourceType> {
     readonly dropTargetAcceptsTypes?: string[];
 
     readonly displayDebugBar?: boolean;
+
+    /**
+     * When true, opt-in row handlers (currently `ColumnListRowHandler`)
+     * render a drag handle on each row and allow the user to reorder
+     * items by dragging. The list itself is unopinionated about how the
+     * data moves — fire `handlers.onReorder(fromIndex, toIndex)` and
+     * apply the change in your data source, then the list will
+     * re-render the next time it loads its window.
+     */
+    readonly reorderable?: boolean;
 }
 
 interface ResourceListState<ResourceType> {
@@ -90,6 +100,7 @@ interface ResourceListState<ResourceType> {
     readonly sortBy: string;
     readonly sortDirection: SortDirection;
     readonly currentRowHandler: ListRowHandler<ResourceType>;
+    readonly dropIndicatorBeforeIndex: number | null;
 }
 
 export default class ResourceList<ResourceType extends BaseResource> extends Component<
@@ -119,7 +130,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
             height: null,
             sortBy: this.props.defaultSortBy ?? `CreatedTime`,
             sortDirection: this.props.defaultSortDirection ?? SortDirection.Descending,
-            currentRowHandler: this.getRowHandlerById(this.props.initialRowHandler)!
+            currentRowHandler: this.getRowHandlerById(this.props.initialRowHandler)!,
+            dropIndicatorBeforeIndex: null
         };
 
         log.debug(`ResourceList initial state:`, this.state);
@@ -411,6 +423,60 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         this.setState({ currentRowHandler: rowHandler });
     };
 
+    /**
+     * Applies a drag-and-drop reorder locally and then fires the
+     * consumer's `onReorder` for persistence. The list owns its
+     * `state.resources` cache, so the consumer mutating its source
+     * array is not enough — we have to splice the cached window too,
+     * otherwise the user drops a row and nothing visibly moves.
+     *
+     * Selection indices are remapped so the same items stay selected
+     * after the move (their indices shift around).
+     */
+    setDropIndicator = (insertBeforeIndex: number | null) => {
+        if (this.state.dropIndicatorBeforeIndex === insertBeforeIndex) return;
+        this.setState({ dropIndicatorBeforeIndex: insertBeforeIndex });
+    };
+
+    reorderItems = (fromIndex: number, toIndex: number) => {
+        if (fromIndex === toIndex) return;
+        this.setState(
+            (state) => {
+                const resources = state.resources.slice();
+                if (fromIndex < 0 || fromIndex >= resources.length) return null;
+                if (toIndex < 0 || toIndex >= resources.length) return null;
+                const [moved] = resources.splice(fromIndex, 1);
+                if (moved === undefined) return null;
+                resources.splice(toIndex, 0, moved);
+
+                const remap = (i: number) => {
+                    if (i === fromIndex) return toIndex;
+                    if (fromIndex < toIndex) {
+                        if (i > fromIndex && i <= toIndex) return i - 1;
+                    } else {
+                        if (i >= toIndex && i < fromIndex) return i + 1;
+                    }
+                    return i;
+                };
+
+                const selectedItems: (true | undefined)[] = [];
+                state.selectedItems.forEach((selected, oldIndex) => {
+                    if (selected === true) selectedItems[remap(oldIndex)] = true;
+                });
+
+                const lastSelectedItemIndex =
+                    state.lastSelectedItemIndex === undefined
+                        ? undefined
+                        : remap(state.lastSelectedItemIndex);
+
+                return { resources, selectedItems, lastSelectedItemIndex };
+            },
+            () => {
+                this.props.handlers?.onReorder?.(fromIndex, toIndex);
+            }
+        );
+    };
+
     getRowHandlerById = (id: string) => {
         const rowHandler = this.props.rowHandlers.find((r) => r.id === id);
         if (!rowHandler)
@@ -526,6 +592,24 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         this.infiniteLoaderRef.current._listRef.scrollToItem(index);
     };
 
+    renderDropIndicator = (width: number, height: number) => {
+        if (this.props.reorderable !== true) return null;
+        const idx = this.state.dropIndicatorBeforeIndex;
+        if (idx === null) return null;
+        const rowHeight = this.state.currentRowHandler.getRowHeight(width, height);
+        // Position the 2px line at the boundary `idx` would land on, in
+        // the list's scroll space: 0 = above row 0, totalRowCount =
+        // below the last row.
+        const top = idx * rowHeight - this.state.scrollOffset;
+        return (
+            <div
+                aria-hidden
+                className={`ResourceListReorderIndicator bg-primary pointer-events-none absolute right-0 left-0 z-10 h-[2px]`}
+                style={{ top: `${top}px` }}
+            />
+        );
+    };
+
     debugBar = () => {
         if (this.props.displayDebugBar !== true) return null;
         return (
@@ -599,13 +683,15 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                 {this.listHeader()}
                 {this.state.currentRowHandler.headerRenderer?.()}
                 <div
-                    className={`OuterResourceList h-full w-full focus:outline-none`}
+                    className={`OuterResourceList relative h-full w-full focus:outline-none`}
                     onKeyDown={this.onListKeyDown}
                     tabIndex={0}
                 >
                     <AutoSizer onResize={this.updateDimensions}>
                         {({ height, width }) => {
                             return (
+                                <>
+                                    {this.renderDropIndicator(width, height)}
                                 <InfiniteLoader
                                     isItemLoaded={this.isItemLoaded}
                                     itemCount={totalRowCount}
@@ -621,6 +707,10 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                             height
                                         );
 
+                                        const isHorizontal =
+                                            this.state.currentRowHandler.direction ===
+                                            RowRendererDirection.Horizontal;
+
                                         return (
                                             <FixedSizeList
                                                 outerRef={this.listOuterRef}
@@ -635,14 +725,15 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                 ref={ref}
                                                 style={{
                                                     willChange: `none`,
-                                                    overflowY: `scroll`
+                                                    // Show only the scrollbar on the axis the
+                                                    // active row handler actually scrolls on. A
+                                                    // horizontal strip with a vertical scrollbar
+                                                    // looks broken (and steals 17px of card
+                                                    // width); vice versa for a vertical list.
+                                                    overflowX: isHorizontal ? `scroll` : `hidden`,
+                                                    overflowY: isHorizontal ? `hidden` : `scroll`
                                                 }}
-                                                layout={
-                                                    this.state.currentRowHandler.direction ===
-                                                    RowRendererDirection.Horizontal
-                                                        ? `horizontal`
-                                                        : `vertical`
-                                                }
+                                                layout={isHorizontal ? `horizontal` : `vertical`}
                                                 itemData={{
                                                     items: this.state.resources,
                                                     total_count: this.state.totalItemCount,
@@ -665,7 +756,10 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                     rowHandlers: this.props.rowHandlers,
                                                     listInstanceId: this.props.listInstanceId,
                                                     listWidth: width,
-                                                    listHeight: height
+                                                    listHeight: height,
+                                                    reorderable: this.props.reorderable,
+                                                    onReorder: this.reorderItems,
+                                                    onDragIndicatorChange: this.setDropIndicator
                                                 }}
                                             >
                                                 {/*@ts-expect-error*/}
@@ -674,6 +768,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                         );
                                     }}
                                 </InfiniteLoader>
+                                </>
                             );
                         }}
                     </AutoSizer>

@@ -1,4 +1,4 @@
-import { MowsContext } from "mows-components-react/lib/mowsContext/MowsContext";
+import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
 import { PureComponent, type CSSProperties } from "react";
 import { IoHardwareChipOutline } from "react-icons/io5";
 import { SiHetzner, SiQemu } from "react-icons/si";

@@ -76,11 +76,22 @@ const Example = () => {
     }, []);
 
     const getResourcesList = async (
-        _req: ListResourceRequestBody
-    ): Promise<ListResourceResponseBody<Task>> => ({
-        items: TASKS.slice(_req.fromIndex, _req.fromIndex + _req.limit),
-        totalCount: TASKS.length
-    });
+        req: ListResourceRequestBody
+    ): Promise<ListResourceResponseBody<Task>> => {
+        const sorted = [...TASKS].sort((a, b) => {
+            const av = a[req.sortBy as keyof Task];
+            const bv = b[req.sortBy as keyof Task];
+            const cmp =
+                typeof av === `number` && typeof bv === `number`
+                    ? av - bv
+                    : String(av).localeCompare(String(bv));
+            return req.sortDirection === SortDirection.Descending ? -cmp : cmp;
+        });
+        return {
+            items: sorted.slice(req.fromIndex, req.fromIndex + req.limit),
+            totalCount: sorted.length
+        };
+    };
 
     useExampleState({ selectedCount, lastSelectedId, totalItems: TASKS.length });
 

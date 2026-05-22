@@ -2,11 +2,11 @@ import {
     type Language as MowsLanguage,
     type Translation as MowsTranslation,
     getBrowserLanguage as mowsGetBrowserLanguage
-} from "mows-components-react/lib/languages";
+} from "@mows/react-components/lib/languages";
 import { SELECTED_LANGUAGE_LOCAL_STORAGE_KEY } from "./constants";
 
 // eslint-disable-next-line quotes
-declare module "mows-components-react/lib/languages" {
+declare module "@mows/react-components/lib/languages" {
     interface Translation {
         resourceTags: {
             badges: string;

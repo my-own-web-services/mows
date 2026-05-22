@@ -6,7 +6,7 @@ import {
     createExampleUser
 } from "filez-client-typescript";
 import { isEqual, omit } from "lodash";
-import { log } from "mows-components-react/lib/logging";
+import { log } from "@mows/react-components/lib/logging";
 
 // `modified_time` is bumped on every write, so comparing two policies
 // across an update always differs there even when nothing else changed.

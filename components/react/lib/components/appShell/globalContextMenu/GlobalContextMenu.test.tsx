@@ -247,6 +247,67 @@ describe(`GlobalContextMenu`, () => {
         await waitFor(() => expect(screen.queryByText(`RC action`)).not.toBeInTheDocument());
     });
 
+    it(`forwards the originally right-clicked element as scopeElement to executeAction`, async () => {
+        const actionManager = new ActionManager({
+            recentActionsStorageKey: `test_recent_scope`,
+            maxRecentActions: 5
+        });
+        // Record what executeAction sees so we can prove the right-click
+        // target reaches the handler — not the dropdown menu item the
+        // user clicks to dispatch.
+        let receivedScope: HTMLElement | null | undefined = undefined;
+        actionManager.defineAction(
+            new Action({
+                id: `test.scope`,
+                category: `Test`,
+                actionHandlers: new Map([
+                    [
+                        `Handler`,
+                        {
+                            id: `Handler`,
+                            scopes: [`scopeSE`],
+                            getState: () => ({
+                                visibility: ActionVisibility.Shown,
+                                component: () => <span>Scope action</span>
+                            }),
+                            executeAction: (_event, scopeElement) => {
+                                receivedScope = scopeElement;
+                            }
+                        }
+                    ]
+                ])
+            })
+        );
+
+        renderWithContext(
+            <>
+                <div
+                    data-actionscope={`scopeSE`}
+                    data-testid={`scoped-row`}
+                    data-list-id={`list-A`}
+                    data-item-id={`row-42`}
+                >
+                    <span data-testid={`inner`}>cell content</span>
+                </div>
+                <GlobalContextMenu />
+            </>,
+            actionManager
+        );
+
+        // Right-click the inner cell — handlers must still receive the
+        // row element (via closest()) so they can read data-list-id +
+        // data-item-id off it.
+        fireContextMenuOnTarget(screen.getByTestId(`inner`), 50, 60);
+        const item = await screen.findByText(`Scope action`);
+        fireEvent.click(item);
+
+        await waitFor(() => expect(receivedScope).toBeDefined());
+        const row = receivedScope?.closest?.(`[data-item-id]`) as HTMLElement | null;
+        expect(row?.dataset.itemId).toBe(`row-42`);
+        const listEl = receivedScope?.closest?.(`[data-list-id]`) as HTMLElement | null;
+        expect(listEl?.dataset.listId).toBe(`list-A`);
+    });
+
     it(`updates the cursor position on a second right-click`, async () => {
         const actionManager = buildActionManagerWithScopedAction(`scopeD`);
         const { container } = renderWithContext(

@@ -49,19 +49,18 @@ import { cn } from "../lib/lib/utils";
 import { demos, type DemoEntry, type DemoGroupKey } from "./demos";
 import { exampleTranslationRef } from "./exampleActions";
 import { guides, type GuideEntry } from "./guides";
+import {
+    DEMO_PATH_PREFIX,
+    GUIDE_PATH_PREFIX,
+    pathForDemoName,
+    pathForGuideName
+} from "./componentRoutes";
 
 type SelectionKind = `demo` | `guide`;
 interface Selection {
     readonly kind: SelectionKind;
     readonly id: string;
 }
-
-// `import.meta.env.BASE_URL` reflects Vite's `base` and always ends with a `/`
-// (e.g. `/` in dev, `/mows/` when deployed under a GitHub Pages project
-// page). Prepending it to every router-owned URL keeps deep links functional
-// regardless of where the site is mounted.
-const APP_BASE = import.meta.env.BASE_URL;
-const GUIDE_PATH_PREFIX = `${APP_BASE}guide/`;
 
 interface AppProps {
     readonly className?: string;
@@ -74,7 +73,6 @@ interface AppState {
     readonly favorites: ReadonlySet<string>;
 }
 
-const DEMO_PATH_PREFIX = APP_BASE;
 const FAVORITES_STORAGE_KEY = `mows-components-example-favorites`;
 
 const loadFavorites = (): Set<string> => {
@@ -158,10 +156,10 @@ const selectionFromPath = (pathname: string): Selection | undefined => {
 const pathForSelection = (selection: Selection): string => {
     if (selection.kind === `guide`) {
         const guide = guides.find((guide) => guide.id === selection.id);
-        return `${GUIDE_PATH_PREFIX}${guide ? guide.name : selection.id}`;
+        return pathForGuideName(guide ? guide.name : selection.id);
     }
     const demo = demos.find((demo) => demo.id === selection.id);
-    return `${DEMO_PATH_PREFIX}${demo ? demo.name : selection.id}`;
+    return pathForDemoName(demo ? demo.name : selection.id);
 };
 
 export default class App extends PureComponent<AppProps, AppState> {
@@ -430,7 +428,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                                         className={`flex items-center gap-2 px-1 pb-1 text-sm font-semibold`}
                                     >
                                         <img
-                                            src={`${APP_BASE}apps_logo.svg`}
+                                            src={`${DEMO_PATH_PREFIX}apps_logo.svg`}
                                             alt={`MOWS Apps logo`}
                                             className={`h-6 w-6 shrink-0`}
                                         />

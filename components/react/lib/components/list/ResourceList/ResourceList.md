@@ -47,6 +47,25 @@ internal state is intentionally not exposed as a controlled prop.
 `GridListRowHandler`: Up/Down/Left/Right wrap inside the grid.
 Holding shift extends the selection from the anchor.
 
+## Reordering
+
+Set `reorderable` on the list to opt the Column row handler into
+drag-to-reorder mode. The whole row becomes the drag surface — no
+dedicated handle — and the browser shows its own drag image of the
+row that follows the cursor. A primary-coloured insertion line marks
+where the dropped row will land (above or below the row under the
+pointer).
+
+On drop the list updates its own cached row order immediately, so the
+move is reflected in the UI without waiting on the consumer. The
+consumer's `handlers.onReorder(fromIndex, toIndex)` then fires for
+persistence (write back to the server, update the source array, etc.).
+Selection indices are remapped so the same items stay selected after
+the move.
+
+The reorder payload is namespaced to `${listInstanceId}:${resourceType}`
+so a drag can never accidentally land in a different `ResourceList`.
+
 ## Sorting
 
 `ColumnListRowHandler` sorts by clicking a column header. Direction
@@ -78,6 +97,7 @@ height.
 | `listHeaderElement`     | `JSX.Element`                                       | Custom content rendered inside the header bar.                                                        |
 | `overscanCount`         | `number`                                            | Rows rendered outside the visible window. Defaults to `20`.                                           |
 | `dropTargetAcceptsTypes`| `string[]`                                          | Drag-and-drop: which payload types the list accepts as a drop target.                                 |
+| `reorderable`           | `boolean`                                           | When `true`, the Column row handler renders a drag grip on each row; drops emit `handlers.onReorder`. |
 | `displayDebugBar`       | `boolean`                                           | Show an internal debug bar with the current fetch / window state. Defaults to `false`.                |
 | `className` / `style`   | `string` / `CSSProperties`                          | Outer wrapper.                                                                                        |
 

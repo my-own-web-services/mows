@@ -11,7 +11,7 @@ import {
 } from "../../../lib/components/list/ResourceList/ResourceListTypes";
 import {
     EXAMPLE_REPO_LIST_ITEM_SCOPE,
-    registerRepoDeleteSink
+    registerRepoList
 } from "../../exampleActions";
 import { useExampleState } from "../harness/useExampleState";
 import type { ExampleModule } from "../harness/types";
@@ -86,10 +86,21 @@ const RepoList = ({ listId, title, items, listRef }: RepoListProps) => {
 
     const getResourcesList = async (
         req: ListResourceRequestBody
-    ): Promise<ListResourceResponseBody<Repo>> => ({
-        items: items.slice(req.fromIndex, req.fromIndex + req.limit),
-        totalCount: items.length
-    });
+    ): Promise<ListResourceResponseBody<Repo>> => {
+        const sorted = [...items].sort((a, b) => {
+            const av = a[req.sortBy as keyof Repo];
+            const bv = b[req.sortBy as keyof Repo];
+            const cmp =
+                typeof av === `number` && typeof bv === `number`
+                    ? av - bv
+                    : String(av).localeCompare(String(bv));
+            return req.sortDirection === SortDirection.Descending ? -cmp : cmp;
+        });
+        return {
+            items: sorted.slice(req.fromIndex, req.fromIndex + req.limit),
+            totalCount: sorted.length
+        };
+    };
 
     return (
         <div className={`flex min-h-0 flex-1 flex-col gap-2`}>
@@ -118,33 +129,58 @@ const Example = () => {
     const [databases, setDatabases] = useState<ReadonlyArray<Repo>>(DATABASE_REPOS);
     const [lastDeleted, setLastDeleted] = useState<{
         readonly listId: string;
-        readonly itemId: string;
+        readonly itemIds: ReadonlyArray<string>;
     } | null>(null);
 
     const serversRef = useRef<ResourceList<Repo>>(null);
     const databasesRef = useRef<ResourceList<Repo>>(null);
 
     useEffect(() => {
-        const deleteFromServers = (itemId: string) => {
-            setServers((prev) => prev.filter((r) => r.id !== itemId));
-            setLastDeleted({ listId: SERVERS_LIST_ID, itemId });
-            // The ResourceList only re-runs getResourcesList on demand —
-            // refreshList drops the cached window so the deleted row
-            // disappears immediately.
-            serversRef.current?.refreshList();
-        };
-        const deleteFromDatabases = (itemId: string) => {
-            setDatabases((prev) => prev.filter((r) => r.id !== itemId));
-            setLastDeleted({ listId: DATABASES_LIST_ID, itemId });
-            databasesRef.current?.refreshList();
-        };
-        const unsubServers = registerRepoDeleteSink(SERVERS_LIST_ID, deleteFromServers);
-        const unsubDatabases = registerRepoDeleteSink(DATABASES_LIST_ID, deleteFromDatabases);
+        const unsubServers = registerRepoList(SERVERS_LIST_ID, {
+            deleteByIds: (ids) => {
+                const set = new Set(ids);
+                setServers((prev) => prev.filter((r) => !set.has(r.id)));
+                setLastDeleted({ listId: SERVERS_LIST_ID, itemIds: [...ids] });
+            },
+            getSelectedIds: () =>
+                serversRef.current?.getSelectedItems().map((r) => r.id) ?? []
+        });
+        const unsubDatabases = registerRepoList(DATABASES_LIST_ID, {
+            deleteByIds: (ids) => {
+                const set = new Set(ids);
+                setDatabases((prev) => prev.filter((r) => !set.has(r.id)));
+                setLastDeleted({ listId: DATABASES_LIST_ID, itemIds: [...ids] });
+            },
+            getSelectedIds: () =>
+                databasesRef.current?.getSelectedItems().map((r) => r.id) ?? []
+        });
         return () => {
             unsubServers();
             unsubDatabases();
         };
     }, []);
+
+    // refreshList lives in a post-state effect — not inline next to
+    // setServers / setDatabases — so it runs *after* RepoList has
+    // received the new getResourcesList closure. Calling refreshList
+    // inside the sink would re-fetch through the previous-render
+    // closure that still holds the stale items array.
+    const firstServersRender = useRef(true);
+    useEffect(() => {
+        if (firstServersRender.current) {
+            firstServersRender.current = false;
+            return;
+        }
+        serversRef.current?.refreshList();
+    }, [servers]);
+    const firstDatabasesRender = useRef(true);
+    useEffect(() => {
+        if (firstDatabasesRender.current) {
+            firstDatabasesRender.current = false;
+            return;
+        }
+        databasesRef.current?.refreshList();
+    }, [databases]);
 
     useExampleState({
         servers: servers.length,
@@ -157,7 +193,9 @@ const Example = () => {
             <p className={`text-muted-foreground text-sm`}>
                 Right-click any row in either list — the same Delete action removes from the
                 correct list because the handler walks up the DOM to read{` `}
-                <code>data-list-id</code> + <code>data-item-id</code> off the row.
+                <code>data-list-id</code> + <code>data-item-id</code> off the row. Ctrl/Cmd-click
+                or Shift-click to multi-select; right-clicking any selected row then deletes
+                every selected row at once.
             </p>
             <div className={`flex flex-col gap-4 md:flex-row`}>
                 <RepoList

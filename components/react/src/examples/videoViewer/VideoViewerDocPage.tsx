@@ -34,9 +34,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react shaka-player`;
+const PACKAGE_INSTALL = `add @mows/react-components shaka-player`;
 
-const USAGE_SNIPPET = `import VideoViewer from "mows-components-react/components/files/fileViewer/formats/videoViewer/VideoViewer";
+const USAGE_SNIPPET = `import VideoViewer from "@mows/react-components/components/files/fileViewer/formats/videoViewer/VideoViewer";
 
 <VideoViewer
     src="https://example.com/video.mp4"

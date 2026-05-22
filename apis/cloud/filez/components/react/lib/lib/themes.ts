@@ -1,6 +1,6 @@
-import { defaultThemes, type MowsTheme } from "mows-components-react/lib/themes";
+import { defaultThemes, type MowsTheme } from "@mows/react-components/lib/themes";
 
-export { loadThemeCSS, type MowsTheme } from "mows-components-react/lib/themes";
+export { loadThemeCSS, type MowsTheme } from "@mows/react-components/lib/themes";
 
 export const themes: MowsTheme[] = [
     ...defaultThemes,

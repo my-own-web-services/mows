@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { defaultCodeThemes } from "../../../../lib/lib/codeThemes";
 import enTranslation from "../../../../lib/lib/languages/en-US/default";
 import { ActionManager } from "../../../../lib/lib/mowsContext/ActionManager";
@@ -12,6 +12,11 @@ import {
     type MowsContextType
 } from "../../../../lib/lib/mowsContext/MowsContext";
 import { renderInlineMarkup, renderDescription } from "./renderInlineMarkup";
+import {
+    __resetComponentLinkRegistryForTests,
+    registerDemoLinks,
+    registerGuideLinks
+} from "../../../componentLinkRegistry";
 
 // Minimal MowsContext value — `<InlineCodeChip>` now routes through
 // `<CodeSnippet>` which calls `useMows()`. The hook throws without a
@@ -96,5 +101,88 @@ describe(`renderInlineMarkup`, () => {
     it(`renderDescription promotes string input`, () => {
         const out = renderDescription(`<Steps>`);
         expect(Array.isArray(out)).toBe(true);
+    });
+
+    describe(`cross-doc linking`, () => {
+        beforeEach(() => {
+            __resetComponentLinkRegistryForTests();
+            registerDemoLinks([{ name: `PrimaryMenu` }, { name: `Compass` }]);
+            registerGuideLinks([{ name: `CreatingApps` }]);
+            window.history.replaceState({}, ``, `/Compass`);
+        });
+
+        it(`wraps registered <Tag> mentions in a doc-page anchor`, () => {
+            const { container } = renderWithCtx(
+                renderInlineMarkup(`Mount under <PrimaryMenu>.`)
+            );
+            const link = container.querySelector(
+                `a[data-component-doc-link="PrimaryMenu"]`
+            );
+            expect(link).toBeTruthy();
+            expect(link?.getAttribute(`href`)).toBe(`/PrimaryMenu`);
+            expect(link?.querySelector(`code`)).toHaveTextContent(`<PrimaryMenu>`);
+        });
+
+        it(`also links JSX tags wrapped in backticks`, () => {
+            const { container } = renderWithCtx(
+                renderInlineMarkup(`See \`<PrimaryMenu>\` for details.`)
+            );
+            const link = container.querySelector(
+                `a[data-component-doc-link="PrimaryMenu"]`
+            );
+            expect(link).toBeTruthy();
+        });
+
+        it(`links guide names too`, () => {
+            const { container } = renderWithCtx(
+                renderInlineMarkup(`Read <CreatingApps> first.`)
+            );
+            const link = container.querySelector(
+                `a[data-component-doc-link="CreatingApps"]`
+            );
+            expect(link?.getAttribute(`href`)).toBe(`/guide/CreatingApps`);
+        });
+
+        it(`does not link unregistered names`, () => {
+            const { container } = renderWithCtx(
+                renderInlineMarkup(`Use <SomethingNew> for that.`)
+            );
+            expect(container.querySelectorAll(`a[data-component-doc-link]`)).toHaveLength(
+                0
+            );
+            expect(container.querySelector(`code`)).toHaveTextContent(
+                `<SomethingNew>`
+            );
+        });
+
+        it(`suppresses the anchor when the path matches the current page`, () => {
+            window.history.replaceState({}, ``, `/PrimaryMenu`);
+            const { container } = renderWithCtx(
+                renderInlineMarkup(`Compose with <PrimaryMenu>.`)
+            );
+            expect(container.querySelectorAll(`a[data-component-doc-link]`)).toHaveLength(
+                0
+            );
+            expect(container.querySelector(`code`)).toHaveTextContent(`<PrimaryMenu>`);
+        });
+
+        it(`routes clicks via pushState + popstate instead of hard navigation`, () => {
+            const { container } = renderWithCtx(
+                renderInlineMarkup(`Mount under <PrimaryMenu>.`)
+            );
+            const link = container.querySelector<HTMLAnchorElement>(
+                `a[data-component-doc-link="PrimaryMenu"]`
+            );
+            expect(link).toBeTruthy();
+            let popped = false;
+            const onPop = () => {
+                popped = true;
+            };
+            window.addEventListener(`popstate`, onPop);
+            link!.click();
+            window.removeEventListener(`popstate`, onPop);
+            expect(window.location.pathname).toBe(`/PrimaryMenu`);
+            expect(popped).toBe(true);
+        });
     });
 });

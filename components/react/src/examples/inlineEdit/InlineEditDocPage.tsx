@@ -34,10 +34,10 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
 const USAGE_SNIPPET = `import { useState } from "react";
-import { InlineEdit } from "mows-components-react";
+import { InlineEdit } from "@mows/react-components";
 
 const [name, setName] = useState("vm-control-01");
 

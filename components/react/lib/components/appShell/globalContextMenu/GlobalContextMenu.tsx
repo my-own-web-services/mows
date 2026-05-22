@@ -29,6 +29,13 @@ interface GlobalContextMenuState {
     readonly open: boolean;
     readonly actions?: Action[];
     readonly position?: { x: number; y: number };
+    /**
+     * The element the user actually right-clicked on. Captured at
+     * `contextmenu` time and passed through `dispatchAction` so action
+     * handlers can read `data-*` off the *right-click target*, not the
+     * dropdown menu item the user later clicked.
+     */
+    readonly contextTarget?: HTMLElement | null;
 }
 
 /**
@@ -42,9 +49,11 @@ interface GlobalContextMenuState {
  */
 const ContextMenuActionItem = ({
     action,
+    contextTarget,
     onDispatched
 }: {
     action: Action;
+    contextTarget?: HTMLElement | null;
     onDispatched: () => void;
 }) => {
     const mods = useModifierState();
@@ -55,7 +64,10 @@ const ContextMenuActionItem = ({
     const disabled = resolved.visibility === ActionVisibility.Disabled;
 
     const dispatch = (event: MouseEvent<HTMLElement>) => {
-        ctx?.actionManager.dispatchAction(action.id, event.nativeEvent);
+        // Forward the original right-click target so action handlers can
+        // read `data-*` off the row that opened this menu, not the menu
+        // item the user just clicked.
+        ctx?.actionManager.dispatchAction(action.id, event.nativeEvent, contextTarget);
         onDispatched();
     };
 
@@ -80,6 +92,7 @@ const ContextMenuActionItem = ({
                                 // user still sees the entry.
                                 ({ id: child.id, category: child.category } as Action)
                             }
+                            contextTarget={contextTarget}
                             onDispatched={onDispatched}
                         />
                     ))}
@@ -185,7 +198,8 @@ export default class GlobalContextMenu extends PureComponent<
         this.setState({
             open: true,
             actions,
-            position: { x: event.clientX, y: event.clientY }
+            position: { x: event.clientX, y: event.clientY },
+            contextTarget: event.target as HTMLElement | null
         });
     };
 
@@ -231,6 +245,7 @@ export default class GlobalContextMenu extends PureComponent<
                         <ContextMenuActionItem
                             key={action.id}
                             action={action}
+                            contextTarget={this.state.contextTarget}
                             onDispatched={this.close}
                         />
                     ))}

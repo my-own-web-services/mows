@@ -31,7 +31,7 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add mows-components-react`;
+const PACKAGE_INSTALL = `add @mows/react-components`;
 
 const USAGE_SNIPPET = `import {
     Dialog,
@@ -42,7 +42,7 @@ const USAGE_SNIPPET = `import {
     DialogDescription,
     DialogFooter,
     DialogClose
-} from "mows-components-react";
+} from "@mows/react-components";
 
 <Dialog>
     <DialogTrigger asChild>
