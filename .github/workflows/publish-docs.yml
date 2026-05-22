@@ -19,6 +19,10 @@ on:
         default: '/mows/'
         type: string
 
+# Serialise deploys so a newer main push supersedes an in-flight one; PRs
+# cancel each other freely since they never deploy. We deliberately do NOT
+# cancel in-progress deploys on main — once a Pages deploy starts, killing
+# it can leave the site half-published.
 concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -29,6 +33,14 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # `configure-pages` (with enablement) needs pages:write so the first
+    # run can turn Pages on without a manual UI step. id-token isn't used
+    # in the build job but is required by `configure-pages` when it
+    # signs the Pages site config.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
 
@@ -57,6 +69,15 @@ jobs:
           key: ${{ runner.os }}-pnpm-${{ hashFiles('components/react/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-
+
+      # Auto-enables Pages on the repo the first time the workflow runs
+      # (`enablement: true`) and configures the GitHub Actions source. This
+      # removes the manual Settings -> Pages step that would otherwise be a
+      # prerequisite for `deploy-pages`. Idempotent on subsequent runs.
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+        with:
+          enablement: true
 
       - name: Build docs site
         env:
