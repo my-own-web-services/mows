@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { defaultCodeThemes } from "../../../lib/codeThemes";
+import { defaultMapStyles } from "../../../lib/mapStyles";
 import { Action, ActionManager, ActionVisibility } from "../../../lib/mowsContext/ActionManager";
 import { HotkeyManager } from "../../../lib/mowsContext/HotkeyManager";
 import {
@@ -43,7 +44,10 @@ const buildContext = (actionManager: ActionManager): MowsContextType => {
         codeEditorSettings: defaultCodeEditorSettings,
         setCodeEditorSettings: () => undefined,
         toastSettings: defaultToastSettings,
-        setToastSettings: () => undefined
+        setToastSettings: () => undefined,
+        mapStyles: defaultMapStyles,
+        currentMapStyle: defaultMapStyles[0],
+        setMapStyle: () => undefined
     };
 };
 

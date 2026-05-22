@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { defaultCodeThemes } from "../../../lib/codeThemes";
 import baseEn from "../../../lib/languages/en-US/default";
@@ -24,7 +24,8 @@ import ColumnListRowHandler, { type Column } from "./rowHandlers/Column";
 import type {
     BaseResource,
     ListResourceRequestBody,
-    ListResourceResponseBody
+    ListResourceResponseBody,
+    ResourceListHandlers
 } from "./ResourceListTypes";
 import { SortDirection } from "./ResourceListTypes";
 
@@ -81,10 +82,21 @@ const buildContext = (): MowsContextType => {
     } as unknown as MowsContextType;
 };
 
+interface RenderOptions {
+    readonly handlers?: ResourceListHandlers<Item>;
+    readonly rowAttributes?: (item: Item) => Record<string, string>;
+    readonly hideSelectionCheckboxColumn?: boolean;
+}
+
 const renderList = (
-    getResourcesList: (req: ListResourceRequestBody) => Promise<ListResourceResponseBody<Item>>
+    getResourcesList: (req: ListResourceRequestBody) => Promise<ListResourceResponseBody<Item>>,
+    options: RenderOptions = {}
 ) => {
-    const handler = new ColumnListRowHandler<Item>({ columns });
+    const handler = new ColumnListRowHandler<Item>({
+        columns,
+        rowAttributes: options.rowAttributes,
+        hideSelectionCheckboxColumn: options.hideSelectionCheckboxColumn
+    });
     return render(
         <MowsContext.Provider value={buildContext()}>
             <div style={{ width: 800, height: 600 }}>
@@ -94,6 +106,7 @@ const renderList = (
                     rowHandlers={[handler]}
                     initialRowHandler={handler.id}
                     getResourcesList={getResourcesList}
+                    handlers={options.handlers}
                 />
             </div>
         </MowsContext.Provider>
@@ -133,5 +146,63 @@ describe(`ResourceList`, () => {
         const arg = fetcher.mock.calls[0]![0];
         expect(arg.sortBy).toBeDefined();
         expect(arg.sortDirection).toBeDefined();
+    });
+
+    it(`fires onItemRightClick when the row's outer area is right-clicked`, async () => {
+        const fetcher = async () => ({ totalCount: ITEMS.length, items: ITEMS });
+        const onItemRightClick = vi.fn();
+        const { container } = renderList(fetcher, {
+            handlers: { onItemRightClick },
+            hideSelectionCheckboxColumn: true
+        });
+        const row = await waitFor(() => {
+            const node = container.querySelector(`.ColumnListRowRenderer`);
+            if (!node) throw new Error(`row not yet rendered`);
+            return node as HTMLElement;
+        });
+        // Fire contextmenu on the row container itself (not on the cell text).
+        // The bug was that right-clicks landing on the row gutter / row
+        // padding never reached the handler — this assertion is what
+        // would have caught it.
+        fireEvent.contextMenu(row);
+        expect(onItemRightClick).toHaveBeenCalledTimes(1);
+        expect(onItemRightClick.mock.calls[0]![0]).toEqual(ITEMS[0]);
+    });
+
+    it(`fires onItemRightClick from a deeply nested element inside the row`, async () => {
+        const fetcher = async () => ({ totalCount: ITEMS.length, items: ITEMS });
+        const onItemRightClick = vi.fn();
+        const { container } = renderList(fetcher, {
+            handlers: { onItemRightClick },
+            hideSelectionCheckboxColumn: true
+        });
+        const text = await waitFor(() => {
+            const node = container.querySelector(`[data-testid="item-2"]`);
+            if (!node) throw new Error(`cell text not yet rendered`);
+            return node as HTMLElement;
+        });
+        fireEvent.contextMenu(text);
+        expect(onItemRightClick).toHaveBeenCalledTimes(1);
+        expect(onItemRightClick.mock.calls[0]![0]).toEqual(ITEMS[1]);
+    });
+
+    it(`stamps rowAttributes onto each row's outer div`, async () => {
+        const fetcher = async () => ({ totalCount: ITEMS.length, items: ITEMS });
+        const { container } = renderList(fetcher, {
+            hideSelectionCheckboxColumn: true,
+            rowAttributes: (item) => ({
+                "data-actionscope": `testScope`,
+                "data-item-id": item.id
+            })
+        });
+        await waitFor(() => {
+            const rows = container.querySelectorAll(`.ColumnListRowRenderer`);
+            if (rows.length < ITEMS.length) throw new Error(`rows not yet rendered`);
+        });
+        const rows = Array.from(container.querySelectorAll(`.ColumnListRowRenderer`)) as HTMLElement[];
+        rows.slice(0, ITEMS.length).forEach((row, index) => {
+            expect(row.getAttribute(`data-actionscope`)).toBe(`testScope`);
+            expect(row.getAttribute(`data-item-id`)).toBe(ITEMS[index]!.id);
+        });
     });
 });

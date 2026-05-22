@@ -54,6 +54,12 @@ const translation: BaseTranslation = {
         selectCodeTheme: `Select code theme`,
         noCodeThemeFound: `No code theme found`
     },
+    mapStylePicker: {
+        title: `Map Style Selector`,
+        label: `Map style`,
+        selectMapStyle: `Select map style`,
+        noMapStyleFound: `No map style found`
+    },
     settings: {
         title: `Settings`,
         description: `Configure all preferences in one place`,
@@ -66,7 +72,8 @@ const translation: BaseTranslation = {
             appearance: `Appearance`,
             language: `Language`,
             codeEditor: `Code editor`,
-            notifications: `Notifications`
+            notifications: `Notifications`,
+            map: `Map`
         },
         labels: {
             theme: `Theme`,
@@ -76,7 +83,8 @@ const translation: BaseTranslation = {
             wrap: `Wrap long lines`,
             showLineNumbers: `Show line numbers`,
             bracketPairColorization: `Colorize bracket pairs`,
-            toastPosition: `Toast position`
+            toastPosition: `Toast position`,
+            mapStyle: `Map style`
         },
         toastPositions: {
             topLeft: `Top left`,
@@ -98,7 +106,7 @@ const translation: BaseTranslation = {
         searchAriaLabel: `Search actions`,
         actionNotFound: `Action not found`,
         noActionsFound: `No actions found matching "{searchQuery}"`,
-        addHotkeyButton: `+ Add Hotkey`,
+        addHotkeyButton: `Add Hotkey`,
         hotkeyDialog: {
             editTitle: `Edit Keyboard Shortcut`,
             addTitle: `Add New Hotkey`,

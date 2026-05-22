@@ -2,7 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { NO_MODIFIERS } from "./ActionManager";
-import { __resetModifierStateForTests, useModifierState } from "./ModifierState";
+import {
+    __resetModifierStateForTests,
+    primeModifierStateFromEvent,
+    useModifierState
+} from "./ModifierState";
 
 const fire = (type: `keydown` | `keyup`, init: KeyboardEventInit) => {
     act(() => {
@@ -48,6 +52,16 @@ describe(`useModifierState`, () => {
             window.dispatchEvent(new Event(`blur`));
         });
         expect(result.current).toEqual(NO_MODIFIERS);
+    });
+
+    it(`primeModifierStateFromEvent seeds the store from a synthetic event`, () => {
+        const { result } = renderHook(() => useModifierState());
+        // Simulate "user was already holding Shift before the right-click".
+        const event = { shiftKey: true, altKey: false, ctrlKey: false, metaKey: false };
+        act(() => {
+            primeModifierStateFromEvent(event as unknown as MouseEvent);
+        });
+        expect(result.current.shift).toBe(true);
     });
 
     it(`re-renders subscribers when modifiers change`, () => {

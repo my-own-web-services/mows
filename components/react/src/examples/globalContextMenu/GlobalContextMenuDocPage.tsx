@@ -120,37 +120,37 @@ const buildBehaviourEntries = (
         statement: statements.positionsAtCursor,
         testFile: TEST_FILE,
         testName: `positions the trigger wrapper exactly at the cursor coordinates`,
-        testLine: 97
+        testLine: 101
     },
     {
         statement: statements.sideOffsetZero,
         testFile: TEST_FILE,
         testName: `opens with sideOffset 0 so the menu starts at the cursor, not below it`,
-        testLine: 121
+        testLine: 125
     },
     {
         statement: statements.suppressesNativeOnlyWhenMatched,
         testFile: TEST_FILE,
         testName: `only suppresses the native context menu when there is a matching scoped action`,
-        testLine: 146
+        testLine: 150
     },
     {
         statement: statements.doesNotSuppressWhenScopeEmpty,
         testFile: TEST_FILE,
         testName: `does not suppress the native context menu when the scope has no actions`,
-        testLine: 166
+        testLine: 170
     },
     {
         statement: statements.clickItemDispatches,
         testFile: TEST_FILE,
         testName: `right-clicking a menu item dispatches the action and prevents the native context menu`,
-        testLine: 185
+        testLine: 189
     },
     {
         statement: statements.updatesOnSecondClick,
         testFile: TEST_FILE,
         testName: `updates the cursor position on a second right-click`,
-        testLine: 246
+        testLine: 250
     }
 ];
 

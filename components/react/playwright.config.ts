@@ -6,6 +6,14 @@ import { defineConfig, devices } from "@playwright/test";
 // if a pre-built static preview is used instead.
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:5175`;
 
+// On NixOS the playwright-bundled browsers won't run because they're
+// missing glibc-linked shared libraries (libglib-2.0, libnss3, …). Point
+// at a system browser via env var, mirroring the manager/ui setup:
+//   PLAYWRIGHT_CHROMIUM_PATH=$(which google-chrome-stable) pnpm test:e2e
+//   PLAYWRIGHT_FIREFOX_PATH=$(which firefox) pnpm test:e2e
+const systemChromium = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const systemFirefox = process.env.PLAYWRIGHT_FIREFOX_PATH;
+
 export default defineConfig({
     testDir: `./e2e`,
     fullyParallel: false,
@@ -18,12 +26,27 @@ export default defineConfig({
         trace: `retain-on-failure`,
         screenshot: `only-on-failure`
     },
-    projects: [
-        {
-            name: `chromium`,
-            use: { ...devices[`Desktop Chrome`] }
-        }
-    ],
+    projects: systemFirefox
+        ? [
+              {
+                  name: `firefox`,
+                  use: {
+                      ...devices[`Desktop Firefox`],
+                      launchOptions: { executablePath: systemFirefox }
+                  }
+              }
+          ]
+        : [
+              {
+                  name: `chromium`,
+                  use: {
+                      ...devices[`Desktop Chrome`],
+                      ...(systemChromium
+                          ? { launchOptions: { executablePath: systemChromium } }
+                          : {})
+                  }
+              }
+          ],
     webServer: {
         // Only auto-start dev if nothing is already serving at the URL,
         // so the suite remains zero-config locally AND in CI.

@@ -25,14 +25,19 @@ import {
     CardContent
 } from "mows-components-react/components/ui/card";
 import InlineEdit from "mows-components-react/components/input/inlineEdit/InlineEdit";
+import ConsoleManager, {
+    type ConsoleType
+} from "mows-components-react/components/console/consoleManager/ConsoleManager";
 import { useMows } from "mows-components-react/lib/mowsContext/MowsContext";
 import {
     Clock,
     Cpu,
     HardDrive,
     MemoryStick,
-    Server
+    Server,
+    TerminalSquare
 } from "lucide-react";
+import VmSshConsole from "../components/VmSshConsole";
 import {
     useEffect,
     useMemo,
@@ -191,6 +196,27 @@ const VmDetail = () => {
 
     const status = statusFor(vm.status, mowsContext.t.supervisor.vmDetail.status);
 
+    // ConsoleManager `types`: each entry's `render` is invoked once per
+    // spawned terminal, so every tab gets a fresh `<VmSshConsole>` (own
+    // socket, own ssh subprocess on the supervisor). Pinning `vm.id`
+    // in the closure keeps the manager tied to this page's VM even if
+    // the user navigates between VMs while a session is open.
+    //
+    // Memoise so PureComponent's prop diff bails out across re-renders
+    // — recreating `types` on every poll tick would otherwise reset the
+    // tab list to its initial state on every 2 s data refresh.
+    const consoleTypes = useMemo<readonly ConsoleType[]>(
+        () => [
+            {
+                id: "ssh",
+                label: mowsContext.t.supervisor.vmDetail.console.ssh.typeLabel,
+                icon: TerminalSquare,
+                render: () => <VmSshConsole vmId={vm.id} />
+            }
+        ],
+        [vm.id, mowsContext.t.supervisor.vmDetail.console.ssh.typeLabel]
+    );
+
     return (
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-8">
             {/* Single outlined card: identity on the left, stats laid out
@@ -268,6 +294,27 @@ const VmDetail = () => {
                         />
                     </div>
                 </CardContent>
+            </Card>
+
+            {/*
+             * Console panel — VSCode-style ConsoleManager. Currently the
+             * only registered type is "SSH" (direct ssh into the guest
+             * via the supervisor's /v1/vms/{id}/ssh-io websocket). Each
+             * new tab opens its own socket + ssh subprocess on the
+             * host. Auto-seeds one SSH tab so the panel is usable the
+             * moment the VM detail page loads.
+             */}
+            <Card className="overflow-hidden p-0">
+                <div className="border-b border-border px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    {mowsContext.t.supervisor.vmDetail.console.sectionTitle}
+                </div>
+                <div className="h-[420px] w-full">
+                    <ConsoleManager
+                        types={consoleTypes}
+                        defaultTypeId="ssh"
+                        initialTabs={[{ typeId: "ssh" }]}
+                    />
+                </div>
             </Card>
         </div>
     );

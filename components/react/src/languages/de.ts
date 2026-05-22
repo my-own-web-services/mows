@@ -13,7 +13,8 @@ const translation: Translation = {
         [ExampleActionIds.SHARE_EMAIL]: `E-Mail`,
         [ExampleActionIds.SHARE_SLACK]: `Slack`,
         [ExampleActionIds.TRASH]: `In den Papierkorb`,
-        [ExampleActionIds.DUPLICATE]: `Duplizieren`
+        [ExampleActionIds.DUPLICATE]: `Duplizieren`,
+        [ExampleActionIds.REPO_DELETE]: `Löschen`
     },
     example: {
         pageTitle: `MOWS-Komponenten — Beispiel`,
@@ -45,6 +46,7 @@ const translation: Translation = {
                 identity: `Identität`,
                 input: `Eingabe`,
                 list: `Listen`,
+                map: `Karte`,
                 navigation: `Navigation`,
                 settings: `Einstellungen`,
                 uiPrimitives: `UI-Primitive`
@@ -1156,6 +1158,10 @@ const translation: Translation = {
                     title: `Header / Inhalt / Footer`,
                     description: `Zusammengesetzt aus <SidebarHeader>, <SidebarContent> (mit <SidebarGroup> + <SidebarMenu>) und <SidebarFooter>. collapsible="icon" hält den Icon-Streifen sichtbar.`
                 },
+                iconCollapsible: {
+                    title: `Auf Icon-Streifen einklappbar`,
+                    description: `<Sidebar collapsible="icon"> wechselt zwischen voller <SidebarProvider>-Breite und einem 3rem schmalen Icon-Streifen. Der Zustand liegt am <SidebarProvider>; <SidebarTrigger> klappt um, ⌘B / Strg+B global ebenfalls.`
+                },
                 collapsibleGroups: {
                     title: `Aufklappbare Gruppen`,
                     description: `Jedes <SidebarMenuItem> wird in <Collapsible> verpackt, die Unterpunkte liegen in <SidebarMenuSub>. Der Chevron rotiert anhand des data-state, und die Unterliste zeichnet die senkrechte Akzentlinie an der führenden Kante.`
@@ -1186,6 +1192,10 @@ const translation: Translation = {
                         default: {
                             title: `Header / Inhalt / Footer`,
                             description: `Eine statische Sidebar mit drei Menüeinträgen.`
+                        },
+                        iconCollapsible: {
+                            title: `Auf Icon-Streifen einklappbar`,
+                            description: `Über den Schalter im Header (oder ⌘B / Strg+B) lässt sich die Sidebar zwischen voller Breite und dem schmalen Icon-Streifen umschalten. Bei schmaler Sidebar verschwinden die Labels hinter Tooltips.`
                         },
                         collapsibleGroups: {
                             title: `Aufklappbare Gruppen`,
@@ -3244,6 +3254,49 @@ const translation: Translation = {
                     apiReference: { title: `API-Referenz`, intro: `Props, die <ThemePicker> akzeptiert.` }
                 }
             },
+            mapStylePicker: {
+                popover: { title: `Popover-Trigger`, description: `Standardform — der Picker lebt hinter einem Popover.` },
+                standalone: { title: `Eigenständig`, description: `Suchliste inline, ohne Popover.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<MapStylePicker> innerhalb von <MowsProvider> mounten. Er liest mapStyles und currentMapStyle aus dem Context und ruft setMapStyle bei der Auswahl auf.` },
+                    composition: { title: `Komposition`, body: `Eine Auswahl hier aktualisiert jede gemountete <Map>, die nicht ihre eigene mapStyle-Prop fixiert, und speichert den Stil unter storagePrefix_map_style in localStorage.` },
+                    examples: { title: `Beispiele`, popover: { title: `Popover-Trigger`, description: `Trigger + Popover-Liste.` }, standalone: { title: `Eigenständig`, description: `Inline-Suchliste.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <MapStylePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            listsStyles: `Listet jeden Kartenstil im Standalone-Modus.`,
+                            firesSetMapStyle: `Ruft setMapStyle im umgebenden Context auf, wenn ein Stil gewählt wird.`,
+                            popoverShowsCurrent: `Rendert den Popover-Trigger standardmäßig mit dem aktuellen Kartenstil.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `In dir="rtl" eingewickelt drehen sich Trigger + Suchfeld nach rechts-nach-links.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <MapStylePicker> akzeptiert.` }
+                }
+            },
+            map: {
+                default: { title: `Standard`, description: `Mapbox-gl-Viewport. Der aktive Stil folgt der Wahl im Einstellungs-Panel.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
+                    usage: { title: `Verwendung`, body: `<Map> rendert einen mapbox-gl-Viewport. Sowohl mapbox-gl-JS als auch das zugehörige CSS werden beim ersten Mount lazy geladen, damit Konsumenten ohne Karte keine Bundle-Kosten zahlen.` },
+                    composition: { title: `Komposition`, body: `Standardmäßig folgt <Map> dem currentMapStyle aus dem MowsContext, sodass das SettingsPanel den Stil app-weit umschalten kann. Über die mapStyle-Prop lässt sich das pro Instanz fixieren.` },
+                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Lebendiger mapbox-gl-Viewport im Welt-Zoom.` } },
+                    definedBehaviour: {
+                        title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <Map> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
+                        statements: {
+                            lazyLoadsMapbox: `Zeigt einen Lade-Skeleton, bis der mapbox-gl-Chunk geladen ist.`,
+                            usesContextStyle: `Instanziiert mapbox-gl standardmäßig mit dem currentMapStyle aus dem Context.`,
+                            propOverridesContext: `Eine explizite mapStyle-Prop überschreibt den Context-Wert.`,
+                            appliesAccessToken: `Setzt das accessToken des aktiven Stils vor der Instanziierung.`,
+                            reactsToContextChange: `Ruft setStyle, wenn sich der aktive Kartenstil im Context ändert.`,
+                            firesOnLoad: `Feuert onLoad, sobald die Karte das "load"-Event sendet.`,
+                            cleansUpOnUnmount: `Ruft beim Unmount map.remove() auf.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `mapbox-gl rendert sein eigenes Canvas; <Map> ergänzt keine richtungsabhängige UI, dir="rtl" lässt den Viewport unverändert.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <Map> akzeptiert.` }
+                }
+            },
             dateTimePicker: {
                 default: { title: `Standard`, description: `Ein Textfeld + Popover-Kalender + Time-Picker.` },
                 withTimezone: { title: `Mit Zeitzone`, description: `showTimezone fügt einen IANA-Timezone-Selektor im Popover hinzu.` },
@@ -3596,12 +3649,27 @@ const translation: Translation = {
                 }
             },
             resourceList: {
-                default: { title: `Standard`, description: `Virtualisierte Liste mit In-Memory-Fetcher. Scrollen lädt weitere Fenster nach; Spaltenüberschriften klicken sortiert.` },
+                default: { title: `Standard`, description: `Tabellenansicht von 600 Deployments mit dem Spalten-Row-Handler. Spaltenbreiten lassen sich am Header ziehen; ein Klick auf den Spaltenkopf sortiert.` },
+                grid: { title: `Raster`, description: `360 Farbfelder als feste Kachel-Galerie über GridListRowHandler. Mit dem Slider im Header lässt sich die Anzahl der Spalten anpassen.` },
+                multipleLayouts: { title: `Mehrere Layouts`, description: `Derselbe Produktkatalog unter einem Spalten- und einem Raster-Row-Handler. Über den Icon-Picker im Header wechselst du das Layout — die Scrollposition bleibt erhalten.` },
+                selection: { title: `Auswahl`, description: `Auswahlzustand über den onSelect-Callback. Klicken, Strg/Cmd-Klick zum Umschalten, Shift-Klick für einen Bereich; das Panel darüber spiegelt Anzahl und zuletzt gewählte ID.` },
+                contextMenu: { title: `Kontextmenü`, description: `Rechtsklick auf eine Zeile öffnet ein Aktionsmenü (Öffnen / Duplizieren / Löschen). Das Beispiel hängt ein Radix-DropdownMenu in onContextMenu innerhalb des Spalten-Render — Ziel des Rechtsklicks ist die Zeile selbst.` },
+                multipleListsSharedAction: { title: `Gemeinsame Aktion über Listen hinweg`, description: `Zwei ResourceLists nebeneinander teilen sich eine einzige „Löschen“-Aktion über den globalen ActionManager. Jede Zeile bekommt [data-actionscope] + [data-list-id] + [data-item-id]; der eine Handler liest diese Attribute am rechtsangeklickten Element ab und dispatcht in den State der jeweils richtigen Liste.` },
+                horizontalStrip: { title: `Horizontaler Streifen`, description: `Ein eigener RowRendererDirection.Horizontal-Handler rendert einen horizontal scrollenden Streifen aus Karten. Jede Karte bettet FileViewer im „embedded“-Modus ein, sodass die 60 Vorschauen erst beim Scrollen geladen werden.` },
                 doc: {
                     installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
                     usage: { title: `Verwendung`, body: `<ResourceList> rendert eine große, paginierte und virtualisierte Liste beliebiger Ressourcen. Übergib eine getResourcesList-Funktion, die zusammenhängende Fenster vom Server lädt, und einen oder mehrere Row-Handler für das Layout.` },
                     composition: { title: `Komposition`, body: `Stelle einen oder mehrere rowHandlers bereit (Column / Grid / custom) — der Nutzer kann im Header zwischen ihnen wechseln. Sortierungs-Zustand wird an getResourcesList weitergegeben, damit der Server die korrekte Seite liefert.` },
-                    examples: { title: `Beispiele`, default: { title: `Standard`, description: `Eine In-Memory-Quelle speist 250 Zeilen; scrolle für weitere, klicke einen Spaltenkopf, um zu sortieren.` } },
+                    examples: {
+                        title: `Beispiele`,
+                        default: { title: `Standard`, description: `Tabellenansicht von 600 Deployments mit dem Spalten-Row-Handler. Spaltenbreiten lassen sich am Header ziehen; ein Klick auf den Spaltenkopf sortiert.` },
+                        grid: { title: `Raster`, description: `360 Farbfelder als feste Kachel-Galerie über GridListRowHandler. Mit dem Slider im Header lässt sich die Anzahl der Spalten anpassen.` },
+                        multipleLayouts: { title: `Mehrere Layouts`, description: `Derselbe Produktkatalog unter einem Spalten- und einem Raster-Row-Handler. Über den Icon-Picker im Header wechselst du das Layout — die Scrollposition bleibt erhalten.` },
+                        selection: { title: `Auswahl`, description: `Auswahlzustand über den onSelect-Callback. Klicken, Strg/Cmd-Klick zum Umschalten, Shift-Klick für einen Bereich; das Panel darüber spiegelt Anzahl und zuletzt gewählte ID.` },
+                        contextMenu: { title: `Kontextmenü`, description: `Rechtsklick auf eine Zeile öffnet ein Aktionsmenü (Öffnen / Duplizieren / Löschen). Das Beispiel hängt ein Radix-DropdownMenu in onContextMenu innerhalb des Spalten-Render — Ziel des Rechtsklicks ist die Zeile selbst.` },
+                        multipleListsSharedAction: { title: `Gemeinsame Aktion über Listen hinweg`, description: `Zwei ResourceLists nebeneinander teilen sich eine einzige „Löschen“-Aktion über den globalen ActionManager. Jede Zeile bekommt [data-actionscope] + [data-list-id] + [data-item-id]; der eine Handler liest diese Attribute am rechtsangeklickten Element ab und dispatcht in den State der jeweils richtigen Liste.` },
+                        horizontalStrip: { title: `Horizontaler Streifen`, description: `Ein eigener RowRendererDirection.Horizontal-Handler rendert einen horizontal scrollenden Streifen aus Karten. Jede Karte bettet FileViewer im „embedded“-Modus ein, sodass die 60 Vorschauen erst beim Scrollen geladen werden.` }
+                    },
                     definedBehaviour: {
                         title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <ResourceList> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
                         statements: {
@@ -3747,8 +3815,8 @@ const translation: Translation = {
                 description: `Datei-spezifische Log-Level-Überschreibungen, im localStorage gespeichert.`
             },
             resourceList: {
-                description: `ResourceList benötigt eine paginierte Datenquelle — ein vollständiges Beispiel findet sich im filez-Frontend.`,
-                note: `Keine eigenständige Demo: Diese Komponente rendert große, unendlich scrollende Listen, die von einer serverseitigen getResourcesList-Funktion gespeist werden.`
+                description: `ResourceList rendert große, unendlich scrollende Listen beliebiger Ressourcen — mit einer paginierten getResourcesList-Funktion und einem oder mehreren Row-Handlern.`,
+                note: `Auf der ResourceList-Komponentenseite findest du lauffähige Spalten-, Raster-, Mehr-Layout- und Auswahl-Beispiele.`
             },
             consoleManager: {
                 description: `VSCode-artiges Konsolen-Host. Mit + neue Tabs öffnen, Doppelklick auf einen Tab zum Umbenennen, beim Hovern zum Schließen (×), und die Split-Buttons rechts teilen das Pane horizontal oder vertikal.`,

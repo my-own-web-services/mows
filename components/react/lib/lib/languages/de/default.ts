@@ -54,6 +54,12 @@ const translation: BaseTranslation = {
         selectCodeTheme: `Code-Design auswählen`,
         noCodeThemeFound: `Kein Code-Design gefunden`
     },
+    mapStylePicker: {
+        title: `Kartenstil-Auswahl`,
+        label: `Kartenstil`,
+        selectMapStyle: `Kartenstil auswählen`,
+        noMapStyleFound: `Kein Kartenstil gefunden`
+    },
     settings: {
         title: `Einstellungen`,
         description: `Alle Einstellungen an einem Ort verwalten`,
@@ -66,7 +72,8 @@ const translation: BaseTranslation = {
             appearance: `Erscheinungsbild`,
             language: `Sprache`,
             codeEditor: `Code-Editor`,
-            notifications: `Benachrichtigungen`
+            notifications: `Benachrichtigungen`,
+            map: `Karte`
         },
         labels: {
             theme: `Design`,
@@ -76,7 +83,8 @@ const translation: BaseTranslation = {
             wrap: `Lange Zeilen umbrechen`,
             showLineNumbers: `Zeilennummern anzeigen`,
             bracketPairColorization: `Klammerpaare einfärben`,
-            toastPosition: `Toast-Position`
+            toastPosition: `Toast-Position`,
+            mapStyle: `Kartenstil`
         },
         toastPositions: {
             topLeft: `Oben links`,
@@ -98,7 +106,7 @@ const translation: BaseTranslation = {
         searchAriaLabel: `Aktionen suchen`,
         actionNotFound: `Aktion nicht gefunden`,
         noActionsFound: `Keine Aktionen gefunden, die zu "{searchQuery}" passen`,
-        addHotkeyButton: `+ Tastenkombination hinzufügen`,
+        addHotkeyButton: `Tastenkombination hinzufügen`,
         hotkeyDialog: {
             editTitle: `Tastenkombination bearbeiten`,
             addTitle: `Neue Tastenkombination hinzufügen`,

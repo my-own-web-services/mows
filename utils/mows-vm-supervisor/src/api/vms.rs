@@ -43,6 +43,7 @@ pub fn ws_router() -> Router<SharedState> {
     Router::new()
         .route("/v1/vms/{id}/display", get(get_vm_display))
         .route("/v1/vms/{id}/console", get(get_vm_console))
+        .route("/v1/vms/{id}/ssh-io", get(get_vm_ssh_io))
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -746,6 +747,213 @@ async fn get_vm_console(
                 tracing::debug!(vm_id = %id, error = %e, "console proxy ended");
             }
         }))
+}
+
+/// Bidirectional websocket bound to a fresh `ssh -tt` session into the VM
+/// guest. Each connection spawns its own ssh client (kill-on-drop), pipes
+/// stdin/stdout through the websocket, and authenticates with the
+/// per-VM private key the supervisor minted at create-vm time. Mirrors
+/// `proxy_agent_io` but targets the guest's login shell directly instead
+/// of joining a shared tmux session.
+///
+/// Resize is NOT live-piped in this version: ssh is spawned without a
+/// host-side PTY around it, so SIGWINCH doesn't propagate. The remote
+/// PTY's initial cols/rows come from `?cols=N&rows=N` query params (sent
+/// as the `COLUMNS` / `LINES` env vars). A consumer that needs live
+/// reflow will close + reopen the socket on resize.
+async fn get_vm_ssh_io(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+    axum::extract::Query(query): axum::extract::Query<VmSshIoQuery>,
+    ws: WebSocketUpgrade,
+) -> std::result::Result<axum::response::Response, SupervisorError> {
+    let summary = load_vm(&state, &id).await?;
+    if summary.status != VmStatus::Running {
+        return Err(SupervisorError::Conflict(format!(
+            "vm {id} is in status `{}`; ssh sessions require a running vm",
+            summary.status.as_str()
+        )));
+    }
+    let port_i64 = summary.host_ssh_port.ok_or_else(|| {
+        SupervisorError::InvalidState(format!("vm {id} has no allocated ssh port"))
+    })?;
+    let port = u16::try_from(port_i64).map_err(|_| {
+        SupervisorError::InvalidState(format!(
+            "vm {id} ssh port {port_i64} out of u16 range"
+        ))
+    })?;
+    let (priv_key, _) = vm_key_paths(&state.config.state_dir, &id);
+    let ssh_target = format!(
+        "{}@{}",
+        state.config.guest_ssh_user, state.config.external_host
+    );
+    let state_dir = state.config.state_dir.clone();
+    Ok(ws
+        .max_message_size(WS_MAX_PAYLOAD_BYTES)
+        .max_frame_size(WS_MAX_PAYLOAD_BYTES)
+        .on_upgrade(move |socket| async move {
+            if let Err(e) = proxy_vm_ssh(
+                socket,
+                VmSshSpec {
+                    vm_id: id.clone(),
+                    state_dir,
+                    priv_key,
+                    port,
+                    ssh_target,
+                    cols: query.cols,
+                    rows: query.rows,
+                },
+            )
+            .await
+            {
+                tracing::debug!(vm_id = %id, error = %e, "vm ssh proxy ended");
+            }
+        }))
+}
+
+#[derive(Deserialize)]
+struct VmSshIoQuery {
+    cols: Option<u16>,
+    rows: Option<u16>,
+}
+
+struct VmSshSpec {
+    vm_id: String,
+    state_dir: PathBuf,
+    priv_key: PathBuf,
+    port: u16,
+    ssh_target: String,
+    cols: Option<u16>,
+    rows: Option<u16>,
+}
+
+async fn proxy_vm_ssh(ws: WebSocket, spec: VmSshSpec) -> std::io::Result<()> {
+    use futures_util::{SinkExt, StreamExt};
+    use std::process::Stdio;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::process::Command;
+
+    // Per-attach known_hosts so a future host-key rotation doesn't poison
+    // parallel connections. Same convention as `proxy_agent_io`.
+    let known_hosts = spec
+        .state_dir
+        .join("vms")
+        .join(&spec.vm_id)
+        .join(format!("known_hosts.ws-{}", uuid::Uuid::new_v4().simple()));
+    if let Some(parent) = known_hosts.parent() {
+        let _ = tokio::fs::create_dir_all(parent).await;
+    }
+    let _ = tokio::fs::remove_file(&known_hosts).await;
+
+    struct KnownHostsGuard(std::path::PathBuf);
+    impl Drop for KnownHostsGuard {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_file(&self.0);
+        }
+    }
+    let _known_hosts_guard = KnownHostsGuard(known_hosts.clone());
+
+    let cols = spec.cols.unwrap_or(80);
+    let rows = spec.rows.unwrap_or(24);
+
+    let mut ssh = Command::new("ssh")
+        .arg("-tt")
+        .arg("-i")
+        .arg(&spec.priv_key)
+        .arg("-p")
+        .arg(spec.port.to_string())
+        .arg("-o")
+        .arg("StrictHostKeyChecking=accept-new")
+        .arg("-o")
+        .arg(format!("UserKnownHostsFile={}", known_hosts.display()))
+        .arg("-o")
+        .arg("IdentitiesOnly=yes")
+        .arg("-o")
+        .arg("ServerAliveInterval=15")
+        .arg("-o")
+        .arg("ConnectTimeout=10")
+        .arg("-o")
+        .arg(format!("SendEnv=COLUMNS LINES TERM"))
+        .arg(&spec.ssh_target)
+        // Force the remote shell to honour the size we passed in via env.
+        // SendEnv requires server-side AcceptEnv; the explicit `stty` in
+        // the login command guarantees the right size even when the
+        // server's sshd_config doesn't forward the vars.
+        .arg(format!(
+            "stty cols {cols} rows {rows} 2>/dev/null; exec $SHELL -l"
+        ))
+        .env("COLUMNS", cols.to_string())
+        .env("LINES", rows.to_string())
+        .env("TERM", "xterm-256color")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .map_err(|e| {
+            std::io::Error::new(std::io::ErrorKind::Other, format!("spawn ssh: {e}"))
+        })?;
+
+    let mut ssh_stdout = ssh.stdout.take().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::BrokenPipe,
+            "ssh child reported no stdout despite Stdio::piped()",
+        )
+    })?;
+    let mut ssh_stdin = ssh.stdin.take().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::BrokenPipe,
+            "ssh child reported no stdin despite Stdio::piped()",
+        )
+    })?;
+
+    let (mut sink, mut stream) = ws.split();
+
+    let ws_to_ssh = async move {
+        while let Some(msg) = stream.next().await {
+            match msg {
+                Ok(Message::Binary(b)) => {
+                    if ssh_stdin.write_all(&b).await.is_err() {
+                        break;
+                    }
+                }
+                Ok(Message::Text(t)) => {
+                    if ssh_stdin.write_all(t.as_bytes()).await.is_err() {
+                        break;
+                    }
+                }
+                Ok(Message::Close(_)) | Err(_) => break,
+                Ok(_) => {}
+            }
+        }
+        let _ = ssh_stdin.shutdown().await;
+        Ok::<(), std::io::Error>(())
+    };
+
+    let ssh_to_ws = async move {
+        let mut read_buffer = vec![0u8; WS_PROXY_CHUNK_BYTES];
+        loop {
+            let bytes_read = ssh_stdout.read(&mut read_buffer).await?;
+            if bytes_read == 0 {
+                break;
+            }
+            if sink
+                .send(Message::Binary(read_buffer[..bytes_read].to_vec().into()))
+                .await
+                .is_err()
+            {
+                break;
+            }
+        }
+        let _ = sink.close().await;
+        Ok::<(), std::io::Error>(())
+    };
+
+    let (ws_to_ssh_result, ssh_to_ws_result) = tokio::join!(ws_to_ssh, ssh_to_ws);
+    let _ = ssh.kill().await;
+    ws_to_ssh_result?;
+    ssh_to_ws_result?;
+    Ok(())
 }
 
 /// Maximum websocket payload (per frame and per message). 1 MiB is large

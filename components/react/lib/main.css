@@ -309,3 +309,27 @@
     background-color: oklch(75% 0.16 95 / 0.18);
     box-shadow: inset 3px 0 0 oklch(75% 0.16 95 / 0.9);
 }
+
+/*
+ * Bracket-pair colorization for <CodeSnippet>. The `mows-bracket-N`
+ * spans are injected by `bracketWrap.ts` around each bracket character
+ * inside Monaco's `monaco.editor.colorize()` output. Three colors cycle
+ * by depth modulo 3 — matching the VSCode classic palette — and use
+ * oklch so they have consistent perceived brightness on both the light
+ * (.bg-muted/40 ~= near-white) and dark (.bg-muted/40 ~= near-black)
+ * snippet backgrounds.
+ *
+ * The selector is scoped to `.CodeSnippet` so the depth color overrides
+ * Monaco's per-token `.mtkN` color exactly where bracket characters
+ * appear — and nowhere else. Consumers can override the three CSS
+ * custom properties on `.CodeSnippet` (or any ancestor) to retune the
+ * palette without touching the bracket-wrapping logic.
+ */
+.CodeSnippet {
+    --mows-bracket-0: oklch(60% 0.18 250);
+    --mows-bracket-1: oklch(65% 0.18 30);
+    --mows-bracket-2: oklch(55% 0.20 305);
+}
+.CodeSnippet .mows-bracket-0 { color: var(--mows-bracket-0); }
+.CodeSnippet .mows-bracket-1 { color: var(--mows-bracket-1); }
+.CodeSnippet .mows-bracket-2 { color: var(--mows-bracket-2); }

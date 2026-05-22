@@ -51,6 +51,12 @@ export interface BaseTranslation {
         selectCodeTheme: string;
         noCodeThemeFound: string;
     };
+    mapStylePicker: {
+        title: string;
+        label: string;
+        selectMapStyle: string;
+        noMapStyleFound: string;
+    };
     settings: {
         title: string;
         description: string;
@@ -64,6 +70,7 @@ export interface BaseTranslation {
             language: string;
             codeEditor: string;
             notifications: string;
+            map: string;
         };
         labels: {
             theme: string;
@@ -74,6 +81,7 @@ export interface BaseTranslation {
             showLineNumbers: string;
             bracketPairColorization: string;
             toastPosition: string;
+            mapStyle: string;
         };
         toastPositions: {
             topLeft: string;

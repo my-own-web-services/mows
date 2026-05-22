@@ -98,12 +98,12 @@ const TEST_FILE = `lib/components/files/fileViewer/FileViewer.test.tsx`;
 const buildBehaviourEntries = (
     statements: Strings[`doc`][`definedBehaviour`][`statements`]
 ): BehaviourEntry[] => [
-    { statement: statements.imageViewer, testFile: TEST_FILE, testName: `renders ImageViewer for image/* without is360`, testLine: 28 },
-    { statement: statements.image360Viewer, testFile: TEST_FILE, testName: `renders Image360Viewer for image/* when is360 is true`, testLine: 37 },
-    { statement: statements.videoViewer, testFile: TEST_FILE, testName: `renders VideoViewer for any video/* mime type`, testLine: 46 },
-    { statement: statements.dashHls, testFile: TEST_FILE, testName: `renders VideoViewer for DASH and HLS manifest mime types`, testLine: 54 },
-    { statement: statements.nameFallback, testFile: TEST_FILE, testName: `falls back to the name when no viewer matches`, testLine: 79 },
-    { statement: statements.customFallback, testFile: TEST_FILE, testName: `renders the explicit fallback when provided and nothing matches`, testLine: 86 }
+    { statement: statements.imageViewer, testFile: TEST_FILE, testName: `renders ImageViewer for image/* without is360`, testLine: 30 },
+    { statement: statements.image360Viewer, testFile: TEST_FILE, testName: `renders Image360Viewer for image/* when is360 is true`, testLine: 39 },
+    { statement: statements.videoViewer, testFile: TEST_FILE, testName: `renders VideoViewer for any video/* mime type`, testLine: 48 },
+    { statement: statements.dashHls, testFile: TEST_FILE, testName: `renders VideoViewer for DASH and HLS manifest mime types`, testLine: 56 },
+    { statement: statements.nameFallback, testFile: TEST_FILE, testName: `falls back to the name when no viewer matches`, testLine: 81 },
+    { statement: statements.customFallback, testFile: TEST_FILE, testName: `renders the explicit fallback when provided and nothing matches`, testLine: 102 }
 ];
 
 export const FileViewerDocPage = () => {

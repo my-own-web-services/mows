@@ -7,8 +7,10 @@ import type { CodeViewerLanguage } from "../codeViewer/CodeViewer";
 import {
     ensureShikiMonacoReady,
     isSupportedThemeId,
+    LANGUAGE_BRACKETS,
     SHIKI_THEME_NAME
 } from "../codeViewer/shikiBridge";
+import { wrapBracketsInHtml } from "./bracketWrap";
 
 const monacoLanguageFor = (lang: CodeViewerLanguage | undefined): string => {
     switch (lang) {
@@ -117,6 +119,11 @@ const MonacoColorizer = (props: CodeSnippetProps) => {
         ? requestedThemeId
         : SHIKI_THEME_NAME;
     const monacoLang = monacoLanguageFor(language);
+    // Tracks the user's "colorize matching brackets" toggle from
+    // <SettingsPanel>. Matches the default the CodeViewer uses when no
+    // provider is present (true).
+    const bracketColorizationEnabled =
+        mowsContext?.codeEditorSettings?.bracketPairColorization ?? true;
     // Inline mode collapses newlines and clips to a single visual line.
     const sanitizedCode = mode === `inline` ? code.replace(/\s+/g, ` `).trim() : code;
 
@@ -154,11 +161,28 @@ const MonacoColorizer = (props: CodeSnippetProps) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sanitizedCode, monacoLang, themeId]);
 
+    // Post-process the colorize HTML to depth-colour brackets. Monaco's
+    // built-in `bracketPairColorization` editor option only applies to
+    // a live Editor instance — `monaco.editor.colorize()` returns the
+    // raw tokenized HTML untouched, so we wrap brackets ourselves so
+    // that the Settings toggle behaves consistently across CodeViewer
+    // and CodeSnippet. The wrap is keyed on the raw `html` (cached),
+    // the active language, and the toggle, so it runs at most once per
+    // input change rather than on every render.
+    const decoratedHtml = React.useMemo(() => {
+        if (html === null) return null;
+        if (!bracketColorizationEnabled) return html;
+        const pairs =
+            LANGUAGE_BRACKETS[monacoLang as keyof typeof LANGUAGE_BRACKETS];
+        if (!pairs || pairs.length === 0) return html;
+        return wrapBracketsInHtml(html, { bracketPairs: pairs });
+    }, [html, monacoLang, bracketColorizationEnabled]);
+
     // While colorize is in flight (or if it failed), render the raw code so
     // the snippet is still readable.
     const inner =
-        html !== null ? (
-            <span dangerouslySetInnerHTML={{ __html: html }} />
+        decoratedHtml !== null ? (
+            <span dangerouslySetInnerHTML={{ __html: decoratedHtml }} />
         ) : (
             <span>{sanitizedCode}</span>
         );

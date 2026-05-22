@@ -15,7 +15,7 @@ import {
     type ResolvedAction
 } from "@/lib/mowsContext/ActionManager";
 import { MowsContext } from "@/lib/mowsContext/MowsContext";
-import { useModifierState } from "@/lib/mowsContext/ModifierState";
+import { primeModifierStateFromEvent, useModifierState } from "@/lib/mowsContext/ModifierState";
 import { cn } from "@/lib/utils";
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { PureComponent, useContext, type CSSProperties, type MouseEvent } from "react";
@@ -123,11 +123,34 @@ export default class GlobalContextMenu extends PureComponent<
     }
 
     componentDidMount = () => {
+        // `mousedown` precedes `contextmenu`. A shift+right-click would
+        // otherwise extend the text selection before the contextmenu
+        // handler gets a chance to call preventDefault — see `handleMouseDown`.
+        document.addEventListener(`mousedown`, this.handleMouseDown, { capture: true });
         document.addEventListener(`contextmenu`, this.handleContextMenu);
     };
 
     componentWillUnmount = () => {
+        document.removeEventListener(`mousedown`, this.handleMouseDown, {
+            capture: true
+        } as EventListenerOptions);
         document.removeEventListener(`contextmenu`, this.handleContextMenu);
+    };
+
+    /**
+     * Suppress the browser's default "extend selection to caret" behaviour
+     * for shift+right-click inside an action-scoped region. The native
+     * range extension happens during mousedown — by the time the
+     * contextmenu event fires we'd already be left with a stale text
+     * selection. Limiting the suppression to button === 2 with shift held
+     * inside a `[data-actionscope]` keeps it minimally invasive: normal
+     * left-clicks and right-clicks outside our menus are untouched.
+     */
+    handleMouseDown = (event: MouseEvent) => {
+        if (event.button !== 2 || !event.shiftKey) return;
+        const target = event.target as HTMLElement | null;
+        if (!target?.closest?.(`[data-actionscope]`)) return;
+        event.preventDefault();
     };
 
     handleContextMenu = (event: MouseEvent) => {
@@ -147,6 +170,13 @@ export default class GlobalContextMenu extends PureComponent<
             if (this.state.open) this.setState({ open: false, actions: [] });
             return;
         }
+
+        // Seed the modifier store from the click before opening the menu.
+        // Without this, a Shift that was held *before* the user right-clicked
+        // would not register until they released and re-pressed Shift — our
+        // global keydown listeners only attach after the first subscriber
+        // mounts, which is when the menu opens.
+        primeModifierStateFromEvent(event);
 
         // Only suppress the native context menu when we will actually show ours,
         // and use viewport coordinates so the menu opens exactly under the cursor

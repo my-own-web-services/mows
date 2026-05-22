@@ -55,9 +55,14 @@ type Listener = (request: ModalRequest | null) => void;
 let current: ModalRequest | null = null;
 const listeners = new Set<Listener>();
 
+// Snapshot the listener set before iterating so a listener that calls back
+// into `set()` (e.g. opening a follow-up modal from a confirm handler)
+// doesn't mutate the iteration target mid-loop. Without the snapshot the
+// re-entrant `set()` would clear/refill `listeners` while the outer
+// forEach is still walking it.
 const set = (request: ModalRequest | null): void => {
     current = request;
-    listeners.forEach((listener) => listener(request));
+    [...listeners].forEach((listener) => listener(request));
 };
 
 export const getCurrentModal = (): ModalRequest | null => current;

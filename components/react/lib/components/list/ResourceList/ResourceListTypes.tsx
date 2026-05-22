@@ -111,12 +111,27 @@ export type ResourceListHandlersOnSelect<ResourceType> = (
     lastSelectedItem: ResourceType | undefined
 ) => void;
 
+export type ResourceListHandlersOnItemRightClick<ResourceType> = (
+    item: ResourceType,
+    event: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>
+) => void;
+
 export interface ResourceListHandlers<ResourceType> {
     readonly onSearch?: ResourceListHandlersOnSearch;
     readonly onRefresh?: ResourceListHandlersOnRefresh;
     readonly onListTypeChange?: ResourceListHandlersOnListTypeChange;
     readonly onCreateClick?: ResourceListHandlersOnCreateClick;
     readonly onSelect?: ResourceListHandlersOnSelect<ResourceType>;
+    /**
+     * Fires when the user right-clicks a row. The default behaviour
+     * (selecting the row if not already selected) still runs; this is
+     * an additional hook so consumers can open a custom context menu
+     * anchored at `event.clientX` / `event.clientY`. Do not call
+     * `event.preventDefault()` here if you also use the global
+     * `data-actionscope` machinery — that handler reads the raw event
+     * upstream.
+     */
+    readonly onItemRightClick?: ResourceListHandlersOnItemRightClick<ResourceType>;
 }
 export enum RowRendererDirection {
     Vertical = `vertical`,

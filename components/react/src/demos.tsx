@@ -29,6 +29,8 @@ import NumberInputDocPage from "./examples/numberInput/NumberInputDocPage";
 import OptionPickerDocPage from "./examples/optionPicker/OptionPickerDocPage";
 import SearchSelectPickerDocPage from "./examples/searchSelectPicker/SearchSelectPickerDocPage";
 import LanguagePickerDocPage from "./examples/languagePicker/LanguagePickerDocPage";
+import MapDocPage from "./examples/map/MapDocPage";
+import MapStylePickerDocPage from "./examples/mapStylePicker/MapStylePickerDocPage";
 import ThemePickerDocPage from "./examples/themePicker/ThemePickerDocPage";
 import DateTimePickerDocPage from "./examples/dateTimePicker/DateTimePickerDocPage";
 import TimePickerDocPage from "./examples/timePicker/TimePickerDocPage";
@@ -125,7 +127,9 @@ export const demos: DemoEntry[] = [
     { id: `settingsPanel`, name: `SettingsPanel`, groupKey: `settings`, render: () => <SettingsPanelDocPage /> },
     { id: `languagePicker`, name: `LanguagePicker`, groupKey: `settings`, render: () => <LanguagePickerDocPage /> },
     { id: `themePicker`, name: `ThemePicker`, groupKey: `settings`, render: () => <ThemePickerDocPage /> },
+    { id: `mapStylePicker`, name: `MapStylePicker`, groupKey: `settings`, render: () => <MapStylePickerDocPage />, searchTags: [`map`, `mapbox`, `tiles`] },
     { id: `loggingConfig`, name: `LoggingConfig`, groupKey: `settings`, render: () => <LoggingConfigDocPage /> },
+    { id: `map`, name: `Map`, groupKey: `map`, render: () => <MapDocPage />, searchTags: [`map`, `mapbox`, `mapbox-gl`, `maplibre`, `tiles`, `geo`] },
     { id: `resourceList`, name: `ResourceList`, groupKey: `list`, render: () => <ResourceListDocPage /> },
     { id: `compass`, name: `Compass`, groupKey: `navigation`, render: () => <CompassDocPage />, searchTags: [`heading`, `bearing`, `yaw`, `direction`] },
     {

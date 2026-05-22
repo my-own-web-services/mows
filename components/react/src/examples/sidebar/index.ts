@@ -2,12 +2,15 @@ import collapsibleGroups from "./CollapsibleGroups";
 import collapsibleGroupsSource from "./CollapsibleGroups.tsx?raw";
 import defaultModule from "./Default";
 import defaultSource from "./Default.tsx?raw";
+import iconCollapsible from "./IconCollapsible";
+import iconCollapsibleSource from "./IconCollapsible.tsx?raw";
 import resizable from "./Resizable";
 import resizableSource from "./Resizable.tsx?raw";
 import type { RegisteredExample } from "../harness/types";
 
 export const sidebarExamples: ReadonlyArray<RegisteredExample> = [
     { id: `default`, source: defaultSource, ...defaultModule },
+    { id: `iconCollapsible`, source: iconCollapsibleSource, ...iconCollapsible },
     { id: `collapsibleGroups`, source: collapsibleGroupsSource, ...collapsibleGroups },
     { id: `resizable`, source: resizableSource, ...resizable }
 ];

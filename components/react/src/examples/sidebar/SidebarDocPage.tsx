@@ -25,6 +25,7 @@ const ANCHOR = {
     composition: `composition`,
     examples: `examples`,
     default: `examples-default`,
+    iconCollapsible: `examples-icon-collapsible`,
     collapsibleGroups: `examples-collapsible-groups`,
     resizable: `examples-resizable`,
     rtl: `rtl`,
@@ -169,6 +170,10 @@ const buildIndexItems = (t: Strings): PageIndexItem[] => {
             children: [
                 { id: ANCHOR.default, label: doc.examples.default.title },
                 {
+                    id: ANCHOR.iconCollapsible,
+                    label: doc.examples.iconCollapsible.title
+                },
+                {
                     id: ANCHOR.collapsibleGroups,
                     label: doc.examples.collapsibleGroups.title
                 },
@@ -305,6 +310,16 @@ export const SidebarDocPage = () => {
                     >
                         <ExampleCard
                             example={sidebarExampleById(`default`)}
+                            hideHeader
+                        />
+                    </DocSubsection>
+                    <DocSubsection
+                        id={ANCHOR.iconCollapsible}
+                        title={doc.examples.iconCollapsible.title}
+                        description={doc.examples.iconCollapsible.description}
+                    >
+                        <ExampleCard
+                            example={sidebarExampleById(`iconCollapsible`)}
                             hideHeader
                         />
                     </DocSubsection>

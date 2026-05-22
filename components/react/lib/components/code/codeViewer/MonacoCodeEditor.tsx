@@ -43,24 +43,15 @@ if (!globalThis.MonacoEnvironment) {
     };
 }
 
-// JS/TS/HTML/CSS language services needlessly run validation that requires
-// `unsafe-eval` and a heavy worker for our viewer use case. Disable them.
-// The `monaco.languages.typescript` namespace is typed as `{ deprecated:
-// true }` from `monaco-editor` 0.55+, but the runtime still exposes the
-// defaults objects on it — cast through `any` so optional access continues
-// to compile while the suppression still applies.
-const monacoTypescriptNs = (monaco.languages as { typescript?: unknown })
-    .typescript as
-    | {
-          javascriptDefaults?: { setDiagnosticsOptions?: (options: unknown) => void };
-          typescriptDefaults?: { setDiagnosticsOptions?: (options: unknown) => void };
-      }
-    | undefined;
-monacoTypescriptNs?.javascriptDefaults?.setDiagnosticsOptions?.({
+// JS/TS language services run unsafe-eval-requiring validation we don't need
+// for a viewer surface. Disable on the new top-level `monaco.typescript`
+// namespace — the legacy `monaco.languages.typescript` was downgraded to
+// `{ deprecated: true }` in monaco-editor 0.55+.
+monaco.typescript.javascriptDefaults.setDiagnosticsOptions({
     noSemanticValidation: true,
     noSyntaxValidation: true
 });
-monacoTypescriptNs?.typescriptDefaults?.setDiagnosticsOptions?.({
+monaco.typescript.typescriptDefaults.setDiagnosticsOptions({
     noSemanticValidation: true,
     noSyntaxValidation: true
 });

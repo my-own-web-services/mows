@@ -5,8 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 // Stub the lazy children so the dispatch test doesn't try to load shaka or
 // three.js. The stubs render distinctive testids the assertions can match.
 vi.mock(`./formats/imageViewer/ImageViewer`, () => ({
-    default: ({ src }: { readonly src: string }) => (
-        <div data-testid={`stub-image`}>{src}</div>
+    default: ({ src, embedded }: { readonly src: string; readonly embedded?: boolean }) => (
+        <div data-testid={`stub-image`} data-embedded={embedded ? `true` : `false`}>
+            {src}
+        </div>
     )
 }));
 vi.mock(`./formats/image360Viewer/Image360Viewer`, () => ({
@@ -81,6 +83,20 @@ describe(`FileViewer dispatch`, () => {
         expect(screen.getByText(`doc.pdf`)).toBeInTheDocument();
         expect(screen.queryByTestId(`stub-video`)).not.toBeInTheDocument();
         expect(screen.queryByTestId(`stub-image`)).not.toBeInTheDocument();
+    });
+
+    it(`forwards embedded to ImageViewer for many-instance contexts`, async () => {
+        render(
+            <FileViewer name={`thumb.png`} mimeType={`image/png`} src={`/t.png`} embedded />
+        );
+        const stub = await screen.findByTestId(`stub-image`);
+        expect(stub).toHaveAttribute(`data-embedded`, `true`);
+    });
+
+    it(`defaults embedded to false when omitted`, async () => {
+        render(<FileViewer name={`big.png`} mimeType={`image/png`} src={`/b.png`} />);
+        const stub = await screen.findByTestId(`stub-image`);
+        expect(stub).toHaveAttribute(`data-embedded`, `false`);
     });
 
     it(`renders the explicit fallback when provided and nothing matches`, () => {

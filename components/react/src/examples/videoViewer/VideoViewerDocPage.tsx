@@ -168,13 +168,13 @@ const buildBehaviourEntries = (
         statement: statements.dispatchByMime,
         testFile: DISPATCH_TEST_FILE,
         testName: `renders VideoViewer for any video/* mime type`,
-        testLine: 46
+        testLine: 48
     },
     {
         statement: statements.dispatchManifest,
         testFile: DISPATCH_TEST_FILE,
         testName: `renders VideoViewer for DASH and HLS manifest mime types`,
-        testLine: 54
+        testLine: 56
     },
     {
         statement: statements.recognisesManifests,

@@ -13,7 +13,8 @@ const translation: Translation = {
         [ExampleActionIds.SHARE_EMAIL]: `Email`,
         [ExampleActionIds.SHARE_SLACK]: `Slack`,
         [ExampleActionIds.TRASH]: `Move to bin`,
-        [ExampleActionIds.DUPLICATE]: `Duplicate`
+        [ExampleActionIds.DUPLICATE]: `Duplicate`,
+        [ExampleActionIds.REPO_DELETE]: `Delete`
     },
     example: {
         pageTitle: `MOWS Components — Example`,
@@ -45,6 +46,7 @@ const translation: Translation = {
                 identity: `Identity`,
                 input: `Input`,
                 list: `Lists`,
+                map: `Map`,
                 navigation: `Navigation`,
                 settings: `Settings`,
                 uiPrimitives: `UI primitives`
@@ -1156,6 +1158,10 @@ const translation: Translation = {
                     title: `Header / content / footer`,
                     description: `Composed from <SidebarHeader>, <SidebarContent> (with <SidebarGroup> + <SidebarMenu>) and <SidebarFooter>. collapsible="icon" keeps the icon strip visible when collapsed.`
                 },
+                iconCollapsible: {
+                    title: `Collapsible to icon strip`,
+                    description: `<Sidebar collapsible="icon"> snaps between the full <SidebarProvider> width and a 3rem icon-only strip. The strip is driven by the open/collapsed state on <SidebarProvider>; <SidebarTrigger> toggles it, and ⌘B / Ctrl+B does the same globally.`
+                },
                 collapsibleGroups: {
                     title: `Collapsible groups`,
                     description: `Wrap each <SidebarMenuItem> in a <Collapsible> and put the sub-items inside <SidebarMenuSub>. The chevron rotates from the group's data-state, and the sub-list renders the vertical accent line on its leading edge.`
@@ -1186,6 +1192,10 @@ const translation: Translation = {
                         default: {
                             title: `Header / content / footer`,
                             description: `A static sidebar with three menu entries.`
+                        },
+                        iconCollapsible: {
+                            title: `Collapsible to icon strip`,
+                            description: `Click the toggle in the header (or press ⌘B / Ctrl+B) to snap the sidebar between full width and the icon-only strip. Labels collapse behind tooltips when narrow.`
                         },
                         collapsibleGroups: {
                             title: `Collapsible groups`,
@@ -3250,6 +3260,49 @@ const translation: Translation = {
                     apiReference: { title: `API Reference`, intro: `Props accepted by <ThemePicker>.` }
                 }
             },
+            mapStylePicker: {
+                popover: { title: `Popover trigger`, description: `Default form — picks live behind a popover trigger.` },
+                standalone: { title: `Standalone`, description: `Searchable list inline, no popover.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
+                    usage: { title: `Usage`, body: `Mount <MapStylePicker> inside <MowsProvider>. It reads the available styles and currentMapStyle from context and calls setMapStyle on selection.` },
+                    composition: { title: `Composition`, body: `Selecting a style here updates every mounted <Map> that does not pin its own mapStyle prop, and persists the pick in localStorage under storagePrefix_map_style.` },
+                    examples: { title: `Examples`, popover: { title: `Popover trigger`, description: `Trigger + popover list.` }, standalone: { title: `Standalone`, description: `Inline searchable list.` } },
+                    definedBehaviour: {
+                        title: `Defined behaviour`, intro: `Statements describing how <MapStylePicker> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
+                        statements: {
+                            listsStyles: `Lists every map style in standalone mode.`,
+                            firesSetMapStyle: `Calls setMapStyle on the surrounding context when a style is picked.`,
+                            popoverShowsCurrent: `Renders the popover trigger with the current map style by default.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Wrap inside dir="rtl" and the trigger + search field flip to right-to-left.` },
+                    apiReference: { title: `API Reference`, intro: `Props accepted by <MapStylePicker>.` }
+                }
+            },
+            map: {
+                default: { title: `Default`, description: `Mapbox-gl viewport. The active style follows the user's settings-panel pick.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
+                    usage: { title: `Usage`, body: `<Map> renders a mapbox-gl viewport. Both mapbox-gl's JS and its CSS are lazy-loaded on first mount so consumers that never render a map pay zero bundle cost.` },
+                    composition: { title: `Composition`, body: `By default <Map> follows currentMapStyle from MowsContext, so the SettingsPanel can switch styles across the whole app at once. Pin a mapStyle prop to opt out per instance.` },
+                    examples: { title: `Examples`, default: { title: `Default`, description: `Live mapbox-gl viewport at world zoom.` } },
+                    definedBehaviour: {
+                        title: `Defined behaviour`, intro: `Statements describing how <Map> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
+                        statements: {
+                            lazyLoadsMapbox: `Shows a loading skeleton until the mapbox-gl chunk resolves.`,
+                            usesContextStyle: `Instantiates mapbox-gl with the context's currentMapStyle by default.`,
+                            propOverridesContext: `An explicit mapStyle prop overrides the context value.`,
+                            appliesAccessToken: `Assigns the active style's accessToken before instantiation.`,
+                            reactsToContextChange: `Calls setStyle when the context's current map style changes.`,
+                            firesOnLoad: `Fires onLoad once the underlying map emits "load".`,
+                            cleansUpOnUnmount: `Calls map.remove() on unmount.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `mapbox-gl renders its own canvas; <Map> adds no direction-sensitive chrome, so dir="rtl" leaves the viewport unchanged.` },
+                    apiReference: { title: `API Reference`, intro: `Props accepted by <Map>.` }
+                }
+            },
             dateTimePicker: {
                 default: { title: `Default`, description: `A text input + popover calendar + time picker.` },
                 withTimezone: { title: `With timezone`, description: `Set showTimezone to add an IANA timezone selector inside the popover.` },
@@ -3602,12 +3655,27 @@ const translation: Translation = {
                 }
             },
             resourceList: {
-                default: { title: `Default`, description: `Virtualised list backed by an in-memory fetcher. Scroll for infinite-loaded windows; sort by clicking the column headers.` },
+                default: { title: `Default`, description: `Tabular view of 600 deployments rendered via the column row handler. Resize columns by dragging the header borders; click a header to sort.` },
+                grid: { title: `Grid`, description: `360 colour swatches rendered as a fixed-cell gallery via GridListRowHandler. Drag the slider in the header to change the column count.` },
+                multipleLayouts: { title: `Multiple layouts`, description: `Same product catalog under both a Column and a Grid row handler. Switch layouts via the icon picker in the header — the list keeps its scroll position.` },
+                selection: { title: `Selection`, description: `Selection state surfaced via the onSelect handler. Click rows, ctrl/cmd-click to toggle, or shift-click for a range; the panel above mirrors the current count and last selected id.` },
+                contextMenu: { title: `Context menu`, description: `Right-click any row to open an action menu (Open / Duplicate / Delete). The example wires a Radix DropdownMenu to onContextMenu inside the column render so the right-click target is the row itself.` },
+                multipleListsSharedAction: { title: `Shared action across lists`, description: `Two ResourceLists rendered side by side share a single "Delete" action via the global ActionManager. Each row is wrapped in [data-actionscope] + [data-list-id] + [data-item-id]; the one handler reads those attributes off the right-clicked element to dispatch back into the correct list's state.` },
+                horizontalStrip: { title: `Horizontal strip`, description: `Custom RowRendererDirection.Horizontal handler renders a horizontally-scrolling strip of cards. Each card embeds a FileViewer in "embedded" mode so the 60 thumbnails decode lazily as they scroll into view.` },
                 doc: {
                     installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
                     usage: { title: `Usage`, body: `<ResourceList> renders a large paginated + virtualised list of any resource type. Plug in a getResourcesList function that fetches contiguous windows of items from the server, and pass one or more row handlers to control the layout.` },
                     composition: { title: `Composition`, body: `Provide one or more rowHandlers (Column / Grid / custom) — the user can switch between them via the header. Sort state is forwarded to getResourcesList so the server can return the correct page.` },
-                    examples: { title: `Examples`, default: { title: `Default`, description: `An in-memory data source feeds 250 rows; scroll to load more, click a column header to sort.` } },
+                    examples: {
+                        title: `Examples`,
+                        default: { title: `Default`, description: `Tabular view of 600 deployments rendered via the column row handler. Resize columns by dragging the header borders; click a header to sort.` },
+                        grid: { title: `Grid`, description: `360 colour swatches rendered as a fixed-cell gallery via GridListRowHandler. Drag the slider in the header to change the column count.` },
+                        multipleLayouts: { title: `Multiple layouts`, description: `Same product catalog under both a Column and a Grid row handler. Switch layouts via the icon picker in the header — the list keeps its scroll position.` },
+                        selection: { title: `Selection`, description: `Selection state surfaced via the onSelect handler. Click rows, ctrl/cmd-click to toggle, or shift-click for a range; the panel above mirrors the current count and last selected id.` },
+                        contextMenu: { title: `Context menu`, description: `Right-click any row to open an action menu (Open / Duplicate / Delete). The example wires a Radix DropdownMenu to onContextMenu inside the column render so the right-click target is the row itself.` },
+                        multipleListsSharedAction: { title: `Shared action across lists`, description: `Two ResourceLists rendered side by side share a single "Delete" action via the global ActionManager. Each row is wrapped in [data-actionscope] + [data-list-id] + [data-item-id]; the one handler reads those attributes off the right-clicked element to dispatch back into the correct list's state.` },
+                        horizontalStrip: { title: `Horizontal strip`, description: `Custom RowRendererDirection.Horizontal handler renders a horizontally-scrolling strip of cards. Each card embeds a FileViewer in "embedded" mode so the 60 thumbnails decode lazily as they scroll into view.` }
+                    },
                     definedBehaviour: {
                         title: `Defined behaviour`, intro: `Statements describing how <ResourceList> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
                         statements: {
@@ -3753,8 +3821,8 @@ const translation: Translation = {
                 description: `Per-file log-level overrides, persisted to localStorage.`
             },
             resourceList: {
-                description: `ResourceList requires a paginated data source — see the filez frontend for a full example.`,
-                note: `No standalone demo: this component renders large infinite-scrolling lists driven by a server-side getResourcesList function.`
+                description: `ResourceList renders large infinite-scrolling lists of any resource type — supply a paginated getResourcesList function and one or more row handlers.`,
+                note: `See the ResourceList component page for runnable Column, Grid, multi-layout, and selection examples.`
             },
             consoleManager: {
                 description: `VSCode-style console host. Open new tabs with +, double-click a tab to rename, hover to close (×), and use the split buttons on the right to split the pane horizontally or vertically.`,

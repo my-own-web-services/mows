@@ -36,6 +36,7 @@ declare module "../lib/lib/languages" {
                     identity: string;
                     input: string;
                     list: string;
+                    map: string;
                     navigation: string;
                     settings: string;
                     uiPrimitives: string;
@@ -694,6 +695,7 @@ declare module "../lib/lib/languages" {
                 };
                 sidebar: {
                     default: { title: string; description: string };
+                    iconCollapsible: { title: string; description: string };
                     collapsibleGroups: { title: string; description: string };
                     resizable: { title: string; description: string };
                     doc: {
@@ -710,6 +712,7 @@ declare module "../lib/lib/languages" {
                         examples: {
                             title: string;
                             default: { title: string; description: string };
+                            iconCollapsible: { title: string; description: string };
                             collapsibleGroups: { title: string; description: string };
                             resizable: { title: string; description: string };
                         };
@@ -2051,6 +2054,74 @@ declare module "../lib/lib/languages" {
                         apiReference: { title: string; intro: string };
                     };
                 };
+                mapStylePicker: {
+                    popover: { title: string; description: string };
+                    standalone: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            popover: { title: string; description: string };
+                            standalone: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                listsStyles: string;
+                                firesSetMapStyle: string;
+                                popoverShowsCurrent: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+                map: {
+                    default: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            default: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                lazyLoadsMapbox: string;
+                                usesContextStyle: string;
+                                propOverridesContext: string;
+                                appliesAccessToken: string;
+                                reactsToContextChange: string;
+                                firesOnLoad: string;
+                                cleansUpOnUnmount: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
                 dateTimePicker: {
                     default: { title: string; description: string };
                     withTimezone: { title: string; description: string };
@@ -2407,6 +2478,12 @@ declare module "../lib/lib/languages" {
                 };
                 resourceList: {
                     default: { title: string; description: string };
+                    grid: { title: string; description: string };
+                    multipleLayouts: { title: string; description: string };
+                    selection: { title: string; description: string };
+                    contextMenu: { title: string; description: string };
+                    multipleListsSharedAction: { title: string; description: string };
+                    horizontalStrip: { title: string; description: string };
                     doc: {
                         installation: {
                             title: string;
@@ -2421,6 +2498,12 @@ declare module "../lib/lib/languages" {
                         examples: {
                             title: string;
                             default: { title: string; description: string };
+                            grid: { title: string; description: string };
+                            multipleLayouts: { title: string; description: string };
+                            selection: { title: string; description: string };
+                            contextMenu: { title: string; description: string };
+                            multipleListsSharedAction: { title: string; description: string };
+                            horizontalStrip: { title: string; description: string };
                         };
                         definedBehaviour: {
                             title: string;

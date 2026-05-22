@@ -3,12 +3,10 @@ import * as React from "react";
 import { estimateFitContentHeight } from "./metrics";
 import { getShikiHighlighter } from "./shikiHighlighter";
 
-// Kick off the shiki highlighter at module-eval time. `CodeViewer` is in
-// the eager bundle (every doc page imports it), so the JS regex engine +
-// grammar JSON chunks start downloading the moment the page loads —
-// long before the lazy `MonacoCodeEditor` chunk arrives. By the time
-// `<Editor>` mounts the highlighter is hot and the editor paints with
-// correct token colors on first frame.
+// `CodeViewer` is in the eager bundle (every doc page imports it), so eager
+// prefetch here lets the JS regex engine + grammar JSON chunks download in
+// parallel with the lazy `MonacoCodeEditor` chunk. By the time the editor
+// mounts the highlighter is hot — first paint is correctly tokenized.
 void getShikiHighlighter();
 
 export type CodeViewerLanguage =

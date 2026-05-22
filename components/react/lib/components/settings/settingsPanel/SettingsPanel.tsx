@@ -1,6 +1,7 @@
 import CodeThemePicker from "@/components/code/codeThemePicker/CodeThemePicker";
 import CodeViewer from "@/components/code/codeViewer/CodeViewer";
 import LanguagePicker from "@/components/settings/languagePicker/LanguagePicker";
+import MapStylePicker from "@/components/settings/mapStylePicker/MapStylePicker";
 import ThemePicker from "@/components/settings/themePicker/ThemePicker";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -33,6 +34,7 @@ import {
 export interface MowsSettings {
     readonly theme: string;
     readonly codeTheme: string;
+    readonly mapStyle: string;
     readonly language?: string;
     readonly codeEditor?: Partial<MowsCodeEditorSettings>;
     readonly toast?: Partial<MowsToastSettings>;
@@ -45,7 +47,7 @@ export interface SettingsPanelProps {
 
 const fieldClass = `flex h-9 w-full items-center justify-between rounded-md border border-input bg-background py-1`;
 
-type SectionId = `appearance` | `code-editor` | `language` | `notifications`;
+type SectionId = `appearance` | `code-editor` | `language` | `notifications` | `map`;
 
 const TOAST_POSITION_LABEL_KEYS: Record<ToastPosition, keyof Translation[`settings`][`toastPositions`]> = {
     "top-left": `topLeft`,
@@ -71,7 +73,10 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
         codeEditorSettings,
         setCodeEditorSettings,
         toastSettings,
-        setToastSettings
+        setToastSettings,
+        mapStyles,
+        currentMapStyle,
+        setMapStyle
     } = useMows();
 
     const sections = useMemo(
@@ -79,6 +84,7 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
             [
                 { id: `appearance`, label: t.settings.sections.appearance },
                 { id: `code-editor`, label: t.settings.sections.codeEditor },
+                { id: `map`, label: t.settings.sections.map },
                 { id: `notifications`, label: t.settings.sections.notifications },
                 { id: `language`, label: t.settings.sections.language }
             ] as { id: SectionId; label: string }[],
@@ -89,6 +95,7 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
         () => ({
             theme: currentTheme.id,
             codeTheme: currentCodeTheme.id,
+            mapStyle: currentMapStyle.id,
             language: currentLanguage?.code,
             codeEditor: codeEditorSettings,
             toast: toastSettings
@@ -96,6 +103,7 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
         [
             currentTheme.id,
             currentCodeTheme.id,
+            currentMapStyle.id,
             currentLanguage?.code,
             codeEditorSettings,
             toastSettings
@@ -118,6 +126,10 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
         if (next.codeTheme && next.codeTheme !== currentCodeTheme.id) {
             const codeTheme = codeThemes.find((c) => c.id === next.codeTheme);
             if (codeTheme) setCodeTheme(codeTheme);
+        }
+        if (next.mapStyle && next.mapStyle !== currentMapStyle.id) {
+            const mapStyle = mapStyles.find((m) => m.id === next.mapStyle);
+            if (mapStyle) setMapStyle(mapStyle);
         }
         if (next.language && next.language !== currentLanguage?.code) {
             const lang = languages.find((l) => l.code === next.language);
@@ -358,6 +370,23 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                                         setCodeEditorSettings({ bracketPairColorization })
                                     }
                                 />
+                            </div>
+                        </section>
+
+                        <section
+                            data-section-id={`map`}
+                            className={`flex flex-col gap-4 scroll-mt-2`}
+                        >
+                            <h2
+                                className={`text-2xl font-semibold tracking-tight`}
+                            >
+                                {t.settings.sections.map}
+                            </h2>
+                            <div
+                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
+                            >
+                                <Label>{t.settings.labels.mapStyle}</Label>
+                                <MapStylePicker className={fieldClass} />
                             </div>
                         </section>
 

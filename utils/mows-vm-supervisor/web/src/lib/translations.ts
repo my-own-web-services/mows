@@ -50,6 +50,17 @@ declare module "mows-components-react/lib/languages" {
                     /** Placeholder when a stat value is missing/unknown. */
                     unknown: string;
                 };
+                /** Console section + SSH connection status labels. */
+                console: {
+                    sectionTitle: string;
+                    ssh: {
+                        typeLabel: string;
+                        connecting: string;
+                        connected: string;
+                        disconnected: string;
+                        error: string;
+                    };
+                };
             };
         };
     }

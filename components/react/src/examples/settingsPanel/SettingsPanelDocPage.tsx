@@ -94,49 +94,49 @@ const buildBehaviourEntries = (
         statement: statements.threeHeadings,
         testFile: TEST_FILE,
         testName: `renders the three section headings`,
-        testLine: 109
+        testLine: 119
     },
     {
         statement: statements.standalonePickersShowCurrent,
         testFile: TEST_FILE,
         testName: `uses the standalone-style theme/code-theme/language pickers and shows their current values`,
-        testLine: 116
+        testLine: 126
     },
     {
         statement: statements.jsonTabShowsSettings,
         testFile: TEST_FILE,
         testName: `switches to the JSON tab and shows current settings`,
-        testLine: 126
+        testLine: 136
     },
     {
         statement: statements.jsonSaveAppliesEdit,
         testFile: TEST_FILE,
         testName: `applies edited JSON when Save is clicked`,
-        testLine: 139
+        testLine: 149
     },
     {
         statement: statements.notificationsSection,
         testFile: TEST_FILE,
         testName: `renders the Notifications section with the toast position picker`,
-        testLine: 163
+        testLine: 173
     },
     {
         statement: statements.jsonIncludesToast,
         testFile: TEST_FILE,
         testName: `includes toast settings in the JSON view`,
-        testLine: 170
+        testLine: 180
     },
     {
         statement: statements.toastPositionFromJson,
         testFile: TEST_FILE,
         testName: `applies toast.position from edited JSON`,
-        testLine: 182
+        testLine: 192
     },
     {
         statement: statements.jsonErrorOnInvalid,
         testFile: TEST_FILE,
         testName: `shows an error when JSON is invalid`,
-        testLine: 236
+        testLine: 246
     }
 ];
 

@@ -344,6 +344,9 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                     lastSelectedItemIndex: index
                 });
             }
+            if (rightClick === true) {
+                this.props.handlers?.onItemRightClick?.(item, e);
+            }
         } else {
             const selectedItems: (true | undefined)[] = [];
             selectedItems[index] = true;

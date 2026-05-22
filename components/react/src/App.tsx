@@ -8,6 +8,7 @@ import {
     Keyboard,
     List,
     ListTree,
+    Map as MapIcon,
     Settings,
     SquarePen,
     Star,
@@ -118,6 +119,7 @@ const GROUP_ICONS: Record<DemoGroupKey, LucideIcon> = {
     identity: User,
     input: SquarePen,
     list: List,
+    map: MapIcon,
     navigation: ListTree,
     settings: Settings,
     uiPrimitives: Boxes
@@ -277,6 +279,7 @@ export default class App extends PureComponent<AppProps, AppState> {
             `identity`,
             `input`,
             `list`,
+            `map`,
             `navigation`,
             `settings`,
             `uiPrimitives`

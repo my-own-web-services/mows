@@ -27,12 +27,33 @@ export enum ExampleActionIds {
     SHARE_SLACK = `example.share.slack`,
     // Modifier-variant demo.
     TRASH = `example.trash`,
-    DUPLICATE = `example.duplicate`
+    DUPLICATE = `example.duplicate`,
+    // Shared-across-lists delete demo: one action, many ResourceLists.
+    REPO_DELETE = `example.repoDelete`
 }
 
 export const EXAMPLE_ACTION_SCOPE = `exampleCard`;
 export const EXAMPLE_SHARE_SCOPE = `exampleShareTarget`;
 export const EXAMPLE_TRASH_SCOPE = `exampleTrashTarget`;
+export const EXAMPLE_REPO_LIST_ITEM_SCOPE = `exampleRepoListItem`;
+
+/**
+ * Tiny per-list-id registry that lets the shared `REPO_DELETE` action route
+ * an `executeAction(event)` back to the React state of the list that owns
+ * the clicked row. Each `<ResourceList>` instance registers a delete sink
+ * keyed by the same id it stamps onto its rows via `data-list-id`; the
+ * handler reads that attribute off the right-clicked element and looks the
+ * sink up here. Module scope is fine — this state is only meaningful while
+ * the example is mounted, and `useEffect` cleanup unregisters on unmount.
+ */
+type RepoDeleteSink = (itemId: string) => void;
+const repoDeleteSinks = new Map<string, RepoDeleteSink>();
+export const registerRepoDeleteSink = (listId: string, sink: RepoDeleteSink) => {
+    repoDeleteSinks.set(listId, sink);
+    return () => {
+        if (repoDeleteSinks.get(listId) === sink) repoDeleteSinks.delete(listId);
+    };
+};
 
 /**
  * Test-only bridge so the modifier-variant example can show which branch ran
@@ -254,6 +275,39 @@ export const exampleActions: Action[] = [
                         icon: () => createElement(Copy)
                     }),
                     executeAction: () => {}
+                }
+            ]
+        ])
+    }),
+    // Shared delete across multiple ResourceLists rendered at the same
+    // time. The handler is registered exactly once and dispatched by
+    // GlobalContextMenu whenever the user right-clicks any element inside
+    // a `[data-actionscope="exampleRepoListItem"]` region. We then walk up
+    // to the nearest `[data-list-id]` / `[data-item-id]` pair to discover
+    // which list owns the row — the right-click target is the source of
+    // truth, so two lists can share one action without sharing state.
+    new Action({
+        id: ExampleActionIds.REPO_DELETE,
+        category: `Example`,
+        actionHandlers: new Map([
+            [
+                `RepoDelete`,
+                {
+                    id: `RepoDelete`,
+                    scopes: [EXAMPLE_REPO_LIST_ITEM_SCOPE],
+                    getState: () => ({
+                        visibility: ActionVisibility.Shown,
+                        icon: () => createElement(Trash2)
+                    }),
+                    executeAction: (event) => {
+                        const target = (event?.target as HTMLElement | null) ?? null;
+                        const row = target?.closest?.(`[data-item-id]`) as HTMLElement | null;
+                        const listEl = target?.closest?.(`[data-list-id]`) as HTMLElement | null;
+                        const itemId = row?.dataset.itemId;
+                        const listId = listEl?.dataset.listId;
+                        if (!itemId || !listId) return;
+                        repoDeleteSinks.get(listId)?.(itemId);
+                    }
                 }
             ]
         ])

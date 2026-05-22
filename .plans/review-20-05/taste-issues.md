@@ -138,7 +138,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-10
+- **ID:** ✅ TASTE-10
+- **Status:** Fixed — `MonacoCodeEditor.tsx` now calls `monaco.typescript.javascriptDefaults.setDiagnosticsOptions(...)` + `monaco.typescript.typescriptDefaults.setDiagnosticsOptions(...)` directly on monaco-editor's new top-level `typescript` namespace (the legacy `monaco.languages.typescript` is `{ deprecated: true }` from 0.55+). Drops the unsafe-eval cast + 5-line type-intersection helper.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/lib/components/code/codeViewer/MonacoCodeEditor.tsx:52-66
 - **Issue:** `cast through `any`` for the Monaco TypeScript namespace — uses `(monaco.languages as { typescript?: unknown }).typescript as | {…} | undefined`. The 5-line type intersection is mostly noise.
@@ -175,7 +176,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-12
+- **ID:** ✅ TASTE-12
+- **Status:** Fixed — `useExampleState.tsx`'s `JSON.stringify` fallback now bumps a module-scope `unserializableStateCounter` and returns `__unserializable_${counter}` instead of `Math.random().toString()`. The sentinel reads as an explicit "force-fresh" key rather than entropy-source noise. (The reviewer pointed at `serializeState.ts:33`; the actual site was `useExampleState.tsx:33` — same logical path.)
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/components/react/src/examples/harness/serializeState.ts:33
 - **Issue:** `return Math.random().toString();` as a fallback when JSON.stringify throws — used as a memoization cache key.
@@ -225,7 +227,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-16
+- **ID:** ✅ TASTE-16
+- **Status:** Fixed — the hand-rolled pub-sub's `set()` now iterates over a `[...listeners]` snapshot so a re-entrant `requestConfirm()` from inside a listener can't mutate the iteration target mid-walk. Replacing the singleton with Zustand/jotai is out of scope (would also reshape the public promise-API contract); the iterator-safety bug is the one with real impact and it's gone.
 - **Severity:** Major
 - **File:** /home/paul/projects/mows/utils/mows-vm-supervisor/web/src/lib/modals.ts:55-67
 - **Issue:** Module-scoped mutable singleton (`let current: ModalRequest | null = null`) with manual `listeners = new Set<Listener>()` re-implementation of a pub-sub. This is a Redux-store / React-context pattern by hand.
@@ -893,7 +896,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-77
+- **ID:** ✅ TASTE-77
+- **Status:** Fixed alongside TASTE-12 — the JSON.stringify fallback now bumps a counter sentinel instead of returning `Math.random().toString()`.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/src/examples/harness/useExampleState.tsx:23-43
 - **Issue:** `useExampleState = (state: unknown): void => { const onChange = …; const serialized = … }` — fine, but the second `useMemo` block embeds a comment "// serialize key only — the real serialization for display happens later via serializeState()." Comment is good (WHY), but the call also uses `JSON.stringify` for a fallback that can produce different output on circular refs (silently throws → catch returns `Math.random().toString()`).
@@ -935,7 +939,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-81
+- **ID:** ✅ TASTE-81
+- **Status:** Fixed — the 10-line block comment is now `// See vite-plugins/fileIconsVirtual.ts for why this is a virtual module.` The architectural rationale lives in the plugin file (the single source of truth).
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/lib/components/files/fileIcon/FileIcon.tsx:7-16
 - **Issue:** 10-line block comment explaining what `virtual:mows-file-icons` is and how it works. This belongs in the plugin file itself (and it's already there).
@@ -944,7 +949,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-82
+- **ID:** ✅ TASTE-82
+- **Status:** Fixed — `CodeViewer.tsx`'s preload comment now leads with the WHY (eager bundle + parallel download) and drops the "Kick off the shiki highlighter at module-eval time" restatement of the call below it.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/lib/components/code/codeViewer/CodeViewer.tsx:6-12
 - **Issue:** 6-line WHY comment about preloading the highlighter — fine, WHY content, keep. But the eager `void getShikiHighlighter();` at line 12 is the actual operation, restated by the comment around it. The trailing "By the time `<Editor>` mounts the highlighter is hot…" is the WHY and is good. The first sentence "Kick off the shiki highlighter at module-eval time" restates `void getShikiHighlighter();`.
@@ -1011,7 +1017,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-88
+- **ID:** ✅ TASTE-88
+- **Status:** Fixed — `components/react/package.json` now has `pnpm.overrides` pinning `dompurify` to `>=3.4.5` (latest patched). Reinstall picked up `dompurify@3.4.5` (lockfile verified). Build + 1532-test vitest run both pass with the override in place.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/package.json (transitive via `monaco-editor@0.55.1`)
 - **Issue:** `monaco-editor@0.55.1` pulls in `dompurify@3.2.7` which has 8 moderate-severity advisories (GHSA-v2wj-7wpq-c8vv, GHSA-cjmm-f4jc-qw8r, GHSA-cj63-jhhr-wcxv, GHSA-39q2-94rc-95cp, …). The patched version `dompurify >=3.4.0` is not yet picked up by monaco-editor's release.
@@ -1020,7 +1027,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-89
+- **ID:** ✅ TASTE-89
+- **Status:** Fixed — `pnpm.overrides.ws: ">=8.20.1"` added in `components/react/package.json`. Lockfile pulls `ws@8.20.1`.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/package.json (transitive via `jsdom@27.4.0`)
 - **Issue:** `jsdom@27.4.0` → `ws@8.20.0` is vulnerable to GHSA-58qx-3vcg-4xpx (uninitialized memory disclosure). Patched in `ws@8.20.1`. Affects test infrastructure only.
@@ -1029,7 +1037,8 @@ See per-item status blocks for the specific rationale.
 
 ---
 
-- **ID:** ⁉️ TASTE-90
+- **ID:** ✅ TASTE-90
+- **Status:** Fixed — `pnpm.overrides.brace-expansion: ">=5.0.6"` added in `components/react/package.json`. Lockfile pulls `brace-expansion@5.0.6` across all transitive sites.
 - **Severity:** Minor
 - **File:** /home/paul/projects/mows/components/react/package.json (transitive via `vite-plugin-dts`, `glob`, `typescript-eslint`)
 - **Issue:** `brace-expansion@5.0.5` is vulnerable to GHSA-jxxr-4gwj-5jf2 via multiple paths. Patched in `>=5.0.6`.

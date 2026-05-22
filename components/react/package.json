@@ -36,6 +36,7 @@
     },
     "dependencies": {
         "@date-fns/tz": "1.4.1",
+        "@mkkellogg/gaussian-splats-3d": "^0.4.7",
         "@monaco-editor/react": "4.7.0",
         "@photo-sphere-viewer/core": "5.14.1",
         "@photo-sphere-viewer/markers-plugin": "^5.14.1",
@@ -74,6 +75,7 @@
         "immutability-helper": "^3.1.1",
         "lodash": "^4.17.21",
         "lucide-react": "^0.544.0",
+        "maplibre-gl": "5.24.0",
         "monaco-editor": "0.55.1",
         "next-themes": "^0.4.6",
         "oidc-client-ts": "^3.2.1",
@@ -101,9 +103,16 @@
         "vite-plugin-lib-inject-css": "^2.2.2",
         "vscode-material-icons": "0.1.1"
     },
+    "pnpm": {
+        "overrides": {
+            "dompurify": ">=3.4.5",
+            "ws": ">=8.20.1",
+            "brace-expansion": ">=5.0.6"
+        }
+    },
     "devDependencies": {
         "@eslint/js": "^9.33.0",
-        "@playwright/test": "^1.60.0",
+        "@playwright/test": "^1.59.1",
         "@testing-library/jest-dom": "^6.8.0",
         "@testing-library/react": "^16.3.0",
         "@testing-library/user-event": "^14.6.1",

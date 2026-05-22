@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { NO_MODIFIERS, type ModifierMask } from "./ActionManager";
+import { modifierMaskFromEvent, NO_MODIFIERS, type ModifierMask } from "./ActionManager";
 
 /**
  * Tiny external store backing {@link useModifierState}. Exactly one set of
@@ -74,6 +74,21 @@ const subscribe = (notify: () => void): (() => void) => {
 const getSnapshot = (): ModifierMask => snapshot;
 
 const getServerSnapshot = (): ModifierMask => NO_MODIFIERS;
+
+/**
+ * Seed the modifier mask from any event that carries modifier bits. Use
+ * this when an event-driven entry point (e.g. a `contextmenu` handler)
+ * opens UI that subscribes to {@link useModifierState} — the listeners
+ * only start hearing keydown/keyup *after* subscription, so a modifier
+ * that was held *before* the event would otherwise read as `false`.
+ *
+ * Idempotent: re-priming with the same mask is a no-op.
+ */
+export const primeModifierStateFromEvent = (
+    event: KeyboardEvent | MouseEvent | React.KeyboardEvent | React.MouseEvent
+): void => {
+    setSnapshot(modifierMaskFromEvent(event));
+};
 
 /**
  * Subscribe to the live keyboard-modifier mask. Re-renders the caller

@@ -7,6 +7,7 @@ import { defaultCodeThemes, type MowsCodeTheme } from "../codeThemes";
 import { getBrowserLanguage, type Language, type Translation } from "../languages";
 import baseEnglishTranslation from "../languages/en-US/default";
 import { log } from "../logging";
+import { defaultMapStyles, type MowsMapStyle } from "../mapStyles";
 import { defaultThemes, loadThemeCSS, type MowsTheme } from "../themes";
 import { type Action, ActionManager } from "./ActionManager";
 import { coreDefaultHotkeys, defineCoreActions } from "./coreActions";
@@ -86,6 +87,9 @@ export interface MowsContextType {
     readonly setCodeEditorSettings: (settings: Partial<MowsCodeEditorSettings>) => void;
     readonly toastSettings: MowsToastSettings;
     readonly setToastSettings: (settings: Partial<MowsToastSettings>) => void;
+    readonly mapStyles: MowsMapStyle[];
+    readonly currentMapStyle: MowsMapStyle;
+    readonly setMapStyle: (style: MowsMapStyle) => void;
 }
 
 interface MowsClientManagerProps {
@@ -99,6 +103,8 @@ interface MowsClientManagerProps {
     readonly defaultThemeId: string;
     readonly codeThemes: MowsCodeTheme[];
     readonly defaultCodeThemeId: string;
+    readonly mapStyles: MowsMapStyle[];
+    readonly defaultMapStyleId: string;
     readonly auth?: AuthContextProps;
     readonly authConfigured: boolean;
 }
@@ -111,6 +117,7 @@ interface MowsClientManagerState {
     readonly currentCodeTheme: MowsCodeTheme;
     readonly codeEditorSettings: MowsCodeEditorSettings;
     readonly toastSettings: MowsToastSettings;
+    readonly currentMapStyle: MowsMapStyle;
 }
 
 const buildStorageKeys = (prefix: string) => ({
@@ -118,6 +125,7 @@ const buildStorageKeys = (prefix: string) => ({
     codeTheme: `${prefix}_code_theme`,
     codeEditorSettings: `${prefix}_code_editor_settings`,
     toastSettings: `${prefix}_toast_settings`,
+    mapStyle: `${prefix}_map_style`,
     selectedLanguage: `${prefix}_language`,
     hotkeyConfig: `${prefix}_hotkey_config`,
     recentActions: `${prefix}_recent_actions`,
@@ -200,13 +208,19 @@ export class MowsClientManagerBase extends Component<
         const initialCodeTheme =
             props.codeThemes.find((codeTheme) => codeTheme.id === currentCodeThemeId) || props.codeThemes[0];
 
+        const currentMapStyleId =
+            localStorage.getItem(this.storageKeys.mapStyle) || props.defaultMapStyleId;
+        const initialMapStyle =
+            props.mapStyles.find((style) => style.id === currentMapStyleId) || props.mapStyles[0];
+
         this.state = {
             currentTheme: initialTheme,
             currentTranslation: props.initialTranslation,
             currentLanguage: getBrowserLanguage(props.languages, this.storageKeys.selectedLanguage),
             currentCodeTheme: initialCodeTheme,
             codeEditorSettings: readCodeEditorSettings(this.storageKeys.codeEditorSettings),
-            toastSettings: readToastSettings(this.storageKeys.toastSettings)
+            toastSettings: readToastSettings(this.storageKeys.toastSettings),
+            currentMapStyle: initialMapStyle
         };
 
         this.actionManager = new ActionManager({
@@ -282,6 +296,11 @@ export class MowsClientManagerBase extends Component<
         this.setState({ currentCodeTheme: theme });
     };
 
+    setMapStyle = (style: MowsMapStyle) => {
+        localStorage.setItem(this.storageKeys.mapStyle, style.id);
+        this.setState({ currentMapStyle: style });
+    };
+
     setCodeEditorSettings = (partial: Partial<MowsCodeEditorSettings>) => {
         const next = { ...this.state.codeEditorSettings, ...partial };
         localStorage.setItem(this.storageKeys.codeEditorSettings, JSON.stringify(next));
@@ -313,9 +332,23 @@ export class MowsClientManagerBase extends Component<
     };
 
     render = () => {
-        const { children, auth, authConfigured, storagePrefix, themes, languages, codeThemes } =
-            this.props;
-        const { currentTheme, currentCodeTheme, codeEditorSettings, toastSettings } = this.state;
+        const {
+            children,
+            auth,
+            authConfigured,
+            storagePrefix,
+            themes,
+            languages,
+            codeThemes,
+            mapStyles
+        } = this.props;
+        const {
+            currentTheme,
+            currentCodeTheme,
+            codeEditorSettings,
+            toastSettings,
+            currentMapStyle
+        } = this.state;
 
         const contextValue: MowsContextType = {
             auth: auth!,
@@ -339,7 +372,10 @@ export class MowsClientManagerBase extends Component<
             codeEditorSettings,
             setCodeEditorSettings: this.setCodeEditorSettings,
             toastSettings,
-            setToastSettings: this.setToastSettings
+            setToastSettings: this.setToastSettings,
+            mapStyles,
+            currentMapStyle,
+            setMapStyle: this.setMapStyle
         };
 
         return <MowsContext.Provider value={contextValue}>{children}</MowsContext.Provider>;
@@ -405,6 +441,8 @@ interface MowsProviderProps {
     readonly defaultThemeId?: string;
     readonly codeThemes?: MowsCodeTheme[];
     readonly defaultCodeThemeId?: string;
+    readonly mapStyles?: MowsMapStyle[];
+    readonly defaultMapStyleId?: string;
     readonly extraActions?: Action[];
     readonly extraDefaultHotkeys?: HotkeyConfig;
     readonly onSigninCallback?: (user: User | void) => void;
@@ -435,6 +473,8 @@ export class MowsProvider extends Component<MowsProviderProps> {
             defaultThemeId = `system`,
             codeThemes = defaultCodeThemes,
             defaultCodeThemeId = `one-dark-nx`,
+            mapStyles = defaultMapStyles,
+            defaultMapStyleId = `maplibre-demo`,
             extraActions = [],
             extraDefaultHotkeys = {}
         } = this.props;
@@ -447,6 +487,8 @@ export class MowsProvider extends Component<MowsProviderProps> {
             defaultThemeId,
             codeThemes,
             defaultCodeThemeId,
+            mapStyles,
+            defaultMapStyleId,
             extraActions,
             extraDefaultHotkeys,
             authConfigured: !!oidc

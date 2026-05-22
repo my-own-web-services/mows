@@ -133,12 +133,19 @@ export {
 
 export { default as LanguagePicker } from "./components/settings/languagePicker/LanguagePicker";
 export { default as LoggingConfig } from "./components/settings/loggingConfig/LoggingConfig";
+export { default as MapStylePicker } from "./components/settings/mapStylePicker/MapStylePicker";
 export {
     default as SettingsPanel,
     type MowsSettings,
     type SettingsPanelProps
 } from "./components/settings/settingsPanel/SettingsPanel";
 export { default as ThemePicker } from "./components/settings/themePicker/ThemePicker";
+
+export {
+    default as Map,
+    type MapProps,
+    type MapView
+} from "./components/map/Map";
 
 export { default as ResourceList } from "./components/list/ResourceList/ResourceList";
 export * from "./components/list/ResourceList/ResourceListTypes";
@@ -209,6 +216,7 @@ export * from "./lib/mowsContext/ActionManager";
 export * from "./lib/mowsContext/coreActions";
 export * from "./lib/mowsContext/HotkeyManager";
 export * from "./lib/mowsContext/MowsContext";
+export * from "./lib/mapStyles";
 export * from "./lib/themes";
 export * from "./lib/timezoneUtils";
 export * from "./lib/utils";

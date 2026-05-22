@@ -13,6 +13,11 @@ export const ExampleStateProvider = ({ onChange, children }: ExampleStateProvide
     <ExampleStateContext.Provider value={onChange}>{children}</ExampleStateContext.Provider>
 );
 
+// Monotonic counter used as a "definitely-new" cache key when JSON.stringify
+// throws (circular state, BigInt, etc.). Reads as an explicit "force-fresh"
+// sentinel, unlike Math.random() which looks like an entropy source.
+let unserializableStateCounter = 0;
+
 /**
  * Publish the current state of an example component to the surrounding
  * `<ExampleCard>`. The harness renders the latest value in the State tab.
@@ -26,11 +31,11 @@ export const useExampleState = (state: unknown): void => {
         try {
             return JSON.stringify(state);
         } catch {
-            // serialize key only — the real serialization for display
-            // happens later via serializeState(). A failure here just
-            // forces every render to be considered "changed", which is
-            // acceptable; the display path will produce a stable result.
-            return Math.random().toString();
+            // Serialization fell over (circular ref, BigInt, etc.). Use a
+            // bumped counter so every render is considered "changed"; the
+            // display path uses serializeState() which handles these cases.
+            unserializableStateCounter += 1;
+            return `__unserializable_${unserializableStateCounter}`;
         }
     }, [state]);
 

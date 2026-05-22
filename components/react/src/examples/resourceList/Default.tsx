@@ -10,59 +10,110 @@ import {
 import { useExampleState } from "../harness/useExampleState";
 import type { ExampleModule } from "../harness/types";
 
-interface Item extends BaseResource {
+interface Deployment extends BaseResource {
     readonly id: string;
     readonly name: string;
-    readonly size: number;
+    readonly region: string;
+    readonly status: `healthy` | `degraded` | `offline`;
+    readonly latencyMs: number;
 }
 
-const ITEMS: Item[] = Array.from({ length: 250 }).map((_, i) => ({
-    id: `${i + 1}`,
-    name: `Resource ${i + 1}`,
-    size: ((i + 1) * 137) % 4096
+const REGIONS = [`eu-west-1`, `eu-central-1`, `us-east-1`, `us-west-2`, `ap-south-1`];
+const STATUSES: Deployment[`status`][] = [`healthy`, `healthy`, `healthy`, `degraded`, `offline`];
+
+// Deterministic 600-row fixture — concrete enough to show off four real
+// column types (text, region, status badge, numeric) without pulling in a
+// real backend.
+const DEPLOYMENTS: Deployment[] = Array.from({ length: 600 }).map((_, i) => ({
+    id: `dep-${(i + 1).toString().padStart(4, `0`)}`,
+    name: `service-${(i + 1).toString().padStart(3, `0`)}`,
+    region: REGIONS[i % REGIONS.length]!,
+    status: STATUSES[i % STATUSES.length]!,
+    latencyMs: 12 + ((i * 37) % 240)
 }));
+
+const STATUS_CLASS: Record<Deployment[`status`], string> = {
+    healthy: `bg-emerald-500/15 text-emerald-600 dark:text-emerald-400`,
+    degraded: `bg-amber-500/15 text-amber-600 dark:text-amber-400`,
+    offline: `bg-destructive/15 text-destructive`
+};
+
+const compareBy = (a: Deployment, b: Deployment, field: string): number => {
+    const av = a[field];
+    const bv = b[field];
+    if (typeof av === `number` && typeof bv === `number`) return av - bv;
+    return String(av).localeCompare(String(bv));
+};
 
 const Example = () => {
     const handlers = useMemo(() => {
-        const columns: Column<Item>[] = [
+        const columns: Column<Deployment>[] = [
             {
                 field: `name`,
                 label: `Name`,
                 direction: SortDirection.Ascending,
-                widthPercent: 70,
-                minWidthPixels: 120,
+                widthPercent: 35,
+                minWidthPixels: 140,
                 enabled: true,
-                render: (item) => <span>{item.name}</span>
+                render: (item) => <span className={`font-medium`}>{item.name}</span>
             },
             {
-                field: `size`,
-                label: `Size`,
-                direction: SortDirection.Ascending,
-                widthPercent: 30,
-                minWidthPixels: 80,
+                field: `region`,
+                label: `Region`,
+                direction: SortDirection.Neutral,
+                widthPercent: 25,
+                minWidthPixels: 120,
                 enabled: true,
-                render: (item) => <span className={`tabular-nums`}>{item.size} B</span>
+                render: (item) => (
+                    <span className={`text-muted-foreground tabular-nums`}>{item.region}</span>
+                )
+            },
+            {
+                field: `status`,
+                label: `Status`,
+                direction: SortDirection.Neutral,
+                widthPercent: 20,
+                minWidthPixels: 100,
+                enabled: true,
+                render: (item) => (
+                    <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_CLASS[item.status]}`}
+                    >
+                        {item.status}
+                    </span>
+                )
+            },
+            {
+                field: `latencyMs`,
+                label: `Latency`,
+                direction: SortDirection.Neutral,
+                widthPercent: 20,
+                minWidthPixels: 90,
+                enabled: true,
+                render: (item) => <span className={`tabular-nums`}>{item.latencyMs} ms</span>
             }
         ];
-        return [new ColumnListRowHandler<Item>({ columns })];
+        return [new ColumnListRowHandler<Deployment>({ columns })];
     }, []);
 
     const getResourcesList = async (
         req: ListResourceRequestBody
-    ): Promise<ListResourceResponseBody<Item>> => {
-        const slice = ITEMS.slice(req.fromIndex, req.fromIndex + req.limit);
-        const sorted =
-            req.sortDirection === SortDirection.Descending ? [...slice].reverse() : slice;
-        return { items: sorted, totalCount: ITEMS.length };
+    ): Promise<ListResourceResponseBody<Deployment>> => {
+        const sorted = [...DEPLOYMENTS].sort((a, b) => {
+            const cmp = compareBy(a, b, req.sortBy);
+            return req.sortDirection === SortDirection.Descending ? -cmp : cmp;
+        });
+        const slice = sorted.slice(req.fromIndex, req.fromIndex + req.limit);
+        return { items: slice, totalCount: DEPLOYMENTS.length };
     };
 
-    useExampleState({ totalItems: ITEMS.length });
+    useExampleState({ totalItems: DEPLOYMENTS.length });
 
     return (
         <div className={`h-[480px] w-full rounded-md border bg-background`}>
-            <ResourceList<Item>
-                listInstanceId={`example-resource-list`}
-                resourceType={`example-item`}
+            <ResourceList<Deployment>
+                listInstanceId={`example-resource-list-default`}
+                resourceType={`deployment`}
                 rowHandlers={handlers}
                 initialRowHandler={handlers[0]!.id}
                 getResourcesList={getResourcesList}

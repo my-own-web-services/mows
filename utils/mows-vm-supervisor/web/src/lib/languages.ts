@@ -52,6 +52,16 @@ const enUS: Translation = {
                 uptime: "Uptime",
                 baseImage: "Base image",
                 unknown: "—"
+            },
+            console: {
+                sectionTitle: "Console",
+                ssh: {
+                    typeLabel: "SSH",
+                    connecting: "Connecting…",
+                    connected: "Connected",
+                    disconnected: "Disconnected",
+                    error: "Connection error"
+                }
             }
         }
     }

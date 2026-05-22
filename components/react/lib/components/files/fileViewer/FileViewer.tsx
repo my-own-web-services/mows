@@ -30,13 +30,23 @@ export interface FileViewerProps {
      * Defaults to the file name.
      */
     readonly fallback?: ReactNode;
+    /**
+     * Hint that this viewer is one of many on screen — e.g. inside a
+     * `ResourceList` grid, a horizontal strip, or any gallery surface.
+     * Currently affects `image/*` rendering only: switches the underlying
+     * <img> to native lazy loading + async decoding + low fetch priority,
+     * so off-screen images don't block paint and the primary viewer (if
+     * any) wins the network. No-op for video / 360 viewers, which manage
+     * their own streaming.
+     */
+    readonly embedded?: boolean;
 }
 
 type FileViewerState = Record<string, never>;
 
 export default class FileViewer extends PureComponent<FileViewerProps, FileViewerState> {
     render = () => {
-        const { name, mimeType, src, width, height, is360, fallback } = this.props;
+        const { name, mimeType, src, width, height, is360, fallback, embedded } = this.props;
         return (
             <div
                 style={{ ...this.props.style }}
@@ -51,7 +61,15 @@ export default class FileViewer extends PureComponent<FileViewerProps, FileViewe
                                 </Suspense>
                             );
                         }
-                        return <ImageViewer src={src} alt={name} width={width} height={height} />;
+                        return (
+                            <ImageViewer
+                                src={src}
+                                alt={name}
+                                width={width}
+                                height={height}
+                                embedded={embedded}
+                            />
+                        );
                     }
                     if (isVideoOrStream(mimeType)) {
                         return (

@@ -28,6 +28,15 @@ export interface ColumnListRowHandlerProps<ResourceType> {
     disableColumnResizing?: boolean;
     rowHeightPixels?: number;
     selectAllTitle?: string;
+    /**
+     * Per-row data attributes. The returned record is spread onto each
+     * row's outer `<div>` — typically used to stamp
+     * `data-actionscope` / `data-item-id` so the global context menu
+     * picks the row up regardless of which cell (or row gutter) the
+     * user right-clicks on. Returning attributes here means the entire
+     * row area is the right-click target, not just the inner cell text.
+     */
+    rowAttributes?: (item: ResourceType) => Record<string, string>;
 }
 
 export interface ColumnListRowHandlerState<ResourceType> {
@@ -258,11 +267,19 @@ export default class ColumnListRowHandler<ResourceType extends BaseResource>
 
         const columns = this.columns;
 
+        const onContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+            rowProps.data?.handlers.onItemClick?.(e, getCurrentItem(), rowProps.index, true);
+        };
+
+        const rowAttrs = this.props.rowAttributes?.(item) ?? {};
+
         return (
             <div
                 style={{
                     ...style
                 }}
+                {...rowAttrs}
+                onContextMenu={onContextMenu}
                 className={cn(
                     `ColumnListRowRenderer hover:bg-secondary/100 flex w-full flex-row gap-[1px] overflow-hidden whitespace-nowrap select-none`,
                     isSelected && `bg-secondary/60`,

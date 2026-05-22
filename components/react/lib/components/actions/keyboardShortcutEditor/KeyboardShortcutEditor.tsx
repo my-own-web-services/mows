@@ -3,7 +3,7 @@ import type { Action } from "@/lib/mowsContext/ActionManager";
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
 import { type CSSProperties, PureComponent } from "react";
-import { MdDelete, MdEdit, MdRestartAlt } from "react-icons/md";
+import { MdAdd, MdDelete, MdEdit, MdRestartAlt } from "react-icons/md";
 import { RiResetLeftFill } from "react-icons/ri";
 import { Button } from "@/components/ui/button";
 import {
@@ -355,14 +355,17 @@ export default class KeyboardShortcutEditor extends PureComponent<
                                                         {description}
                                                     </h4>
                                                     <Button
-                                                        variant={`outline`}
-                                                        size={`sm`}
+                                                        variant={`ghost`}
+                                                        size={`icon`}
                                                         onClick={() =>
                                                             this.handleStartAddingHotkey(action.id)
                                                         }
-                                                        className={`text-xs`}
+                                                        title={t.keyboardShortcuts.addHotkeyButton}
+                                                        aria-label={
+                                                            t.keyboardShortcuts.addHotkeyButton
+                                                        }
                                                     >
-                                                        {t.keyboardShortcuts.addHotkeyButton}
+                                                        <MdAdd className={`h-4 w-4`} />
                                                     </Button>
                                                 </div>
                                                 <div className={`space-y-1`}>

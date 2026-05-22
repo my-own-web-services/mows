@@ -4,16 +4,7 @@ import { getIconForFilePath, type MaterialIcon } from "vscode-material-icons";
 import { iconUrlMap } from "virtual:mows-file-icons";
 import { cn } from "../../../lib/utils";
 
-// `virtual:mows-file-icons` is a tiny Vite plugin in this repo
-// (vite-plugins/fileIconsVirtual.ts) that scans
-// node_modules/vscode-material-icons/generated/icons/*.svg at plugin-load
-// time and returns a single module exporting a `Record<icon-name,
-// data-URL>` map. We use a virtual module instead of
-// `import.meta.glob('...*.svg', { eager: true, query: '?url' })` because
-// the eager glob expands into ~910 separate ESM `?url` module fetches in
-// the dev server, which stalls the docs page on initial load. In the
-// published library bundle the data URLs are inlined into the prebuilt
-// JS, so consumers don't need this plugin themselves.
+// See vite-plugins/fileIconsVirtual.ts for why this is a virtual module.
 const lookupIconUrl = (iconName: MaterialIcon): string | null =>
     iconUrlMap[iconName] ?? null;
 

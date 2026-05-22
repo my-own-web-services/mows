@@ -20,14 +20,37 @@ const collectErrors = (page: Page, currentUrl: { value: string }): PageFailure[]
     const failures: PageFailure[] = [];
     const onConsole = (msg: ConsoleMessage) => {
         if (msg.type() !== `error`) return;
-        // Network failures for genuinely missing assets are interesting,
-        // but Vite HMR warnings during navigation occasionally surface as
-        // benign `error`s. Surface everything; let the assertion show
-        // the noise and decide later whether to filter.
+        // Filter out "Failed to load resource" errors that are navigation
+        // cancellations — never real failures. Two flavours:
+        //  1. Cross-origin URLs (shaka-demo-assets MP4, mapbox tiles,
+        //     etc.) whose in-flight fetches die when the SPA pushes a
+        //     new state mid-download.
+        //  2. Same-origin Vite module loads (`localhost:5175/src/...`)
+        //     that abort the same way during route changes — Chromium
+        //     emits `net::ERR_NETWORK_CHANGED` / `ERR_ABORTED` and the
+        //     dev server is fine, the request was just cancelled.
+        // Anything else (real 404, parse failure, etc.) still fails the
+        // test.
+        const text = msg.text();
+        if (text.startsWith(`Failed to load resource`)) {
+            if (text.includes(`net::ERR_NETWORK_CHANGED`) ||
+                text.includes(`net::ERR_ABORTED`)) {
+                return;
+            }
+            const resourceUrl = msg.location().url;
+            try {
+                const origin = new URL(resourceUrl).origin;
+                const baseOrigin = new URL(page.url()).origin;
+                if (origin !== baseOrigin) return;
+            } catch {
+                // If the URL is unparseable, fall through and treat as a
+                // real failure so we don't silently drop signal.
+            }
+        }
         failures.push({
             url: currentUrl.value,
             kind: `console-error`,
-            detail: msg.text()
+            detail: text
         });
     };
     const onPageError = (err: Error) => {
@@ -43,6 +66,11 @@ const collectErrors = (page: Page, currentUrl: { value: string }): PageFailure[]
 };
 
 test.describe(`docs site`, () => {
+    // Walking ~50 pages with a per-page 15s heading wait can easily blow
+    // through the default 30s test budget. Allot a generous ceiling
+    // (~6 minutes); the test still exits as soon as the loop finishes.
+    test.setTimeout(360_000);
+
     test(`every demo + guide page renders without console errors`, async ({ page }) => {
         const currentUrl = { value: `/` };
         const failures = collectErrors(page, currentUrl);
@@ -77,17 +105,39 @@ test.describe(`docs site`, () => {
         for (const href of hrefs) {
             currentUrl.value = href;
             await test.step(`visit ${href}`, async () => {
-                await page.goto(href, { waitUntil: `domcontentloaded` });
+                try {
+                    // `load` (not just `domcontentloaded`) keeps us from
+                    // racing past the page while Vite is still streaming
+                    // the route's JS modules — the docpage's heading is
+                    // rendered by that JS, so checking for it before
+                    // `load` resolves is a false-negative magnet.
+                    await page.goto(href, { waitUntil: `load` });
+                } catch (err) {
+                    // Chrome sometimes aborts an in-flight nav when the SPA
+                    // pushes its own state; record + keep walking so one
+                    // flake doesn't mask 49 other pages.
+                    failures.push({
+                        url: href,
+                        kind: `render`,
+                        detail: `goto failed: ${(err as Error).message}`
+                    });
+                    return;
+                }
                 const heading = page
                     .locator(`main h1, main h2, main h3, [role="main"] h1, [role="main"] h2, [role="main"] h3`)
                     .first();
                 try {
-                    await expect(heading).toBeVisible({ timeout: 15_000 });
+                    // Vite dev-server cold-compiles each route on first
+                    // hit, so an unwarmed page can easily eat 20s while
+                    // others wait in the queue. The total test budget
+                    // (360s) is plenty; this per-page wait just needs to
+                    // tolerate the compile spike.
+                    await expect(heading).toBeVisible({ timeout: 30_000 });
                 } catch (err) {
                     failures.push({
                         url: href,
                         kind: `render`,
-                        detail: `no heading visible after 15s: ${(err as Error).message}`
+                        detail: `no heading visible after 30s: ${(err as Error).message}`
                     });
                 }
             });

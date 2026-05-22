@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { defaultCodeThemes } from "../../../lib/codeThemes";
 import baseEnglishTranslation from "../../../lib/languages/en-US/default";
+import { defaultMapStyles } from "../../../lib/mapStyles";
 import { ActionManager } from "../../../lib/mowsContext/ActionManager";
 import { HotkeyManager } from "../../../lib/mowsContext/HotkeyManager";
 import {
@@ -62,7 +63,10 @@ const buildContext = ({ authConfigured, isAuthenticated = false }: BuildOpts): M
         codeEditorSettings: defaultCodeEditorSettings,
         setCodeEditorSettings: () => undefined,
         toastSettings: defaultToastSettings,
-        setToastSettings: () => undefined
+        setToastSettings: () => undefined,
+        mapStyles: defaultMapStyles,
+        currentMapStyle: defaultMapStyles[0],
+        setMapStyle: () => undefined
     };
 };
 

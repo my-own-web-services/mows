@@ -23,6 +23,7 @@ vi.mock(`@/components/code/codeViewer/CodeViewer`, () => ({
 }));
 import { defaultCodeThemes, type MowsCodeTheme } from "../../../lib/codeThemes";
 import enTranslation from "../../../lib/languages/en-US/default";
+import { defaultMapStyles, type MowsMapStyle } from "../../../lib/mapStyles";
 import { ActionManager } from "../../../lib/mowsContext/ActionManager";
 import { HotkeyManager } from "../../../lib/mowsContext/HotkeyManager";
 import {
@@ -37,10 +38,12 @@ import SettingsPanel from "./SettingsPanel";
 interface ContextStubs {
     setTheme?: (theme: MowsTheme) => void;
     setCodeTheme?: (theme: MowsCodeTheme) => void;
+    setMapStyle?: (style: MowsMapStyle) => void;
     setLanguage?: (lang?: { code: string }) => void;
     setToastSettings?: (partial: Partial<{ position: string }>) => void;
     currentThemeId?: string;
     currentCodeThemeId?: string;
+    currentMapStyleId?: string;
     toastPosition?: typeof defaultToastSettings.position;
 }
 
@@ -60,6 +63,10 @@ const buildContext = (stubs: ContextStubs = {}): MowsContextType => {
         defaultCodeThemes.find(
             (c) => c.id === (stubs.currentCodeThemeId ?? `vs-dark`)
         ) ?? defaultCodeThemes[0];
+    const currentMapStyle =
+        defaultMapStyles.find(
+            (s) => s.id === (stubs.currentMapStyleId ?? defaultMapStyles[0].id)
+        ) ?? defaultMapStyles[0];
 
     return {
 
@@ -98,7 +105,10 @@ const buildContext = (stubs: ContextStubs = {}): MowsContextType => {
             ...defaultToastSettings,
             position: stubs.toastPosition ?? defaultToastSettings.position
         },
-        setToastSettings: stubs.setToastSettings ?? (() => undefined)
+        setToastSettings: stubs.setToastSettings ?? (() => undefined),
+        mapStyles: defaultMapStyles,
+        currentMapStyle,
+        setMapStyle: stubs.setMapStyle ?? (() => undefined)
     };
 };
 
