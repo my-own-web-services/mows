@@ -90,7 +90,7 @@ jobs:
           bash scripts/build-docs.sh
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658c3e0e431f8a1c5dceea27cd # v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: components/react/dist-site
 
