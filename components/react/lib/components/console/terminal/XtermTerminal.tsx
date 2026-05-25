@@ -185,13 +185,19 @@ const XtermTerminal = React.forwardRef<TerminalHandle, TerminalProps>(
             <div
                 // The terminal renders as a flat unframed canvas — the host
                 // (ConsoleManager pane, a doc demo wrapper, …) owns any
-                // rounding, border, padding, or shadow. This mirrors how
-                // VS Code's panel chrome owns the frame around the embedded
-                // xterm. The background tracks the active code theme so the
+                // rounding, border, or shadow. We bake a small content
+                // gutter (`p-2.5`) here because VS Code's integrated
+                // terminal does the same and a flush xterm cursor looks
+                // wrong in every context we ship; consumers that genuinely
+                // need flush bytes can override with `className="p-0"`.
+                // The ResizeObserver below re-fits the grid whenever this
+                // padded box changes size, so the gutter never breaks
+                // wrap math.
+                // The background tracks the active code theme so the
                 // outer surface and the xterm canvas can never diverge.
                 style={{ backgroundColor: themeColors.background, ...style }}
                 className={cn(
-                    `Terminal h-full w-full overflow-hidden`,
+                    `Terminal h-full w-full overflow-hidden p-2.5`,
                     className
                 )}
             >

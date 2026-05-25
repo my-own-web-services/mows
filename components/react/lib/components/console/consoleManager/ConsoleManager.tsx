@@ -64,6 +64,15 @@ import { cn } from "@/lib/utils";
  * survive group switches so xterm scrollback / websocket state is
  * preserved.
  */
+/** Per-call context handed to `ConsoleType.render`. */
+export interface ConsoleRenderContext {
+    /** Stable tab id assigned by the manager. Survives reloads when
+     *  `persistenceKey` is set, which lets consumers key a remote
+     *  session (tmux name, etc.) off it so the underlying process
+     *  outlives the websocket. */
+    readonly tabId: string;
+}
+
 export interface ConsoleType {
     /** Stable id used inside the layout state. Must be unique. */
     readonly id: string;
@@ -71,8 +80,11 @@ export interface ConsoleType {
     readonly label: string;
     /** Optional icon shown in the menu and on each row. */
     readonly icon?: LucideIcon;
-    /** Render the terminal's body. Called once per terminal instance. */
-    readonly render: () => ReactNode;
+    /** Render the terminal's body. Called once per terminal instance.
+     *  Receives a `ConsoleRenderContext` so the consumer can derive a
+     *  stable per-tab id (used by backends that wrap the remote process
+     *  in tmux/screen for reload-survives session persistence). */
+    readonly render: (ctx: ConsoleRenderContext) => ReactNode;
     /**
      * Per-type name generator for new terminals. Receives the 1-based
      * ordinal so multiple terminals get unique names
@@ -99,6 +111,18 @@ export interface ConsoleManagerProps {
     readonly tabListMinSize?: number;
     /** Max width of the right-side tab list, in percent. Default 45. */
     readonly tabListMaxSize?: number;
+    /**
+     * When set, the tab list + split layout is persisted to
+     * `localStorage` under `${MowsContext.storagePrefix}:console:${persistenceKey}`.
+     * On the next mount the manager rehydrates from that key, so the
+     * user's tabs and group splits survive page reloads. Tabs whose
+     * `typeId` is no longer registered get dropped silently; if the
+     * whole stored layout becomes empty the manager falls back to
+     * `initialTabs`. The terminal content itself is per-instance and is
+     * not persisted — every tab gets a fresh `render()` (and, in
+     * practice, a fresh socket) on rehydrate.
+     */
+    readonly persistenceKey?: string;
 }
 
 export interface InitialTab {
@@ -286,6 +310,111 @@ const initialState = (props: ConsoleManagerProps): State => {
     };
 };
 
+// ---------------------------------------------------------------------
+// Persistence — JSON-roundtrip of the bits that should survive a reload.
+// Transient UI state (renamingTabId, dropIndicator) is deliberately
+// excluded so a refresh never re-opens the rename popover or paints
+// a stale drop indicator.
+// ---------------------------------------------------------------------
+
+interface PersistedState {
+    readonly groups: readonly Group[];
+    readonly activeTabId: string | null;
+    readonly tabs: { readonly [tabId: string]: Tab };
+}
+
+// We deliberately don't namespace by `MowsContext.storagePrefix` here:
+// `static contextType` only guarantees `this.context` from
+// `componentDidMount` onwards, and hydrating in the constructor (so the
+// first render already has the right tabs) needs a key we can compute
+// from props alone. Callers that share an origin between MOWS apps
+// should embed their app name in `persistenceKey`.
+const buildStorageKey = (persistenceKey: string): string =>
+    `mows:console:${persistenceKey}`;
+
+const serializeState = (state: State): PersistedState => ({
+    groups: state.groups,
+    activeTabId: state.activeTabId,
+    tabs: state.tabs
+});
+
+// Drop any layout slot whose tabId no longer exists, and collapse
+// resulting one-armed splits. Returns null when the whole subtree
+// disappears so the caller can prune the parent.
+const pruneLayout = (
+    node: LayoutNode,
+    validTabIds: ReadonlySet<string>
+): LayoutNode | null => {
+    if (node.kind === `terminal`) {
+        return validTabIds.has(node.tabId) ? node : null;
+    }
+    const left = pruneLayout(node.children[0], validTabIds);
+    const right = pruneLayout(node.children[1], validTabIds);
+    if (left && right) {
+        return { ...node, children: [left, right] };
+    }
+    return left ?? right ?? null;
+};
+
+const hydrateFromStorage = (props: ConsoleManagerProps): State | null => {
+    if (!props.persistenceKey) return null;
+    if (typeof window === `undefined`) return null;
+    const key = buildStorageKey(props.persistenceKey);
+    let raw: string | null = null;
+    try {
+        raw = window.localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+    if (!raw) return null;
+    let parsed: PersistedState;
+    try {
+        parsed = JSON.parse(raw) as PersistedState;
+    } catch {
+        return null;
+    }
+    const knownTypeIds = new Set(props.types.map((t) => t.id));
+    const validTabs: Record<string, Tab> = {};
+    for (const [tabId, tab] of Object.entries(parsed.tabs ?? {})) {
+        if (!tab || typeof tab !== `object`) continue;
+        if (!knownTypeIds.has(tab.typeId)) continue;
+        validTabs[tabId] = { id: tabId, typeId: tab.typeId, name: tab.name };
+    }
+    const validTabIds = new Set(Object.keys(validTabs));
+    const groups: Group[] = [];
+    for (const group of parsed.groups ?? []) {
+        const pruned = pruneLayout(group.layout, validTabIds);
+        if (pruned) groups.push({ id: group.id, layout: pruned });
+    }
+    if (groups.length === 0) return null;
+    const activeTabId =
+        parsed.activeTabId && validTabIds.has(parsed.activeTabId)
+            ? parsed.activeTabId
+            : groupTerminals(groups[0])[0]?.tabId ?? null;
+    return {
+        groups,
+        activeTabId,
+        tabs: validTabs,
+        renamingTabId: null,
+        dropIndicator: null
+    };
+};
+
+const writeToStorage = (state: State, persistenceKey: string): void => {
+    if (typeof window === `undefined`) return;
+    const key = buildStorageKey(persistenceKey);
+    try {
+        if (state.groups.length === 0) {
+            window.localStorage.removeItem(key);
+            return;
+        }
+        window.localStorage.setItem(key, JSON.stringify(serializeState(state)));
+    } catch {
+        // Quota exceeded / storage disabled — silently ignore; the
+        // running UI keeps working, only persistence is degraded.
+    }
+};
+
 export default class ConsoleManager extends PureComponent<
     ConsoleManagerProps,
     State
@@ -301,8 +430,23 @@ export default class ConsoleManager extends PureComponent<
 
     constructor(props: ConsoleManagerProps) {
         super(props);
-        this.state = initialState(props);
+        this.state = hydrateFromStorage(props) ?? initialState(props);
     }
+
+    componentDidUpdate = (
+        _prevProps: ConsoleManagerProps,
+        prevState: State
+    ) => {
+        const key = this.props.persistenceKey;
+        if (!key) return;
+        if (
+            prevState.groups !== this.state.groups ||
+            prevState.tabs !== this.state.tabs ||
+            prevState.activeTabId !== this.state.activeTabId
+        ) {
+            writeToStorage(this.state, key);
+        }
+    };
 
     private getType = (typeId: string): ConsoleType | undefined =>
         this.props.types.find((t) => t.id === typeId);
@@ -608,7 +752,7 @@ export default class ConsoleManager extends PureComponent<
                     onMouseDownCapture={() => this.setActiveTab(node.tabId)}
                     className={`relative h-full min-h-0 w-full min-w-0 overflow-hidden bg-background`}
                 >
-                    {type.render()}
+                    {type.render({ tabId: node.tabId })}
                 </div>
             );
         }

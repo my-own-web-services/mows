@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import ConsoleManager, { type ConsoleType } from "./ConsoleManager";
 
 const dummyType = (id: string, label: string): ConsoleType => ({
@@ -304,5 +304,144 @@ describe(`ConsoleManager`, () => {
         expect(
             within(tabListOf(container)).getAllByRole(`tab`)
         ).toHaveLength(2);
+    });
+
+    describe(`persistenceKey`, () => {
+        const KEY = `test-persist`;
+        const STORAGE_KEY = `mows:console:${KEY}`;
+
+        beforeEach(() => {
+            window.localStorage.removeItem(STORAGE_KEY);
+        });
+
+        it(`writes groups/tabs/activeTabId to localStorage after a + click`, () => {
+            const { container } = render(
+                <ConsoleManager
+                    types={[dummyType(`term`, `Terminal`)]}
+                    initialTabs={[{ typeId: `term` }]}
+                    persistenceKey={KEY}
+                />
+            );
+            // The seed write happens after the first state change. Open
+            // a second group via the + button so we have something to
+            // round-trip.
+            fireEvent.click(screen.getByRole(`button`, { name: `New Terminal` }));
+            expect(groupCount(container)).toBe(2);
+            const raw = window.localStorage.getItem(STORAGE_KEY);
+            expect(raw, `localStorage entry should exist after a state change`).not.toBeNull();
+            const parsed = JSON.parse(raw!);
+            expect(parsed.groups).toHaveLength(2);
+            expect(Object.keys(parsed.tabs)).toHaveLength(2);
+            expect(parsed.activeTabId).toBeTruthy();
+        });
+
+        it(`rehydrates groups + tabs from localStorage on a fresh mount, ignoring initialTabs`, () => {
+            // Step 1: prime localStorage by running a manager with the
+            // key, then unmounting.
+            const first = render(
+                <ConsoleManager
+                    types={[dummyType(`term`, `Terminal`)]}
+                    initialTabs={[{ typeId: `term` }]}
+                    persistenceKey={KEY}
+                />
+            );
+            fireEvent.click(screen.getByRole(`button`, { name: `New Terminal` }));
+            fireEvent.click(screen.getByRole(`button`, { name: `New Terminal` }));
+            expect(groupCount(first.container)).toBe(3);
+            first.unmount();
+
+            // Step 2: a brand-new mount with a totally different
+            // initialTabs must surface the stored layout, not the seed.
+            const second = render(
+                <ConsoleManager
+                    types={[dummyType(`term`, `Terminal`)]}
+                    initialTabs={[{ typeId: `term` }]}
+                    persistenceKey={KEY}
+                />
+            );
+            expect(groupCount(second.container)).toBe(3);
+            second.unmount();
+        });
+
+        it(`drops persisted tabs whose typeId is no longer registered`, () => {
+            window.localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify({
+                    groups: [
+                        { id: `grp_a`, layout: { kind: `terminal`, tabId: `tab_keep` } },
+                        { id: `grp_b`, layout: { kind: `terminal`, tabId: `tab_drop` } }
+                    ],
+                    activeTabId: `tab_drop`,
+                    tabs: {
+                        tab_keep: { id: `tab_keep`, typeId: `term`, name: `Terminal 1` },
+                        tab_drop: {
+                            id: `tab_drop`,
+                            typeId: `gone-from-registry`,
+                            name: `Gone 1`
+                        }
+                    }
+                })
+            );
+
+            const { container } = render(
+                <ConsoleManager
+                    types={[dummyType(`term`, `Terminal`)]}
+                    initialTabs={[{ typeId: `term` }]}
+                    persistenceKey={KEY}
+                />
+            );
+            // Only the still-known type survives; activeTabId falls back
+            // to a valid tab from the surviving groups.
+            expect(groupCount(container)).toBe(1);
+            const rows = within(tabListOf(container)).getAllByRole(`tab`);
+            expect(rows).toHaveLength(1);
+            expect(rows[0]).toHaveTextContent(`Terminal 1`);
+            expect(rows[0]).toHaveAttribute(`aria-selected`, `true`);
+        });
+
+        it(`falls back to initialTabs when the stored layout becomes empty after validation`, () => {
+            window.localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify({
+                    groups: [
+                        { id: `grp_a`, layout: { kind: `terminal`, tabId: `tab_drop` } }
+                    ],
+                    activeTabId: `tab_drop`,
+                    tabs: {
+                        tab_drop: {
+                            id: `tab_drop`,
+                            typeId: `gone-from-registry`,
+                            name: `Gone 1`
+                        }
+                    }
+                })
+            );
+
+            const { container } = render(
+                <ConsoleManager
+                    types={[dummyType(`term`, `Terminal`)]}
+                    initialTabs={[{ typeId: `term` }]}
+                    persistenceKey={KEY}
+                />
+            );
+            // Hydration produced zero valid groups → fallback to the
+            // seed, which is a single Terminal 1 tab.
+            expect(groupCount(container)).toBe(1);
+            const rows = within(tabListOf(container)).getAllByRole(`tab`);
+            expect(rows).toHaveLength(1);
+            expect(rows[0]).toHaveTextContent(`Terminal 1`);
+        });
+
+        it(`treats malformed JSON as no persisted state and falls back to initialTabs`, () => {
+            window.localStorage.setItem(STORAGE_KEY, `not-json{`);
+            const { container } = render(
+                <ConsoleManager
+                    types={[dummyType(`term`, `Terminal`)]}
+                    initialTabs={[{ typeId: `term` }]}
+                    persistenceKey={KEY}
+                />
+            );
+            expect(groupCount(container)).toBe(1);
+        });
     });
 });
