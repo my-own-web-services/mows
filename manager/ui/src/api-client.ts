@@ -593,7 +593,7 @@ export class HttpClient<SecurityDataType = unknown> {
 
 /**
  * @title manager
- * @version 0.0.1
+ * @version 0.1.0
  * @license
  */
 export class Api<
