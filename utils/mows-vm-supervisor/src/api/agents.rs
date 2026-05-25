@@ -20,6 +20,7 @@ use utoipa_axum::routes;
 use crate::agent_runtime::{self, AgentSpawnSpec};
 use crate::api::types::{ErrorResponse, OperationResult};
 use crate::error::{Result, SupervisorError};
+use crate::events::SupervisorEvent;
 use crate::ssh_keys::vm_key_paths;
 use crate::state::SharedState;
 
@@ -248,20 +249,35 @@ async fn create_agent(
     };
 
     // The runtimes registry needs to know to remove the entry on exit; bind
-    // a closure that drops the registry slot. We capture a clone of the
-    // registry handle (it's an Arc<RwLock<...>> internally).
+    // a closure that drops the registry slot AND broadcasts an
+    // `AgentUpdated` so subscribers refresh once the liveness probe reaps
+    // the tmux session. Capture clones of the registry handle (Arc inside)
+    // and the event bus so the hook is fully owned.
     let registry = state.agent_runtimes.clone();
+    let events = state.events.clone();
     let id_for_hook = id.clone();
     let on_exit = move |_code: i32| {
         let registry = registry.clone();
+        let events = events.clone();
         let id = id_for_hook.clone();
         Box::pin(async move {
             registry.remove(&id).await;
+            events.emit(SupervisorEvent::AgentUpdated { id });
         }) as futures_util::future::BoxFuture<'static, ()>
     };
 
     let handle = agent_runtime::spawn(spec, state.db.clone(), on_exit).await?;
     state.agent_runtimes.insert(id.clone(), handle).await;
+
+    // Two events fire after spawn: the row exists (AgentCreated) and the
+    // runtime promotes status from `starting` → `running` inside
+    // `agent_runtime::spawn`. The first signals "list shape changed"; the
+    // second matches what the runtime did to the row.
+    state.events.emit(SupervisorEvent::AgentCreated {
+        id: id.clone(),
+        vm_id: vm_id.clone(),
+    });
+    state.events.emit(SupervisorEvent::AgentUpdated { id: id.clone() });
 
     Ok(Json(AgentSummary {
         id,
@@ -307,6 +323,7 @@ async fn stop_agent(
     if let Some(handle) = state.agent_runtimes.remove(&id).await {
         agent_runtime::stop_handle(&handle).await;
     }
+    state.events.emit(SupervisorEvent::AgentUpdated { id: id.clone() });
     Ok(Json(OperationResult::status(id, "stopped")))
 }
 
@@ -337,6 +354,7 @@ async fn update_agent(
     if query_result.rows_affected() == 0 {
         return Err(SupervisorError::NotFound(format!("agent {id} not found")));
     }
+    state.events.emit(SupervisorEvent::AgentUpdated { id: id.clone() });
     Ok(Json(load_agent(&state, &id).await?))
 }
 
@@ -362,6 +380,7 @@ async fn delete_agent(
     if query_result.rows_affected() == 0 {
         return Err(SupervisorError::NotFound(format!("agent {id} not found")));
     }
+    state.events.emit(SupervisorEvent::AgentDeleted { id: id.clone() });
     Ok(Json(OperationResult::deleted(id)))
 }
 

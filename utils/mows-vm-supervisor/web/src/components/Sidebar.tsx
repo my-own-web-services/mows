@@ -3,8 +3,10 @@
 //   • each section is a SidebarMenuItem wrapping a Collapsible
 //   • trigger is a full-width SidebarMenuButton with icon + label + chevron
 //   • body is a SidebarMenuSub with one SidebarMenuSubButton per item
-// Each section polls its endpoint every 2s. Rows expose `data-actionscope`
-// + `data-action-target-id` so the app-wide GlobalContextMenu can pick up
+// Each section fetches its endpoint once on mount and re-fetches whenever
+// a matching supervisor event arrives over the `/v1/events` websocket —
+// no periodic polling. Rows expose `data-actionscope` +
+// `data-action-target-id` so the app-wide GlobalContextMenu can pick up
 // VM / Agent right-click actions registered in lib/actions.ts.
 
 import PrimaryMenu from "@mows/react-components/components/appShell/primaryMenu/PrimaryMenu";
@@ -31,7 +33,6 @@ import { Link, useMatch, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
     AGENT_ROW_SCOPE,
-    registerRefresh,
     VM_ROW_SCOPE
 } from "../lib/actions";
 import {
@@ -43,13 +44,12 @@ import {
     type CreateVmRequest,
     type VmSummary
 } from "../lib/api";
+import { subscribeEvents, type SupervisorEvent } from "../lib/events";
 import {
     VmDisplayMode,
     VmImage
 } from "../api/generated/api-client";
 import { requestNewVm } from "../lib/modals";
-
-const POLL_MS = 2000;
 
 const statusDot = (status: string): string => {
     if (status === "running") return "bg-emerald-500";
@@ -69,7 +69,18 @@ interface SectionHandle<T> {
     refresh: () => Promise<void>;
 }
 
-const useLivePoll = <T,>(fetcher: () => Promise<T[]>): SectionHandle<T> => {
+/**
+ * Fetch once on mount, then re-fetch every time `eventFilter(event)`
+ * returns true. Replaces the previous 2 s `setInterval` polling loop.
+ *
+ * `fetcher` and `eventFilter` references must be stable across renders
+ * (typically module-scope or `useCallback`-wrapped) — the effect runs
+ * only once.
+ */
+const useLiveData = <T,>(
+    fetcher: () => Promise<T[]>,
+    eventFilter: (event: SupervisorEvent) => boolean
+): SectionHandle<T> => {
     const [state, setState] = useState<SectionState<T>>({
         items: null,
         error: null
@@ -87,22 +98,39 @@ const useLivePoll = <T,>(fetcher: () => Promise<T[]>): SectionHandle<T> => {
 
     useEffect(() => {
         let alive = true;
-        const tick = async () => {
+        const safeRefresh = async () => {
             if (!alive) return;
             await refresh();
         };
-        tick();
-        const handle = window.setInterval(tick, POLL_MS);
+        safeRefresh();
+        const unsubscribe = subscribeEvents((event) => {
+            // `resync` is a synthetic event the WS client fires after each
+            // reconnect — refetch unconditionally so we recover from a
+            // dropped connection.
+            if (event.type === "resync" || eventFilter(event)) {
+                safeRefresh();
+            }
+        });
         return () => {
             alive = false;
-            window.clearInterval(handle);
+            unsubscribe();
         };
-        // The fetcher reference is stable per call site (module-scope function).
+        // fetcher / eventFilter are stable per call site (module scope).
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return { state, refresh };
 };
+
+const isVmEvent = (event: SupervisorEvent): boolean =>
+    event.type === "vm_created" ||
+    event.type === "vm_updated" ||
+    event.type === "vm_deleted";
+
+const isAgentEvent = (event: SupervisorEvent): boolean =>
+    event.type === "agent_created" ||
+    event.type === "agent_updated" ||
+    event.type === "agent_deleted";
 
 interface SectionAction {
     icon: LucideIcon;
@@ -194,21 +222,8 @@ const Sidebar = () => {
     const vmMatch = useMatch("/vms/:id");
     const activeVmId = vmMatch?.params.id;
     const navigate = useNavigate();
-    const vms = useLivePoll<VmSummary>(listVms);
-    const agents = useLivePoll<AgentSummary>(listAgents);
-
-    // After a mutation (via the right-click action menu) we want both lists
-    // to re-fetch immediately rather than wait for the next poll tick.
-    useEffect(
-        () =>
-            registerRefresh(() => {
-                vms.refresh();
-                agents.refresh();
-            }),
-        // refresh functions are stable closures over setState; fine to omit.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        []
-    );
+    const vms = useLiveData<VmSummary>(listVms, isVmEvent);
+    const agents = useLiveData<AgentSummary>(listAgents, isAgentEvent);
 
     return (
         <div className="text-sidebar-foreground flex h-full w-full min-h-0 flex-col">

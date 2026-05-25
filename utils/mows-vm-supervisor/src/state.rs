@@ -5,6 +5,7 @@ use tokio::sync::RwLock;
 
 use crate::agent_runtime::AgentRuntimeRegistry;
 use crate::config::SupervisorConfig;
+use crate::events::EventBus;
 use crate::qemu::{PortAllocator, VmRegistry};
 
 pub struct AppState {
@@ -15,6 +16,9 @@ pub struct AppState {
     /// Tracks live agent SSH/pty processes per agent id.
     pub agent_runtimes: AgentRuntimeRegistry,
     pub port_allocator: PortAllocator,
+    /// In-process state-change broadcast. Mutation sites emit; the
+    /// `/v1/events` websocket forwards to connected UI clients.
+    pub events: EventBus,
 }
 
 impl AppState {
@@ -26,6 +30,7 @@ impl AppState {
             vms: RwLock::new(VmRegistry::default()),
             agent_runtimes: AgentRuntimeRegistry::new(),
             port_allocator,
+            events: EventBus::new(),
         }
     }
 
@@ -45,6 +50,7 @@ impl AppState {
             vms: RwLock::new(VmRegistry::default()),
             agent_runtimes: AgentRuntimeRegistry::new(),
             port_allocator,
+            events: EventBus::new(),
         }
     }
 }

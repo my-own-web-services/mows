@@ -46,21 +46,6 @@ interface ContextTarget {
 
 let contextTarget: ContextTarget | null = null;
 
-// Sidebar registers its refresh callback here so the action handlers can
-// re-poll immediately after a mutation. Multiple listeners would normally
-// stack into a Set, but right now there is exactly one consumer (Sidebar).
-type RefreshFn = () => void;
-const refreshListeners = new Set<RefreshFn>();
-
-export const registerRefresh = (listener: RefreshFn): (() => void) => {
-    refreshListeners.add(listener);
-    return () => refreshListeners.delete(listener);
-};
-
-const fireRefresh = () => {
-    refreshListeners.forEach((listener) => listener());
-};
-
 // Capture-phase `contextmenu` listener that captures the right-clicked
 // element's `data-actionscope` / `data-action-target-id` payload so the
 // action handler can read it without re-traversing the DOM.
@@ -144,7 +129,6 @@ export const buildExtraActions = (): Action[] => [
                     async (target) => {
                         await stopVm(target.id);
                         toast.success(`stopping ${target.name ?? target.id}`);
-                        fireRefresh();
                     },
                     stopIcon,
                     (target) =>
@@ -177,7 +161,6 @@ export const buildExtraActions = (): Action[] => [
                         if (!trimmed || trimmed === target.name) return;
                         await renameVm(target.id, trimmed);
                         toast.success(`renamed to ${trimmed}`);
-                        fireRefresh();
                     },
                     renameIcon
                 )
@@ -203,7 +186,6 @@ export const buildExtraActions = (): Action[] => [
                         if (!ok) return;
                         await deleteVm(target.id);
                         toast.success(`deleted ${target.name ?? target.id}`);
-                        fireRefresh();
                     },
                     deleteIcon
                 )
@@ -222,7 +204,6 @@ export const buildExtraActions = (): Action[] => [
                     async (target) => {
                         await stopAgent(target.id);
                         toast.success(`stopping ${target.name ?? target.id}`);
-                        fireRefresh();
                     },
                     stopIcon,
                     (target) =>
@@ -255,7 +236,6 @@ export const buildExtraActions = (): Action[] => [
                         if (!trimmed || trimmed === target.name) return;
                         await renameAgent(target.id, trimmed);
                         toast.success(`renamed to ${trimmed}`);
-                        fireRefresh();
                     },
                     renameIcon
                 )
@@ -281,7 +261,6 @@ export const buildExtraActions = (): Action[] => [
                         if (!ok) return;
                         await deleteAgent(target.id);
                         toast.success(`deleted ${target.name ?? target.id}`);
-                        fireRefresh();
                     },
                     deleteIcon
                 )

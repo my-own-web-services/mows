@@ -705,3 +705,117 @@ fn create_with_explicit_resources_round_trips() {
     // `display_mode` defaults to "headless" when not specified.
     assert_eq!(row["display_mode"], "headless");
 }
+
+/// `/v1/events` is the push-based replacement for the web UI's 2 s polling
+/// loop. Subscribing first, then provoking VM + agent mutations, must yield
+/// matching JSON events in the order they happened.
+///
+/// The agent half of this test depends on a live VM (REST `POST /agents`
+/// rejects unreachable VMs with 409), so we only assert the VM half here.
+/// The agent path is covered by the full-boot suite (`e2e_full_boot`).
+#[test]
+fn events_websocket_streams_vm_lifecycle() {
+    use futures_util::{SinkExt, StreamExt};
+    use tokio_tungstenite::tungstenite::Message;
+
+    let h = Harness::start(next_port());
+    let ws_url = h
+        .base_url
+        .replacen("http://", "ws://", 1)
+        + &format!("/v1/events?token={HARNESS_API_TOKEN}");
+
+    let events = std::sync::Arc::new(std::sync::Mutex::new(Vec::<serde_json::Value>::new()));
+    let collector = events.clone();
+
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    // Subscribe BEFORE the mutation so we can't race past the create event.
+    let (ready_tx, ready_rx) = std::sync::mpsc::channel::<()>();
+    let ws_handle = runtime.spawn(async move {
+        let (ws, _) = tokio_tungstenite::connect_async(&ws_url)
+            .await
+            .expect("subscribe to /v1/events");
+        let (mut sink, mut stream) = ws.split();
+        ready_tx.send(()).expect("ready");
+        while let Some(msg) = stream.next().await {
+            match msg {
+                Ok(Message::Text(t)) => {
+                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(&t) {
+                        collector.lock().unwrap().push(v);
+                    }
+                }
+                Ok(Message::Close(_)) | Err(_) => break,
+                _ => {}
+            }
+        }
+        let _ = sink.close().await;
+    });
+
+    ready_rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("ws subscribed");
+    // The broadcast channel relies on the subscriber being registered
+    // before `send`. The `connect_async` future completes once the upgrade
+    // is acknowledged, but the server-side `forward` task that owns the
+    // `Receiver` only starts after the upgrade handler returns — give it a
+    // tick before publishing.
+    std::thread::sleep(Duration::from_millis(150));
+
+    let created: serde_json::Value = h
+        .client()
+        .post(h.url("/v1/vms"))
+        .json(&json!({"detach": true}))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let id = created["id"].as_str().unwrap().to_string();
+
+    // Patch the name → VmUpdated. Stop → VmUpdated. Delete → VmDeleted.
+    let _ = h
+        .client()
+        .patch(h.url(&format!("/v1/vms/{id}")))
+        .json(&json!({"name": "renamed"}))
+        .send()
+        .unwrap();
+    let _ = h
+        .client()
+        .post(h.url(&format!("/v1/vms/{id}/stop")))
+        .send()
+        .unwrap();
+    let _ = h
+        .client()
+        .delete(h.url(&format!("/v1/vms/{id}")))
+        .send()
+        .unwrap();
+
+    // Drain — events propagate within one tick of each REST call.
+    std::thread::sleep(Duration::from_millis(400));
+    ws_handle.abort();
+
+    let collected = events.lock().unwrap().clone();
+    let kinds: Vec<&str> = collected
+        .iter()
+        .filter(|v| v["id"] == id)
+        .map(|v| v["type"].as_str().unwrap_or(""))
+        .collect();
+
+    // Must contain, in order: create, (the rename + stop emit VmUpdated),
+    // delete. `vm_updated` may appear 2–4 times because the readiness
+    // probe also fires one when it gives up on the stub qcow2.
+    assert!(
+        kinds.first() == Some(&"vm_created"),
+        "first event for this id should be vm_created; got {kinds:?}"
+    );
+    assert!(
+        kinds.last() == Some(&"vm_deleted"),
+        "last event for this id should be vm_deleted; got {kinds:?}"
+    );
+    assert!(
+        kinds.contains(&"vm_updated"),
+        "expected at least one vm_updated between create/delete; got {kinds:?}"
+    );
+}

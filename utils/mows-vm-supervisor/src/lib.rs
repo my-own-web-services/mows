@@ -8,6 +8,7 @@ pub mod api;
 pub mod config;
 pub mod db;
 pub mod error;
+pub mod events;
 pub mod kinds;
 pub mod qemu;
 pub mod ssh_keys;

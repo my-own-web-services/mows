@@ -54,6 +54,7 @@ use crate::state::SharedState;
 mod agents;
 mod auth;
 mod auth_middleware;
+mod events;
 mod health;
 pub(crate) mod types;
 mod users;
@@ -184,6 +185,7 @@ fn http_router(state: SharedState) -> Router {
     let protected = auth_required_rest
         .merge(vms::ws_router())
         .merge(agents::ws_router())
+        .merge(events::ws_router())
         .route_layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth_middleware::require_auth,
@@ -251,7 +253,13 @@ pub async fn serve(state: SharedState) -> Result<()> {
     let unix_path = state.config.unix_socket.clone();
     let http_listen = state.config.http_listen;
 
-    if state.config.api_token.is_none() {
+    if state.config.auth_disabled {
+        tracing::warn!(
+            "MOWS_VM_SUPERVISOR_AUTH_DISABLE=1 — TCP listener accepts every \
+             request as admin. Intended for local-dev use only; never set \
+             this in production."
+        );
+    } else if state.config.api_token.is_none() {
         tracing::warn!(
             "MOWS_VM_SUPERVISOR_API_TOKEN is not set; the loopback HTTP listener \
              will only accept tokens issued by /v1/auth/login. Bootstrap the \

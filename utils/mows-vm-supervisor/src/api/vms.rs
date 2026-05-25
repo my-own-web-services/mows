@@ -20,6 +20,7 @@ use utoipa_axum::routes;
 use crate::api::types::{ErrorResponse, OperationResult};
 use crate::api::validation::validate_resource_name;
 use crate::error::{Result, SupervisorError};
+use crate::events::SupervisorEvent;
 use crate::qemu::{
     console_socket_for, display_socket_for, locate_image, prepare_vm_dir, spawn_qemu,
     validate_workspace_path, vm_dir_for, DisplayMode as QemuDisplayMode, QemuInvocation,
@@ -393,6 +394,11 @@ async fn create_vm(
             .await?;
     }
 
+    // Fire the create event AFTER the row is inserted but BEFORE we await
+    // anything else, so subscribers learn about the new VM as early as
+    // possible (subsequent status flips ride on `VmUpdated`).
+    state.events.emit(SupervisorEvent::VmCreated { id: id.clone() });
+
     // Background readiness probe: flips status to `running` once sshd
     // answers with a banner on the forwarded host port.
     let probe_state = state.clone();
@@ -405,6 +411,9 @@ async fn create_vm(
                     .execute(&probe_state.db)
                     .await;
                 tracing::info!(vm_id = %probe_id, port = ssh_port, "vm reachable");
+                probe_state
+                    .events
+                    .emit(SupervisorEvent::VmUpdated { id: probe_id.clone() });
             }
             Err(e) => {
                 tracing::warn!(vm_id = %probe_id, error = %e, "readiness probe failed");
@@ -415,6 +424,9 @@ async fn create_vm(
                 .bind(&probe_id)
                 .execute(&probe_state.db)
                 .await;
+                probe_state
+                    .events
+                    .emit(SupervisorEvent::VmUpdated { id: probe_id.clone() });
             }
         }
     });
@@ -525,6 +537,15 @@ async fn stop_vm(
     }
     // Reap any agents this VM hosted — their pty processes are dead the
     // moment sshd dies, but we want the database to reflect that promptly.
+    // Capture the affected agent ids first so we can emit one
+    // `AgentUpdated` per row (subscribers may track agents individually).
+    let reaped_agent_ids: Vec<String> = sqlx::query_scalar(
+        "SELECT id FROM agents WHERE vm_id = ?1 AND status != 'stopped'",
+    )
+    .bind(&id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
     let _ = sqlx::query(
         "UPDATE agents SET status = 'stopped', exited_at = ?1 \
          WHERE vm_id = ?2 AND status != 'stopped'",
@@ -544,6 +565,10 @@ async fn stop_vm(
             .filter_map(|p| p.and_then(|v| u16::try_from(v).ok()))
             .collect();
         state.port_allocator.release(to_release);
+    }
+    state.events.emit(SupervisorEvent::VmUpdated { id: id.clone() });
+    for agent_id in reaped_agent_ids {
+        state.events.emit(SupervisorEvent::AgentUpdated { id: agent_id });
     }
     Ok(Json(OperationResult::status(id, "stopped")))
 }
@@ -575,6 +600,7 @@ async fn update_vm(
     if query_result.rows_affected() == 0 {
         return Err(SupervisorError::NotFound(format!("vm {id} not found")));
     }
+    state.events.emit(SupervisorEvent::VmUpdated { id: id.clone() });
     Ok(Json(load_vm(&state, &id).await?))
 }
 
@@ -609,6 +635,14 @@ async fn delete_vm(
     }
     // Mark any agents this VM hosted as stopped (the rows survive for audit;
     // the agent_runtimes registry is dropped along with the agent's pty).
+    // Capture ids first so we can emit one event per agent.
+    let reaped_agent_ids: Vec<String> = sqlx::query_scalar(
+        "SELECT id FROM agents WHERE vm_id = ?1 AND status != 'stopped'",
+    )
+    .bind(&id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
     let exited_at = Utc::now().to_rfc3339();
     let _ = sqlx::query(
         "UPDATE agents SET status = 'stopped', exited_at = ?1 \
@@ -651,6 +685,10 @@ async fn delete_vm(
             .filter_map(|p| p.and_then(|v| u16::try_from(v).ok()))
             .collect();
         state.port_allocator.release(to_release);
+    }
+    state.events.emit(SupervisorEvent::VmDeleted { id: id.clone() });
+    for agent_id in reaped_agent_ids {
+        state.events.emit(SupervisorEvent::AgentUpdated { id: agent_id });
     }
     Ok(Json(OperationResult::deleted(id)))
 }
@@ -788,6 +826,36 @@ async fn get_vm_ssh_io(
         state.config.guest_ssh_user, state.config.external_host
     );
     let state_dir = state.config.state_dir.clone();
+    let command_kind = match query.command.as_deref() {
+        None | Some("") | Some("shell") => SshCommandKind::Shell,
+        Some("claude") => SshCommandKind::Claude,
+        Some(other) => {
+            return Err(SupervisorError::BadRequest(format!(
+                "unknown ssh-io command kind `{other}` (supported: shell, claude)"
+            )));
+        }
+    };
+    // Optional client-supplied session id. When present we back the
+    // remote process with a tmux session of the same name so a page
+    // reload reattaches to the running shell/claude rather than
+    // starting a fresh one. Restricted to `[A-Za-z0-9_-]{1,64}` so a
+    // malicious client can't smuggle shell metacharacters into the
+    // wrapper script.
+    let session_id = match query.session_id.as_deref() {
+        None | Some("") => None,
+        Some(raw) => {
+            if raw.len() > 64
+                || !raw
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+            {
+                return Err(SupervisorError::BadRequest(format!(
+                    "invalid sessionId — must match [A-Za-z0-9_-]{{1,64}}"
+                )));
+            }
+            Some(raw.to_owned())
+        }
+    };
     Ok(ws
         .max_message_size(WS_MAX_PAYLOAD_BYTES)
         .max_frame_size(WS_MAX_PAYLOAD_BYTES)
@@ -802,6 +870,8 @@ async fn get_vm_ssh_io(
                     ssh_target,
                     cols: query.cols,
                     rows: query.rows,
+                    command_kind,
+                    session_id,
                 },
             )
             .await
@@ -815,6 +885,25 @@ async fn get_vm_ssh_io(
 struct VmSshIoQuery {
     cols: Option<u16>,
     rows: Option<u16>,
+    /// Which remote command to exec inside the guest. Defaults to `shell`
+    /// (interactive login shell). `claude` stages the host's `~/.claude`
+    /// credentials from the read-only `/creds` mount into a writable
+    /// per-VM copy and execs `claude --dangerously-skip-permissions`,
+    /// matching what the agent kind does when spawned via `/v1/agents`.
+    command: Option<String>,
+    /// Stable per-tab session id. When present the supervisor wraps
+    /// the remote process in a tmux session named `mows-<sessionId>`;
+    /// the same id on a future connection reattaches to the live
+    /// session instead of spawning a new one. Matches the
+    /// `ConsoleManager` tabId persisted in localStorage by the web UI.
+    #[serde(rename = "sessionId")]
+    session_id: Option<String>,
+}
+
+#[derive(Clone, Copy)]
+enum SshCommandKind {
+    Shell,
+    Claude,
 }
 
 struct VmSshSpec {
@@ -825,6 +914,8 @@ struct VmSshSpec {
     ssh_target: String,
     cols: Option<u16>,
     rows: Option<u16>,
+    command_kind: SshCommandKind,
+    session_id: Option<String>,
 }
 
 async fn proxy_vm_ssh(ws: WebSocket, spec: VmSshSpec) -> std::io::Result<()> {
@@ -856,6 +947,54 @@ async fn proxy_vm_ssh(ws: WebSocket, spec: VmSshSpec) -> std::io::Result<()> {
     let cols = spec.cols.unwrap_or(80);
     let rows = spec.rows.unwrap_or(24);
 
+    // Per `command` query param: either an interactive login shell or the
+    // claude bootstrap that stages `/creds` into `/home/agent/.claude` and
+    // execs `claude --dangerously-skip-permissions`. The bootstrap source
+    // of truth is `kinds::builtin_claude()` (third element of `argv`) so
+    // both `/v1/agents` and the click-to-launch ssh-io tab stay aligned.
+    let inner_command = match spec.command_kind {
+        SshCommandKind::Shell => "exec $SHELL -l".to_string(),
+        SshCommandKind::Claude => match crate::kinds::builtin_claude().argv.get(2) {
+            Some(s) => s.clone(),
+            None => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "builtin_claude argv missing bootstrap payload (index 2)",
+                ));
+            }
+        },
+    };
+
+    // When the client passes a sessionId, wrap the inner command in a
+    // tmux session named `mows-<sessionId>`. The first connection
+    // creates the session; later connections (after a page reload)
+    // attach to the same long-running process. The supervisor doesn't
+    // allocate a host-side PTY around ssh, so SIGWINCH never reaches
+    // the remote tmux client — we send the initial geometry via an
+    // explicit `stty` before exec'ing tmux, which tmux then uses as
+    // the client size. Without sessionId the inner command runs
+    // directly (legacy path, no reattach).
+    let remote_command = if let Some(sid) = spec.session_id.as_deref() {
+        let session_name = format!("mows-{sid}");
+        // Base64-encode the inner command so we don't have to wrestle
+        // with nested quoting through ssh -> tmux -> sh -c. Alpine
+        // ships busybox `base64`. We round-trip via a sh -c that does
+        // `echo <base64> | base64 -d | sh`.
+        use base64::engine::general_purpose::STANDARD;
+        use base64::Engine as _;
+        let inner_b64 = STANDARD.encode(inner_command.as_bytes());
+        format!(
+            "stty cols {cols} rows {rows} 2>/dev/null; \
+             if tmux has-session -t {session_name} 2>/dev/null; then \
+                 exec tmux attach-session -t {session_name}; \
+             fi; \
+             exec tmux new-session -s {session_name} \
+                 sh -c \"echo {inner_b64} | base64 -d | sh\""
+        )
+    } else {
+        format!("stty cols {cols} rows {rows} 2>/dev/null; {inner_command}")
+    };
+
     let mut ssh = Command::new("ssh")
         .arg("-tt")
         .arg("-i")
@@ -873,18 +1012,21 @@ async fn proxy_vm_ssh(ws: WebSocket, spec: VmSshSpec) -> std::io::Result<()> {
         .arg("-o")
         .arg("ConnectTimeout=10")
         .arg("-o")
-        .arg(format!("SendEnv=COLUMNS LINES TERM"))
+        .arg(format!("SendEnv=COLUMNS LINES TERM COLORTERM"))
         .arg(&spec.ssh_target)
         // Force the remote shell to honour the size we passed in via env.
-        // SendEnv requires server-side AcceptEnv; the explicit `stty` in
-        // the login command guarantees the right size even when the
-        // server's sshd_config doesn't forward the vars.
-        .arg(format!(
-            "stty cols {cols} rows {rows} 2>/dev/null; exec $SHELL -l"
-        ))
+        // SendEnv requires server-side AcceptEnv; the explicit `stty` and
+        // `export` in the login command guarantee the right size + 24-bit
+        // colour even when the server's sshd_config doesn't forward the
+        // vars. claude-code reads `COLORTERM=truecolor` to switch its
+        // brand orange (#d97757) from a quantised 256-colour fallback
+        // (which looks salmon/pink in xterm.js) to the real 24-bit
+        // ANSI escape that xterm renders untouched.
+        .arg(format!("export COLORTERM=truecolor; {}", remote_command))
         .env("COLUMNS", cols.to_string())
         .env("LINES", rows.to_string())
         .env("TERM", "xterm-256color")
+        .env("COLORTERM", "truecolor")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
