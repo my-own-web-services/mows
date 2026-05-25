@@ -98,6 +98,10 @@ const translation: Translation = {
                     title: `Horizontal stepper`,
                     description: `Default horizontal layout. Status is derived from the controlled "current" index.`
                 },
+                endAlignment: {
+                    title: `End alignment`,
+                    description: `endAlignment toggles how the first and last steps anchor along the row. "side" (default) pushes them to the row edges with left/right label alignment; "center" centers every label under its indicator. In both modes the indicators stay evenly spaced.`
+                },
                 vertical: {
                     title: `Vertical stepper`,
                     description: `Stack the steps vertically, with the connector running between indicators.`
@@ -113,6 +117,10 @@ const translation: Translation = {
                 selection: {
                     title: `Selection mode`,
                     description: `mode="selection" turns the stepper into a step picker: every circle shows its number, the active step is filled with the primary color, and there is no notion of completion.`
+                },
+                loading: {
+                    title: `Loading`,
+                    description: `Per-step loading state. Pass loading={true} for an indeterminate spinner around the indicator, or loading={n} (0–100) for a determinate progress ring driven by your own state.`
                 },
                 disabled: {
                     title: `Disabled`,
@@ -149,9 +157,17 @@ const translation: Translation = {
                             title: `Line`,
                             description: `The default horizontal layout: a numbered indicator per step, joined by a connector line.`
                         },
+                        endAlignment: {
+                            title: `End alignment`,
+                            description: `Side-by-side comparison of endAlignment="side" (first/last labels at the row edges) and endAlignment="center" (every label centered). Indicators stay evenly spaced in both.`
+                        },
                         vertical: {
                             title: `Vertical`,
                             description: `Stack the steps vertically with the connector running between indicators.`
+                        },
+                        loading: {
+                            title: `Loading`,
+                            description: `Side-by-side comparison of loading={true} (indeterminate spinner) and loading={n} (determinate progress ring driven by component state).`
                         },
                         disabled: {
                             title: `Disabled`,
@@ -174,7 +190,11 @@ const translation: Translation = {
                             statusOverride: `Passing "status" on a <Step> overrides the index-derived status.`,
                             selectionNoCompleted: `In mode="selection", indices before "current" are never marked completed.`,
                             selectionShowsNumbers: `In mode="selection", every indicator shows its step number; no check icons.`,
-                            throwsOutsideSteps: `Rendering <Step> outside a <Steps> throws a descriptive error.`
+                            throwsOutsideSteps: `Rendering <Step> outside a <Steps> throws a descriptive error.`,
+                            endAlignmentSide: `With endAlignment="side" the first step's label is left-aligned and the last step's label is right-aligned, while middle labels stay centered.`,
+                            endAlignmentCenter: `With endAlignment="center" every step's label is centered under its indicator, including the first and last.`,
+                            loadingIndeterminate: `Passing loading on a <Step> wraps the indicator in an indeterminate spinner ring.`,
+                            loadingDeterminate: `Passing loading={n} (0–100, clamped) wraps the indicator in a determinate progress ring exposed as role="progressbar" with aria-valuenow.`
                         }
                     },
                     rtl: {
@@ -3681,6 +3701,7 @@ const translation: Translation = {
                 multipleLayouts: { title: `Multiple layouts`, description: `Same product catalog under both a Column and a Grid row handler. Switch layouts via the icon picker in the header — the list keeps its scroll position.` },
                 selection: { title: `Selection`, description: `Selection state surfaced via the onSelect handler. Click rows, ctrl/cmd-click to toggle, or shift-click for a range; the panel above mirrors the current count and last selected id.` },
                 reorderable: { title: `Reorderable`, description: `Set reorderable on the list to render a drag grip on every row. Dropping a row above or below another fires onReorder(fromIndex, toIndex); the consumer owns the data and applies the move.` },
+                crossListDrag: { title: `Cross-list drag`, description: `Three lists. A ↔ B accept each other's drops via reorderAcceptsFrom; C accepts only its own drags. While a drag is in flight every other list paints an overlay: a primary outline for accepting lists, a dimmed wash + "does not accept drops" badge for rejecting ones.` },
                 contextMenu: { title: `Context menu`, description: `Right-click any row to open an action menu (Open / Duplicate / Delete). The example wires a Radix DropdownMenu to onContextMenu inside the column render so the right-click target is the row itself.` },
                 multipleListsSharedAction: { title: `Shared action across lists`, description: `Two ResourceLists rendered side by side share a single "Delete" action via the global ActionManager. Each row is wrapped in [data-actionscope] + [data-list-id] + [data-item-id]; the one handler reads those attributes off the right-clicked element to dispatch back into the correct list's state.` },
                 horizontalStrip: { title: `Horizontal strip`, description: `Custom RowRendererDirection.Horizontal handler renders a horizontally-scrolling strip of cards. Each card embeds a FileViewer in "embedded" mode so the 60 thumbnails decode lazily as they scroll into view.` },
@@ -3695,6 +3716,7 @@ const translation: Translation = {
                         multipleLayouts: { title: `Multiple layouts`, description: `Same product catalog under both a Column and a Grid row handler. Switch layouts via the icon picker in the header — the list keeps its scroll position.` },
                         selection: { title: `Selection`, description: `Selection state surfaced via the onSelect handler. Click rows, ctrl/cmd-click to toggle, or shift-click for a range; the panel above mirrors the current count and last selected id.` },
                         reorderable: { title: `Reorderable`, description: `Set reorderable on the list to render a drag grip on every row. Dropping a row above or below another fires onReorder(fromIndex, toIndex); the consumer owns the data and applies the move.` },
+                        crossListDrag: { title: `Cross-list drag`, description: `Three lists. A ↔ B accept each other's drops via reorderAcceptsFrom; C accepts only its own drags. While a drag is in flight every other list paints an overlay: a primary outline for accepting lists, a dimmed wash + "does not accept drops" badge for rejecting ones.` },
                         contextMenu: { title: `Context menu`, description: `Right-click any row to open an action menu (Open / Duplicate / Delete). The example wires a Radix DropdownMenu to onContextMenu inside the column render so the right-click target is the row itself.` },
                         multipleListsSharedAction: { title: `Shared action across lists`, description: `Two ResourceLists rendered side by side share a single "Delete" action via the global ActionManager. Each row is wrapped in [data-actionscope] + [data-list-id] + [data-item-id]; the one handler reads those attributes off the right-clicked element to dispatch back into the correct list's state.` },
                         horizontalStrip: { title: `Horizontal strip`, description: `Custom RowRendererDirection.Horizontal handler renders a horizontally-scrolling strip of cards. Each card embeds a FileViewer in "embedded" mode so the 60 thumbnails decode lazily as they scroll into view.` }
@@ -3705,7 +3727,8 @@ const translation: Translation = {
                             callsFetcher: `Calls getResourcesList on mount.`,
                             firstWindow: `First fetch passes fromIndex=0 and a finite positive limit.`,
                             forwardsSort: `Forwards sortBy and sortDirection in the request body.`,
-                            reorderFires: `Fires onReorder with the from / to indices after a drag-and-drop reorder.`
+                            reorderFires: `Fires onReorder with the from / to indices after a drag-and-drop reorder.`,
+                            crossListAccept: `Accepts drops from lists listed in reorderAcceptsFrom and rejects all others.`
                         }
                     },
                     rtl: { title: `RTL`, body: `Header buttons and column order mirror under dir="rtl".` },
@@ -3846,7 +3869,14 @@ const translation: Translation = {
             },
             resourceList: {
                 description: `ResourceList renders large infinite-scrolling lists of any resource type — supply a paginated getResourcesList function and one or more row handlers.`,
-                note: `See the ResourceList component page for runnable Column, Grid, multi-layout, and selection examples.`
+                note: `See the ResourceList component page for runnable Column, Grid, multi-layout, and selection examples.`,
+                crossListDrag: {
+                    intro: `Three lists. {ab} accept each other's drops; {c} rejects everything. Start a drag in any list — the others light up to show whether they'll accept it (primary outline = accept, dimmed overlay = reject). All three still allow internal reordering.`,
+                    introBold: `A ↔ B`,
+                    listLabel: `List`,
+                    acceptsPrefix: `accepts`,
+                    acceptsSelfOnly: `self only`
+                }
             },
             consoleManager: {
                 description: `VSCode-style console host. Open new tabs with +, double-click a tab to rename, hover to close (×), and use the split buttons on the right to split the pane horizontally or vertically.`,

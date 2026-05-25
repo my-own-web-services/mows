@@ -5,11 +5,13 @@ import { cn } from "@/lib/utils";
 type StepsOrientation = `horizontal` | `vertical`;
 type StepStatus = `completed` | `current` | `upcoming`;
 type StepsMode = `progress` | `selection`;
+type StepsEndAlignment = `side` | `center`;
 
 interface StepsContextValue {
     orientation: StepsOrientation;
     current: number;
     mode: StepsMode;
+    endAlignment: StepsEndAlignment;
 }
 
 const StepsContext = React.createContext<StepsContextValue | null>(null);
@@ -36,6 +38,22 @@ interface StepsProps extends React.HTMLAttributes<HTMLOListElement> {
      * stepper is just a step picker.
      */
     mode?: StepsMode;
+    /**
+     * Horizontal-only. Controls how the first and last steps anchor along
+     * the row.
+     *
+     * `"side"` (default) — first step's indicator and label hug the left
+     * edge of the row, last step's hug the right edge, middle steps stay
+     * centered. The first / last `<li>` get half the flex weight of the
+     * middle items so all indicators remain evenly spaced along the row.
+     *
+     * `"center"` — every step (including first and last) is centered
+     * within its equal-width column, so labels never overhang the row
+     * edges. Indicators are also evenly spaced.
+     *
+     * Ignored when `orientation="vertical"`.
+     */
+    endAlignment?: StepsEndAlignment;
 }
 
 /**
@@ -93,6 +111,7 @@ const Steps = React.forwardRef<HTMLOListElement, StepsProps>(
             orientation = `horizontal`,
             current,
             mode = `progress`,
+            endAlignment = `side`,
             className,
             children,
             ...props
@@ -101,7 +120,7 @@ const Steps = React.forwardRef<HTMLOListElement, StepsProps>(
     ) => {
         const childArray = React.Children.toArray(children);
         return (
-            <StepsContext.Provider value={{ orientation, current, mode }}>
+            <StepsContext.Provider value={{ orientation, current, mode, endAlignment }}>
                 <ol
                     ref={ref}
                     aria-orientation={orientation}
@@ -132,6 +151,19 @@ interface StepProps extends Omit<React.HTMLAttributes<HTMLLIElement>, `title`> {
     title: React.ReactNode;
     description?: React.ReactNode;
     status?: StepStatus;
+    /**
+     * Renders a loading ring around the step's indicator circle.
+     *
+     * - `true` → indeterminate spinner (continuous rotation).
+     * - `number` → determinate progress ring filled to that percentage
+     *   (clamped to `[0, 100]`).
+     * - `false` / omitted → no loading affordance.
+     *
+     * The ring sits *outside* the indicator so the number / check icon
+     * stays readable. Apply this on the step that's actively in flight
+     * (typically the one matching `current`).
+     */
+    loading?: boolean | number;
     /** Injected by <Steps>; do not set manually. */
     index?: number;
     /** Injected by <Steps>; do not set manually. */
@@ -139,6 +171,65 @@ interface StepProps extends Omit<React.HTMLAttributes<HTMLLIElement>, `title`> {
     /** Injected by <Steps>; do not set manually. */
     isLast?: boolean;
 }
+
+const RING_RADIUS = 16;
+const RING_VIEWBOX = 36;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+const clampProgress = (value: number): number =>
+    Math.max(0, Math.min(100, value));
+
+interface LoadingRingProps {
+    progress: number | null;
+}
+
+const LoadingRing: React.FC<LoadingRingProps> = ({ progress }) => {
+    const isDeterminate = progress !== null;
+    const value = isDeterminate ? clampProgress(progress) : 0;
+    const dashOffset = isDeterminate
+        ? RING_CIRCUMFERENCE * (1 - value / 100)
+        : RING_CIRCUMFERENCE * 0.7;
+    return (
+        <svg
+            aria-hidden
+            data-loading={isDeterminate ? `determinate` : `indeterminate`}
+            role={isDeterminate ? `progressbar` : undefined}
+            aria-valuenow={isDeterminate ? Math.round(value) : undefined}
+            aria-valuemin={isDeterminate ? 0 : undefined}
+            aria-valuemax={isDeterminate ? 100 : undefined}
+            viewBox={`0 0 ${RING_VIEWBOX} ${RING_VIEWBOX}`}
+            className={cn(
+                `pointer-events-none absolute -inset-1 h-9 w-9 text-primary`,
+                isDeterminate ? `-rotate-90` : `animate-spin`
+            )}
+            fill={`none`}
+        >
+            <circle
+                cx={RING_VIEWBOX / 2}
+                cy={RING_VIEWBOX / 2}
+                r={RING_RADIUS}
+                stroke={`currentColor`}
+                strokeOpacity={0.2}
+                strokeWidth={2}
+            />
+            <circle
+                cx={RING_VIEWBOX / 2}
+                cy={RING_VIEWBOX / 2}
+                r={RING_RADIUS}
+                stroke={`currentColor`}
+                strokeWidth={2}
+                strokeLinecap={`round`}
+                strokeDasharray={RING_CIRCUMFERENCE}
+                strokeDashoffset={dashOffset}
+                style={
+                    isDeterminate
+                        ? { transition: `stroke-dashoffset 250ms ease-out` }
+                        : undefined
+                }
+            />
+        </svg>
+    );
+};
 
 /**
  * One step in a `<Steps>` indicator. Reads orientation and `current` from
@@ -161,6 +252,7 @@ const Step = React.forwardRef<HTMLLIElement, StepProps>(
             title,
             description,
             status,
+            loading = false,
             index = 0,
             isFirst = false,
             isLast = false,
@@ -169,7 +261,7 @@ const Step = React.forwardRef<HTMLLIElement, StepProps>(
         },
         ref
     ) => {
-        const { orientation, current, mode } = useStepsContext();
+        const { orientation, current, mode, endAlignment } = useStepsContext();
         const resolvedStatus: StepStatus =
             status ??
             (mode === `selection`
@@ -183,8 +275,11 @@ const Step = React.forwardRef<HTMLLIElement, StepProps>(
                     : `upcoming`);
         const isHorizontal = orientation === `horizontal`;
         const isSelection = mode === `selection`;
+        const isLoading = loading !== false;
+        const loadingProgress =
+            typeof loading === `number` ? clampProgress(loading) : null;
 
-        const indicator = (
+        const indicatorCircle = (
             <span
                 aria-hidden
                 data-status={resolvedStatus}
@@ -209,6 +304,20 @@ const Step = React.forwardRef<HTMLLIElement, StepProps>(
             </span>
         );
 
+        const indicator = isLoading ? (
+            <span
+                data-loading={
+                    loadingProgress !== null ? `determinate` : `indeterminate`
+                }
+                className={`relative flex shrink-0 items-center justify-center`}
+            >
+                {indicatorCircle}
+                <LoadingRing progress={loadingProgress} />
+            </span>
+        ) : (
+            indicatorCircle
+        );
+
         const titleNode = (
             <span
                 data-status={resolvedStatus}
@@ -230,34 +339,47 @@ const Step = React.forwardRef<HTMLLIElement, StepProps>(
         if (isHorizontal) {
             const isMiddle = !isFirst && !isLast;
             const isSingle = isFirst && isLast;
+            const isSided = endAlignment === `side` && !isSingle;
             const beforeConnectorPrimary =
                 !isSelection &&
                 (resolvedStatus === `completed` || resolvedStatus === `current`);
             const afterConnectorPrimary =
                 !isSelection && resolvedStatus === `completed`;
+            // In "side" mode, the first and last steps render the indicator
+            // hard against the row edge — so they only occupy half the
+            // horizontal real estate that a middle step does. Splitting the
+            // flex weight (0.5 vs 1) keeps the indicators evenly spaced
+            // across the full row regardless of how many steps there are.
+            const flexWeight = isSingle
+                ? `flex-none`
+                : isSided && (isFirst || isLast)
+                  ? `flex-[0.5]`
+                  : `flex-1`;
+            const indicatorJustify = isSided
+                ? isFirst
+                    ? `justify-start`
+                    : isLast
+                      ? `justify-end`
+                      : `justify-center`
+                : `justify-center`;
+            const labelAlign = isSided
+                ? isFirst
+                    ? `items-start text-left`
+                    : isLast
+                      ? `items-end text-right`
+                      : `items-center text-center`
+                : `items-center text-center`;
             return (
                 <li
                     ref={ref}
                     data-status={resolvedStatus}
+                    data-end-alignment={endAlignment}
                     aria-current={resolvedStatus === `current` ? `step` : undefined}
-                    className={cn(
-                        `flex flex-1 flex-col`,
-                        isSingle && `flex-none`,
-                        className
-                    )}
+                    className={cn(`flex flex-col`, flexWeight, className)}
                     {...props}
                 >
-                    <div
-                        className={cn(
-                            `flex w-full items-center`,
-                            isLast && !isFirst
-                                ? `justify-end`
-                                : isMiddle
-                                  ? `justify-center`
-                                  : `justify-start`
-                        )}
-                    >
-                        {!isFirst && (
+                    <div className={cn(`flex w-full items-center`, indicatorJustify)}>
+                        {!isFirst ? (
                             <span
                                 aria-hidden
                                 data-status={resolvedStatus}
@@ -267,9 +389,13 @@ const Step = React.forwardRef<HTMLLIElement, StepProps>(
                                     beforeConnectorPrimary ? `bg-primary` : `bg-border`
                                 )}
                             />
-                        )}
+                        ) : !isSided && !isSingle ? (
+                            // Invisible spacer in "center" mode keeps the first
+                            // indicator centered within its equal-width column.
+                            <span aria-hidden className={`mr-2 h-px flex-1`} />
+                        ) : null}
                         {indicator}
-                        {!isLast && (
+                        {!isLast ? (
                             <span
                                 aria-hidden
                                 data-status={resolvedStatus}
@@ -279,18 +405,11 @@ const Step = React.forwardRef<HTMLLIElement, StepProps>(
                                     afterConnectorPrimary ? `bg-primary` : `bg-border`
                                 )}
                             />
-                        )}
+                        ) : !isSided && !isSingle ? (
+                            <span aria-hidden className={`ml-2 h-px flex-1`} />
+                        ) : null}
                     </div>
-                    <div
-                        className={cn(
-                            `mt-2 flex flex-col`,
-                            isLast && !isFirst
-                                ? `items-end text-right`
-                                : isMiddle
-                                  ? `items-center text-center`
-                                  : `items-start text-left`
-                        )}
-                    >
+                    <div className={cn(`mt-2 flex flex-col`, labelAlign)}>
                         {titleNode}
                         {descriptionNode}
                     </div>
@@ -335,6 +454,7 @@ export {
     Step,
     Steps,
     type StepProps,
+    type StepsEndAlignment,
     type StepsMode,
     type StepsOrientation,
     type StepsProps,

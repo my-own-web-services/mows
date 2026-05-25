@@ -9,8 +9,13 @@ tokens, `data-status` attribute for state styling).
 ## Composition
 
 ```tsx
-<Steps current={number} orientation="horizontal" | "vertical" mode="progress" | "selection">
-    <Step title description? status? />
+<Steps
+    current={number}
+    orientation="horizontal" | "vertical"
+    mode="progress" | "selection"
+    endAlignment="side" | "center"
+>
+    <Step title description? status? loading? />
     ...
 </Steps>
 ```
@@ -67,11 +72,54 @@ The current step gets `aria-current="step"`; the list gets
 
 ## Orientation
 
-- `horizontal` (default): steps are flex-1 columns; the connector is a
+- `horizontal` (default): steps are flex columns; the connector is a
   horizontal line between adjacent indicators, with label below.
 - `vertical`: steps stack; the connector is a vertical line under each
   indicator, with label to the right. Add `pb-*` per-step via `className` if
   you need more breathing room between labels.
+
+## Loading state (`loading` on `<Step>`)
+
+Each step can render a loading ring around its indicator:
+
+- `loading={true}` — indeterminate spinner (continuous rotation). Use while
+  the step is waiting for an external result with no progress to report.
+- `loading={n}` where `n` is `0..100` — determinate progress ring. The ring
+  is exposed as `role="progressbar"` with `aria-valuenow`. Values are
+  clamped to the valid range.
+- `loading={false}` or omitted — no ring.
+
+```tsx
+// Indeterminate
+<Step title="Saving" loading />
+
+// Determinate, driven by your own state
+<Step title="Upload" description={`${progress}% uploaded`} loading={progress} />
+```
+
+The ring sits outside the 28×28 indicator and uses the primary color, so
+the numeric badge / check icon underneath stays readable.
+
+## End alignment (`endAlignment`)
+
+Horizontal-only. Controls how the first and last steps anchor along the row.
+
+- `side` (default): the first step's indicator and label hug the left edge
+  of the row, the last step's hug the right edge, middle steps stay centered.
+  The first and last `<li>` get half the flex weight of middle steps so
+  indicators remain evenly spaced across the full row.
+- `center`: every step (including first and last) is centered within its
+  equal-width column, so labels never overhang the row edges. Indicators
+  are still evenly spaced.
+
+```tsx
+<Steps current={1} endAlignment="center">
+    <Step title="Account" />
+    <Step title="Profile" />
+    <Step title="Review" />
+    <Step title="Done" />
+</Steps>
+```
 
 ## Examples
 

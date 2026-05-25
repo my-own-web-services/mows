@@ -85,9 +85,11 @@ declare module "../lib/lib/languages" {
                 };
                 steps: {
                     horizontal: { title: string; description: string };
+                    endAlignment: { title: string; description: string };
                     vertical: { title: string; description: string };
                     statusOverride: { title: string; description: string };
                     wizard: { title: string; description: string };
+                    loading: { title: string; description: string };
                     disabled: { title: string; description: string };
                     icons: { title: string; description: string };
                     rtl: { title: string; description: string };
@@ -106,7 +108,9 @@ declare module "../lib/lib/languages" {
                         examples: {
                             title: string;
                             line: { title: string; description: string };
+                            endAlignment: { title: string; description: string };
                             vertical: { title: string; description: string };
+                            loading: { title: string; description: string };
                             disabled: { title: string; description: string };
                             icons: { title: string; description: string };
                         };
@@ -123,6 +127,10 @@ declare module "../lib/lib/languages" {
                                 selectionNoCompleted: string;
                                 selectionShowsNumbers: string;
                                 throwsOutsideSteps: string;
+                                endAlignmentSide: string;
+                                endAlignmentCenter: string;
+                                loadingIndeterminate: string;
+                                loadingDeterminate: string;
                             };
                         };
                         rtl: { title: string; body: string };
@@ -2515,6 +2523,7 @@ declare module "../lib/lib/languages" {
                     multipleLayouts: { title: string; description: string };
                     selection: { title: string; description: string };
                     reorderable: { title: string; description: string };
+                    crossListDrag: { title: string; description: string };
                     contextMenu: { title: string; description: string };
                     multipleListsSharedAction: { title: string; description: string };
                     horizontalStrip: { title: string; description: string };
@@ -2536,6 +2545,7 @@ declare module "../lib/lib/languages" {
                             multipleLayouts: { title: string; description: string };
                             selection: { title: string; description: string };
                             reorderable: { title: string; description: string };
+                            crossListDrag: { title: string; description: string };
                             contextMenu: { title: string; description: string };
                             multipleListsSharedAction: { title: string; description: string };
                             horizontalStrip: { title: string; description: string };
@@ -2549,6 +2559,7 @@ declare module "../lib/lib/languages" {
                                 firstWindow: string;
                                 forwardsSort: string;
                                 reorderFires: string;
+                                crossListAccept: string;
                             };
                         };
                         rtl: { title: string; body: string };
@@ -2770,6 +2781,13 @@ declare module "../lib/lib/languages" {
                 resourceList: {
                     description: string;
                     note: string;
+                    crossListDrag: {
+                        intro: string;
+                        introBold: string;
+                        listLabel: string;
+                        acceptsPrefix: string;
+                        acceptsSelfOnly: string;
+                    };
                 };
                 consoleManager: {
                     description: string;

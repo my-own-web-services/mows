@@ -28,7 +28,9 @@ const ANCHOR = {
     composition: `composition`,
     examples: `examples`,
     line: `examples-line`,
+    endAlignment: `examples-end-alignment`,
     vertical: `examples-vertical`,
+    loading: `examples-loading`,
     disabled: `examples-disabled`,
     icons: `examples-icons`,
     definedBehaviour: `defined-behaviour`,
@@ -77,6 +79,12 @@ const STEPS_PROPS: PropRow[] = [
         description: `Whether earlier indices render as completed (progress) or only the active index is highlighted (selection).`
     },
     {
+        name: `endAlignment`,
+        type: `"side" | "center"`,
+        default: `"side"`,
+        description: `Horizontal-only. "side" anchors the first label to the left edge and the last label to the right edge (with half-flex columns so indicators stay evenly spaced). "center" centers every label, including first and last, under its indicator.`
+    },
+    {
         name: `className`,
         type: `string`,
         default: `—`,
@@ -102,6 +110,12 @@ const STEP_PROPS: PropRow[] = [
         type: `"completed" | "current" | "upcoming"`,
         default: `(derived from index)`,
         description: `Override the index-derived status for this step.`
+    },
+    {
+        name: `loading`,
+        type: `boolean | number`,
+        default: `false`,
+        description: `Draws a loading ring around the indicator. true = indeterminate spinner; a number (0–100, clamped) = determinate progress ring filled to that percentage.`
     }
 ];
 
@@ -124,7 +138,12 @@ const buildIndexItems = (t: StepsStrings): PageIndexItem[] => {
             label: doc.examples.title,
             children: [
                 { id: ANCHOR.line, label: doc.examples.line.title },
+                {
+                    id: ANCHOR.endAlignment,
+                    label: doc.examples.endAlignment.title
+                },
                 { id: ANCHOR.vertical, label: doc.examples.vertical.title },
+                { id: ANCHOR.loading, label: doc.examples.loading.title },
                 { id: ANCHOR.disabled, label: doc.examples.disabled.title },
                 { id: ANCHOR.icons, label: doc.examples.icons.title }
             ]
@@ -185,10 +204,34 @@ const buildBehaviourEntries = (
         testLine: 88
     },
     {
+        statement: statements.endAlignmentSide,
+        testFile: TEST_FILE,
+        testName: `endAlignment="side" gives first/last half flex weight to keep indicators evenly spaced`,
+        testLine: 130
+    },
+    {
+        statement: statements.endAlignmentCenter,
+        testFile: TEST_FILE,
+        testName: `endAlignment="center" centers every label and gives every step equal flex weight`,
+        testLine: 152
+    },
+    {
+        statement: statements.loadingIndeterminate,
+        testFile: TEST_FILE,
+        testName: `loading=true renders an indeterminate spinner ring around the indicator`,
+        testLine: 200
+    },
+    {
+        statement: statements.loadingDeterminate,
+        testFile: TEST_FILE,
+        testName: `loading={number} renders a determinate progress ring with aria-valuenow`,
+        testLine: 219
+    },
+    {
         statement: statements.throwsOutsideSteps,
         testFile: TEST_FILE,
         testName: `throws when <Step> is rendered outside <Steps>`,
-        testLine: 140
+        testLine: 273
     }
 ];
 
@@ -242,11 +285,31 @@ export const StepsDocPage = () => {
                         <ExampleCard example={stepsExampleById(`horizontal`)} hideHeader />
                     </DocSubsection>
                     <DocSubsection
+                        id={ANCHOR.endAlignment}
+                        title={doc.examples.endAlignment.title}
+                        description={doc.examples.endAlignment.description}
+                    >
+                        <ExampleCard
+                            example={stepsExampleById(`endAlignment`)}
+                            hideHeader
+                        />
+                    </DocSubsection>
+                    <DocSubsection
                         id={ANCHOR.vertical}
                         title={doc.examples.vertical.title}
                         description={doc.examples.vertical.description}
                     >
                         <ExampleCard example={stepsExampleById(`vertical`)} hideHeader />
+                    </DocSubsection>
+                    <DocSubsection
+                        id={ANCHOR.loading}
+                        title={doc.examples.loading.title}
+                        description={doc.examples.loading.description}
+                    >
+                        <ExampleCard
+                            example={stepsExampleById(`loading`)}
+                            hideHeader
+                        />
                     </DocSubsection>
                     <DocSubsection
                         id={ANCHOR.disabled}

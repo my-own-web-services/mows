@@ -98,6 +98,10 @@ const translation: Translation = {
                     title: `Horizontale Schrittanzeige`,
                     description: `Standardmäßige horizontale Anordnung. Der Status wird aus dem kontrollierten „current“-Index abgeleitet.`
                 },
+                endAlignment: {
+                    title: `End-Ausrichtung`,
+                    description: `endAlignment steuert, wie sich der erste und letzte Schritt entlang der Reihe verankern. „side“ (Standard) drückt sie an die Reihenränder mit links-/rechtsbündigem Label; „center“ zentriert jedes Label unter seinem Indikator. In beiden Modi bleiben die Indikatoren gleichmäßig verteilt.`
+                },
                 vertical: {
                     title: `Vertikale Schrittanzeige`,
                     description: `Schritte vertikal stapeln, mit der Verbindungslinie zwischen den Indikatoren.`
@@ -113,6 +117,10 @@ const translation: Translation = {
                 selection: {
                     title: `Auswahlmodus`,
                     description: `mode="selection" macht aus der Schrittanzeige eine Schrittauswahl: jeder Kreis zeigt seine Nummer, der aktive Schritt ist mit der Primärfarbe gefüllt, und es gibt kein Konzept von „abgeschlossen“.`
+                },
+                loading: {
+                    title: `Ladezustand`,
+                    description: `Ladezustand pro Schritt. loading={true} ergibt einen unbestimmten Spinner um den Indikator; loading={n} (0–100) ergibt einen Fortschrittsring, den du aus eigenem State speist.`
                 },
                 disabled: {
                     title: `Deaktiviert`,
@@ -149,9 +157,17 @@ const translation: Translation = {
                             title: `Linie`,
                             description: `Das voreingestellte horizontale Layout: ein nummerierter Indikator pro Schritt, verbunden durch eine Linie.`
                         },
+                        endAlignment: {
+                            title: `End-Ausrichtung`,
+                            description: `Direkter Vergleich von endAlignment="side" (erstes/letztes Label an den Reihenrändern) und endAlignment="center" (jedes Label zentriert). In beiden bleiben die Indikatoren gleichmäßig verteilt.`
+                        },
                         vertical: {
                             title: `Vertikal`,
                             description: `Schritte vertikal stapeln, mit der Verbindungslinie zwischen den Indikatoren.`
+                        },
+                        loading: {
+                            title: `Ladezustand`,
+                            description: `Direkter Vergleich von loading={true} (unbestimmter Spinner) und loading={n} (bestimmter Fortschrittsring, gespeist aus Komponentenstate).`
                         },
                         disabled: {
                             title: `Deaktiviert`,
@@ -174,7 +190,11 @@ const translation: Translation = {
                             statusOverride: `Ein „status“-Prop auf einem <Step> überschreibt den aus dem Index abgeleiteten Status.`,
                             selectionNoCompleted: `Im mode="selection" werden Indizes vor „current“ niemals als completed markiert.`,
                             selectionShowsNumbers: `Im mode="selection" zeigt jeder Indikator seine Schrittnummer; keine Check-Icons.`,
-                            throwsOutsideSteps: `<Step> außerhalb von <Steps> zu rendern wirft einen aussagekräftigen Fehler.`
+                            throwsOutsideSteps: `<Step> außerhalb von <Steps> zu rendern wirft einen aussagekräftigen Fehler.`,
+                            endAlignmentSide: `Mit endAlignment="side" ist das Label des ersten Schritts linksbündig und das des letzten rechtsbündig; mittlere Labels bleiben zentriert.`,
+                            endAlignmentCenter: `Mit endAlignment="center" ist das Label jedes Schritts unter seinem Indikator zentriert — auch das erste und das letzte.`,
+                            loadingIndeterminate: `loading auf einem <Step> umrahmt den Indikator mit einem unbestimmten Spinner-Ring.`,
+                            loadingDeterminate: `loading={n} (0–100, geklemmt) umrahmt den Indikator mit einem Fortschrittsring, der als role="progressbar" mit aria-valuenow exponiert wird.`
                         }
                     },
                     rtl: {
@@ -3675,6 +3695,7 @@ const translation: Translation = {
                 multipleLayouts: { title: `Mehrere Layouts`, description: `Derselbe Produktkatalog unter einem Spalten- und einem Raster-Row-Handler. Über den Icon-Picker im Header wechselst du das Layout — die Scrollposition bleibt erhalten.` },
                 selection: { title: `Auswahl`, description: `Auswahlzustand über den onSelect-Callback. Klicken, Strg/Cmd-Klick zum Umschalten, Shift-Klick für einen Bereich; das Panel darüber spiegelt Anzahl und zuletzt gewählte ID.` },
                 reorderable: { title: `Sortierbar per Drag & Drop`, description: `Setze reorderable an der Liste, um auf jeder Zeile einen Drag-Griff zu rendern. Wird eine Zeile über oder unter einer anderen abgelegt, feuert onReorder(fromIndex, toIndex); der Konsument hält die Daten und führt die Umordnung aus.` },
+                crossListDrag: { title: `Drag & Drop zwischen Listen`, description: `Drei Listen. A ↔ B akzeptieren über reorderAcceptsFrom gegenseitig Drops; C akzeptiert nur eigene Drags. Während ein Drag läuft, malt jede andere Liste ein Overlay: ein primärfarbener Rahmen für akzeptierende, ein abgedunkelter Schleier mit „nimmt keine Drops an“-Hinweis für ablehnende.` },
                 contextMenu: { title: `Kontextmenü`, description: `Rechtsklick auf eine Zeile öffnet ein Aktionsmenü (Öffnen / Duplizieren / Löschen). Das Beispiel hängt ein Radix-DropdownMenu in onContextMenu innerhalb des Spalten-Render — Ziel des Rechtsklicks ist die Zeile selbst.` },
                 multipleListsSharedAction: { title: `Gemeinsame Aktion über Listen hinweg`, description: `Zwei ResourceLists nebeneinander teilen sich eine einzige „Löschen“-Aktion über den globalen ActionManager. Jede Zeile bekommt [data-actionscope] + [data-list-id] + [data-item-id]; der eine Handler liest diese Attribute am rechtsangeklickten Element ab und dispatcht in den State der jeweils richtigen Liste.` },
                 horizontalStrip: { title: `Horizontaler Streifen`, description: `Ein eigener RowRendererDirection.Horizontal-Handler rendert einen horizontal scrollenden Streifen aus Karten. Jede Karte bettet FileViewer im „embedded“-Modus ein, sodass die 60 Vorschauen erst beim Scrollen geladen werden.` },
@@ -3689,6 +3710,7 @@ const translation: Translation = {
                         multipleLayouts: { title: `Mehrere Layouts`, description: `Derselbe Produktkatalog unter einem Spalten- und einem Raster-Row-Handler. Über den Icon-Picker im Header wechselst du das Layout — die Scrollposition bleibt erhalten.` },
                         selection: { title: `Auswahl`, description: `Auswahlzustand über den onSelect-Callback. Klicken, Strg/Cmd-Klick zum Umschalten, Shift-Klick für einen Bereich; das Panel darüber spiegelt Anzahl und zuletzt gewählte ID.` },
                         reorderable: { title: `Sortierbar per Drag & Drop`, description: `Setze reorderable an der Liste, um auf jeder Zeile einen Drag-Griff zu rendern. Wird eine Zeile über oder unter einer anderen abgelegt, feuert onReorder(fromIndex, toIndex); der Konsument hält die Daten und führt die Umordnung aus.` },
+                        crossListDrag: { title: `Drag & Drop zwischen Listen`, description: `Drei Listen. A ↔ B akzeptieren über reorderAcceptsFrom gegenseitig Drops; C akzeptiert nur eigene Drags. Während ein Drag läuft, malt jede andere Liste ein Overlay: ein primärfarbener Rahmen für akzeptierende, ein abgedunkelter Schleier mit „nimmt keine Drops an“-Hinweis für ablehnende.` },
                         contextMenu: { title: `Kontextmenü`, description: `Rechtsklick auf eine Zeile öffnet ein Aktionsmenü (Öffnen / Duplizieren / Löschen). Das Beispiel hängt ein Radix-DropdownMenu in onContextMenu innerhalb des Spalten-Render — Ziel des Rechtsklicks ist die Zeile selbst.` },
                         multipleListsSharedAction: { title: `Gemeinsame Aktion über Listen hinweg`, description: `Zwei ResourceLists nebeneinander teilen sich eine einzige „Löschen“-Aktion über den globalen ActionManager. Jede Zeile bekommt [data-actionscope] + [data-list-id] + [data-item-id]; der eine Handler liest diese Attribute am rechtsangeklickten Element ab und dispatcht in den State der jeweils richtigen Liste.` },
                         horizontalStrip: { title: `Horizontaler Streifen`, description: `Ein eigener RowRendererDirection.Horizontal-Handler rendert einen horizontal scrollenden Streifen aus Karten. Jede Karte bettet FileViewer im „embedded“-Modus ein, sodass die 60 Vorschauen erst beim Scrollen geladen werden.` }
@@ -3699,7 +3721,8 @@ const translation: Translation = {
                             callsFetcher: `Ruft getResourcesList beim Mounten auf.`,
                             firstWindow: `Erster Fetch übergibt fromIndex=0 und ein endliches, positives limit.`,
                             forwardsSort: `Leitet sortBy und sortDirection im Request-Body weiter.`,
-                            reorderFires: `Feuert onReorder mit den from/to-Indizes nach einer Drag-&-Drop-Umordnung.`
+                            reorderFires: `Feuert onReorder mit den from/to-Indizes nach einer Drag-&-Drop-Umordnung.`,
+                            crossListAccept: `Akzeptiert Drops nur von Listen, die in reorderAcceptsFrom stehen, und lehnt alle anderen ab.`
                         }
                     },
                     rtl: { title: `RTL`, body: `Header-Buttons und Spaltenanordnung werden unter dir="rtl" gespiegelt.` },
@@ -3840,7 +3863,14 @@ const translation: Translation = {
             },
             resourceList: {
                 description: `ResourceList rendert große, unendlich scrollende Listen beliebiger Ressourcen — mit einer paginierten getResourcesList-Funktion und einem oder mehreren Row-Handlern.`,
-                note: `Auf der ResourceList-Komponentenseite findest du lauffähige Spalten-, Raster-, Mehr-Layout- und Auswahl-Beispiele.`
+                note: `Auf der ResourceList-Komponentenseite findest du lauffähige Spalten-, Raster-, Mehr-Layout- und Auswahl-Beispiele.`,
+                crossListDrag: {
+                    intro: `Drei Listen. {ab} akzeptieren gegenseitig Drops; {c} lehnt alles ab. Starte einen Drag in einer beliebigen Liste — die anderen leuchten auf und zeigen, ob sie ihn annehmen (primärfarbener Rahmen = akzeptiert, abgedunkeltes Overlay = abgelehnt). Alle drei erlauben weiterhin internes Umordnen.`,
+                    introBold: `A ↔ B`,
+                    listLabel: `Liste`,
+                    acceptsPrefix: `akzeptiert`,
+                    acceptsSelfOnly: `nur eigene`
+                }
             },
             consoleManager: {
                 description: `VSCode-artiges Konsolen-Host. Mit + neue Tabs öffnen, Doppelklick auf einen Tab zum Umbenennen, beim Hovern zum Schließen (×), und die Split-Buttons rechts teilen das Pane horizontal oder vertikal.`,
