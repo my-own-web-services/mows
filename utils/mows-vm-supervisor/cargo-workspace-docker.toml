@@ -27,11 +27,6 @@ unsafe_code = "forbid"
 edition = "2021"
 version = "0.1.0"
 
-[workspace.dependencies.anyhow]
-default-features = false
-features = ["default"]
-version = "1.0.98"
-
 [workspace.dependencies.axum]
 default-features = false
 features = ["default", "json", "macros", "ws"]
@@ -46,6 +41,11 @@ version = "=0.10.1"
 default-features = false
 features = ["sink", "std"]
 version = "0.3.31"
+
+[workspace.dependencies.petname]
+default-features = false
+features = ["default-rng", "default-words"]
+version = "3.0.0"
 
 [workspace.dependencies.reqwest]
 default-features = false
@@ -95,6 +95,11 @@ version = "0.6.4"
 default-features = false
 features = ["default"]
 version = "0.1.40"
+
+[workspace.dependencies.tracing-subscriber]
+default-features = false
+features = ["env-filter", "fmt", "json"]
+version = "0.3.20"
 
 [workspace.dependencies.url]
 default-features = false

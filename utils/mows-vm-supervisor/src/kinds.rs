@@ -147,11 +147,20 @@ pub fn builtin_claude() -> AgentKind {
     // Everything else is regenerated per-VM. `[ ! -s file ]` covers both
     // "missing" and "zero-byte" states (the latter is what claude leaves
     // behind when it crashes mid-write — that bug is in claude, not us).
+    // After staging credentials, pre-mark `/workspace` (and `/`, which
+    // claude uses when /workspace is unavailable) as trusted in
+    // `.claude.json`. The host's trust list is keyed by the *host's*
+    // workspace path (`/home/<user>/projects/...`), so a copied
+    // `.claude.json` always re-shows the "Is this folder trusted?"
+    // dialog inside the VM. Setting `projects./workspace.hasTrustDialogAccepted`
+    // up front bypasses the prompt; the alpine image ships python3 so
+    // we use it as the JSON editor of choice (no jq dependency).
     let bootstrap = "set -e; \
         id agent >/dev/null 2>&1 || adduser -D -s /bin/sh agent; \
         install -d -o agent -g agent /home/agent/.claude /home/agent/.claude/backups; \
         if [ -d /creds ]; then \
             [ -s /creds/.claude.json ] && cp /creds/.claude.json /home/agent/.claude/.claude.json 2>/dev/null || true; \
+            [ -f /creds/.credentials.json ] && cp /creds/.credentials.json /home/agent/.claude/.credentials.json 2>/dev/null || true; \
             [ -f /creds/settings.json ] && cp /creds/settings.json /home/agent/.claude/ 2>/dev/null || true; \
             [ -f /creds/settings.local.json ] && cp /creds/settings.local.json /home/agent/.claude/ 2>/dev/null || true; \
             if [ -d /creds/backups ]; then \
@@ -164,6 +173,15 @@ pub fn builtin_claude() -> AgentKind {
                     | while read f; do [ -s \"$f\" ] && { echo \"$f\"; break; }; done); \
                 if [ -n \"$latest\" ]; then cp \"$latest\" /home/agent/.claude/.claude.json; fi; \
             fi; \
+            python3 -c \"import json, pathlib; p=pathlib.Path('/home/agent/.claude/.claude.json'); \
+src=p.read_text() if p.exists() else '{}'; \
+d=(lambda v: v if isinstance(v, dict) else {})(json.loads(src)); \
+d.setdefault('hasCompletedOnboarding', True); \
+d.setdefault('bypassPermissionsModeAccepted', True); \
+prj=d.setdefault('projects', {}); \
+[prj.__setitem__(k, dict((prj.get(k) if isinstance(prj.get(k), dict) else {}), hasTrustDialogAccepted=True, hasCompletedProjectOnboarding=True)) for k in ('/workspace', '/home/agent', '/')]; \
+p.parent.mkdir(parents=True, exist_ok=True); \
+p.write_text(json.dumps(d, indent=2))\" 2>/dev/null || true; \
             chown -R agent:agent /home/agent/.claude; \
         fi; \
         if [ -d /workspace ]; then chown agent:agent /workspace 2>/dev/null || true; fi; \

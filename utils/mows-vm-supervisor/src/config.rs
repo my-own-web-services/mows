@@ -11,6 +11,7 @@
 //! | `MOWS_VM_SUPERVISOR_CONFIG`           | `main.rs` (CLI arg fallback)               | Path to the YAML config file.                                           |
 //! | `MOWS_VM_SUPERVISOR_API_TOKEN`        | `SupervisorConfig::load`                   | Static admin bearer token for the TCP listener.                         |
 //! | `MOWS_VM_SUPERVISOR_API_TOKEN_FILE`   | `SupervisorConfig::load`                   | `_FILE` variant — reads the token from disk.                            |
+//! | `MOWS_VM_SUPERVISOR_AUTH_DISABLE`     | `SupervisorConfig::load`                   | When `1`/`true`, the TCP listener accepts every request as admin (local-dev escape hatch). |
 //! | `MOWS_AGENT_HOST_CREDS_PATH`          | `SupervisorConfig::load`                   | Host directory bind-mounted as `/creds` inside every guest (SECURITY-13). |
 //! | `RUST_LOG`                            | `mows_common_rust::observability::init_observability` | Tracing filter — standard tracing-subscriber syntax.                    |
 
@@ -83,6 +84,13 @@ pub struct SupervisorConfig {
     /// else `MOWS_VM_SUPERVISOR_API_TOKEN`. Required for the HTTP listener.
     #[serde(skip)]
     pub api_token: Option<String>,
+
+    /// Local-dev escape hatch: when `true`, `auth_middleware::require_auth`
+    /// short-circuits and injects a synthetic admin `AuthContext` on every
+    /// request. Set via the env var `MOWS_VM_SUPERVISOR_AUTH_DISABLE`
+    /// (`1`/`true` enables). Never set this in production.
+    #[serde(skip)]
+    pub auth_disabled: bool,
 
     /// Host directory bind-mounted read-only into every guest at `/creds`.
     /// Resolved once at startup from `MOWS_AGENT_HOST_CREDS_PATH` (with a
@@ -158,6 +166,7 @@ impl SupervisorConfig {
             "MOWS_VM_SUPERVISOR_API_TOKEN",
             "MOWS_VM_SUPERVISOR_API_TOKEN_FILE",
         )?;
+        config.auth_disabled = read_bool_env("MOWS_VM_SUPERVISOR_AUTH_DISABLE");
         config.agent_host_creds_path = resolve_agent_host_creds_path();
         Ok(config)
     }
@@ -177,6 +186,7 @@ impl SupervisorConfig {
             qemu_binary: default_qemu_binary(),
             port_range: default_port_range(),
             api_token: None,
+            auth_disabled: false,
             agent_host_creds_path: None,
         }
     }
@@ -203,6 +213,7 @@ impl SupervisorConfig {
             qemu_binary: default_qemu_binary(),
             port_range: default_port_range(),
             api_token: None,
+            auth_disabled: false,
             agent_host_creds_path: None,
         }
     }
@@ -230,6 +241,15 @@ fn resolve_agent_host_creds_path() -> Option<PathBuf> {
     }
     let fallback = PathBuf::from("/host-creds");
     fallback.exists().then_some(fallback)
+}
+
+/// Truthy check for a boolean-shaped env var. Accepts `1`/`true`/`yes`/`on`
+/// (case-insensitive). Anything else — including unset — is false.
+fn read_bool_env(env_var: &str) -> bool {
+    matches!(
+        std::env::var(env_var).ok().as_deref().map(|s| s.trim().to_ascii_lowercase()),
+        Some(ref v) if v == "1" || v == "true" || v == "yes" || v == "on"
+    )
 }
 
 /// Read a secret from `env_var` directly, or `env_var_file` (a file path)

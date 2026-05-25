@@ -56,6 +56,15 @@ pub async fn require_auth(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response> {
+    // Local-dev escape hatch: when `MOWS_VM_SUPERVISOR_AUTH_DISABLE=1`
+    // the TCP listener accepts every request as a synthetic admin.
+    // Reserved for loopback dev where the user has chosen to skip the
+    // bearer-token handshake; never set this in production.
+    if state.config.auth_disabled {
+        req.extensions_mut().insert(AuthContext::admin_static());
+        return Ok(next.run(req).await);
+    }
+
     let token = bearer_token(&req).ok_or(SupervisorError::Unauthorized)?;
 
     let ctx = if let Some(expected) = state.config.api_token.as_deref() {
