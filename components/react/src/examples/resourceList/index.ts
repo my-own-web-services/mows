@@ -1,5 +1,7 @@
 import contextMenuModule from "./ContextMenu";
 import contextMenuSource from "./ContextMenu.tsx?raw";
+import crossListDragModule from "./CrossListDrag";
+import crossListDragSource from "./CrossListDrag.tsx?raw";
 import defaultModule from "./Default";
 import defaultSource from "./Default.tsx?raw";
 import gridModule from "./Grid";
@@ -22,6 +24,7 @@ export const resourceListExamples: ReadonlyArray<RegisteredExample> = [
     { id: `multipleLayouts`, source: multipleLayoutsSource, ...multipleLayoutsModule },
     { id: `selection`, source: selectionSource, ...selectionModule },
     { id: `reorderable`, source: reorderableSource, ...reorderableModule },
+    { id: `crossListDrag`, source: crossListDragSource, ...crossListDragModule },
     { id: `contextMenu`, source: contextMenuSource, ...contextMenuModule },
     {
         id: `multipleListsSharedAction`,

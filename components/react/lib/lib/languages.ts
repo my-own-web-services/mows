@@ -187,6 +187,7 @@ export interface BaseTranslation {
     };
     resourceList: {
         reload: string;
+        crossListDoesNotAcceptDrops: string;
     };
     pageIndex: {
         heading: string;

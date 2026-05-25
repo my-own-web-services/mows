@@ -199,7 +199,8 @@ const translation: BaseTranslation = {
         description: `Entwicklungsaufgaben, API-Tests und Logging-Konfiguration`
     },
     resourceList: {
-        reload: `Neu laden`
+        reload: `Neu laden`,
+        crossListDoesNotAcceptDrops: `nimmt keine Drops an`
     },
     pageIndex: {
         heading: `Auf dieser Seite`,

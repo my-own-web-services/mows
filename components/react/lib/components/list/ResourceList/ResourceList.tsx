@@ -20,6 +20,13 @@ import {
     RowRendererDirection,
     SortDirection
 } from "./ResourceListTypes";
+import {
+    completeDrag,
+    type DragSession,
+    endDrag,
+    getDragSession,
+    subscribeDrag
+} from "./dragBus";
 import { getSelectedCount, getSelectedItems } from "./utils";
 
 interface ResourceListProps<ResourceType> {
@@ -84,6 +91,17 @@ interface ResourceListProps<ResourceType> {
      * re-render the next time it loads its window.
      */
     readonly reorderable?: boolean;
+
+    /**
+     * Other lists (by `listInstanceId`) whose drags this list will
+     * accept as drops. The list always accepts drags from itself; the
+     * IDs here are *additional* sources. While a drag is in flight
+     * each list draws an overlay marking whether it accepts the
+     * current source. Items moved across lists fire
+     * `handlers.onItemsAccepted` on the target and
+     * `handlers.onItemsMovedOut` on the source.
+     */
+    readonly reorderAcceptsFrom?: string[];
 }
 
 interface ResourceListState<ResourceType> {
@@ -101,6 +119,7 @@ interface ResourceListState<ResourceType> {
     readonly sortDirection: SortDirection;
     readonly currentRowHandler: ListRowHandler<ResourceType>;
     readonly dropIndicatorBeforeIndex: number | null;
+    readonly dragSession: DragSession | null;
 }
 
 export default class ResourceList<ResourceType extends BaseResource> extends Component<
@@ -115,6 +134,7 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
     moreItemsLoading = false;
     lastStartIndex = 0;
     contextMenuRender: JSX.Element;
+    dragUnsubscribe: (() => void) | null = null;
 
     constructor(props: ResourceListProps<ResourceType>) {
         super(props);
@@ -131,7 +151,8 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
             sortBy: this.props.defaultSortBy ?? `CreatedTime`,
             sortDirection: this.props.defaultSortDirection ?? SortDirection.Descending,
             currentRowHandler: this.getRowHandlerById(this.props.initialRowHandler)!,
-            dropIndicatorBeforeIndex: null
+            dropIndicatorBeforeIndex: null,
+            dragSession: null
         };
 
         log.debug(`ResourceList initial state:`, this.state);
@@ -139,7 +160,23 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
 
     componentDidMount = async () => {
         log.debug(`ResourceList componentDidMount called`);
+        this.dragUnsubscribe = subscribeDrag((session) => {
+            if (session === null) {
+                // Drag ended (dropped, aborted, escaped) — clear any
+                // insertion line still drawn on this list. Without
+                // this a release outside a row drop handler leaves a
+                // stale indicator visible.
+                this.setState({ dragSession: null, dropIndicatorBeforeIndex: null });
+            } else {
+                this.setState({ dragSession: session });
+            }
+        });
         await this.loadItems();
+    };
+
+    componentWillUnmount = () => {
+        this.dragUnsubscribe?.();
+        this.dragUnsubscribe = null;
     };
 
     componentDidUpdate = async (
@@ -438,41 +475,244 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         this.setState({ dropIndicatorBeforeIndex: insertBeforeIndex });
     };
 
-    reorderItems = (fromIndex: number, toIndex: number) => {
-        if (fromIndex === toIndex) return;
+    acceptsDragFrom = (sourceListInstanceId: string): boolean => {
+        if (sourceListInstanceId === this.props.listInstanceId) return true;
+        return this.props.reorderAcceptsFrom?.includes(sourceListInstanceId) ?? false;
+    };
+
+    handleDrop = (insertBeforeIndex: number) => {
+        const session = getDragSession();
+        if (!session) return;
+        if (session.sourceListInstanceId === this.props.listInstanceId) {
+            // Within-list drop — dragend has nothing to do, so we can
+            // close the session immediately instead of waiting for it.
+            endDrag();
+            this.reorderItems([...session.fromIndices], insertBeforeIndex);
+            return;
+        }
+        if (!this.acceptsDragFrom(session.sourceListInstanceId)) return;
+        completeDrag(this.props.listInstanceId);
+        this.acceptDroppedItems(
+            [...session.items] as ResourceType[],
+            insertBeforeIndex,
+            session.sourceListInstanceId
+        );
+    };
+
+    handleDragEnd = () => {
+        const completed = endDrag();
+        if (!completed) return;
+        if (!completed.consumedBy) return;
+        if (completed.consumedBy === this.props.listInstanceId) return;
+        this.removeMovedItems([...completed.fromIndices], completed.consumedBy);
+    };
+
+    private isPointerInRow = (e: React.DragEvent<HTMLDivElement>): boolean => {
+        const target = e.target as HTMLElement | null;
+        return !!target?.closest(`.ColumnListRowRenderer`);
+    };
+
+    // Wrapper-level dragover. The row handler computes a precise
+    // insertion boundary from the pointer's Y within the row, so when
+    // the pointer is over a row we defer to it entirely — otherwise
+    // bubbling would race the row and overwrite its boundary with
+    // "append at end" on every tick.
+    onListDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        if (this.props.reorderable !== true) return;
+        if (this.isPointerInRow(e)) return;
+        const session = getDragSession();
+        if (!session) return;
+        if (!this.acceptsDragFrom(session.sourceListInstanceId)) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = `move`;
+        this.setDropIndicator(this.state.totalItemCount);
+    };
+
+    // Wrapper-level drop catches releases in the empty tail area below
+    // the last row. Without this, a release outside row bounds gets
+    // swallowed by the browser even though we just painted an insertion
+    // line at the end of the list.
+    onListDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        if (this.props.reorderable !== true) return;
+        if (this.isPointerInRow(e)) return;
+        const session = getDragSession();
+        if (!session) return;
+        if (!this.acceptsDragFrom(session.sourceListInstanceId)) return;
+        e.preventDefault();
+        this.setDropIndicator(null);
+        this.handleDrop(this.state.totalItemCount);
+    };
+
+    // Dragging from list A into list B never fires a dragleave on B
+    // (the pointer never entered B before), so this handler on A is
+    // where A's stale insertion line gets cleared. dragleave bubbles
+    // from inner elements, so we check that the pointer actually exited
+    // the wrapper instead of just hopping to a child.
+    onListDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+        if (this.props.reorderable !== true) return;
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        if (this.state.dropIndicatorBeforeIndex !== null) {
+            this.setState({ dropIndicatorBeforeIndex: null });
+        }
+    };
+
+    acceptDroppedItems = (
+        items: ResourceType[],
+        insertBeforeIndex: number,
+        sourceListInstanceId: string
+    ) => {
+        if (items.length === 0) return;
         this.setState(
             (state) => {
                 const resources = state.resources.slice();
-                if (fromIndex < 0 || fromIndex >= resources.length) return null;
-                if (toIndex < 0 || toIndex >= resources.length) return null;
-                const [moved] = resources.splice(fromIndex, 1);
-                if (moved === undefined) return null;
-                resources.splice(toIndex, 0, moved);
-
-                const remap = (i: number) => {
-                    if (i === fromIndex) return toIndex;
-                    if (fromIndex < toIndex) {
-                        if (i > fromIndex && i <= toIndex) return i - 1;
-                    } else {
-                        if (i >= toIndex && i < fromIndex) return i + 1;
-                    }
-                    return i;
-                };
+                const clamped = Math.max(0, Math.min(insertBeforeIndex, resources.length));
+                resources.splice(clamped, 0, ...items);
 
                 const selectedItems: (true | undefined)[] = [];
-                state.selectedItems.forEach((selected, oldIndex) => {
-                    if (selected === true) selectedItems[remap(oldIndex)] = true;
+                state.selectedItems.forEach((sel, oldIdx) => {
+                    if (sel !== true) return;
+                    const newIdx = oldIdx >= clamped ? oldIdx + items.length : oldIdx;
+                    selectedItems[newIdx] = true;
                 });
 
-                const lastSelectedItemIndex =
-                    state.lastSelectedItemIndex === undefined
-                        ? undefined
-                        : remap(state.lastSelectedItemIndex);
+                let lastSelectedItemIndex = state.lastSelectedItemIndex;
+                if (
+                    lastSelectedItemIndex !== undefined &&
+                    lastSelectedItemIndex >= clamped
+                ) {
+                    lastSelectedItemIndex += items.length;
+                }
+
+                return {
+                    resources,
+                    selectedItems,
+                    lastSelectedItemIndex,
+                    totalItemCount: state.totalItemCount + items.length
+                };
+            },
+            () => {
+                this.props.handlers?.onItemsAccepted?.(
+                    items,
+                    insertBeforeIndex,
+                    sourceListInstanceId
+                );
+            }
+        );
+    };
+
+    removeMovedItems = (fromIndices: number[], targetListInstanceId: string) => {
+        const sorted = Array.from(new Set(fromIndices)).sort((a, b) => a - b);
+        if (sorted.length === 0) return;
+        this.setState(
+            (state) => {
+                const resources = state.resources.slice();
+                // Remove in reverse so earlier splices don't shift later indices.
+                for (let i = sorted.length - 1; i >= 0; i--) {
+                    const idx = sorted[i]!;
+                    if (idx < resources.length) resources.splice(idx, 1);
+                }
+
+                const sortedSet = new Set(sorted);
+                const selectedItems: (true | undefined)[] = [];
+                state.selectedItems.forEach((sel, oldIdx) => {
+                    if (sel !== true) return;
+                    if (sortedSet.has(oldIdx)) return;
+                    const removedBefore = sorted.filter((i) => i < oldIdx).length;
+                    selectedItems[oldIdx - removedBefore] = true;
+                });
+
+                let lastSelectedItemIndex = state.lastSelectedItemIndex;
+                if (lastSelectedItemIndex !== undefined) {
+                    if (sortedSet.has(lastSelectedItemIndex)) {
+                        lastSelectedItemIndex = undefined;
+                    } else {
+                        const removedBefore = sorted.filter((i) => i < lastSelectedItemIndex!).length;
+                        lastSelectedItemIndex -= removedBefore;
+                    }
+                }
+
+                return {
+                    resources,
+                    selectedItems,
+                    lastSelectedItemIndex,
+                    totalItemCount: Math.max(0, state.totalItemCount - sorted.length)
+                };
+            },
+            () => {
+                this.props.handlers?.onItemsMovedOut?.(sorted, targetListInstanceId);
+            }
+        );
+    };
+
+    reorderItems = (fromIndices: number[], insertBeforeIndex: number) => {
+        const sorted = Array.from(new Set(fromIndices)).sort((a, b) => a - b);
+        if (sorted.length === 0) return;
+        if (sorted[0]! < 0 || sorted[sorted.length - 1]! >= this.state.resources.length) {
+            return;
+        }
+        if (insertBeforeIndex < 0 || insertBeforeIndex > this.state.resources.length) {
+            return;
+        }
+        const removedBefore = sorted.filter((i) => i < insertBeforeIndex).length;
+        const adjustedInsertAt = insertBeforeIndex - removedBefore;
+
+        // A contiguous block dropped onto its own start position is a
+        // no-op — early-out so the consumer callback doesn't fire.
+        const isContiguous = sorted.every((v, i) => i === 0 || v === sorted[i - 1]! + 1);
+        if (isContiguous && adjustedInsertAt === sorted[0]) return;
+
+        this.setState(
+            (state) => {
+                const resources = state.resources.slice();
+
+                const movedItems = sorted.map((i) => resources[i]);
+                // Remove in reverse so earlier splices don't shift the
+                // later indices we still need to read from.
+                for (let i = sorted.length - 1; i >= 0; i--) {
+                    resources.splice(sorted[i]!, 1);
+                }
+                resources.splice(adjustedInsertAt, 0, ...movedItems);
+
+                const sortedSet = new Set(sorted);
+                const len = sorted.length;
+                const selectedItems: (true | undefined)[] = [];
+
+                // Moved items occupy [adjustedInsertAt, adjustedInsertAt+len).
+                sorted.forEach((oldIdx, k) => {
+                    if (state.selectedItems[oldIdx] === true) {
+                        selectedItems[adjustedInsertAt + k] = true;
+                    }
+                });
+
+                // Items that stayed put shift left by how many removed
+                // items came before them, then right by `len` if they
+                // end up at or past the insertion point.
+                state.selectedItems.forEach((sel, oldIdx) => {
+                    if (sel !== true) return;
+                    if (sortedSet.has(oldIdx)) return;
+                    const removedBeforeThis = sorted.filter((i) => i < oldIdx).length;
+                    let newIdx = oldIdx - removedBeforeThis;
+                    if (newIdx >= adjustedInsertAt) newIdx += len;
+                    selectedItems[newIdx] = true;
+                });
+
+                let lastSelectedItemIndex: number | undefined = undefined;
+                if (state.lastSelectedItemIndex !== undefined) {
+                    const idx = state.lastSelectedItemIndex;
+                    if (sortedSet.has(idx)) {
+                        lastSelectedItemIndex = adjustedInsertAt + sorted.indexOf(idx);
+                    } else {
+                        const removedBeforeThis = sorted.filter((i) => i < idx).length;
+                        let newIdx = idx - removedBeforeThis;
+                        if (newIdx >= adjustedInsertAt) newIdx += len;
+                        lastSelectedItemIndex = newIdx;
+                    }
+                }
 
                 return { resources, selectedItems, lastSelectedItemIndex };
             },
             () => {
-                this.props.handlers?.onReorder?.(fromIndex, toIndex);
+                this.props.handlers?.onReorder?.(sorted, adjustedInsertAt);
             }
         );
     };
@@ -592,6 +832,38 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
         this.infiniteLoaderRef.current._listRef.scrollToItem(index);
     };
 
+    renderCrossListOverlay = () => {
+        const session = this.state.dragSession;
+        if (!session) return null;
+        if (this.props.reorderable !== true) return null;
+        // Don't paint over the source list — the user is dragging out
+        // of it; the indicator line + the dragged ghost are enough.
+        if (session.sourceListInstanceId === this.props.listInstanceId) return null;
+        const accepts = this.acceptsDragFrom(session.sourceListInstanceId);
+        return (
+            <div
+                aria-hidden
+                className={cn(
+                    `ResourceListCrossListOverlay pointer-events-none absolute inset-0 z-20 rounded-sm`,
+                    accepts
+                        ? `ring-primary bg-primary/5 ring-2 ring-inset`
+                        : `bg-background/60`
+                )}
+                data-accepts-drag={accepts ? `true` : `false`}
+            >
+                {!accepts && (
+                    <div className={`absolute inset-x-0 top-2 flex justify-center`}>
+                        <span
+                            className={`bg-background text-muted-foreground rounded-md border px-2 py-1 text-xs`}
+                        >
+                            {this.context!.t.resourceList.crossListDoesNotAcceptDrops}
+                        </span>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     renderDropIndicator = (width: number, height: number) => {
         if (this.props.reorderable !== true) return null;
         const idx = this.state.dropIndicatorBeforeIndex;
@@ -677,9 +949,17 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
 
         return (
             <div
-                className={cn(`ResourceList flex h-full w-full flex-col`, this.props.className)}
+                data-list-instance-id={this.props.listInstanceId}
+                className={cn(
+                    `ResourceList relative flex h-full w-full flex-col`,
+                    this.props.className
+                )}
                 style={{ ...this.props.style }}
+                onDragOver={this.props.reorderable ? this.onListDragOver : undefined}
+                onDrop={this.props.reorderable ? this.onListDrop : undefined}
+                onDragLeave={this.props.reorderable ? this.onListDragLeave : undefined}
             >
+                {this.renderCrossListOverlay()}
                 {this.listHeader()}
                 {this.state.currentRowHandler.headerRenderer?.()}
                 <div
@@ -759,7 +1039,10 @@ export default class ResourceList<ResourceType extends BaseResource> extends Com
                                                     listHeight: height,
                                                     reorderable: this.props.reorderable,
                                                     onReorder: this.reorderItems,
-                                                    onDragIndicatorChange: this.setDropIndicator
+                                                    onDragIndicatorChange: this.setDropIndicator,
+                                                    acceptsDragFrom: this.acceptsDragFrom,
+                                                    handleDrop: this.handleDrop,
+                                                    handleDragEnd: this.handleDragEnd
                                                 }}
                                             >
                                                 {/*@ts-expect-error*/}

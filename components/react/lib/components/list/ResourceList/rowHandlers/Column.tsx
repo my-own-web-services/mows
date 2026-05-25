@@ -1,4 +1,5 @@
 import { LucideColumns3 } from "lucide-react";
+import { beginDrag, getDragSession } from "../dragBus";
 import { CSSProperties, JSX } from "react";
 import { FaThList } from "react-icons/fa";
 import { IoChevronUp } from "react-icons/io5";
@@ -364,24 +365,38 @@ const ColumnRow = <ResourceType extends BaseResource>(props: ColumnRowProps<Reso
 
     const onDragStart = (e: React.DragEvent<HTMLDivElement>) => {
         if (!reorderable) return;
+        // Multi-row drag: when the dragged row is part of the current
+        // selection, the drag carries every selected index. When the
+        // dragged row is NOT selected, only that row moves (the
+        // selection is left alone). This matches the affordance of
+        // file managers and most reorderable tables.
+        const selectedItems = rowProps.data?.selectedItems ?? [];
+        const isDraggedRowSelected = selectedItems[rowProps.index] === true;
+        const indices = isDraggedRowSelected
+            ? selectedItems.reduce<number[]>((acc, sel, i) => {
+                  if (sel === true) acc.push(i);
+                  return acc;
+              }, [])
+            : [rowProps.index];
+        const allItems = rowProps.data?.items ?? [];
+        const movedItems = indices
+            .map((i) => allItems[i])
+            .filter((x): x is BaseResource => x !== undefined);
+        const payload = indices.join(`,`);
         e.dataTransfer.effectAllowed = `move`;
-        e.dataTransfer.setData(REORDER_DATA_TYPE, `${reorderScope}:${rowProps.index}`);
-        // Some browsers require a non-empty payload on the standard
-        // text/plain MIME for the drag to actually start in jsdom-like
-        // environments — set a harmless string.
-        e.dataTransfer.setData(`text/plain`, String(rowProps.index));
-    };
+        // The MIME payload only exists to flag dragover as one of OUR
+        // reorder drags — actual item data + acceptance check is
+        // handled through the module-level bus, which can carry
+        // anything (no JSON limits, no read-during-dragover quirks).
+        e.dataTransfer.setData(REORDER_DATA_TYPE, `${reorderScope}:${payload}`);
+        e.dataTransfer.setData(`text/plain`, payload);
 
-    const decodeFromIndex = (e: React.DragEvent<HTMLDivElement>): number | null => {
-        if (!reorderable) return null;
-        const payload = e.dataTransfer.getData(REORDER_DATA_TYPE);
-        if (!payload) return null;
-        const lastColon = payload.lastIndexOf(`:`);
-        if (lastColon === -1) return null;
-        const scope = payload.slice(0, lastColon);
-        if (scope !== reorderScope) return null;
-        const fromIndex = Number.parseInt(payload.slice(lastColon + 1), 10);
-        return Number.isFinite(fromIndex) ? fromIndex : null;
+        beginDrag({
+            sourceListInstanceId: rowProps.data!.listInstanceId,
+            resourceType: rowProps.data!.resourceType,
+            fromIndices: indices,
+            items: movedItems
+        });
     };
 
     // Insert position derived from pointer Y relative to the row:
@@ -401,6 +416,18 @@ const ColumnRow = <ResourceType extends BaseResource>(props: ColumnRowProps<Reso
         // means an unrelated drag (e.g. a file drag from the OS)
         // doesn't draw an insertion line.
         if (!e.dataTransfer.types.includes(REORDER_DATA_TYPE)) return;
+        // Cross-list acceptance: the bus knows which list owns the
+        // drag. If this list won't accept it, leave the event
+        // un-prevented so the browser shows the no-drop cursor and
+        // no indicator line is drawn.
+        const session = getDragSession();
+        if (
+            session &&
+            rowProps.data?.acceptsDragFrom &&
+            !rowProps.data.acceptsDragFrom(session.sourceListInstanceId)
+        ) {
+            return;
+        }
         e.preventDefault();
         e.dataTransfer.dropEffect = `move`;
         rowProps.data?.onDragIndicatorChange?.(computeInsertBefore(e));
@@ -408,17 +435,17 @@ const ColumnRow = <ResourceType extends BaseResource>(props: ColumnRowProps<Reso
 
     const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
         if (!reorderable) return;
-        const fromIndex = decodeFromIndex(e);
         rowProps.data?.onDragIndicatorChange?.(null);
-        if (fromIndex === null) return;
+        const session = getDragSession();
+        if (!session) return;
+        if (
+            rowProps.data?.acceptsDragFrom &&
+            !rowProps.data.acceptsDragFrom(session.sourceListInstanceId)
+        ) {
+            return;
+        }
         e.preventDefault();
-        let toIndex = computeInsertBefore(e);
-        // Dropping at the boundary that already bounds the source is a
-        // no-op (insert position equals current position).
-        if (fromIndex === toIndex || fromIndex + 1 === toIndex) return;
-        // Removing the source shifts the insertion point one slot left.
-        if (fromIndex < toIndex) toIndex -= 1;
-        rowProps.data?.onReorder?.(fromIndex, toIndex);
+        rowProps.data?.handleDrop?.(computeInsertBefore(e));
     };
 
     const onDragEnd = () => {
@@ -426,6 +453,7 @@ const ColumnRow = <ResourceType extends BaseResource>(props: ColumnRowProps<Reso
         // Drag aborted or dropped outside an accepting target — clear
         // the indicator either way.
         rowProps.data?.onDragIndicatorChange?.(null);
+        rowProps.data?.handleDragEnd?.();
     };
 
     const rowAttrs = rowAttributes?.(item) ?? {};

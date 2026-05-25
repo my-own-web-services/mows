@@ -29,6 +29,7 @@ const ANCHOR = {
     multipleLayouts: `examples-multiple-layouts`,
     selection: `examples-selection`,
     reorderable: `examples-reorderable`,
+    crossListDrag: `examples-cross-list-drag`,
     contextMenu: `examples-context-menu`,
     multipleListsSharedAction: `examples-multiple-lists-shared-action`,
     horizontalStrip: `examples-horizontal-strip`,
@@ -133,9 +134,10 @@ const PROPS: PropRow[] = [
     { name: `displayListHeader`, type: `boolean`, default: `true`, description: `Hide the header bar (row-handler picker / refresh) when false.` },
     { name: `listHeaderElement`, type: `JSX.Element`, default: `—`, description: `Custom content rendered inside the header bar.` },
     { name: `overscanCount`, type: `number`, default: `20`, description: `Number of items rendered outside the visible window for smoother scrolling.` },
-    { name: `handlers`, type: `ResourceListHandlers<T>`, default: `—`, description: `Optional event-handler bag: onSelect, onSearch, onRefresh, onCreateClick, onListTypeChange, onItemRightClick, onReorder.` },
+    { name: `handlers`, type: `ResourceListHandlers<T>`, default: `—`, description: `Optional event-handler bag: onSelect, onSearch, onRefresh, onCreateClick, onListTypeChange, onItemRightClick, onReorder, onItemsAccepted, onItemsMovedOut.` },
     { name: `dropTargetAcceptsTypes`, type: `string[]`, default: `—`, description: `Drag-and-drop: which payload types the list accepts as a drop target.` },
     { name: `reorderable`, type: `boolean`, default: `false`, description: `When true, the Column row handler renders a drag grip on every row and the list emits handlers.onReorder(fromIndex, toIndex) after a successful drop.` },
+    { name: `reorderAcceptsFrom`, type: `string[]`, default: `—`, description: `Other listInstanceIds whose drags this list will accept as drops. The list always accepts drags from itself. While a drag is in flight, lists not in this set render a "does not accept drops" overlay.` },
     { name: `displayDebugBar`, type: `boolean`, default: `false`, description: `Show an internal debug bar with the current fetch / window state.` },
     { name: `className`, type: `string`, default: `—`, description: `Extra classes on the outer wrapper.` },
     { name: `style`, type: `CSSProperties`, default: `—`, description: `Inline style on the outer wrapper.` }
@@ -162,6 +164,7 @@ const buildIndexItems = (t: Strings): PageIndexItem[] => {
                 { id: ANCHOR.multipleLayouts, label: doc.examples.multipleLayouts.title },
                 { id: ANCHOR.selection, label: doc.examples.selection.title },
                 { id: ANCHOR.reorderable, label: doc.examples.reorderable.title },
+                { id: ANCHOR.crossListDrag, label: doc.examples.crossListDrag.title },
                 { id: ANCHOR.contextMenu, label: doc.examples.contextMenu.title },
                 {
                     id: ANCHOR.multipleListsSharedAction,
@@ -186,7 +189,8 @@ const buildBehaviourEntries = (
     { statement: statements.callsFetcher, testFile: TEST_FILE, testName: `calls getResourcesList on mount`, testLine: 119 },
     { statement: statements.firstWindow, testFile: TEST_FILE, testName: `first fetch passes fromIndex=0 + a finite limit`, testLine: 128 },
     { statement: statements.forwardsSort, testFile: TEST_FILE, testName: `forwards a sortBy + sortDirection in the request body`, testLine: 141 },
-    { statement: statements.reorderFires, testFile: TEST_FILE, testName: `fires onReorder when a row is dropped onto another row`, testLine: 303 }
+    { statement: statements.reorderFires, testFile: TEST_FILE, testName: `fires onReorder when a row is dropped onto another row`, testLine: 303 },
+    { statement: statements.crossListAccept, testFile: TEST_FILE, testName: `accepts a drop from a list whose id is in reorderAcceptsFrom`, testLine: 756 }
 ];
 
 export const ResourceListDocPage = () => {
@@ -261,6 +265,13 @@ export const ResourceListDocPage = () => {
                         description={doc.examples.reorderable.description}
                     >
                         <ExampleCard example={resourceListExampleById(`reorderable`)} hideHeader />
+                    </DocSubsection>
+                    <DocSubsection
+                        id={ANCHOR.crossListDrag}
+                        title={doc.examples.crossListDrag.title}
+                        description={doc.examples.crossListDrag.description}
+                    >
+                        <ExampleCard example={resourceListExampleById(`crossListDrag`)} hideHeader />
                     </DocSubsection>
                     <DocSubsection
                         id={ANCHOR.contextMenu}

@@ -116,7 +116,18 @@ export type ResourceListHandlersOnItemRightClick<ResourceType> = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent> | React.TouchEvent<HTMLDivElement>
 ) => void;
 
-export type ResourceListHandlersOnReorder = (fromIndex: number, toIndex: number) => void;
+export type ResourceListHandlersOnReorder = (fromIndices: number[], toIndex: number) => void;
+
+export type ResourceListHandlersOnItemsAccepted<ResourceType> = (
+    items: ResourceType[],
+    insertBeforeIndex: number,
+    sourceListInstanceId: string
+) => void;
+
+export type ResourceListHandlersOnItemsMovedOut = (
+    fromIndices: number[],
+    targetListInstanceId: string
+) => void;
 
 export interface ResourceListHandlers<ResourceType> {
     readonly onSearch?: ResourceListHandlersOnSearch;
@@ -135,12 +146,29 @@ export interface ResourceListHandlers<ResourceType> {
      */
     readonly onItemRightClick?: ResourceListHandlersOnItemRightClick<ResourceType>;
     /**
-     * Fires after the user drag-and-drops a row to a new position.
-     * Only invoked when `reorderable` is enabled on the list. The
-     * consumer owns the underlying data and is responsible for
-     * applying the move and re-fetching the next window.
+     * Fires after the user drag-and-drops one or more rows to a new
+     * position. `fromIndices` lists every moved row's index in the
+     * BEFORE state (sorted ascending). `toIndex` is the final
+     * position of the first moved item AFTER the splice — the moved
+     * block occupies `[toIndex, toIndex + fromIndices.length)` in the
+     * new array. The list has already applied the move to its own
+     * cached order; the consumer is responsible for persisting the
+     * change to whatever backing store it uses.
      */
     readonly onReorder?: ResourceListHandlersOnReorder;
+    /**
+     * Fires on the target list when a cross-list drop completes — i.e.
+     * the user dragged items in from another list whose ID is in this
+     * list's `reorderAcceptsFrom`. The list has already inserted the
+     * items into its own cache; this hook is for persistence.
+     */
+    readonly onItemsAccepted?: ResourceListHandlersOnItemsAccepted<ResourceType>;
+    /**
+     * Fires on the source list after its items were dropped onto a
+     * different list. The list has already removed them from its own
+     * cache; this hook is for persistence.
+     */
+    readonly onItemsMovedOut?: ResourceListHandlersOnItemsMovedOut;
 }
 export enum RowRendererDirection {
     Vertical = `vertical`,
@@ -181,8 +209,33 @@ export interface RowComponentData<ResourceType> {
      * position (or `null` to clear).
      */
     readonly reorderable?: boolean;
-    readonly onReorder?: ResourceListHandlersOnReorder;
+    /**
+     * Internal: the row handler calls this with the source indices
+     * (one or many) plus the boundary the pointer was over. The list
+     * adjusts the position for the removed source, applies the move
+     * to its cache, and then fires the consumer's
+     * `handlers.onReorder`.
+     */
+    readonly onReorder?: (fromIndices: number[], insertBeforeIndex: number) => void;
     readonly onDragIndicatorChange?: (insertBeforeIndex: number | null) => void;
+    /**
+     * Internal: whether this list accepts a drag originating from the
+     * given list-instance id. Same list always accepts itself.
+     */
+    readonly acceptsDragFrom?: (sourceListInstanceId: string) => boolean;
+    /**
+     * Internal: called by the row when a drop is committed on it. The
+     * list reads the current bus session, routes to either the
+     * within-list reorder path or the cross-list accept path, and
+     * fires the appropriate consumer callback.
+     */
+    readonly handleDrop?: (insertBeforeIndex: number) => void;
+    /**
+     * Internal: called by the source row when its drag ends. If a
+     * different list consumed the drag the list splices out the moved
+     * items and fires `onItemsMovedOut`.
+     */
+    readonly handleDragEnd?: () => void;
 }
 
 export interface BaseResource {

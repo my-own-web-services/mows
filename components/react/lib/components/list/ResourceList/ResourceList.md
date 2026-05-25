@@ -66,6 +66,23 @@ the move.
 The reorder payload is namespaced to `${listInstanceId}:${resourceType}`
 so a drag can never accidentally land in a different `ResourceList`.
 
+### Drag between lists
+
+Lists can opt into accepting drops from other lists by passing
+`reorderAcceptsFrom: string[]` — the `listInstanceId`s of accepted
+sources. A list always accepts drags from itself; the array adds
+*additional* sources.
+
+While a drag is in flight every other reorderable list paints an
+overlay marking whether it accepts the current source: a primary-
+coloured ring for accepting lists, a dimmed wash with a "does not
+accept drops" badge for rejecting ones. On a successful cross-list
+drop the target fires `handlers.onItemsAccepted(items,
+insertBeforeIndex, sourceListInstanceId)` and the source fires
+`handlers.onItemsMovedOut(fromIndices, targetListInstanceId)` — the
+list has already spliced its own cache for both ends; the callbacks
+are purely for persistence.
+
 ## Sorting
 
 `ColumnListRowHandler` sorts by clicking a column header. Direction
@@ -98,6 +115,7 @@ height.
 | `overscanCount`         | `number`                                            | Rows rendered outside the visible window. Defaults to `20`.                                           |
 | `dropTargetAcceptsTypes`| `string[]`                                          | Drag-and-drop: which payload types the list accepts as a drop target.                                 |
 | `reorderable`           | `boolean`                                           | When `true`, the Column row handler renders a drag grip on each row; drops emit `handlers.onReorder`. |
+| `reorderAcceptsFrom`    | `string[]`                                          | Other `listInstanceId`s whose drags this list will accept as drops. While a drag is in flight, non-accepting lists render a "does not accept drops" overlay. |
 | `displayDebugBar`       | `boolean`                                           | Show an internal debug bar with the current fetch / window state. Defaults to `false`.                |
 | `className` / `style`   | `string` / `CSSProperties`                          | Outer wrapper.                                                                                        |
 
