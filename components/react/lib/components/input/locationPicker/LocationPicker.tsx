@@ -6,6 +6,27 @@ import { loadMapbox } from "@/components/map/mapboxModule";
 import { MapPin, X } from "lucide-react";
 import * as React from "react";
 import { type CSSProperties, PureComponent, createRef } from "react";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
+
+// Marker palette — a fixed vivid fill that pops on any map tile, plus a
+// halo whose tone flips with the active style. `text-primary` (the
+// previous setup) inherited the theme accent, which on a dark theme + a
+// dark map style left the marker indistinguishable from the canvas. A
+// fixed amber-with-contrasting-outline reads cleanly on light tiles
+// (cream / sand / paper styles) AND on dark tiles (satellite, dark
+// basemaps) without depending on what the consuming app picks for its
+// theme accent.
+const MARKER_FILL = `#f59e0b`; // amber-500
+const MARKER_HALO_FOR_LIGHT_MAP = `#0a0a0a`; // dark outline against bright tiles
+const MARKER_HALO_FOR_DARK_MAP = `#ffffff`; // light outline against dark tiles
+
+const buildMarkerSvg = (mapMode: `dark` | `light` | undefined): string => {
+    const halo = mapMode === `dark` ? MARKER_HALO_FOR_DARK_MAP : MARKER_HALO_FOR_LIGHT_MAP;
+    // `paint-order="stroke"` paints the halo first so the fill stays a
+    // crisp amber teardrop rather than getting blended into the halo at
+    // the seam.
+    return `<svg viewBox="0 0 24 24" class="h-7 w-7 drop-shadow" aria-hidden="true" data-map-mode="${mapMode ?? `light`}"><path d="M12 2a8 8 0 0 0-8 8c0 5.5 8 12 8 12s8-6.5 8-12a8 8 0 0 0-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z" fill="${MARKER_FILL}" stroke="${halo}" stroke-width="1.5" stroke-linejoin="round" paint-order="stroke"/></svg>`;
+};
 
 export interface PickedLocation {
     readonly longitude: number;
@@ -46,8 +67,17 @@ export default class LocationPicker extends PureComponent<
     LocationPickerProps,
     LocationPickerState
 > {
+    // `currentMapStyle.mode` is the signal the marker SVG keys off. Reading
+    // it via the static contextType keeps the picker re-rendering whenever
+    // the user swaps map styles in the settings panel.
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
+
     private mapRef = createRef<MapLibre.Map>();
     private marker: MapLibre.Marker | null = null;
+    // Held alongside the Marker so a style-mode change can repaint the
+    // SVG in place without ripping the marker off the map.
+    private markerEl: HTMLDivElement | null = null;
 
     constructor(props: LocationPickerProps) {
         super(props);
@@ -63,12 +93,22 @@ export default class LocationPicker extends PureComponent<
     };
 
     componentDidUpdate = (prevProps: LocationPickerProps) => {
+        // Marker position update.
         const current = this.activeValue();
         const previous =
             prevProps.value !== undefined ? prevProps.value : this.state.internal;
-        if (current?.longitude === previous?.longitude && current?.latitude === previous?.latitude)
-            return;
-        void this.syncMarker(current);
+        if (current?.longitude !== previous?.longitude || current?.latitude !== previous?.latitude) {
+            void this.syncMarker(current);
+        }
+
+        // Marker appearance update. Triggered by a context change since
+        // PureComponent still re-renders on consumed-context changes; we
+        // repaint the existing element's SVG in place rather than
+        // tearing the Marker down.
+        const desired = buildMarkerSvg(this.context?.currentMapStyle?.mode);
+        if (this.markerEl && this.markerEl.innerHTML !== desired) {
+            this.markerEl.innerHTML = desired;
+        }
     };
 
     componentWillUnmount = () => {
@@ -76,6 +116,7 @@ export default class LocationPicker extends PureComponent<
             this.marker.remove();
             this.marker = null;
         }
+        this.markerEl = null;
     };
 
     private activeValue = (): PickedLocation | null => {
@@ -113,6 +154,7 @@ export default class LocationPicker extends PureComponent<
             if (this.marker) {
                 this.marker.remove();
                 this.marker = null;
+                this.markerEl = null;
             }
             return;
         }
@@ -125,8 +167,9 @@ export default class LocationPicker extends PureComponent<
         // Map may have unmounted while we were waiting for the chunk.
         if (this.mapRef.current !== map) return;
         const el = document.createElement(`div`);
-        el.className = `flex h-6 w-6 items-center justify-center`;
-        el.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6 text-primary drop-shadow"><path d="M12 2a8 8 0 0 0-8 8c0 5.5 8 12 8 12s8-6.5 8-12a8 8 0 0 0-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg>`;
+        el.className = `flex h-7 w-7 items-center justify-center`;
+        el.innerHTML = buildMarkerSvg(this.context?.currentMapStyle?.mode);
+        this.markerEl = el;
         // Anchor `bottom` so the tip of the pin sits at the picked
         // coordinates, not its centroid.
         this.marker = new mapboxNs.Marker({ element: el, anchor: `bottom` })

@@ -41,14 +41,20 @@ interface MarkerStub {
     lngLat: [number, number] | null;
     added: boolean;
     removed: boolean;
+    element: HTMLElement | null;
 }
 const { markers } = vi.hoisted(() => ({ markers: [] as MarkerStub[] }));
 
 vi.mock(`@/components/map/mapboxModule`, () => {
     class FakeMarker {
         record: MarkerStub;
-        constructor() {
-            this.record = { lngLat: null, added: false, removed: false };
+        constructor(opts: { element: HTMLElement }) {
+            this.record = {
+                lngLat: null,
+                added: false,
+                removed: false,
+                element: opts.element
+            };
             markers.push(this.record);
         }
         setLngLat(lngLat: [number, number]) {
@@ -68,7 +74,9 @@ vi.mock(`@/components/map/mapboxModule`, () => {
 
 import LocationPicker from "./LocationPicker";
 
-const buildContext = (): MowsContextType => {
+const buildContext = (
+    overrides: Partial<MowsContextType> = {}
+): MowsContextType => {
     const am = new ActionManager({ recentActionsStorageKey: `lp`, maxRecentActions: 5 });
     const hm = new HotkeyManager(am, { configStorageKey: `lp-hk`, defaultHotkeys: {} });
     return {
@@ -96,13 +104,17 @@ const buildContext = (): MowsContextType => {
         setToastSettings: () => undefined,
         mapStyles: defaultMapStyles,
         currentMapStyle: defaultMapStyles[0],
-        setMapStyle: () => undefined
+        setMapStyle: () => undefined,
+        ...overrides
     } as unknown as MowsContextType;
 };
 
-const renderPicker = (props: Partial<React.ComponentProps<typeof LocationPicker>> = {}) =>
+const renderPicker = (
+    props: Partial<React.ComponentProps<typeof LocationPicker>> = {},
+    contextOverrides: Partial<MowsContextType> = {}
+) =>
     render(
-        <MowsContext.Provider value={buildContext()}>
+        <MowsContext.Provider value={buildContext(contextOverrides)}>
             <LocationPicker {...props} />
         </MowsContext.Provider>
     );
@@ -165,5 +177,74 @@ describe(`<LocationPicker>`, () => {
         expect(markers.length).toBeGreaterThanOrEqual(1);
         expect(markers[0]!.lngLat).toEqual([1, 2]);
         expect(markers[0]!.added).toBe(true);
+    });
+
+    const flushMarkerAsync = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    };
+
+    it(`paints the marker against a light map style with a dark halo`, async () => {
+        mapStubs.length = 0;
+        markers.length = 0;
+        const lightStyle = defaultMapStyles.find((s) => s.mode === `light`)!;
+        renderPicker(
+            { defaultValue: { longitude: 1, latitude: 2 } },
+            { currentMapStyle: lightStyle }
+        );
+        await flushMarkerAsync();
+        const svg = markers[0]!.element!.querySelector(`svg`);
+        expect(svg).not.toBeNull();
+        expect(svg!.getAttribute(`data-map-mode`)).toBe(`light`);
+        const path = svg!.querySelector(`path`)!;
+        // Amber fill is the same in both modes — it's the high-contrast colour.
+        expect(path.getAttribute(`fill`)?.toLowerCase()).toBe(`#f59e0b`);
+        // On a light tile, the halo must be dark to stay legible.
+        expect(path.getAttribute(`stroke`)?.toLowerCase()).toBe(`#0a0a0a`);
+    });
+
+    it(`paints the marker against a dark map style with a light halo`, async () => {
+        mapStubs.length = 0;
+        markers.length = 0;
+        const darkStyle = defaultMapStyles.find((s) => s.mode === `dark`)!;
+        renderPicker(
+            { defaultValue: { longitude: 1, latitude: 2 } },
+            { currentMapStyle: darkStyle }
+        );
+        await flushMarkerAsync();
+        const svg = markers[0]!.element!.querySelector(`svg`);
+        expect(svg).not.toBeNull();
+        expect(svg!.getAttribute(`data-map-mode`)).toBe(`dark`);
+        const path = svg!.querySelector(`path`)!;
+        expect(path.getAttribute(`fill`)?.toLowerCase()).toBe(`#f59e0b`);
+        // On a dark tile, the halo flips to a light tone for contrast.
+        expect(path.getAttribute(`stroke`)?.toLowerCase()).toBe(`#ffffff`);
+    });
+
+    it(`repaints the marker halo when the active map style changes`, async () => {
+        mapStubs.length = 0;
+        markers.length = 0;
+        const lightStyle = defaultMapStyles.find((s) => s.mode === `light`)!;
+        const darkStyle = defaultMapStyles.find((s) => s.mode === `dark`)!;
+        const Harness = (props: { style: typeof lightStyle }) => (
+            <MowsContext.Provider
+                value={buildContext({ currentMapStyle: props.style })}
+            >
+                <LocationPicker defaultValue={{ longitude: 1, latitude: 2 }} />
+            </MowsContext.Provider>
+        );
+        const view = render(<Harness style={lightStyle} />);
+        await flushMarkerAsync();
+        const el = markers[0]!.element!;
+        expect(el.querySelector(`path`)!.getAttribute(`stroke`)?.toLowerCase()).toBe(
+            `#0a0a0a`
+        );
+        view.rerender(<Harness style={darkStyle} />);
+        // Same Marker, same element — only the inner SVG is repainted.
+        expect(markers.length).toBe(1);
+        expect(el.querySelector(`path`)!.getAttribute(`stroke`)?.toLowerCase()).toBe(
+            `#ffffff`
+        );
+        expect(el.querySelector(`svg`)!.getAttribute(`data-map-mode`)).toBe(`dark`);
     });
 });
