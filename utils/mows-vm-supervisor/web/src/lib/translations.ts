@@ -60,6 +60,12 @@ declare module "@mows/react-components/lib/languages" {
                         disconnected: string;
                         error: string;
                     };
+                    /** Claude Code tab — runs the supervisor's claude
+                     *  bootstrap so the user lands in an authenticated
+                     *  session with no onboarding prompts. */
+                    claude: {
+                        typeLabel: string;
+                    };
                 };
             };
         };

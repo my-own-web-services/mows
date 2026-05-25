@@ -20,8 +20,22 @@ import { PureComponent, createRef, type ReactNode } from "react";
 
 const TOKEN_STORAGE_KEY = "mows-vm-supervisor:token";
 
+/** Which remote command the supervisor execs after the ssh handshake.
+ *  `"shell"` → interactive login shell.
+ *  `"claude"` → bootstrap that stages host credentials and execs
+ *  `claude --dangerously-skip-permissions`. Matches the
+ *  `?command=` values accepted by `/v1/vms/{id}/ssh-io`. */
+export type VmSshCommand = "shell" | "claude";
+
 interface VmSshConsoleProps {
     readonly vmId: string;
+    readonly command?: VmSshCommand;
+    /** Stable session id. The supervisor wraps the remote process in
+     *  a tmux session named `mows-<sessionId>`, so reloading the page
+     *  reattaches to the same shell/claude process instead of spawning
+     *  a fresh one. Comes from `ConsoleManager`'s `tabId` so it
+     *  persists alongside the tab layout. */
+    readonly sessionId?: string;
     readonly initialCols?: number;
     readonly initialRows?: number;
     readonly t: {
@@ -48,9 +62,26 @@ class VmSshConsoleInner extends PureComponent<VmSshConsoleProps, State> {
     // `onReady` flushes this once the handle is available so consumers
     // don't lose the first banner / motd.
     private pendingWrites: Uint8Array[] = [];
+    private socketOpened = false;
+    // Captured by `handleReady` so `openSocket` can ask xterm for its
+    // post-fit cols/rows instead of guessing. The supervisor's ssh-io
+    // proxy doesn't pipe SIGWINCH, so the *initial* size we send is
+    // the size the guest pty stays at for the whole session — passing
+    // a too-small grid makes claude's positioned TUI overlap because
+    // it lays out for a width the visible terminal doesn't actually
+    // have. See the doc comment at the top of the file.
+    private measuredCols: number | null = null;
+    private measuredRows: number | null = null;
 
     componentDidMount = () => {
-        this.openSocket();
+        // Defer the websocket open until xterm reports its post-fit
+        // cols/rows via `handleReady`. If `<Terminal>`'s lazy chunk
+        // never finishes (network failure, suspense fallback stuck)
+        // we still need to surface a real error, so fall back to the
+        // prop-supplied initial size after a short grace period.
+        setTimeout(() => {
+            if (!this.socketOpened) this.openSocket();
+        }, 1500);
     };
 
     componentWillUnmount = () => {
@@ -58,18 +89,25 @@ class VmSshConsoleInner extends PureComponent<VmSshConsoleProps, State> {
     };
 
     private openSocket = () => {
-        const cols = this.props.initialCols ?? 80;
-        const rows = this.props.initialRows ?? 24;
+        if (this.socketOpened) return;
+        this.socketOpened = true;
+        const cols = this.measuredCols ?? this.props.initialCols ?? 80;
+        const rows = this.measuredRows ?? this.props.initialRows ?? 24;
         // Same-origin upgrade. `WebSocket` doesn't accept custom headers,
         // so the Authorization bearer is sent as a `?token=` query —
         // `auth_middleware.rs` accepts that fallback specifically for
         // browser WS clients.
         const token = localStorage.getItem(TOKEN_STORAGE_KEY) ?? "";
         const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const command = this.props.command ?? "shell";
+        const sessionParam = this.props.sessionId
+            ? `&sessionId=${encodeURIComponent(this.props.sessionId)}`
+            : "";
         const url =
             `${wsProtocol}://${window.location.host}` +
             `/v1/vms/${encodeURIComponent(this.props.vmId)}/ssh-io` +
-            `?cols=${cols}&rows=${rows}` +
+            `?cols=${cols}&rows=${rows}&command=${command}` +
+            sessionParam +
             (token ? `&token=${encodeURIComponent(token)}` : "");
         const socket = new WebSocket(url);
         socket.binaryType = "arraybuffer";
@@ -139,6 +177,20 @@ class VmSshConsoleInner extends PureComponent<VmSshConsoleProps, State> {
         const pending = this.pendingWrites;
         this.pendingWrites = [];
         for (const chunk of pending) handle.write(chunk);
+        // Refit once the consumer's CSS has settled. xterm fires
+        // `onResize` post-fit; `handleResize` captures the cols/rows
+        // there and opens the websocket with the real numbers.
+        try {
+            handle.fit();
+        } catch {
+            // ignore — container not yet measurable
+        }
+    };
+
+    private handleResize = (cols: number, rows: number) => {
+        this.measuredCols = cols;
+        this.measuredRows = rows;
+        if (!this.socketOpened) this.openSocket();
     };
 
     private renderStatusPill = (): ReactNode => {
@@ -176,6 +228,7 @@ class VmSshConsoleInner extends PureComponent<VmSshConsoleProps, State> {
                     ref={this.terminalRef}
                     onData={this.handleData}
                     onReady={this.handleReady}
+                    onResize={this.handleResize}
                 />
             </div>
         );
@@ -184,6 +237,12 @@ class VmSshConsoleInner extends PureComponent<VmSshConsoleProps, State> {
 
 interface VmSshConsoleWrapperProps {
     readonly vmId: string;
+    readonly command?: VmSshCommand;
+    /** Stable session id forwarded to the supervisor via `?sessionId=` so
+     *  the remote tmux session is named after the consumer's tab; reloads
+     *  reattach instead of spawning a fresh shell. Comes from
+     *  ConsoleManager's `tabId` (persisted alongside the tab layout). */
+    readonly sessionId?: string;
     readonly initialCols?: number;
     readonly initialRows?: number;
 }
@@ -199,6 +258,8 @@ const VmSshConsole = (props: VmSshConsoleWrapperProps): ReactNode => {
     return (
         <VmSshConsoleInner
             vmId={props.vmId}
+            command={props.command}
+            sessionId={props.sessionId}
             initialCols={props.initialCols}
             initialRows={props.initialRows}
             t={{

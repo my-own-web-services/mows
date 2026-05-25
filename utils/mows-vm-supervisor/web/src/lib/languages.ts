@@ -61,6 +61,9 @@ const enUS: Translation = {
                     connected: "Connected",
                     disconnected: "Disconnected",
                     error: "Connection error"
+                },
+                claude: {
+                    typeLabel: "Claude Code"
                 }
             }
         }

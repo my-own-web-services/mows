@@ -17,8 +17,10 @@
 //   │     (live list)                                             │
 //   └─────────────────────────────────────────────────────────────┘
 //
-// Polls `/v1/vms/{id}` every 2s so live status (uptime) stays fresh without
-// a page reload.
+// Fetches `/v1/vms/{id}` once on mount and re-fetches on every matching
+// supervisor event (`vm_updated` / `vm_deleted` for this VM, plus the
+// synthetic `resync` after a WS reconnect). A separate 1 s ticker keeps
+// the relative-time + uptime stat fresh between data refreshes.
 
 import {
     Card,
@@ -30,6 +32,7 @@ import ConsoleManager, {
 } from "@mows/react-components/components/console/consoleManager/ConsoleManager";
 import { useMows } from "@mows/react-components/lib/mowsContext/MowsContext";
 import {
+    Bot,
     Clock,
     Cpu,
     HardDrive,
@@ -47,14 +50,13 @@ import {
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { api, describeApiError, renameVm } from "../lib/api";
+import { subscribeEvents } from "../lib/events";
 import {
     formatBytes,
     formatDuration,
     formatRelative
 } from "../lib/format";
 import type { VmSummary } from "../api/generated/api-client";
-
-const POLL_MS = 2000;
 
 // Visual treatment per status. Labels themselves come from translations
 // (SLOP-10) — this constant only knows about colors. Once we add
@@ -120,11 +122,12 @@ const VmDetail = () => {
     const [error, setError] = useState<string | null>(null);
     const [now, setNow] = useState(() => new Date());
 
-    // Live VM + agent data.
+    // Live VM data — fetch once, then re-fetch on every matching event
+    // (status flip, rename, delete) instead of polling on a timer.
     useEffect(() => {
         if (!id) return;
         let alive = true;
-        const tick = async () => {
+        const refetch = async () => {
             try {
                 const vmResponse = await api.v1.getVm(id);
                 if (!alive) return;
@@ -135,16 +138,27 @@ const VmDetail = () => {
                 setError(await describeApiError(error));
             }
         };
-        tick();
-        const intervalHandle = window.setInterval(tick, POLL_MS);
+        refetch();
+        const unsubscribe = subscribeEvents((event) => {
+            if (event.type === "resync") {
+                refetch();
+                return;
+            }
+            if (
+                (event.type === "vm_updated" || event.type === "vm_deleted")
+                && event.id === id
+            ) {
+                refetch();
+            }
+        });
         return () => {
             alive = false;
-            window.clearInterval(intervalHandle);
+            unsubscribe();
         };
     }, [id]);
 
     // Tick a clock every second so the relative time + uptime stay fresh
-    // even between data polls.
+    // even between data refreshes.
     useEffect(() => {
         const intervalHandle = window.setInterval(() => setNow(new Date()), 1000);
         return () => window.clearInterval(intervalHandle);
@@ -176,6 +190,67 @@ const VmDetail = () => {
         return (endAt ?? now).getTime() - startedAt.getTime();
     }, [startedAt, endAt, now]);
 
+    // ConsoleManager `types`: each entry's `render` is invoked once per
+    // spawned terminal, so every tab gets a fresh `<VmSshConsole>` (own
+    // socket, own ssh subprocess on the supervisor). Pinning `vm.id`
+    // in the closure keeps the manager tied to this page's VM even if
+    // the user navigates between VMs while a session is open.
+    //
+    // Memoise so PureComponent's prop diff bails out across re-renders
+    // — recreating `types` on every poll tick would otherwise reset the
+    // tab list to its initial state on every 2 s data refresh. Must sit
+    // above the early returns below or the hook count changes between
+    // the pre-data and post-data renders.
+    const vmId = vm?.id ?? null;
+    const consoleTypes = useMemo<readonly ConsoleType[]>(
+        () =>
+            vmId
+                ? [
+                      {
+                          id: "ssh",
+                          label: mowsContext.t.supervisor.vmDetail.console.ssh.typeLabel,
+                          icon: TerminalSquare,
+                          // `ctx.tabId` is a stable ConsoleManager id
+                          // that survives reload via the
+                          // `persistenceKey` on the manager — passing
+                          // it as `sessionId` lets the supervisor
+                          // back the remote process with a tmux
+                          // session of the same name. A reload then
+                          // reattaches instead of spawning a fresh
+                          // shell.
+                          render: (ctx) => (
+                              <VmSshConsole vmId={vmId} sessionId={ctx.tabId} />
+                          )
+                      },
+                      {
+                          id: "claude",
+                          label: mowsContext.t.supervisor.vmDetail.console.claude.typeLabel,
+                          icon: Bot,
+                          // Server-side bootstrap (kinds::builtin_claude)
+                          // stages the host's ~/.claude from /creds and
+                          // execs `claude --dangerously-skip-permissions`,
+                          // so the user lands inside an authenticated
+                          // session with no onboarding prompts. Same
+                          // tmux-keyed sessionId pattern as `ssh` —
+                          // a page reload reattaches to the running
+                          // claude rather than restarting it.
+                          render: (ctx) => (
+                              <VmSshConsole
+                                  vmId={vmId}
+                                  command="claude"
+                                  sessionId={ctx.tabId}
+                              />
+                          )
+                      }
+                  ]
+                : [],
+        [
+            vmId,
+            mowsContext.t.supervisor.vmDetail.console.ssh.typeLabel,
+            mowsContext.t.supervisor.vmDetail.console.claude.typeLabel
+        ]
+    );
+
     if (!id) return null;
 
     if (error && !vm) {
@@ -195,27 +270,6 @@ const VmDetail = () => {
     }
 
     const status = statusFor(vm.status, mowsContext.t.supervisor.vmDetail.status);
-
-    // ConsoleManager `types`: each entry's `render` is invoked once per
-    // spawned terminal, so every tab gets a fresh `<VmSshConsole>` (own
-    // socket, own ssh subprocess on the supervisor). Pinning `vm.id`
-    // in the closure keeps the manager tied to this page's VM even if
-    // the user navigates between VMs while a session is open.
-    //
-    // Memoise so PureComponent's prop diff bails out across re-renders
-    // — recreating `types` on every poll tick would otherwise reset the
-    // tab list to its initial state on every 2 s data refresh.
-    const consoleTypes = useMemo<readonly ConsoleType[]>(
-        () => [
-            {
-                id: "ssh",
-                label: mowsContext.t.supervisor.vmDetail.console.ssh.typeLabel,
-                icon: TerminalSquare,
-                render: () => <VmSshConsole vmId={vm.id} />
-            }
-        ],
-        [vm.id, mowsContext.t.supervisor.vmDetail.console.ssh.typeLabel]
-    );
 
     return (
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-8">
@@ -313,6 +367,14 @@ const VmDetail = () => {
                         types={consoleTypes}
                         defaultTypeId="ssh"
                         initialTabs={[{ typeId: "ssh" }]}
+                        // Persist the per-VM tab + split layout to
+                        // localStorage so a reload doesn't wipe the
+                        // user's set of open consoles. The vm.id is
+                        // the natural scoping key — each VM keeps its
+                        // own tab arrangement, and deleting the VM
+                        // discards the entry on next mount via the
+                        // hydrate-then-validate path.
+                        persistenceKey={`vm:${vm.id}:console`}
                     />
                 </div>
             </Card>
