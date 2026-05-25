@@ -431,7 +431,7 @@ export default class Map extends PureComponent<MapProps, MapState> {
                             onClick={this.handleZoomIn}
                             title={`Zoom in`}
                             aria-label={`Zoom in`}
-                            className={`h-8 w-8 shadow-md`}
+                            className={`h-8 w-8 shadow-md hover:bg-accent hover:text-accent-foreground`}
                         >
                             <Plus className={`h-4 w-4`} />
                         </Button>
@@ -441,7 +441,7 @@ export default class Map extends PureComponent<MapProps, MapState> {
                             onClick={this.handleZoomOut}
                             title={`Zoom out`}
                             aria-label={`Zoom out`}
-                            className={`h-8 w-8 shadow-md`}
+                            className={`h-8 w-8 shadow-md hover:bg-accent hover:text-accent-foreground`}
                         >
                             <Minus className={`h-4 w-4`} />
                         </Button>
@@ -451,7 +451,7 @@ export default class Map extends PureComponent<MapProps, MapState> {
                             onClick={this.handleCompassReset}
                             title={`Reset bearing to north`}
                             aria-label={`Compass — reset bearing to north`}
-                            className={`h-8 w-8 shadow-md`}
+                            className={`h-8 w-8 shadow-md hover:bg-accent hover:text-accent-foreground`}
                         >
                             <CompassRose bearing={bearing} pitch={pitch} />
                         </Button>
@@ -480,7 +480,7 @@ export default class Map extends PureComponent<MapProps, MapState> {
                             aria-label={
                                 tracking ? `Recenter on your location` : `Show your location`
                             }
-                            className={`h-8 w-8 shadow-md`}
+                            className={`h-8 w-8 shadow-md hover:bg-accent hover:text-accent-foreground`}
                         >
                             {tracking ? (
                                 <LocateFixed
@@ -512,6 +512,15 @@ export default class Map extends PureComponent<MapProps, MapState> {
                                 {activeStyle.attribution}
                             </div>
                         )}
+                        {/*
+                          Size + iconography matches the top-right control
+                          stack (h-8 w-8 with h-4 w-4 icons). Keeps the
+                          right edge aligned with that column — both
+                          wrappers anchor at `right-2`, so equal button
+                          widths put their right edges on the same line
+                          while the attribution button stays pinned to
+                          the bottom corner.
+                        */}
                         <Button
                             variant={`secondary`}
                             size={`icon`}
@@ -523,12 +532,12 @@ export default class Map extends PureComponent<MapProps, MapState> {
                             title={
                                 attributionOpen ? `Hide map attribution` : `Show map attribution`
                             }
-                            className={`h-6 w-6 shadow-md`}
+                            className={`h-8 w-8 shadow-md hover:bg-accent hover:text-accent-foreground`}
                         >
                             {attributionOpen ? (
-                                <X className={`h-3.5 w-3.5`} />
+                                <X className={`h-4 w-4`} />
                             ) : (
-                                <Info className={`h-3.5 w-3.5`} />
+                                <Info className={`h-4 w-4`} />
                             )}
                         </Button>
                     </div>

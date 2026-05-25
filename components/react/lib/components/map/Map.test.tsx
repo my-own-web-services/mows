@@ -348,6 +348,53 @@ describe(`<Map>`, () => {
         ).toBeInTheDocument();
     });
 
+    it(`renders the attribution button at the same size as the other control buttons`, async () => {
+        renderMap();
+        await waitForReady();
+        // The top-right column anchors the canonical button size; the
+        // bottom-right attribution button must match exactly so the two
+        // columns line up on the right edge.
+        const reference = screen.getByRole(`button`, { name: `Zoom in` });
+        const attribution = screen.getByRole(`button`, {
+            name: `Show map attribution`
+        });
+        const refSize = [...reference.classList].filter((c) => /^(h|w)-/.test(c));
+        const attrSize = [...attribution.classList].filter((c) => /^(h|w)-/.test(c));
+        expect(attrSize.sort()).toEqual(refSize.sort());
+        expect(attrSize).toContain(`h-8`);
+        expect(attrSize).toContain(`w-8`);
+    });
+
+    it(`keeps the map control buttons fully opaque on hover with a visible feedback colour`, async () => {
+        renderMap();
+        await waitForReady();
+        // The shadcn `secondary` variant ships `hover:bg-secondary/80`,
+        // which makes the button background 80% opaque on hover. Over
+        // the map canvas that bleed-through reads as "the button just
+        // vanished" — wrong for overlay controls. Every map button must
+        // pin its hover to a solid accent colour (tailwind-merge
+        // resolves the conflict in favour of the later class).
+        const names = [
+            `Zoom in`,
+            `Zoom out`,
+            `Compass — reset bearing to north`,
+            `Show your location`,
+            `Show map attribution`
+        ];
+        for (const name of names) {
+            const btn = screen.getByRole(`button`, { name });
+            const hoverBg = [...btn.classList].filter(
+                (c) => c.startsWith(`hover:bg-`)
+            );
+            // Exactly one hover:bg-* survives merging — and it must be
+            // an opaque colour (no `/N` opacity suffix) and a different
+            // colour than the default so hovering produces visible
+            // feedback.
+            expect(hoverBg).toEqual([`hover:bg-accent`]);
+            expect(btn.classList).toContain(`hover:text-accent-foreground`);
+        }
+    });
+
     it(`defaults the camera to globe projection`, async () => {
         renderMap();
         await waitFor(() => expect(mapInstances).toHaveLength(1));
