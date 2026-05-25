@@ -6,3 +6,5 @@ yalc.lock
 vite.config.js
 vite.config.d.ts
 public/assets/
+test-results/
+playwright-report/
