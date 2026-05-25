@@ -1,0 +1,60 @@
+services:
+    db:
+        image: postgres:17.2-alpine
+        container_name: mows-auth-bench-db
+        environment:
+            POSTGRES_USER: bench
+            POSTGRES_PASSWORD: bench
+            POSTGRES_DB: bench
+            # Tuning for benchmark workload on a developer laptop.
+            # Real prod sizing is irrelevant — we want consistent measurements.
+            POSTGRES_INITDB_ARGS: "--data-checksums"
+        ports:
+            - "127.0.0.1:55432:5432"
+        # Resource caps so the test can't OOM the whole machine.
+        # 4 GB RAM is plenty for the target benchmark sizes; we mostly want
+        # generous shared_buffers + work_mem.
+        shm_size: "1gb"
+        command:
+            - "postgres"
+            - "-c"
+            - "shared_buffers=1GB"
+            - "-c"
+            - "effective_cache_size=2GB"
+            - "-c"
+            - "work_mem=128MB"
+            - "-c"
+            - "maintenance_work_mem=512MB"
+            - "-c"
+            - "max_wal_size=4GB"
+            - "-c"
+            - "checkpoint_timeout=15min"
+            - "-c"
+            - "random_page_cost=1.1"
+            - "-c"
+            - "effective_io_concurrency=200"
+            - "-c"
+            - "log_min_duration_statement=500"
+            - "-c"
+            - "track_io_timing=on"
+            - "-c"
+            - "shared_preload_libraries=pg_stat_statements"
+            - "-c"
+            - "pg_stat_statements.track=all"
+            - "-c"
+            - "max_connections=50"
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+            - ./schema:/schema:ro
+            - ./seed:/seed:ro
+            - ./benchmarks:/benchmarks:ro
+            - ./security:/security:ro
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U bench -d bench"]
+            interval: 2s
+            timeout: 2s
+            retries: 30
+
+volumes:
+    pgdata:
+        # ephemeral; benchmarks rebuild from scratch
