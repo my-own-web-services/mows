@@ -1043,6 +1043,96 @@ mod tests {
     }
 }
 
+/// Build a `mows_auth_core::StaticResourceTypeRegistry` from the same
+/// data filez's local `get_auth_params_for_resource_type` returns.
+/// Today this only delivers boot-time SQL-identifier-injection
+/// validation — when `check_access` moves to the engine it becomes the
+/// canonical source and the local function disappears.
+///
+/// The registry is built once via `OnceLock`; if any identifier fails
+/// validation, the process panics at first access. That's correct:
+/// the alternative is letting a service boot with a bad table name
+/// that would later get spliced into `EXECUTE format()` SQL.
+pub fn engine_resource_registry() -> &'static mows_auth_core::StaticResourceTypeRegistry {
+    static REGISTRY: std::sync::OnceLock<mows_auth_core::StaticResourceTypeRegistry> =
+        std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| {
+        let entries = [
+            AccessPolicyResourceType::File,
+            AccessPolicyResourceType::FileGroup,
+            AccessPolicyResourceType::User,
+            AccessPolicyResourceType::UserGroup,
+            AccessPolicyResourceType::StorageLocation,
+            AccessPolicyResourceType::AccessPolicy,
+            AccessPolicyResourceType::StorageQuota,
+            AccessPolicyResourceType::FilezJob,
+            AccessPolicyResourceType::MowsApp,
+        ]
+        .into_iter()
+        .map(|rt| {
+            let info = get_auth_params_for_resource_type(rt);
+            mows_auth_core::ResourceAuthInfo {
+                resource_table: info.resource_table,
+                resource_table_id_column: info.resource_table_id_column,
+                resource_table_owner_column: info.resource_table_owner_column,
+                resource_type: info.resource_type as u32,
+                group_membership_table: info.group_membership_table,
+                group_membership_resource_id_column: info
+                    .group_membership_table_resource_id_column,
+                group_membership_group_id_column: info.group_membership_table_group_id_column,
+                resource_group_type: info.resource_group_type.map(|t| t as u32),
+            }
+        })
+        .collect();
+        mows_auth_core::StaticResourceTypeRegistry::new(entries)
+            .expect("filez resource registry has unsafe SQL identifiers — see RegistryError")
+    })
+}
+
+#[cfg(test)]
+mod registry_validation {
+    //! Boot-time guard: filez's 9 resource types must construct a
+    //! valid engine registry. If anyone introduces a new
+    //! AccessPolicyResourceType with a bad identifier (e.g.
+    //! "files-table" or a quoted-identifier shape) the test fails
+    //! before the binary ships.
+    use super::engine_resource_registry;
+    use crate::models::access_policies::AccessPolicyResourceType;
+    use mows_auth_core::ResourceTypeRegistry;
+
+    #[test]
+    fn filez_registry_builds_without_unsafe_identifiers() {
+        let reg = engine_resource_registry();
+        // Spot-check the 9 expected entries are present.
+        assert!(reg.lookup(AccessPolicyResourceType::File as u32).is_some());
+        assert!(reg.lookup(AccessPolicyResourceType::FileGroup as u32).is_some());
+        assert!(reg.lookup(AccessPolicyResourceType::User as u32).is_some());
+        assert!(reg.lookup(AccessPolicyResourceType::UserGroup as u32).is_some());
+        assert!(reg.lookup(AccessPolicyResourceType::StorageLocation as u32).is_some());
+        assert!(reg.lookup(AccessPolicyResourceType::AccessPolicy as u32).is_some());
+        assert!(reg.lookup(AccessPolicyResourceType::StorageQuota as u32).is_some());
+        assert!(reg.lookup(AccessPolicyResourceType::FilezJob as u32).is_some());
+        assert!(reg.lookup(AccessPolicyResourceType::MowsApp as u32).is_some());
+        assert_eq!(reg.all().len(), 9, "expected all 9 filez resource types");
+        // Lookup of an unregistered integer must return None — guards
+        // against silent default-allow if an Action references a
+        // type-int that hasn't been registered.
+        assert!(reg.lookup(999).is_none());
+    }
+
+    #[test]
+    fn file_entry_has_correct_group_membership_wiring() {
+        let reg = engine_resource_registry();
+        let file = reg
+            .lookup(AccessPolicyResourceType::File as u32)
+            .expect("File registered");
+        assert_eq!(file.resource_table, "files");
+        assert_eq!(file.resource_table_owner_column, Some("owner_id"));
+        assert_eq!(file.group_membership_table, Some("file_file_group_members"));
+        assert_eq!(file.resource_group_type, Some(AccessPolicyResourceType::FileGroup as u32));
+    }
+}
+
 #[cfg(test)]
 mod engine_reason_parity {
     //! Pin filez's local AuthReason / AuthEvaluation / AuthResult to

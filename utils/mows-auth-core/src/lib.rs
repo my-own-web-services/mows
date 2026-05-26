@@ -54,4 +54,7 @@ pub use crate::idp::{
     IntrospectedUser, IntrospectionError, IntrospectionResult, TokenIntrospector,
     ZitadelIntrospector, ZITADEL_IDP_ID,
 };
+pub use crate::registry::{
+    RegistryError, ResourceAuthInfo, ResourceTypeRegistry, StaticResourceTypeRegistry,
+};
 pub use crate::types::AuthError;
