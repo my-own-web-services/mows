@@ -53,6 +53,9 @@ pub enum FilezError {
     #[error("Generic Error: {0}")]
     GenericError(#[from] anyhow::Error),
 
+    #[error("Auth engine error: {0}")]
+    AuthCoreError(#[from] mows_auth_core::types::AuthError),
+
     #[error("Resource not found: {0}")]
     ResourceNotFound(String),
 
@@ -209,6 +212,15 @@ impl IntoResponse for FilezError {
                 None,
                 "AuthEvaluationError".to_string(),
             ),
+            FilezError::AuthCoreError(auth_core_error) => {
+                let status = match auth_core_error {
+                    mows_auth_core::types::AuthError::Denied => {
+                        axum::http::StatusCode::FORBIDDEN
+                    }
+                    _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                };
+                (status, None, "AuthCoreError".to_string())
+            }
             FilezError::AuthEvaluationAccessDenied(auth_result) => (
                 axum::http::StatusCode::FORBIDDEN,
                 serde_json::to_value(auth_result).ok(),

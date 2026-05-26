@@ -1,0 +1,53 @@
+[package]
+name = "mows-auth-core"
+version = { workspace = true }
+edition = { workspace = true }
+publish = false
+description = "MOWS authorization engine — policy storage, check_access, list_visible. Shared by every MOWS service."
+
+[lib]
+name = "mows_auth_core"
+path = "src/lib.rs"
+
+[features]
+default = []
+
+[dependencies]
+# Error handling per CLAUDE.md
+thiserror = { workspace = true, features = ["default"] }
+
+# UUID + chrono for the canonical column types in DATA_MODEL.md §2
+uuid = { workspace = true, features = ["v4", "serde"] }
+chrono = { workspace = true, features = ["clock", "serde", "std"] }
+
+# Serde for policy DTOs and registry config
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["default"] }
+
+# utoipa for ToSchema — every MOWS service is axum + utoipa, so the
+# engine's public DTOs need to appear in their OpenAPI specs without
+# requiring each service to wrap or duplicate them.
+utoipa = { workspace = true, features = ["macros", "chrono", "uuid", "repr", "openapi_extensions"] }
+
+# Diesel — matches filez's feature set so service crates can share the
+# connection pool when they consume mows-auth-core.
+diesel = { version = "2.2.10", features = [
+    "chrono",
+    "uuid",
+    "postgres_backend",
+    "numeric",
+    "serde_json",
+] }
+diesel-async = { version = "0.5.2", features = [
+    "postgres",
+    "deadpool",
+] }
+
+# Tracing per CLAUDE.md — every public function gets #[tracing::instrument]
+tracing = { workspace = true, features = ["default"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

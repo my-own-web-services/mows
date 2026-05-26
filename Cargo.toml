@@ -54,6 +54,7 @@ mows-package-manager = { path = "./operators/mows-package-manager", default-feat
 acme-rs = { path = "./apis/core/pektin/acme-rs", default-features = false }
 diesel-enum = { path = "./utils/diesel-enum", default-features = false }
 filez-server-client = { path = "./apis/cloud/filez/clients/rust", default-features = false }
+mows-auth-core = { path = "./utils/mows-auth-core", default-features = false }
 
 
 utoipa-swagger-ui = { version = "9.0.2", default-features = false }

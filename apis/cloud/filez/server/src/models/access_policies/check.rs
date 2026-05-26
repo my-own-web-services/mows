@@ -277,7 +277,14 @@ pub async fn check_resources_access_control(
                 // Policy Precedence: DENY rules take priority
                 let mut denied = false;
 
-                // Check direct DENY policies
+                // Check direct DENY policies.
+                // NOTE: Public/ServerMember subjects MUST map to the
+                // `DeniedBy*` reason variants here. An earlier version
+                // mapped them to `AllowedByPubliclyAccessible` /
+                // `AllowedByServerAccessible`, which silently reported
+                // the wrong outcome to the audit log on the hottest
+                // denial path (Public resource with overriding Deny).
+                // Mirror change in the resource-group Deny block below.
                 if let Some(policies) = direct_policies_map.get(resource_id) {
                     for policy in policies {
                         if policy.effect == AccessPolicyEffect::Deny {
@@ -296,12 +303,12 @@ pub async fn check_resources_access_control(
                                     }
                                 }
                                 AccessPolicySubjectType::Public => {
-                                    AuthReason::AllowedByPubliclyAccessible {
+                                    AuthReason::DeniedByPubliclyAccessible {
                                         policy_id: policy.id,
                                     }
                                 }
                                 AccessPolicySubjectType::ServerMember => {
-                                    AuthReason::AllowedByServerAccessible {
+                                    AuthReason::DeniedByServerAccessible {
                                         policy_id: policy.id,
                                     }
                                 }
@@ -343,12 +350,12 @@ pub async fn check_resources_access_control(
                                             }
                                         }
                                         AccessPolicySubjectType::Public => {
-                                            AuthReason::AllowedByPubliclyAccessible {
+                                            AuthReason::DeniedByPubliclyAccessible {
                                                 policy_id: policy.id,
                                             }
                                         }
                                         AccessPolicySubjectType::ServerMember => {
-                                            AuthReason::AllowedByServerAccessible {
+                                            AuthReason::DeniedByServerAccessible {
                                                 policy_id: policy.id,
                                             }
                                         }

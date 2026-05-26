@@ -2732,6 +2732,7 @@ dependencies = [
  "kube",
  "mime_guess",
  "minio",
+ "mows-auth-core",
  "mows-common-rust",
  "openidconnect",
  "opentelemetry 0.26.0",
@@ -4896,6 +4897,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "mows-auth-core"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "diesel",
+ "diesel-async",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tracing",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
 name = "mows-cli"
 version = "0.8.0"
 dependencies = [
@@ -5033,6 +5050,7 @@ dependencies = [
  "futures-util",
  "governor",
  "include_dir",
+ "parking_lot",
  "password-hash 0.6.1",
  "petname",
  "rand 0.9.1",
@@ -5047,6 +5065,7 @@ dependencies = [
  "thiserror 2.0.12",
  "tokio",
  "tokio-tungstenite",
+ "tokio-util",
  "tower 0.5.2",
  "tower-http",
  "tower_governor",

@@ -1,0 +1,45 @@
+//! MOWS authorization engine — `check_access` and `list_visible` primitives,
+//! the policy schema, and the per-service extension hooks.
+//!
+//! See `.plans/authorization/` (in particular ARCHITECTURE.md and
+//! DATA_MODEL.md) for the full design and rationale. The crate is consumed
+//! in-process by each MOWS service via the service's existing Postgres
+//! connection pool; see DEPLOYMENT.md for the topology.
+//!
+//! ## Crate layout (per DATA_MODEL.md §1)
+//!
+//! - [`types`]     — id newtypes, enums (`SubjectType`, `Effect`,
+//!                   `ResourceScope`, `GroupVisibility`, `GroupJoinPolicy`)
+//!                   and the typed [`AuthError`].
+//! - [`registry`]  — `ResourceTypeRegistry` trait, how services plug in.
+//! - [`check`]     — `check_access(...)` per-resource decision.
+//! - [`list`]      — `list_visible(...)` paginated listing.
+//! - [`policies`]  — `AccessPolicy` struct + CRUD helpers, the
+//!                   `filter_subject_access_policies!` macro.
+//! - [`groups`]    — user-group + resource-group helpers.
+//! - [`subjects`]  — `MowsUser`, `MowsApp` shared types.
+//!
+//! Public API surface (per ARCHITECTURE.md §3.7a — the single-primitive rule):
+//! every handler calls exactly one of [`check::check_access`] or
+//! [`list::list_visible`]. No handler composes auth SQL. Picker / consent
+//! mutations go via [`policies`] under a dedicated DB role.
+
+pub mod types;
+
+pub mod registry;
+
+pub mod policies;
+
+pub mod groups;
+
+pub mod subjects;
+
+pub mod check;
+
+pub mod list;
+
+// Re-export the most-used items at the crate root so downstream services
+// don't need a deep import path.
+pub use crate::check::check_access;
+pub use crate::list::list_visible;
+pub use crate::types::AuthError;

@@ -509,13 +509,19 @@ impl AccessPolicy {
                         .await?
                 }
                 None => {
+                    // NOTE: the column is `context_app_ids` (plural).
+                    // An earlier version used the singular `context_app_id`
+                    // which caused this branch to error at runtime — returning
+                    // zero resource-group results for every anonymous request.
+                    // Keep this query consistent with the Some(requesting_user)
+                    // branch above.
                     let resource_group_policies_query = format!(
                         "
                         SELECT gm.{resource_id_col} as id, ap.effect
                         FROM {group_membership_table} gm
                         JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
                         WHERE ap.resource_type = $1
-                            AND ap.context_app_id @> $2
+                            AND ap.context_app_ids @> $2
                             AND ap.actions @> $3
                             AND ap.subject_type = 3",
                         resource_id_col = group_membership_table_resource_id_column,
