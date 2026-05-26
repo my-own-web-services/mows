@@ -53,7 +53,11 @@ otherwise unchanged.
 ```sql
 CREATE TABLE users (
     id                    UUID PRIMARY KEY,
-    external_user_id      TEXT UNIQUE,
+    -- IdP discriminator — v1 has exactly one row in `idp_providers`
+    -- named 'zitadel'. Forward-compat for replacing or adding IdPs
+    -- without a table rewrite. See AUTHENTICATION.md §"Pluggable IdP".
+    idp_id                UUID NOT NULL REFERENCES idp_providers(id),
+    external_user_id      TEXT NOT NULL,            -- the IdP-issued sub (was UNIQUE alone)
     pre_identifier_email  TEXT UNIQUE,
     display_name          TEXT NOT NULL DEFAULT '',
     created_time          TIMESTAMP NOT NULL,
@@ -61,9 +65,10 @@ CREATE TABLE users (
     deleted               BOOL NOT NULL DEFAULT FALSE,
     profile_picture       UUID NULL,                -- service-specific FK
     created_by            UUID NULL REFERENCES users(id),
-    user_type             SMALLINT NOT NULL         -- 0 SuperAdmin, 1 Regular, 2 KeyAccess
+    user_type             SMALLINT NOT NULL,        -- 0 SuperAdmin, 1 Regular, 2 KeyAccess
+    UNIQUE (idp_id, external_user_id)
 );
-CREATE INDEX users_external_user_id_idx ON users(external_user_id);
+CREATE INDEX users_external_user_id_idx ON users(idp_id, external_user_id);
 CREATE INDEX users_pre_identifier_email_idx ON users(pre_identifier_email);
 ```
 
@@ -78,16 +83,30 @@ Already exists in filez. Generalisation: unchanged.
 
 ```sql
 CREATE TABLE apps (
-    id              UUID PRIMARY KEY,
-    name            TEXT NOT NULL UNIQUE,
-    origins         TEXT[] NULL,
-    trusted         BOOL NOT NULL DEFAULT FALSE,
-    description     TEXT NULL,
-    created_time    TIMESTAMP NOT NULL,
-    modified_time   TIMESTAMP NOT NULL,
-    app_type        SMALLINT NOT NULL              -- 0 Frontend, 1 Backend
+    id                    UUID PRIMARY KEY,
+    name                  TEXT NOT NULL UNIQUE,
+    -- IdP discriminator — same rationale as on users.
+    idp_id                UUID NOT NULL REFERENCES idp_providers(id),
+    external_client_id    TEXT NULL,                 -- IdP-issued client_id; NULL only for sentinel `no-origin` app
+    origins               TEXT[] NULL,
+    trusted               BOOL NOT NULL DEFAULT FALSE,
+    description           TEXT NULL,
+    created_time          TIMESTAMP NOT NULL,
+    modified_time         TIMESTAMP NOT NULL,
+    app_type              SMALLINT NOT NULL,         -- 0 Frontend, 1 Backend, 2 Api
+    UNIQUE (idp_id, external_client_id)
 );
+CREATE INDEX apps_external_client_id_idx ON apps(idp_id, external_client_id);
 CREATE INDEX apps_origins_gin_idx ON apps USING GIN (origins);
+
+-- Singleton-ish: v1 has exactly one row (`name = 'zitadel'`). Forward-
+-- compat for replacing or adding IdPs. See AUTHENTICATION.md.
+CREATE TABLE idp_providers (
+    id              UUID PRIMARY KEY,
+    name            TEXT NOT NULL UNIQUE,       -- 'zitadel', 'keycloak', ...
+    discovery_url   TEXT NOT NULL,              -- OIDC discovery endpoint
+    created_time    TIMESTAMP NOT NULL
+);
 ```
 
 `trusted` is admin-only. The first-party UI and the manager UI get `trusted

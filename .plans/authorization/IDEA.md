@@ -274,10 +274,28 @@ that gives separation without the network hop), `OPEN_QUESTIONS.md`
 
 ## Out of scope (v1)
 
-- Federation across MOWS clusters
+- **Federation across MOWS clusters.** Per-cluster identity / policy
+  assumptions stay. The Federation Cloud API on mows.cloud is
+  forward-looking; v1 auth makes no provision for it. Per-cluster
+  UUIDs, per-cluster Zitadel instance, no `cluster_id` discriminator
+  in v1.
+- **Infrastructure RBAC (Pektin, Verkehr, …).** These are
+  backend-only concerns in v1 — they keep their own internal access
+  control and are not consumers of `mows-auth-core`. The site's
+  "Operator" framing is out of date; this design covers the Cloud
+  APIs and the Apps surface, not the infrastructure layer.
+- **Per-user app installation.** v1 = admin installs apps only.
+  Install-time consent (USAGE_LIMITS.md "Cross-API bundles") is
+  reviewed and approved by the admin. Runtime per-resource consent
+  (the standard Picker, CONSENT_FLOW.md) is still per-user. v2 may
+  add user-driven app installation.
 - Attribute-based or DSL-driven policies (Rego, Cedar, AWS IAM JSON)
 - Free-text search joined with auth (sits in the search index, not here)
 - Cross-resource-type combined listings (each type runs its own
   primitive in parallel; frontend interleaves)
 - Cryptographic per-link capability tokens (v2; expires_at covers
   the auto-expire case)
+- **Multiple identity providers active in parallel.** v1 ships
+  Zitadel only. The schema is forward-compat via `idp_id`
+  (AUTHENTICATION.md §2) so adding a second IdP later does not
+  require a table rewrite.

@@ -63,6 +63,10 @@ it to a system-wide primitive, and addresses the open questions raised in
 8. **[OPEN_QUESTIONS.md](./OPEN_QUESTIONS.md)** — decisions still to be made.
    Each entry lists the trade-offs and a tentative recommendation, but
    nothing in this file is final.
+8a. **[REVIEW-vs-mows-vision.md](./REVIEW-vs-mows-vision.md)** — multi-
+    perspective gap analysis cross-checking this design against the
+    MOWS project vision on mows.cloud. Status table per finding plus
+    the full report; read this before adding new scope.
 9. **[ROADMAP.md](./ROADMAP.md)** — the implementation order. Phase 0
    (extract from filez), Phase 1 (shared crate + migrations), Phase 2
    (listing index), Phase 3 (group lifecycle), Phase 4 (per-app scopes).

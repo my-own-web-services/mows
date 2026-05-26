@@ -190,6 +190,35 @@ self-ownership grants of "all my objects to App A" — that is the
 `OwnedByOwner` scope (§3 above), and it's the right shape: revocable,
 auditable, per-user, scoped to one resource type at a time.
 
+## 9a. App lifecycle in v1 — admin installs only
+
+v1 scope reduction: **only the cluster admin installs apps**.
+Per-user app installation is v2. This collapses the install flow
+to a simple, well-defined sequence:
+
+| Step          | What happens                                                                                                                                                                  | Who acts                |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| **Install**   | Admin selects an app + version in the manager UI. mpm fetches the manifest, registers a Zitadel OIDC client (via the install-time admin-credentials grant), and inserts a `mows_auth.apps` row with the issued `(idp_id, external_client_id)`. The manifest's `authorization.bundle_grants` (USAGE_LIMITS.md "Bootstrapping a bundle request from an app's manifest") is shown to the admin for review; the admin may adjust the default quotas before approving. On approve, the bundle policies are inserted with `policy_bundle_id = <install-bundle>` and `owner_id = admin`. | Admin (via manager UI)  |
+| **Update**    | mpm detects a manifest change. Re-runs the bundle preview: any *new* grant or *increased* quota beyond previous defaults requires a fresh admin approval; unchanged grants carry over. The bundle id is preserved across updates so revoke-by-bundle still works.                                                                          | mpm + admin             |
+| **Uninstall** | Admin clicks Uninstall. One UPDATE: `revoked = TRUE WHERE created_by_app = <app>`. Each service's `on_policy_revoked` fires per row (quotas free, side-table rows drop). The Zitadel client is deleted. `mows_auth.apps.revoked = TRUE`; the row itself stays for audit (other tables reference it).                                       | Admin                   |
+| **`client_id` rotation** | Admin triggers rotation in the manager UI. New `external_client_id` is issued by Zitadel; the `mows_auth.apps` row is UPDATEd in place (no new app row, no policy migration needed — the join key is `(idp_id, external_client_id)` but policies reference the internal UUID `id`).                                              | Admin                   |
+
+Users *can still grant runtime per-resource consent to an installed
+app* via the standard CONSENT_FLOW.md Picker. Installation is just
+the gate that decides which apps are available cluster-wide; per-user
+sharing inside an installed app stays per-user.
+
+The set of admin-only actions in v1 — install / update / uninstall
+app, rotate Zitadel client, add user, promote user to SuperAdmin,
+provide decryption secret — are SuperAdmin-gated and live outside
+the per-resource policy table: they are checked by direct
+`requesting_user.user_type == SuperAdmin` in the relevant manager
+endpoints, not via the engine. This is intentional. Putting them in
+the policy table would force every SuperAdmin action through
+`check_access` for something that has exactly one allowed answer
+(self-grant by the SuperAdmin), bloating the table with no
+expressivity gain.
+
 ## 10. Test plan for app authorization
 
 - Trusted-app short-circuit fires exactly when all requested resources
