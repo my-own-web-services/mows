@@ -18,6 +18,45 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// Maximum size in bytes of a single introspection response body the
+/// engine will deserialise. Caps the attack surface of a compromised
+/// or malicious IdP returning a giant payload (SEC-2). `TokenIntrospector`
+/// implementations MUST enforce this before passing the bytes to
+/// `serde_json`. 32 KiB comfortably fits a well-formed Zitadel /
+/// Keycloak / Authentik response with `project_roles`, `realm_access`,
+/// and the usual claims; anything larger is an abuse signal.
+pub const MAX_INTROSPECTION_BODY_BYTES: usize = 32 * 1024;
+
+/// Maximum nesting depth the engine will accept inside
+/// `IntrospectionResult.extra` and `IntrospectedUser.extra`. serde_json
+/// has its own internal recursion limit (RECURSION_LIMIT = 128) that
+/// guards stack safety; this is a tighter MOWS-side cap because no
+/// real IdP issues claims more than a handful of levels deep. Impls
+/// MUST check via [`enforce_extra_depth`] after deserialising.
+pub const MAX_EXTRA_JSON_DEPTH: usize = 8;
+
+/// Return an error if `value`'s nesting depth exceeds
+/// [`MAX_EXTRA_JSON_DEPTH`]. Use after deserialising a claims blob you
+/// intend to put into `extra`.
+pub fn enforce_extra_depth(value: &serde_json::Value) -> Result<(), IntrospectionError> {
+    fn depth(v: &serde_json::Value) -> usize {
+        match v {
+            serde_json::Value::Object(map) => {
+                1 + map.values().map(depth).max().unwrap_or(0)
+            }
+            serde_json::Value::Array(arr) => 1 + arr.iter().map(depth).max().unwrap_or(0),
+            _ => 0,
+        }
+    }
+    let observed = depth(value);
+    if observed > MAX_EXTRA_JSON_DEPTH {
+        return Err(IntrospectionError::Malformed(format!(
+            "extra claims depth {observed} exceeds MAX_EXTRA_JSON_DEPTH={MAX_EXTRA_JSON_DEPTH}"
+        )));
+    }
+    Ok(())
+}
+
 /// What introspection produces. IdP-agnostic — middleware never has to
 /// know whether the token came from Zitadel, Keycloak, or anywhere
 /// else.
@@ -141,6 +180,12 @@ pub enum IntrospectionError {
 ///   * mapping IdP-specific claims onto the canonical
 ///     [`IntrospectionResult`] shape
 ///
+/// Implementations MUST enforce the size and depth caps documented in
+/// this module — [`MAX_INTROSPECTION_BODY_BYTES`] on the raw response
+/// body (before parsing) and [`enforce_extra_depth`] on the populated
+/// `extra` value. Skipping these turns a compromised IdP into a DoS
+/// vector for every API in the cluster (SEC-2).
+///
 /// Implementations must NOT touch `mows_auth.users` or
 /// `mows_auth.apps` — that mapping happens at the caller so the trait
 /// stays connection-pool-agnostic.
@@ -236,6 +281,60 @@ mod tests {
             .and_then(|v| v.get("admin"));
         assert!(project_roles.is_some(),
             "consumers must be able to pull IdP-specific claims back out by key");
+    }
+
+    #[test]
+    fn enforce_extra_depth_allows_shallow_claims() {
+        // Realistic Zitadel project_roles shape — 4 levels deep, well
+        // under the cap. Must pass.
+        let value = serde_json::json!({
+            "project_roles": {
+                "admin": { "filez-project": "filez-org" }
+            },
+            "metadata": { "tenant_id": "abc" }
+        });
+        enforce_extra_depth(&value).expect("realistic shape must pass");
+    }
+
+    #[test]
+    fn enforce_extra_depth_rejects_deeply_nested_claims() {
+        // Build N levels of nested objects. SEC-2 attack vector: a
+        // compromised IdP returns a payload that, if cached or
+        // serialised repeatedly, exhausts memory.
+        let mut value = serde_json::Value::Object(serde_json::Map::new());
+        for _ in 0..(MAX_EXTRA_JSON_DEPTH + 5) {
+            let mut wrap = serde_json::Map::new();
+            wrap.insert("n".to_string(), value);
+            value = serde_json::Value::Object(wrap);
+        }
+        let err = enforce_extra_depth(&value).expect_err("deep nesting must fail");
+        match err {
+            IntrospectionError::Malformed(msg) => {
+                assert!(msg.contains("depth"), "error must mention depth: {msg}")
+            }
+            other => panic!("expected Malformed, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn enforce_extra_depth_treats_arrays_as_depth() {
+        // Arrays count toward depth too — `[[[[…]]]]` is just as
+        // pathological as nested objects.
+        let mut value = serde_json::Value::Null;
+        for _ in 0..(MAX_EXTRA_JSON_DEPTH + 1) {
+            value = serde_json::Value::Array(vec![value]);
+        }
+        enforce_extra_depth(&value).expect_err("array-nested attack must fail");
+    }
+
+    #[test]
+    fn max_introspection_body_bytes_is_sane() {
+        // Belt and braces: the constant must be small enough to be a
+        // meaningful cap and large enough for real responses. Zitadel
+        // introspection bodies in the wild are 1–4 KiB; Keycloak with
+        // realm_access can reach ~10 KiB.
+        assert!(MAX_INTROSPECTION_BODY_BYTES >= 8 * 1024);
+        assert!(MAX_INTROSPECTION_BODY_BYTES <= 256 * 1024);
     }
 
     #[test]

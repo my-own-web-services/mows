@@ -340,9 +340,13 @@ impl IntoResponse for FilezError {
             }
         };
 
+        // Log the full error chain server-side. Body sees the
+        // sanitized form only — see `safe_message` below.
+        tracing::error!(error = ?self, "FilezError → HTTP {}", status);
+
         let body: ApiResponse<Value> = ApiResponse {
             status: ApiResponseStatus::Error(error_name),
-            message: self.to_string(),
+            message: self.safe_message(),
             data,
         };
         (status, axum::Json(body)).into_response()
@@ -352,6 +356,54 @@ impl IntoResponse for FilezError {
 impl FilezError {
     pub fn metric_label(&self) -> String {
         format!("{self:?}").to_lowercase()
+    }
+
+    /// Body-safe error message. Variants that wrap internal error types
+    /// (`diesel::result::Error`, pool errors, Kubernetes API errors,
+    /// `anyhow::Error`, `IoError`, …) leak column names / constraint
+    /// names / pool state / paths through `Display`. SEC-1 fix: those
+    /// variants get a fixed generic string; the full chain is logged
+    /// to tracing for ops, never to the HTTP body.
+    ///
+    /// Variants whose `Display` is genuinely user-facing (user-supplied
+    /// validation errors, "Forbidden: <reason>", quota messages, …)
+    /// keep `self.to_string()`.
+    fn safe_message(&self) -> String {
+        match self {
+            // --- redacted: wraps diesel / pool / anyhow / kube / io ---
+            FilezError::DatabaseError(_) => "database error".to_string(),
+            FilezError::DeadpoolError(_) => "database pool error".to_string(),
+            FilezError::AuthCoreError(_) => "authorization engine error".to_string(),
+            FilezError::IoError(_) => "io error".to_string(),
+            FilezError::GenericError(_) => "internal error".to_string(),
+            FilezError::StorageError(_) => "storage error".to_string(),
+            FilezError::IntrospectionGuardError(_) => "authentication error".to_string(),
+            FilezError::ControllerKubeError(_)
+            | FilezError::ControllerFinalizerError(_)
+            | FilezError::ControllerMissingResourceName(_) => "controller error".to_string(),
+            FilezError::SessionError(_) => "session error".to_string(),
+            FilezError::DatabasePoolNotInitialized => "database pool not initialized".to_string(),
+            FilezError::AuthEvaluationError(_) => "auth evaluation error".to_string(),
+            // --- safe: user input / static strings / typed data ---
+            FilezError::TryFromIntError(_)
+            | FilezError::JsonRejectionError(_)
+            | FilezError::ValidationError(_)
+            | FilezError::UrlParseError(_)
+            | FilezError::ParseError(_)
+            | FilezError::SerdeJsonError(_)
+            | FilezError::MimeError(_)
+            | FilezError::ResourceNotFound(_)
+            | FilezError::InvalidRequest(_)
+            | FilezError::UnsupportedMediaType(_)
+            | FilezError::Unauthorized(_)
+            | FilezError::Forbidden(_)
+            | FilezError::ResourceAuthInfoError(_)
+            | FilezError::AuthEvaluationAccessDenied(_)
+            | FilezError::StorageQuotaExceeded { .. }
+            | FilezError::FileVersionSizeExceeded { .. }
+            | FilezError::FileVersionContentDigestMismatch { .. }
+            | FilezError::FileVersionContentAlreadyValid => self.to_string(),
+        }
     }
 }
 
@@ -375,4 +427,64 @@ pub fn get_error_type(e: &FilezError) -> String {
     let reason = format!("{:?}", e.typed_debug());
     let reason = reason.split_at(reason.find('(').unwrap_or(0)).0;
     reason.to_string()
+}
+
+#[cfg(test)]
+mod safe_message_redaction {
+    //! SEC-1 regression guard. Variants that wrap internal error types
+    //! must never put `self.to_string()` (which includes the wrapped
+    //! Display chain) into the HTTP body — that leaks column names,
+    //! constraint names, pool state, paths, etc. The full chain still
+    //! goes to tracing::error for ops.
+    use super::*;
+
+    #[test]
+    fn database_error_message_is_redacted() {
+        // diesel::result::Error::NotFound has a Display like "Record not
+        // found" — innocuous, but other variants reveal column names
+        // and constraint values. We blanket-redact the whole variant.
+        let err = FilezError::DatabaseError(diesel::result::Error::NotFound);
+        let msg = err.safe_message();
+        assert_eq!(msg, "database error");
+        assert!(
+            !msg.contains("NotFound"),
+            "DatabaseError safe_message must not leak the diesel variant: {msg}"
+        );
+    }
+
+    #[test]
+    fn auth_core_error_message_is_redacted() {
+        // AuthError::Database wraps a diesel error which in turn wraps
+        // a Postgres error containing column names, constraints, etc.
+        let err = FilezError::AuthCoreError(mows_auth_core::types::AuthError::Database(
+            diesel::result::Error::NotFound,
+        ));
+        let msg = err.safe_message();
+        assert_eq!(msg, "authorization engine error");
+        assert!(
+            !msg.contains("NotFound") && !msg.contains("database"),
+            "AuthCoreError safe_message must not leak the underlying chain: {msg}"
+        );
+    }
+
+    #[test]
+    fn forbidden_message_passes_through() {
+        // Forbidden carries a user-facing reason; it's intentional.
+        let err = FilezError::Forbidden("you cannot delete this file".to_string());
+        let msg = err.safe_message();
+        assert!(
+            msg.contains("you cannot delete this file"),
+            "Forbidden message must surface the explicit reason: {msg}"
+        );
+    }
+
+    #[test]
+    fn resource_not_found_message_passes_through() {
+        let err = FilezError::ResourceNotFound("file abc-123".to_string());
+        let msg = err.safe_message();
+        assert!(
+            msg.contains("file abc-123"),
+            "ResourceNotFound must surface the resource id: {msg}"
+        );
+    }
 }

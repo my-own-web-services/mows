@@ -42,8 +42,11 @@ pub mod list;
 
 // Re-export the most-used items at the crate root so downstream services
 // don't need a deep import path.
-pub use crate::check::check_access;
+//
+// `check_access` and `list_visible` are deliberately NOT re-exported
+// — they're pub(crate) stubs today; re-exposing them would let a
+// downstream service wire up a `Err(Denied)` placeholder. They become
+// `pub` and re-exported when the real implementations land.
 pub use crate::idp::{IntrospectedUser, IntrospectionError, IntrospectionResult, TokenIntrospector};
-pub use crate::list::list_visible;
 pub use crate::subjects::ZITADEL_IDP_ID;
 pub use crate::types::AuthError;
