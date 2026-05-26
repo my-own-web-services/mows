@@ -105,6 +105,29 @@ pub enum AccessPolicyResourceType {
     MowsApp = 8,
 }
 
+impl AccessPolicyResourceType {
+    /// Reverse of `as u32` — used at the engine-registry boundary
+    /// when a `ResourceAuthInfo.resource_group_type: Option<u32>`
+    /// needs to be bound to a `schema::access_policies::resource_type`
+    /// SmallInt column. Returns `None` for unknown integers; the
+    /// registry is populated from these very variants at startup so
+    /// callers can safely `.expect("registered type")`.
+    pub fn from_u32(t: u32) -> Option<Self> {
+        match t {
+            0 => Some(Self::File),
+            1 => Some(Self::FileGroup),
+            2 => Some(Self::User),
+            3 => Some(Self::UserGroup),
+            4 => Some(Self::StorageLocation),
+            5 => Some(Self::AccessPolicy),
+            6 => Some(Self::StorageQuota),
+            7 => Some(Self::FilezJob),
+            8 => Some(Self::MowsApp),
+            _ => None,
+        }
+    }
+}
+
 // Effect (Deny=0, Allow=1) is engine-owned. Filez imports
 // mows_auth_core::types::Effect wherever needed.
 
@@ -369,7 +392,12 @@ impl AccessPolicy {
         action_to_perform: AccessPolicyAction,
     ) -> Result<Vec<Uuid>, FilezError> {
         let mut connection = database.get_connection().await?;
-        let resource_auth_info = check::get_auth_params_for_resource_type(resource_type);
+        // Engine-registry lookup. .expect — registry was populated
+        // from these very enum values at startup.
+        use mows_auth_core::ResourceTypeRegistry;
+        let resource_auth_info = check::engine_resource_registry()
+            .lookup(resource_type as u32)
+            .expect("resource type registered in engine registry");
         let maybe_user_group_ids = match maybe_requesting_user {
             Some(requesting_user) => {
                 Some(UserGroup::get_all_ids_by_user_id(database, &requesting_user.id).await?)
@@ -406,7 +434,7 @@ impl AccessPolicy {
 
         // 2. Get resources with direct policies
         let direct_policies = schema::access_policies::table
-            .filter(schema::access_policies::resource_type.eq(resource_auth_info.resource_type))
+            .filter(schema::access_policies::resource_type.eq(resource_type))
             .filter(schema::access_policies::context_app_ids.contains(vec![requesting_app.id]))
             .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
             .filter(filter_subject_access_policies!(
@@ -438,13 +466,18 @@ impl AccessPolicy {
             Some(group_membership_table),
             Some(group_membership_table_resource_id_column),
             Some(group_membership_table_group_id_column),
-            Some(resource_group_type),
+            Some(resource_group_type_u32),
         ) = (
             resource_auth_info.group_membership_table,
-            resource_auth_info.group_membership_table_resource_id_column,
-            resource_auth_info.group_membership_table_group_id_column,
+            resource_auth_info.group_membership_resource_id_column,
+            resource_auth_info.group_membership_group_id_column,
             resource_auth_info.resource_group_type,
         ) {
+            // Engine returns u32; convert back to i16 for the SmallInt
+            // bind below. Conversion is safe — the registry was
+            // populated from the typed enum at startup.
+            let resource_group_type: i16 = i16::try_from(resource_group_type_u32)
+                .expect("resource_group_type fits in i16 (registered range 0..=8)");
             #[derive(QueryableByName, Debug)]
             struct GroupPolicyResult {
                 #[diesel(sql_type = diesel::sql_types::Uuid)]

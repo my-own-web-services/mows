@@ -11,6 +11,7 @@ use diesel::{
 };
 use diesel::{PgArrayExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use mows_auth_core::ResourceTypeRegistry;
 use std::collections::{HashMap, HashSet};
 use tracing::trace;
 use uuid::Uuid;
@@ -26,7 +27,12 @@ pub async fn check_resources_access_control(
     action_to_perform: AccessPolicyAction,
 ) -> Result<AuthResult, FilezError> {
     let mut connection = database.get_connection().await?;
-    let resource_auth_info = get_auth_params_for_resource_type(resource_type);
+    // Engine-registry lookup. Safe to .expect — the registry was
+    // populated from these very enum values at startup; absence here
+    // would be a programmer error, not user input.
+    let resource_auth_info = engine_resource_registry()
+        .lookup(resource_type as u32)
+        .expect("resource type registered in engine registry");
 
     if let Some(requesting_user) = maybe_requesting_user {
         if requesting_user.user_type == FilezUserType::SuperAdmin {
@@ -147,7 +153,7 @@ pub async fn check_resources_access_control(
             let direct_policies = schema::access_policies::table
                 .filter(schema::access_policies::resource_id.eq_any(requested_resource_ids))
                 .filter(
-                    schema::access_policies::resource_type.eq(&resource_auth_info.resource_type),
+                    schema::access_policies::resource_type.eq(&resource_type),
                 )
                 .filter(schema::access_policies::context_app_ids.contains(vec![context_app.id]))
                 .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
@@ -189,13 +195,19 @@ pub async fn check_resources_access_control(
                 Some(group_membership_table),
                 Some(group_membership_table_resource_id_column),
                 Some(group_membership_table_group_id_column),
-                Some(resource_group_type_policy_str),
+                Some(resource_group_type_u32),
             ) = (
                 resource_auth_info.group_membership_table,
-                resource_auth_info.group_membership_table_resource_id_column,
-                resource_auth_info.group_membership_table_group_id_column,
+                resource_auth_info.group_membership_resource_id_column,
+                resource_auth_info.group_membership_group_id_column,
                 resource_auth_info.resource_group_type,
             ) {
+                // Engine returns u32; convert back to typed enum for the
+                // diesel SmallInt-bound filter below. Safe to .expect —
+                // the registry was populated from the same enum at startup.
+                let resource_group_type_policy_str =
+                    AccessPolicyResourceType::from_u32(resource_group_type_u32)
+                        .expect("resource_group_type registered in engine registry");
                 let resource_group_memberships_query_string = format!(
             "SELECT {resource_id_column} as resource_id, {group_id_column} as group_id FROM {table_name} WHERE {resource_id_column} = ANY($1)",
             table_name = group_membership_table,
@@ -431,7 +443,7 @@ pub async fn check_resources_access_control(
             let type_level_policies = schema::access_policies::table
                 .filter(schema::access_policies::resource_id.is_null())
                 .filter(
-                    schema::access_policies::resource_type.eq(&resource_auth_info.resource_type),
+                    schema::access_policies::resource_type.eq(&resource_type),
                 )
                 .filter(schema::access_policies::context_app_ids.contains(vec![context_app.id]))
                 .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
@@ -548,116 +560,11 @@ struct ResourceGroupMembership {
 // are the engine's canonical types.
 pub use mows_auth_core::{AuthEvaluation, AuthReason};
 
-pub struct ResourceAuthInfo {
-    pub resource_table: &'static str,
-    pub resource_table_id_column: &'static str,
-    pub resource_table_owner_column: Option<&'static str>,
-    pub resource_type: AccessPolicyResourceType,
-
-    // For resources that can be part of groups
-    pub group_membership_table: Option<&'static str>,
-    pub group_membership_table_resource_id_column: Option<&'static str>,
-    pub group_membership_table_group_id_column: Option<&'static str>,
-    pub resource_group_type: Option<AccessPolicyResourceType>,
-}
-
-pub fn get_auth_params_for_resource_type(
-    resource_type: AccessPolicyResourceType,
-) -> ResourceAuthInfo {
-    match resource_type {
-        AccessPolicyResourceType::File => ResourceAuthInfo {
-            resource_table: "files",
-            resource_table_id_column: "id",
-            resource_table_owner_column: Some("owner_id"),
-            resource_type: AccessPolicyResourceType::File,
-            group_membership_table: Some("file_file_group_members"),
-            group_membership_table_resource_id_column: Some("file_id"),
-            group_membership_table_group_id_column: Some("file_group_id"),
-            resource_group_type: Some(AccessPolicyResourceType::FileGroup),
-        },
-        AccessPolicyResourceType::FileGroup => ResourceAuthInfo {
-            resource_table: "file_groups",
-            resource_table_id_column: "id",
-            resource_table_owner_column: Some("owner_id"),
-            resource_type: AccessPolicyResourceType::FileGroup,
-            group_membership_table: None,
-            group_membership_table_resource_id_column: None,
-            group_membership_table_group_id_column: None,
-            resource_group_type: None,
-        },
-        AccessPolicyResourceType::User => ResourceAuthInfo {
-            resource_table: "users",
-            resource_table_id_column: "id",
-            resource_table_owner_column: Some("id"), // Users own themselves
-            resource_type: AccessPolicyResourceType::User,
-            group_membership_table: None,
-            group_membership_table_resource_id_column: None,
-            group_membership_table_group_id_column: None,
-            resource_group_type: None,
-        },
-        AccessPolicyResourceType::UserGroup => ResourceAuthInfo {
-            resource_table: "user_groups",
-            resource_table_id_column: "id",
-            resource_table_owner_column: Some("owner_id"),
-            resource_type: AccessPolicyResourceType::UserGroup,
-            group_membership_table: None,
-            group_membership_table_resource_id_column: None,
-            group_membership_table_group_id_column: None,
-            resource_group_type: None,
-        },
-        AccessPolicyResourceType::StorageLocation => ResourceAuthInfo {
-            resource_table: "storage_locations",
-            resource_table_id_column: "id",
-            resource_table_owner_column: None,
-            resource_type: AccessPolicyResourceType::StorageLocation,
-
-            group_membership_table: None,
-            group_membership_table_resource_id_column: None,
-            group_membership_table_group_id_column: None,
-            resource_group_type: None,
-        },
-        AccessPolicyResourceType::AccessPolicy => ResourceAuthInfo {
-            resource_table: "access_policies",
-            resource_table_id_column: "id",
-            resource_table_owner_column: Some("owner_id"),
-            resource_type: AccessPolicyResourceType::AccessPolicy,
-            group_membership_table: None,
-            group_membership_table_resource_id_column: None,
-            group_membership_table_group_id_column: None,
-            resource_group_type: None,
-        },
-        AccessPolicyResourceType::StorageQuota => ResourceAuthInfo {
-            resource_table: "storage_quotas",
-            resource_table_id_column: "id",
-            resource_table_owner_column: Some("owner_id"),
-            resource_type: AccessPolicyResourceType::StorageQuota,
-            group_membership_table: None,
-            group_membership_table_resource_id_column: None,
-            group_membership_table_group_id_column: None,
-            resource_group_type: None,
-        },
-        AccessPolicyResourceType::FilezJob => ResourceAuthInfo {
-            resource_table: "jobs",
-            resource_table_id_column: "id",
-            resource_table_owner_column: Some("owner_id"),
-            resource_type: AccessPolicyResourceType::FilezJob,
-            group_membership_table: None,
-            group_membership_table_resource_id_column: None,
-            group_membership_table_group_id_column: None,
-            resource_group_type: None,
-        },
-        AccessPolicyResourceType::MowsApp => ResourceAuthInfo {
-            resource_table: "apps",
-            resource_table_id_column: "id",
-            resource_table_owner_column: None,
-            resource_type: AccessPolicyResourceType::MowsApp,
-            group_membership_table: None,
-            group_membership_table_resource_id_column: None,
-            group_membership_table_group_id_column: None,
-            resource_group_type: None,
-        },
-    }
-}
+// Filez's local ResourceAuthInfo struct + get_auth_params_for_resource_type
+// function were deleted in Cleanup-5. The 9 resource-type entries live
+// inline in `engine_resource_registry()` below and are looked up via
+// the engine's StaticResourceTypeRegistry trait — single source of
+// truth, SQL-identifier validation at boot, no parallel data.
 
 // AuthResult is engine-owned. Re-exported here so existing call sites
 // keep their short import path. `verify()` and `verify_allow_type_level()`
@@ -883,33 +790,45 @@ pub fn engine_resource_registry() -> &'static mows_auth_core::StaticResourceType
     static REGISTRY: std::sync::OnceLock<mows_auth_core::StaticResourceTypeRegistry> =
         std::sync::OnceLock::new();
     REGISTRY.get_or_init(|| {
-        let entries = [
-            AccessPolicyResourceType::File,
-            AccessPolicyResourceType::FileGroup,
-            AccessPolicyResourceType::User,
-            AccessPolicyResourceType::UserGroup,
-            AccessPolicyResourceType::StorageLocation,
-            AccessPolicyResourceType::AccessPolicy,
-            AccessPolicyResourceType::StorageQuota,
-            AccessPolicyResourceType::FilezJob,
-            AccessPolicyResourceType::MowsApp,
-        ]
-        .into_iter()
-        .map(|rt| {
-            let info = get_auth_params_for_resource_type(rt);
+        // 9 inline entries. Adding a 10th means: extend
+        // `AccessPolicyResourceType` (with explicit discriminant) and
+        // its `from_u32` match arm in mod.rs, add an entry here, and
+        // — if you want SQL-identifier injection coverage from day 1
+        // — the registry_validation test below will exercise the
+        // lookup path.
+        let file = mows_auth_core::ResourceAuthInfo {
+            resource_table: "files",
+            resource_table_id_column: "id",
+            resource_table_owner_column: Some("owner_id"),
+            resource_type: AccessPolicyResourceType::File as u32,
+            group_membership_table: Some("file_file_group_members"),
+            group_membership_resource_id_column: Some("file_id"),
+            group_membership_group_id_column: Some("file_group_id"),
+            resource_group_type: Some(AccessPolicyResourceType::FileGroup as u32),
+        };
+        let plain = |rt: AccessPolicyResourceType, table: &'static str, owner_col: Option<&'static str>| {
             mows_auth_core::ResourceAuthInfo {
-                resource_table: info.resource_table,
-                resource_table_id_column: info.resource_table_id_column,
-                resource_table_owner_column: info.resource_table_owner_column,
-                resource_type: info.resource_type as u32,
-                group_membership_table: info.group_membership_table,
-                group_membership_resource_id_column: info
-                    .group_membership_table_resource_id_column,
-                group_membership_group_id_column: info.group_membership_table_group_id_column,
-                resource_group_type: info.resource_group_type.map(|t| t as u32),
+                resource_table: table,
+                resource_table_id_column: "id",
+                resource_table_owner_column: owner_col,
+                resource_type: rt as u32,
+                group_membership_table: None,
+                group_membership_resource_id_column: None,
+                group_membership_group_id_column: None,
+                resource_group_type: None,
             }
-        })
-        .collect();
+        };
+        let entries = vec![
+            file,
+            plain(AccessPolicyResourceType::FileGroup, "file_groups", Some("owner_id")),
+            plain(AccessPolicyResourceType::User, "users", Some("id")),
+            plain(AccessPolicyResourceType::UserGroup, "user_groups", Some("owner_id")),
+            plain(AccessPolicyResourceType::StorageLocation, "storage_locations", None),
+            plain(AccessPolicyResourceType::AccessPolicy, "access_policies", Some("owner_id")),
+            plain(AccessPolicyResourceType::StorageQuota, "storage_quotas", Some("owner_id")),
+            plain(AccessPolicyResourceType::FilezJob, "jobs", Some("owner_id")),
+            plain(AccessPolicyResourceType::MowsApp, "apps", None),
+        ];
         mows_auth_core::StaticResourceTypeRegistry::new(entries)
             .expect("filez resource registry has unsafe SQL identifiers — see RegistryError")
     })
