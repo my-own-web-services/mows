@@ -6,6 +6,33 @@ in `website/src/pages/project/`. The website is the rendered version
 of those source files (it's an SPA, so WebFetch returns only the
 shell — sources are authoritative).
 
+## Post-cleanup state (2026-05-26 evening)
+
+The "bolted-on" pattern flagged in a follow-up review has been
+unwound across 7 cleanup commits. Filez no longer duplicates engine
+types or carries parallel structures. The state today:
+
+- `SubjectType`, `Effect`, `AuthReason`, `AuthEvaluation`,
+  `AuthResult`, `ResourceAuthInfo`, `PolicyView`, `Subject`,
+  `IntrospectedUser`, `IntrospectionResult` — all engine-owned in
+  `mows_auth_core`; filez consumes them directly with no `From`
+  conversions.
+- `check_access` evaluation logic lives in `mows_auth_core::check`
+  (Phase 1.2 complete). Filez's `check_resources_access_control` is
+  a 20-line wrapper that builds `FilezPolicyStore` + `Subject` +
+  `AppView` and delegates.
+- `FilezPolicyStore` implements `PolicyStore` against filez's diesel
+  schema — the only filez-specific code in the auth path.
+- Identifier-injection guard fires at filez boot via the engine
+  registry's `SAFE_IDENTIFIER_REGEX`.
+- 17 filez-server + 56 mows-auth-core tests pass; both crates build
+  clean with zero warnings.
+
+Net change over the cleanup series: **~1000 LoC of duplicate /
+adapter code removed from filez**, replaced by ~600 LoC of engine
+implementations + ~300 LoC of `FilezPolicyStore` (which IS the
+storage backing, not a parallel structure).
+
 ## Status legend
 
 - ✅ resolved by the changes in this PR
