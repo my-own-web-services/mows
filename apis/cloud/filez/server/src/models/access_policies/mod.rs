@@ -94,6 +94,33 @@ pub enum AccessPolicySubjectType {
     Public = 3,
 }
 
+// Bidirectional conversions to the engine's wire-stable enum. The
+// discriminants match by construction (locked in by
+// `mows_auth_core::types::wire_stable_values::subject_type_values_are_stable`).
+// Adding a variant to either side without the other will produce a
+// compile error here — that's the point.
+impl From<AccessPolicySubjectType> for mows_auth_core::types::SubjectType {
+    fn from(s: AccessPolicySubjectType) -> Self {
+        match s {
+            AccessPolicySubjectType::User         => Self::User,
+            AccessPolicySubjectType::UserGroup    => Self::UserGroup,
+            AccessPolicySubjectType::ServerMember => Self::ServerMember,
+            AccessPolicySubjectType::Public       => Self::Public,
+        }
+    }
+}
+
+impl From<mows_auth_core::types::SubjectType> for AccessPolicySubjectType {
+    fn from(s: mows_auth_core::types::SubjectType) -> Self {
+        match s {
+            mows_auth_core::types::SubjectType::User         => Self::User,
+            mows_auth_core::types::SubjectType::UserGroup    => Self::UserGroup,
+            mows_auth_core::types::SubjectType::ServerMember => Self::ServerMember,
+            mows_auth_core::types::SubjectType::Public       => Self::Public,
+        }
+    }
+}
+
 #[derive(
     Debug,
     Serialize,
@@ -142,6 +169,24 @@ pub enum AccessPolicyResourceType {
 pub enum AccessPolicyEffect {
     Deny = 0,
     Allow = 1,
+}
+
+impl From<AccessPolicyEffect> for mows_auth_core::types::Effect {
+    fn from(e: AccessPolicyEffect) -> Self {
+        match e {
+            AccessPolicyEffect::Deny  => Self::Deny,
+            AccessPolicyEffect::Allow => Self::Allow,
+        }
+    }
+}
+
+impl From<mows_auth_core::types::Effect> for AccessPolicyEffect {
+    fn from(e: mows_auth_core::types::Effect) -> Self {
+        match e {
+            mows_auth_core::types::Effect::Deny  => Self::Deny,
+            mows_auth_core::types::Effect::Allow => Self::Allow,
+        }
+    }
 }
 
 #[derive(DbEnum, Debug, Serialize, Clone, Copy, PartialEq, Eq, Deserialize, ToSchema)]
@@ -683,5 +728,39 @@ impl AccessPolicy {
             action_to_perform,
         )
         .await
+    }
+}
+
+#[cfg(test)]
+mod engine_enum_parity {
+    //! Pin filez's enums to mows-auth-core's wire-stable enums. Any drift
+    //! (one side gains a variant, integers diverge) is caught here AND at
+    //! compile time via the exhaustive `match` arms in the `From` impls.
+    use super::{AccessPolicyEffect, AccessPolicySubjectType};
+    use mows_auth_core::types::{Effect, SubjectType};
+
+    #[test]
+    fn subject_type_roundtrip() {
+        for s in [
+            AccessPolicySubjectType::User,
+            AccessPolicySubjectType::UserGroup,
+            AccessPolicySubjectType::ServerMember,
+            AccessPolicySubjectType::Public,
+        ] {
+            let core: SubjectType = s.into();
+            let back: AccessPolicySubjectType = core.into();
+            assert_eq!(s, back, "filez↔core SubjectType roundtrip drifted at {s:?}");
+            assert_eq!(s as i16, core as i16, "integer mismatch at {s:?}");
+        }
+    }
+
+    #[test]
+    fn effect_roundtrip() {
+        for e in [AccessPolicyEffect::Deny, AccessPolicyEffect::Allow] {
+            let core: Effect = e.into();
+            let back: AccessPolicyEffect = core.into();
+            assert_eq!(e, back, "filez↔core Effect roundtrip drifted at {e:?}");
+            assert_eq!(e as i16, core as i16, "integer mismatch at {e:?}");
+        }
     }
 }
