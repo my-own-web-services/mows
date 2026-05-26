@@ -600,11 +600,100 @@ pub enum AuthReason {
     ResourceNotFound,
 }
 
+// Bidirectional conversion to / from the engine's wire-stable
+// AuthReason (mows_auth_core::evaluation::AuthReason). The engine
+// uses raw Uuid for every id field; filez wraps two of them
+// (AccessPolicyId, UserGroupId) as typed newtypes. The conversions
+// are pure renames with no logic, but the exhaustive match means a
+// future variant added to either side without the other fails the
+// build — same drift-guard pattern as the SubjectType / Effect
+// conversions in mod.rs.
+impl From<&AuthReason> for mows_auth_core::AuthReason {
+    fn from(r: &AuthReason) -> Self {
+        match r {
+            AuthReason::SuperAdmin => Self::SuperAdmin,
+            AuthReason::Owned => Self::Owned,
+            AuthReason::AllowedByPubliclyAccessible { policy_id } => {
+                Self::AllowedByPubliclyAccessible { policy_id: policy_id.0.into() }
+            }
+            AuthReason::AllowedByServerAccessible { policy_id } => {
+                Self::AllowedByServerAccessible { policy_id: policy_id.0.into() }
+            }
+            AuthReason::AllowedByDirectUserPolicy { policy_id } => {
+                Self::AllowedByDirectUserPolicy { policy_id: policy_id.0.into() }
+            }
+            AuthReason::AllowedByDirectUserGroupPolicy { policy_id, via_user_group_id } => {
+                Self::AllowedByDirectUserGroupPolicy {
+                    policy_id: policy_id.0.into(),
+                    via_user_group_id: via_user_group_id.0.into(),
+                }
+            }
+            AuthReason::AllowedByResourceGroupUserPolicy { policy_id, on_resource_group_id } => {
+                Self::AllowedByResourceGroupUserPolicy {
+                    policy_id: policy_id.0.into(),
+                    on_resource_group_id: *on_resource_group_id,
+                }
+            }
+            AuthReason::AllowedByResourceGroupUserGroupPolicy {
+                policy_id,
+                via_user_group_id,
+                on_resource_group_id,
+            } => Self::AllowedByResourceGroupUserGroupPolicy {
+                policy_id: policy_id.0.into(),
+                via_user_group_id: via_user_group_id.0.into(),
+                on_resource_group_id: *on_resource_group_id,
+            },
+            AuthReason::DeniedByPubliclyAccessible { policy_id } => {
+                Self::DeniedByPubliclyAccessible { policy_id: policy_id.0.into() }
+            }
+            AuthReason::DeniedByServerAccessible { policy_id } => {
+                Self::DeniedByServerAccessible { policy_id: policy_id.0.into() }
+            }
+            AuthReason::DeniedByDirectUserPolicy { policy_id } => {
+                Self::DeniedByDirectUserPolicy { policy_id: policy_id.0.into() }
+            }
+            AuthReason::DeniedByDirectUserGroupPolicy { policy_id, via_user_group_id } => {
+                Self::DeniedByDirectUserGroupPolicy {
+                    policy_id: policy_id.0.into(),
+                    via_user_group_id: via_user_group_id.0.into(),
+                }
+            }
+            AuthReason::DeniedByResourceGroupUserPolicy { policy_id, on_resource_group_id } => {
+                Self::DeniedByResourceGroupUserPolicy {
+                    policy_id: policy_id.0.into(),
+                    on_resource_group_id: *on_resource_group_id,
+                }
+            }
+            AuthReason::DeniedByResourceGroupUserGroupPolicy {
+                policy_id,
+                via_user_group_id,
+                on_resource_group_id,
+            } => Self::DeniedByResourceGroupUserGroupPolicy {
+                policy_id: policy_id.0.into(),
+                via_user_group_id: via_user_group_id.0.into(),
+                on_resource_group_id: *on_resource_group_id,
+            },
+            AuthReason::NoMatchingAllowPolicy => Self::NoMatchingAllowPolicy,
+            AuthReason::ResourceNotFound => Self::ResourceNotFound,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Clone, Deserialize, ToSchema)]
 pub struct AuthEvaluation {
     pub resource_id: Option<Uuid>,
     pub is_allowed: bool,
     pub reason: AuthReason,
+}
+
+impl From<&AuthEvaluation> for mows_auth_core::AuthEvaluation {
+    fn from(e: &AuthEvaluation) -> Self {
+        Self {
+            resource_id: e.resource_id,
+            is_allowed: e.is_allowed,
+            reason: (&e.reason).into(),
+        }
+    }
 }
 
 pub struct ResourceAuthInfo {
@@ -722,6 +811,15 @@ pub fn get_auth_params_for_resource_type(
 pub struct AuthResult {
     pub access_granted: bool,
     pub evaluations: Vec<AuthEvaluation>,
+}
+
+impl From<&AuthResult> for mows_auth_core::AuthResult {
+    fn from(r: &AuthResult) -> Self {
+        Self {
+            access_granted: r.access_granted,
+            evaluations: r.evaluations.iter().map(Into::into).collect(),
+        }
+    }
 }
 
 impl Display for AuthResult {
@@ -942,5 +1040,113 @@ mod tests {
             } => assert_eq!(on_resource_group_id, rg),
             other => panic!("UserGroup+Deny via-rg wrong variant: {other:?}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod engine_reason_parity {
+    //! Pin filez's local AuthReason / AuthEvaluation / AuthResult to
+    //! the engine equivalents (mows_auth_core::evaluation). Exhaustive
+    //! From impls catch any drift at compile time; these tests cover
+    //! the integer-level and structural roundtrips that a `From` match
+    //! arm alone wouldn't detect (e.g. swapping `policy_id` for
+    //! `via_user_group_id` in an arm — both are Uuid).
+    use super::*;
+    use crate::models::access_policies::AccessPolicyId;
+    use crate::models::user_groups::UserGroupId;
+    use uuid::Uuid;
+
+    #[test]
+    fn allowed_by_direct_user_group_policy_carries_correct_ids() {
+        let policy_uuid = Uuid::new_v4();
+        let group_uuid = Uuid::new_v4();
+        let reason = AuthReason::AllowedByDirectUserGroupPolicy {
+            policy_id: AccessPolicyId(policy_uuid.into()),
+            via_user_group_id: UserGroupId(group_uuid.into()),
+        };
+        let engine: mows_auth_core::AuthReason = (&reason).into();
+        match engine {
+            mows_auth_core::AuthReason::AllowedByDirectUserGroupPolicy {
+                policy_id,
+                via_user_group_id,
+            } => {
+                assert_eq!(policy_id, policy_uuid, "policy_id must round-trip");
+                assert_eq!(
+                    via_user_group_id, group_uuid,
+                    "via_user_group_id must NOT be swapped with policy_id"
+                );
+            }
+            other => panic!("wrong variant: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn denied_by_resource_group_user_group_policy_carries_all_three_ids() {
+        let policy_uuid = Uuid::new_v4();
+        let group_uuid = Uuid::new_v4();
+        let rg_uuid = Uuid::new_v4();
+        let reason = AuthReason::DeniedByResourceGroupUserGroupPolicy {
+            policy_id: AccessPolicyId(policy_uuid.into()),
+            via_user_group_id: UserGroupId(group_uuid.into()),
+            on_resource_group_id: rg_uuid,
+        };
+        let engine: mows_auth_core::AuthReason = (&reason).into();
+        match engine {
+            mows_auth_core::AuthReason::DeniedByResourceGroupUserGroupPolicy {
+                policy_id,
+                via_user_group_id,
+                on_resource_group_id,
+            } => {
+                assert_eq!(policy_id, policy_uuid);
+                assert_eq!(via_user_group_id, group_uuid);
+                assert_eq!(on_resource_group_id, rg_uuid);
+            }
+            other => panic!("wrong variant: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn nullary_variants_roundtrip() {
+        // SuperAdmin, Owned, NoMatchingAllowPolicy, ResourceNotFound
+        // — no ids. Easy to swap accidentally in a large match arm.
+        for (filez, expected_name) in [
+            (AuthReason::SuperAdmin, "SuperAdmin"),
+            (AuthReason::Owned, "Owned"),
+            (AuthReason::NoMatchingAllowPolicy, "NoMatchingAllowPolicy"),
+            (AuthReason::ResourceNotFound, "ResourceNotFound"),
+        ] {
+            let engine: mows_auth_core::AuthReason = (&filez).into();
+            let json = serde_json::to_value(&engine).unwrap();
+            assert_eq!(
+                json,
+                serde_json::json!(expected_name),
+                "{expected_name} variant lost identity through From"
+            );
+        }
+    }
+
+    #[test]
+    fn auth_result_aggregates_through_conversion() {
+        let policy_uuid = Uuid::new_v4();
+        let resource_uuid = Uuid::new_v4();
+        let filez_result = AuthResult {
+            access_granted: true,
+            evaluations: vec![AuthEvaluation {
+                resource_id: Some(resource_uuid),
+                is_allowed: true,
+                reason: AuthReason::AllowedByDirectUserPolicy {
+                    policy_id: AccessPolicyId(policy_uuid.into()),
+                },
+            }],
+        };
+        let engine: mows_auth_core::AuthResult = (&filez_result).into();
+        assert!(engine.access_granted);
+        assert_eq!(engine.evaluations.len(), 1);
+        assert_eq!(engine.evaluations[0].resource_id, Some(resource_uuid));
+        assert_eq!(
+            engine.evaluations[0].reason.via_policy_id(),
+            Some(policy_uuid),
+            "via_policy_id helper must surface the policy id through conversion"
+        );
     }
 }
