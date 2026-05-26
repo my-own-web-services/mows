@@ -324,6 +324,48 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Revoke an access policy (soft-delete; preserves audit trail).
+    #[tracing::instrument(level = "trace")]
+    pub async fn revoke_access_policy(
+        &self,
+        access_policy_id: AccessPolicyId,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+        let full_url = format!(
+            "{}/api/access_policies/revoke/{access_policy_id}",
+            self.base_url
+        );
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
     /// Update an existing access policy
     #[tracing::instrument(level = "trace")]
     pub async fn update_access_policy(

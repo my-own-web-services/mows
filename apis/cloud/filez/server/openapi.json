@@ -200,6 +200,55 @@
         }
       }
     },
+    "/api/access_policies/revoke/{access_policy_id}": {
+      "post": {
+        "description": "Revoke an access policy (soft-delete; preserves audit trail).",
+        "operationId": "revoke_access_policy",
+        "parameters": [
+          {
+            "name": "access_policy_id",
+            "in": "path",
+            "description": "The ID of the access policy to revoke",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccessPolicyId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revoked the access policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — caller does not have AccessPoliciesUpdate on this policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/access_policies/update": {
       "put": {
         "description": "Update an existing access policy",

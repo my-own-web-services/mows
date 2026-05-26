@@ -98,6 +98,9 @@ pub fn build_api_router() -> OpenApiRouter<ServerState> {
             http_api::access_policies::delete::delete_access_policy
         ))
         .routes(routes!(
+            http_api::access_policies::revoke::revoke_access_policy
+        ))
+        .routes(routes!(
             http_api::access_policies::list::list_access_policies
         ))
         // STORAGE QUOTAS

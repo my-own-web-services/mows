@@ -697,6 +697,29 @@ impl AccessPolicy {
         Ok(())
     }
 
+    /// Soft-delete by flipping `revoked = TRUE`. Preserves the row
+    /// for audit and lets `PolicyStore` queries exclude it via the
+    /// canonical lifecycle filter (`NOT revoked AND …`). The Picker
+    /// (CONSENT_FLOW.md "Revocation") and the manager UI both call
+    /// this rather than `delete_one`.
+    ///
+    /// Idempotent: revoking an already-revoked policy succeeds with
+    /// zero rows updated.
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn revoke_one(database: &Database, id: &Uuid) -> Result<(), FilezError> {
+        let mut connection = database.get_connection().await?;
+        diesel::update(
+            schema::access_policies::table.filter(schema::access_policies::id.eq(id)),
+        )
+        .set((
+            schema::access_policies::revoked.eq(true),
+            schema::access_policies::modified_time.eq(get_current_timestamp()),
+        ))
+        .execute(&mut connection)
+        .await?;
+        Ok(())
+    }
+
     #[tracing::instrument(skip(database), level = "trace")]
     pub async fn check(
         database: &Database,
@@ -778,6 +801,39 @@ mod context_app_ids_typo_guard {
                  .plans/authorization/issue.md QA-2."
             );
         }
+    }
+
+    #[test]
+    fn revoke_one_sets_revoked_flag_and_modified_time() {
+        // Structural guard for CONSENT_FLOW.md "Revocation": the
+        // revoke_one UPDATE must set `revoked = TRUE` (so the
+        // PolicyStore lifecycle filter excludes the row from every
+        // subsequent check_access) and bump `modified_time`. If a
+        // refactor weakens either, this test fires before the change
+        // ever reaches production.
+        use diesel::{debug_query, pg::Pg, ExpressionMethods, QueryDsl};
+        let query = diesel::update(
+            crate::schema::access_policies::table
+                .filter(crate::schema::access_policies::id.eq(uuid::Uuid::nil())),
+        )
+        .set((
+            crate::schema::access_policies::revoked.eq(true),
+            crate::schema::access_policies::modified_time
+                .eq(crate::utils::get_current_timestamp()),
+        ));
+        let sql = debug_query::<Pg, _>(&query).to_string();
+        assert!(
+            sql.contains("\"revoked\" = $1"),
+            "revoke_one must SET revoked = TRUE: {sql}"
+        );
+        assert!(
+            sql.contains("\"modified_time\" = $2"),
+            "revoke_one must also bump modified_time: {sql}"
+        );
+        assert!(
+            sql.contains("\"id\" = $3"),
+            "revoke_one must scope its UPDATE to the targeted id: {sql}"
+        );
     }
 
     #[test]

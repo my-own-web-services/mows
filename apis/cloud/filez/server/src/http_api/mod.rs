@@ -32,6 +32,7 @@ pub mod access_policies {
     pub mod delete;
     pub mod get;
     pub mod list;
+    pub mod revoke;
     pub mod update;
 }
 

@@ -2429,6 +2429,23 @@ export class Api<
       }),
 
     /**
+     * @description Revoke an access policy (soft-delete; preserves audit trail).
+     *
+     * @name RevokeAccessPolicy
+     * @request POST:/api/access_policies/revoke/{access_policy_id}
+     */
+    revokeAccessPolicy: (
+      accessPolicyId: AccessPolicyId,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+        path: `/api/access_policies/revoke/${accessPolicyId}`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Update an existing access policy
      *
      * @name UpdateAccessPolicy
