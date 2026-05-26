@@ -308,6 +308,15 @@ diesel::table! {
 diesel::joinable!(events -> users (user_id));
 diesel::joinable!(events -> apps (app_id));
 
+diesel::table! {
+    idp_providers {
+        id -> Uuid,
+        name -> Text,
+        discovery_url -> Text,
+        created_time -> Timestamp,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     files,
     users,
@@ -326,4 +335,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     apps,
     storage_quotas,
     key_access,
+    idp_providers,
 );

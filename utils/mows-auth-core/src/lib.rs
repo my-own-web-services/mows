@@ -42,4 +42,5 @@ pub mod list;
 // don't need a deep import path.
 pub use crate::check::check_access;
 pub use crate::list::list_visible;
+pub use crate::subjects::ZITADEL_IDP_ID;
 pub use crate::types::AuthError;
