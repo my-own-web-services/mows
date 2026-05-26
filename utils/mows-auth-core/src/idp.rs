@@ -55,6 +55,14 @@ pub struct IntrospectionResult {
     /// audit and for IdP-specific behaviour (e.g. enforcing that a SPA
     /// requested the right `mows-*` scopes for its target APIs).
     pub scopes: Vec<String>,
+
+    /// IdP-specific claims that don't fit any of the canonical fields
+    /// above. The engine treats this blob as opaque; services that
+    /// care (e.g. filez reading Zitadel `project_roles` to bootstrap
+    /// the SuperAdmin role) can pull values out by key. Defaults to
+    /// `Value::Null` for IdPs that have nothing extra to surface.
+    #[serde(default)]
+    pub extra: serde_json::Value,
 }
 
 /// User identity carried in an access token.
@@ -82,6 +90,14 @@ pub struct IntrospectedUser {
     /// User-preferred locale, used by the manager UI to pick a default
     /// language on first login.
     pub locale: Option<String>,
+
+    /// IdP-specific user claims (Zitadel `project_roles`, Keycloak
+    /// `realm_access`, …). Engine treats as opaque. Services that
+    /// need a particular claim extract it by key. See
+    /// [`IntrospectionResult::extra`] for the same rationale at the
+    /// token level.
+    #[serde(default)]
+    pub extra: serde_json::Value,
 }
 
 /// Errors a `TokenIntrospector` can return. Middleware translates
@@ -180,10 +196,12 @@ mod tests {
                     email: Some("test@example.com".to_string()),
                     email_verified: true,
                     locale: None,
+                    extra: serde_json::Value::Null,
                 }),
                 active: true,
                 expires_at: None,
                 scopes: vec!["openid".to_string()],
+                extra: serde_json::Value::Null,
             },
         };
 
@@ -194,5 +212,46 @@ mod tests {
         let user = result.user.expect("stub returns Some(user)");
         assert_eq!(user.sub, "user-123");
         assert!(user.email_verified);
+    }
+
+    #[test]
+    fn extra_claims_roundtrip_via_serde() {
+        // Mimics how filez will pull Zitadel `project_roles` out of
+        // `user.extra` once the ZitadelIntrospector lands.
+        let user = IntrospectedUser {
+            sub: "user-1".to_string(),
+            name: None,
+            preferred_username: None,
+            email: None,
+            email_verified: false,
+            locale: None,
+            extra: serde_json::json!({
+                "project_roles": {
+                    "admin": { "filez-project": "filez-org" }
+                }
+            }),
+        };
+
+        let project_roles = user.extra.get("project_roles")
+            .and_then(|v| v.get("admin"));
+        assert!(project_roles.is_some(),
+            "consumers must be able to pull IdP-specific claims back out by key");
+    }
+
+    #[test]
+    fn introspection_result_extra_defaults_to_null_when_absent_from_json() {
+        // Old persisted introspection responses (cached via serde) that
+        // pre-date the `extra` field must still deserialize cleanly —
+        // tests the `#[serde(default)]` on both extras.
+        let json = serde_json::json!({
+            "client_id": "c",
+            "user": null,
+            "active": true,
+            "expires_at": null,
+            "scopes": []
+        });
+        let result: IntrospectionResult = serde_json::from_value(json)
+            .expect("backwards-compat: missing extra must default to Null");
+        assert_eq!(result.extra, serde_json::Value::Null);
     }
 }
