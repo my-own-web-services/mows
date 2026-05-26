@@ -4316,6 +4316,7 @@
       },
       "AuthEvaluation": {
         "type": "object",
+        "description": "Per-resource outcome — one of these per resource the caller asked\nabout. Type-level checks (where the policy is \"may you create a\nresource of type T?\" with no specific resource id) carry\n`resource_id = None`.",
         "required": [
           "is_allowed",
           "reason"
@@ -4340,12 +4341,14 @@
         "oneOf": [
           {
             "type": "string",
+            "description": "The principal has the `SuperAdmin` user type. Bypasses\nper-resource checks; logged so audit can still spot\nadmin-driven actions.",
             "enum": [
               "SuperAdmin"
             ]
           },
           {
             "type": "string",
+            "description": "The principal owns the resource. Owner-direct shortcut — no\npolicy table row consulted.",
             "enum": [
               "Owned"
             ]
@@ -4363,7 +4366,8 @@
                 ],
                 "properties": {
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4382,7 +4386,8 @@
                 ],
                 "properties": {
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4401,7 +4406,8 @@
                 ],
                 "properties": {
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4421,10 +4427,12 @@
                 ],
                 "properties": {
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   },
                   "via_user_group_id": {
-                    "$ref": "#/components/schemas/UserGroupId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4448,7 +4456,8 @@
                     "format": "uuid"
                   },
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4473,10 +4482,12 @@
                     "format": "uuid"
                   },
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   },
                   "via_user_group_id": {
-                    "$ref": "#/components/schemas/UserGroupId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4495,7 +4506,8 @@
                 ],
                 "properties": {
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4514,7 +4526,8 @@
                 ],
                 "properties": {
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4533,7 +4546,8 @@
                 ],
                 "properties": {
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4553,10 +4567,12 @@
                 ],
                 "properties": {
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   },
                   "via_user_group_id": {
-                    "$ref": "#/components/schemas/UserGroupId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4580,7 +4596,8 @@
                     "format": "uuid"
                   },
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4605,10 +4622,12 @@
                     "format": "uuid"
                   },
                   "policy_id": {
-                    "$ref": "#/components/schemas/AccessPolicyId"
+                    "type": "string",
+                    "format": "uuid"
                   },
                   "via_user_group_id": {
-                    "$ref": "#/components/schemas/UserGroupId"
+                    "type": "string",
+                    "format": "uuid"
                   }
                 }
               }
@@ -4616,17 +4635,20 @@
           },
           {
             "type": "string",
+            "description": "No active Allow policy covered the requested action and no\nDeny fired either — default-deny per\nPOLICY_SEMANTICS.md §3.",
             "enum": [
               "NoMatchingAllowPolicy"
             ]
           },
           {
             "type": "string",
+            "description": "The resource lookup itself returned nothing. Surfaced as the\nreason so handlers can distinguish \"doesn't exist\" from\n\"exists but you can't see it\" in *internal* logs while still\nreturning the same HTTP status to the outside world (see\n`OPEN_QUESTIONS.md` Q14).",
             "enum": [
               "ResourceNotFound"
             ]
           }
-        ]
+        ],
+        "description": "Why `check_access` returned the answer it did. One variant per\ndistinguishable code path — services can switch on this for audit\nlog enrichment and for \"why was I denied?\" UI."
       },
       "CheckResourceAccessRequestBody": {
         "type": "object",

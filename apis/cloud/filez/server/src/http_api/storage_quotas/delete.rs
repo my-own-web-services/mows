@@ -1,3 +1,5 @@
+use crate::errors::AuthResultExt;
+
 use axum::{
     extract::{Path, State},
     Extension, Json,

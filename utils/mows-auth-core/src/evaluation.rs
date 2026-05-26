@@ -156,6 +156,16 @@ impl AuthResult {
     }
 }
 
+impl std::fmt::Display for AuthResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.access_granted {
+            write!(f, "Access granted")
+        } else {
+            write!(f, "Access denied")
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

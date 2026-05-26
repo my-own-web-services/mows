@@ -1,3 +1,5 @@
+use crate::errors::AuthResultExt;
+
 use std::collections::HashMap;
 
 use crate::validation::Json;

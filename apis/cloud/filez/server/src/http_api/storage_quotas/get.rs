@@ -1,3 +1,5 @@
+use crate::errors::AuthResultExt;
+
 use crate::validation::Json;
 use axum::{extract::State, Extension};
 use serde::{Deserialize, Serialize};

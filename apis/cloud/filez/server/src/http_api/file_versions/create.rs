@@ -1,3 +1,5 @@
+use crate::errors::AuthResultExt;
+
 use crate::{
     errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,

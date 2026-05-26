@@ -1,9 +1,9 @@
 use crate::{
     http_api::authentication::user::IntrospectionGuardError,
-    models::access_policies::check::AuthResult,
     storage::errors::StorageError,
     types::{ApiResponse, ApiResponseStatus},
 };
+use mows_auth_core::AuthResult;
 
 use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
@@ -486,5 +486,49 @@ mod safe_message_redaction {
             msg.contains("file abc-123"),
             "ResourceNotFound must surface the resource id: {msg}"
         );
+    }
+}
+
+/// Service-side verification helpers on the engine's `AuthResult`.
+/// The engine deliberately keeps `AuthResult` framework-agnostic —
+/// no `Result<(), FilezError>`; this extension trait adds filez's
+/// flavour without modifying the canonical type.
+///
+/// Imported wherever a filez handler wants to `.verify()?` an engine
+/// result. Once a second service adopts mows-auth-core it'll define
+/// its own equivalent trait against its own error type.
+pub trait AuthResultExt {
+    /// Deny → `FilezError::AuthEvaluationAccessDenied(self.clone())`.
+    fn verify(&self) -> Result<(), FilezError>;
+
+    /// Like `verify`, but the type-level pattern (single evaluation,
+    /// no `resource_id`, reason = `NoMatchingAllowPolicy`) counts as
+    /// Allow. Used by handlers that create resources of types where
+    /// the default is permissive unless explicitly denied (e.g.
+    /// `FilezFilesCreate` for a regular user creating their own file).
+    fn verify_allow_type_level(&self) -> Result<(), FilezError>;
+}
+
+impl AuthResultExt for AuthResult {
+    fn verify(&self) -> Result<(), FilezError> {
+        if self.is_allowed() {
+            Ok(())
+        } else {
+            Err(FilezError::AuthEvaluationAccessDenied(self.clone()))
+        }
+    }
+
+    fn verify_allow_type_level(&self) -> Result<(), FilezError> {
+        if self.is_allowed() {
+            Ok(())
+        } else if self.evaluations.len() == 1
+            && self.evaluations[0].resource_id.is_none()
+            && self.evaluations[0].reason
+                == mows_auth_core::AuthReason::NoMatchingAllowPolicy
+        {
+            Ok(())
+        } else {
+            Err(FilezError::AuthEvaluationAccessDenied(self.clone()))
+        }
     }
 }

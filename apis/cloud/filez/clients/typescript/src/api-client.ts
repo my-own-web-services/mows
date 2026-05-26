@@ -689,86 +689,118 @@ export interface ApiResponseUpdateUserGroupResponseBody {
   status: ApiResponseStatus;
 }
 
+/**
+ * Per-resource outcome — one of these per resource the caller asked
+ * about. Type-level checks (where the policy is "may you create a
+ * resource of type T?" with no specific resource id) carry
+ * `resource_id = None`.
+ */
 export interface AuthEvaluation {
   is_allowed: boolean;
+  /**
+   * Why `check_access` returned the answer it did. One variant per
+   * distinguishable code path — services can switch on this for audit
+   * log enrichment and for "why was I denied?" UI.
+   */
   reason: AuthReason;
   /** @format uuid */
   resource_id?: string | null;
 }
 
+/**
+ * Why `check_access` returned the answer it did. One variant per
+ * distinguishable code path — services can switch on this for audit
+ * log enrichment and for "why was I denied?" UI.
+ */
 export type AuthReason =
   | "SuperAdmin"
   | "Owned"
   | {
       AllowedByPubliclyAccessible: {
-        policy_id: AccessPolicyId;
+        /** @format uuid */
+        policy_id: string;
       };
     }
   | {
       AllowedByServerAccessible: {
-        policy_id: AccessPolicyId;
+        /** @format uuid */
+        policy_id: string;
       };
     }
   | {
       AllowedByDirectUserPolicy: {
-        policy_id: AccessPolicyId;
+        /** @format uuid */
+        policy_id: string;
       };
     }
   | {
       AllowedByDirectUserGroupPolicy: {
-        policy_id: AccessPolicyId;
-        via_user_group_id: UserGroupId;
+        /** @format uuid */
+        policy_id: string;
+        /** @format uuid */
+        via_user_group_id: string;
       };
     }
   | {
       AllowedByResourceGroupUserPolicy: {
         /** @format uuid */
         on_resource_group_id: string;
-        policy_id: AccessPolicyId;
+        /** @format uuid */
+        policy_id: string;
       };
     }
   | {
       AllowedByResourceGroupUserGroupPolicy: {
         /** @format uuid */
         on_resource_group_id: string;
-        policy_id: AccessPolicyId;
-        via_user_group_id: UserGroupId;
+        /** @format uuid */
+        policy_id: string;
+        /** @format uuid */
+        via_user_group_id: string;
       };
     }
   | {
       DeniedByPubliclyAccessible: {
-        policy_id: AccessPolicyId;
+        /** @format uuid */
+        policy_id: string;
       };
     }
   | {
       DeniedByServerAccessible: {
-        policy_id: AccessPolicyId;
+        /** @format uuid */
+        policy_id: string;
       };
     }
   | {
       DeniedByDirectUserPolicy: {
-        policy_id: AccessPolicyId;
+        /** @format uuid */
+        policy_id: string;
       };
     }
   | {
       DeniedByDirectUserGroupPolicy: {
-        policy_id: AccessPolicyId;
-        via_user_group_id: UserGroupId;
+        /** @format uuid */
+        policy_id: string;
+        /** @format uuid */
+        via_user_group_id: string;
       };
     }
   | {
       DeniedByResourceGroupUserPolicy: {
         /** @format uuid */
         on_resource_group_id: string;
-        policy_id: AccessPolicyId;
+        /** @format uuid */
+        policy_id: string;
       };
     }
   | {
       DeniedByResourceGroupUserGroupPolicy: {
         /** @format uuid */
         on_resource_group_id: string;
-        policy_id: AccessPolicyId;
-        via_user_group_id: UserGroupId;
+        /** @format uuid */
+        policy_id: string;
+        /** @format uuid */
+        via_user_group_id: string;
       };
     }
   | "NoMatchingAllowPolicy"

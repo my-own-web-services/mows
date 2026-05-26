@@ -502,6 +502,10 @@ pub enum AppType {
 }
 
 // AuthEvaluation
+/// Per-resource outcome — one of these per resource the caller asked
+/// about. Type-level checks (where the policy is "may you create a
+/// resource of type T?" with no specific resource id) carry
+/// `resource_id = None`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthEvaluation {
     pub is_allowed: bool,
@@ -510,55 +514,71 @@ pub struct AuthEvaluation {
 }
 
 // AuthReason
+/// Why `check_access` returned the answer it did. One variant per
+/// distinguishable code path — services can switch on this for audit
+/// log enrichment and for "why was I denied?" UI.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuthReason {
+    /// The principal has the `SuperAdmin` user type. Bypasses
+    /// per-resource checks; logged so audit can still spot
+    /// admin-driven actions.
     SuperAdmin,
+    /// The principal owns the resource. Owner-direct shortcut — no
+    /// policy table row consulted.
     Owned,
     AllowedByPubliclyAccessible {
-        policy_id: AccessPolicyId,
+        policy_id: Uuid,
     },
     AllowedByServerAccessible {
-        policy_id: AccessPolicyId,
+        policy_id: Uuid,
     },
     AllowedByDirectUserPolicy {
-        policy_id: AccessPolicyId,
+        policy_id: Uuid,
     },
     AllowedByDirectUserGroupPolicy {
-        policy_id: AccessPolicyId,
-        via_user_group_id: UserGroupId,
+        policy_id: Uuid,
+        via_user_group_id: Uuid,
     },
     AllowedByResourceGroupUserPolicy {
         on_resource_group_id: Uuid,
-        policy_id: AccessPolicyId,
+        policy_id: Uuid,
     },
     AllowedByResourceGroupUserGroupPolicy {
         on_resource_group_id: Uuid,
-        policy_id: AccessPolicyId,
-        via_user_group_id: UserGroupId,
+        policy_id: Uuid,
+        via_user_group_id: Uuid,
     },
     DeniedByPubliclyAccessible {
-        policy_id: AccessPolicyId,
+        policy_id: Uuid,
     },
     DeniedByServerAccessible {
-        policy_id: AccessPolicyId,
+        policy_id: Uuid,
     },
     DeniedByDirectUserPolicy {
-        policy_id: AccessPolicyId,
+        policy_id: Uuid,
     },
     DeniedByDirectUserGroupPolicy {
-        policy_id: AccessPolicyId,
-        via_user_group_id: UserGroupId,
+        policy_id: Uuid,
+        via_user_group_id: Uuid,
     },
     DeniedByResourceGroupUserPolicy {
         on_resource_group_id: Uuid,
-        policy_id: AccessPolicyId,
+        policy_id: Uuid,
     },
     DeniedByResourceGroupUserGroupPolicy {
         on_resource_group_id: Uuid,
-        policy_id: AccessPolicyId,
-        via_user_group_id: UserGroupId,
+        policy_id: Uuid,
+        via_user_group_id: Uuid,
     },
+    /// No active Allow policy covered the requested action and no
+    /// Deny fired either — default-deny per
+    /// POLICY_SEMANTICS.md §3.
     NoMatchingAllowPolicy,
+    /// The resource lookup itself returned nothing. Surfaced as the
+    /// reason so handlers can distinguish "doesn't exist" from
+    /// "exists but you can't see it" in *internal* logs while still
+    /// returning the same HTTP status to the outside world (see
+    /// `OPEN_QUESTIONS.md` Q14).
     ResourceNotFound,
 }
 
