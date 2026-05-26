@@ -822,6 +822,31 @@ impl From<&AuthResult> for mows_auth_core::AuthResult {
     }
 }
 
+/// Convert filez's `(Option<&FilezUser>, Option<&Vec<UserGroupId>>)`
+/// pair — the exact shape `check_resources_access_control` accepts
+/// today — into the engine's `Subject`. Used at the boundary when
+/// filez handlers call into mows-auth-core: filez resolves group
+/// memberships, builds the Subject, then hands it to the engine.
+///
+/// `is_super_admin` is set from filez's `FilezUserType::SuperAdmin`
+/// so the engine's super-admin shortcut fires without filez having
+/// to special-case it before the call.
+pub fn subject_from_filez(
+    user: Option<&FilezUser>,
+    groups: Option<&Vec<UserGroupId>>,
+) -> mows_auth_core::Subject {
+    match user {
+        None => mows_auth_core::Subject::Anonymous,
+        Some(u) => mows_auth_core::Subject::User {
+            user_id: u.id.0.into(),
+            groups: groups
+                .map(|gs| gs.iter().map(|g| g.0.into()).collect())
+                .unwrap_or_default(),
+            is_super_admin: u.user_type == FilezUserType::SuperAdmin,
+        },
+    }
+}
+
 impl Display for AuthResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.access_granted {
@@ -1213,6 +1238,106 @@ mod engine_reason_parity {
                 "{expected_name} variant lost identity through From"
             );
         }
+    }
+
+    #[test]
+    fn subject_from_filez_anonymous() {
+        let s = super::subject_from_filez(None, None);
+        assert_eq!(s, mows_auth_core::Subject::Anonymous);
+    }
+
+    #[test]
+    fn subject_from_filez_user_with_groups() {
+        use crate::models::users::FilezUserType;
+        use chrono::NaiveDateTime;
+        let user_uuid = Uuid::new_v4();
+        let group_uuid = Uuid::new_v4();
+        let user = FilezUser {
+            id: crate::models::users::FilezUserId(user_uuid.into()),
+            external_user_id: Some("sub-abc".to_string()),
+            pre_identifier_email: None,
+            display_name: "Test".to_string(),
+            created_time: NaiveDateTime::default(),
+            modified_time: NaiveDateTime::default(),
+            deleted: false,
+            profile_picture: None,
+            created_by: None,
+            user_type: FilezUserType::Regular,
+            idp_id: mows_auth_core::ZITADEL_IDP_ID,
+        };
+        let groups = vec![UserGroupId(group_uuid.into())];
+        let s = super::subject_from_filez(Some(&user), Some(&groups));
+        match s {
+            mows_auth_core::Subject::User {
+                user_id,
+                groups,
+                is_super_admin,
+            } => {
+                assert_eq!(user_id, user_uuid);
+                assert_eq!(groups, vec![group_uuid]);
+                assert!(
+                    !is_super_admin,
+                    "Regular user must NOT be promoted to SuperAdmin"
+                );
+            }
+            other => panic!("expected Subject::User, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn subject_from_filez_super_admin_sets_flag() {
+        use crate::models::users::FilezUserType;
+        use chrono::NaiveDateTime;
+        let user = FilezUser {
+            id: crate::models::users::FilezUserId(Uuid::new_v4().into()),
+            external_user_id: None,
+            pre_identifier_email: None,
+            display_name: "Admin".to_string(),
+            created_time: NaiveDateTime::default(),
+            modified_time: NaiveDateTime::default(),
+            deleted: false,
+            profile_picture: None,
+            created_by: None,
+            user_type: FilezUserType::SuperAdmin,
+            idp_id: mows_auth_core::ZITADEL_IDP_ID,
+        };
+        let s = super::subject_from_filez(Some(&user), None);
+        match s {
+            mows_auth_core::Subject::User { is_super_admin, groups, .. } => {
+                assert!(is_super_admin, "SuperAdmin user must set the flag");
+                assert!(groups.is_empty(), "None groups must yield empty Vec");
+            }
+            other => panic!("expected Subject::User, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn access_policy_to_policy_view_preserves_ids() {
+        use crate::models::access_policies::AccessPolicy;
+        use crate::models::access_policies::{AccessPolicyAction, AccessPolicyResourceType};
+        use crate::models::apps::MowsAppId;
+        use chrono::NaiveDateTime;
+        let policy_uuid = Uuid::new_v4();
+        let subject_uuid = Uuid::new_v4();
+        let policy = AccessPolicy {
+            id: AccessPolicyId(policy_uuid.into()),
+            name: "test".to_string(),
+            owner_id: FilezUserId::nil(),
+            created_time: NaiveDateTime::default(),
+            modified_time: NaiveDateTime::default(),
+            subject_type: AccessPolicySubjectType::UserGroup,
+            subject_id: crate::models::access_policies::AccessPolicySubjectId(subject_uuid.into()),
+            context_app_ids: vec![MowsAppId::nil()],
+            resource_type: AccessPolicyResourceType::File,
+            resource_id: None,
+            actions: vec![AccessPolicyAction::FilezFilesGet],
+            effect: AccessPolicyEffect::Deny,
+        };
+        let view: mows_auth_core::PolicyView = (&policy).into();
+        assert_eq!(view.id, policy_uuid);
+        assert_eq!(view.subject_id, subject_uuid);
+        assert_eq!(view.effect, mows_auth_core::types::Effect::Deny);
+        assert_eq!(view.subject_type, mows_auth_core::types::SubjectType::UserGroup);
     }
 
     #[test]

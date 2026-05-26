@@ -299,6 +299,21 @@ pub struct AccessPolicy {
     pub effect: AccessPolicyEffect,
 }
 
+impl From<&AccessPolicy> for mows_auth_core::PolicyView {
+    /// Project filez's full AccessPolicy row down to the minimal
+    /// fields the engine's check_access consumes. Used at the
+    /// PolicyStore boundary when filez serves rows to the engine —
+    /// the engine never sees filez's name / timestamps / etc.
+    fn from(p: &AccessPolicy) -> Self {
+        Self {
+            id: p.id.0.into(),
+            effect: p.effect.into(),
+            subject_type: p.subject_type.into(),
+            subject_id: p.subject_id.0.into(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate, AsChangeset)]
 #[diesel(table_name = schema::access_policies)]
 pub struct UpdateAccessPolicyChangeset {
