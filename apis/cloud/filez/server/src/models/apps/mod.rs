@@ -69,6 +69,14 @@ pub struct MowsApp {
     /// Forward-compat for adding a second IdP without a table rewrite —
     /// see AUTHENTICATION.md §2 "Pluggable IdP".
     pub idp_id: Uuid,
+    /// The IdP-issued OIDC `client_id` for this app. AUTHENTICATION.md §4.2
+    /// makes this the new primary join key (replacing the origin-based
+    /// lookup as the primary path; origin stays as defense in depth).
+    /// NULL only for the sentinel "no-origin" anonymous MowsApp row —
+    /// the one MowsApp that has no Zitadel mapping by design.
+    /// `(idp_id, external_client_id)` is enforced UNIQUE via a partial
+    /// index when the column is populated.
+    pub external_client_id: Option<String>,
 }
 
 #[derive(
@@ -90,8 +98,21 @@ pub struct MowsApp {
 #[diesel_enum(error_type = InvalidEnumType)]
 #[serde(rename_all = "camelCase")]
 pub enum AppType {
+    /// Browser SPA — Zitadel Public OIDC client (Code + PKCE). The
+    /// access token's `client_id` claim identifies the SPA; Origin
+    /// header is defense in depth (AUTHENTICATION.md §3.2).
     Frontend = 0,
+    /// Daemon / job worker — Zitadel Confidential OIDC client
+    /// (Client Credentials). Either uses the engine-issued bearer
+    /// token or the legacy K8s SA token (AUTHENTICATION.md §3.3).
     Backend = 1,
+    /// Another MOWS API calling this one — Zitadel Confidential
+    /// OIDC client (Client Credentials) attached to the API's own
+    /// service user. Same code path as Backend at the token-validation
+    /// layer; distinguished for audit + the cluster's "API → API may
+    /// impersonate user X to API Y" seed policies
+    /// (AUTHENTICATION.md §3.4, §6.4).
+    Api = 2,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, JsonSchema, PartialEq, Eq)]
@@ -122,6 +143,7 @@ impl MowsApp {
             modified_time: get_current_timestamp(),
             app_type,
             idp_id: mows_auth_core::ZITADEL_IDP_ID,
+            external_client_id: None,
         }
     }
 
@@ -138,6 +160,7 @@ impl MowsApp {
             modified_time: get_current_timestamp(),
             app_type: AppType::Frontend,
             idp_id: mows_auth_core::ZITADEL_IDP_ID,
+            external_client_id: None,
         }
     }
 
@@ -153,6 +176,7 @@ impl MowsApp {
             modified_time: get_current_timestamp(),
             app_type: AppType::Frontend,
             idp_id: mows_auth_core::ZITADEL_IDP_ID,
+            external_client_id: None,
         }
     }
 
@@ -168,6 +192,7 @@ impl MowsApp {
             modified_time: get_current_timestamp(),
             app_type: AppType::Frontend,
             idp_id: mows_auth_core::ZITADEL_IDP_ID,
+            external_client_id: None,
         }
     }
 
@@ -212,6 +237,7 @@ impl MowsApp {
                     modified_time: get_current_timestamp(),
                     app_type: AppType::Frontend,
                     idp_id: mows_auth_core::ZITADEL_IDP_ID,
+            external_client_id: None,
                 };
 
                 diesel::insert_into(crate::schema::apps::table)

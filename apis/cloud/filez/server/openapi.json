@@ -4332,7 +4332,8 @@
         "type": "string",
         "enum": [
           "frontend",
-          "backend"
+          "backend",
+          "api"
         ]
       },
       "AuthEvaluation": {
@@ -7262,6 +7263,13 @@
               "string",
               "null"
             ]
+          },
+          "external_client_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The IdP-issued OIDC `client_id` for this app. AUTHENTICATION.md §4.2\nmakes this the new primary join key (replacing the origin-based\nlookup as the primary path; origin stays as defense in depth).\nNULL only for the sentinel \"no-origin\" anonymous MowsApp row —\nthe one MowsApp that has no Zitadel mapping by design.\n`(idp_id, external_client_id)` is enforced UNIQUE via a partial\nindex when the column is populated."
           },
           "id": {
             "$ref": "#/components/schemas/MowsAppId",

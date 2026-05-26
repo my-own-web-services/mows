@@ -139,6 +139,7 @@ export enum Effect {
 export enum AppType {
   Frontend = "frontend",
   Backend = "backend",
+  Api = "api",
 }
 
 export enum AccessPolicyResourceType {
@@ -1716,6 +1717,16 @@ export interface MowsApp {
   /** @format date-time */
   created_time: string;
   description?: string | null;
+  /**
+   * The IdP-issued OIDC `client_id` for this app. AUTHENTICATION.md §4.2
+   * makes this the new primary join key (replacing the origin-based
+   * lookup as the primary path; origin stays as defense in depth).
+   * NULL only for the sentinel "no-origin" anonymous MowsApp row —
+   * the one MowsApp that has no Zitadel mapping by design.
+   * `(idp_id, external_client_id)` is enforced UNIQUE via a partial
+   * index when the column is populated.
+   */
+  external_client_id?: string | null;
   /** Unique identifier for the app in the database, this is used to identify the app in all database operations */
   id: MowsAppId;
   /**

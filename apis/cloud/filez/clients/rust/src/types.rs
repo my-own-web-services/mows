@@ -511,6 +511,8 @@ pub enum AppType {
     Frontend,
     #[serde(rename = "backend")]
     Backend,
+    #[serde(rename = "api")]
+    Api,
 }
 
 // AuthEvaluation
@@ -1549,6 +1551,14 @@ pub struct MowsApp {
     pub app_type: AppType,
     pub created_time: NaiveDateTime,
     pub description: Option<String>,
+    /// The IdP-issued OIDC `client_id` for this app. AUTHENTICATION.md §4.2
+    /// makes this the new primary join key (replacing the origin-based
+    /// lookup as the primary path; origin stays as defense in depth).
+    /// NULL only for the sentinel "no-origin" anonymous MowsApp row —
+    /// the one MowsApp that has no Zitadel mapping by design.
+    /// `(idp_id, external_client_id)` is enforced UNIQUE via a partial
+    /// index when the column is populated.
+    pub external_client_id: Option<String>,
     pub id: MowsAppId,
     /// The identity provider that issued this app's OIDC client_id. v1
     /// has a single provider (Zitadel — `mows_auth_core::ZITADEL_IDP_ID`).

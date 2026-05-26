@@ -281,6 +281,7 @@ diesel::table! {
         modified_time -> Timestamp,
         app_type -> SmallInt,
         idp_id -> Uuid,
+        external_client_id -> Nullable<Text>,
     }
 }
 diesel::joinable!(apps -> idp_providers (idp_id));
