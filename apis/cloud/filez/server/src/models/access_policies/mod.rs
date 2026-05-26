@@ -25,6 +25,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
+use mows_auth_core::types::SubjectType;
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use std::collections::HashSet;
@@ -50,76 +51,30 @@ macro_rules! filter_subject_access_policies {
         > = match maybe_requesting_user {
             Some(requesting_user) => Box::new(
                 schema::access_policies::subject_type
-                    .eq(AccessPolicySubjectType::Public)
+                    .eq(SubjectType::Public)
                     .or(schema::access_policies::subject_type
-                        .eq(AccessPolicySubjectType::ServerMember))
+                        .eq(SubjectType::ServerMember))
                     .or(schema::access_policies::subject_type
-                        .eq(AccessPolicySubjectType::User)
+                        .eq(SubjectType::User)
                         .and(schema::access_policies::subject_id.eq(requesting_user.id)))
                     .or(schema::access_policies::subject_type
-                        .eq(AccessPolicySubjectType::UserGroup)
+                        .eq(SubjectType::UserGroup)
                         .and(
                             schema::access_policies::subject_id
                                 .eq_any(maybe_user_group_ids.unwrap()),
                         )),
             ),
             None => {
-                Box::new(schema::access_policies::subject_type.eq(AccessPolicySubjectType::Public))
+                Box::new(schema::access_policies::subject_type.eq(SubjectType::Public))
             }
         };
         predicate
     }};
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    AsExpression,
-    FromSqlRow,
-    DbEnum,
-    Serialize,
-    Deserialize,
-    ToSchema,
-)]
-#[diesel(sql_type = SmallInt)]
-#[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
-#[diesel_enum(error_type = InvalidEnumType)]
-pub enum AccessPolicySubjectType {
-    User = 0,
-    UserGroup = 1,
-    ServerMember = 2,
-    Public = 3,
-}
-
-// Bidirectional conversions to the engine's wire-stable enum. The
-// discriminants match by construction (locked in by
-// `mows_auth_core::types::wire_stable_values::subject_type_values_are_stable`).
-// Adding a variant to either side without the other will produce a
-// compile error here — that's the point.
-impl From<AccessPolicySubjectType> for mows_auth_core::types::SubjectType {
-    fn from(s: AccessPolicySubjectType) -> Self {
-        match s {
-            AccessPolicySubjectType::User         => Self::User,
-            AccessPolicySubjectType::UserGroup    => Self::UserGroup,
-            AccessPolicySubjectType::ServerMember => Self::ServerMember,
-            AccessPolicySubjectType::Public       => Self::Public,
-        }
-    }
-}
-
-impl From<mows_auth_core::types::SubjectType> for AccessPolicySubjectType {
-    fn from(s: mows_auth_core::types::SubjectType) -> Self {
-        match s {
-            mows_auth_core::types::SubjectType::User         => Self::User,
-            mows_auth_core::types::SubjectType::UserGroup    => Self::UserGroup,
-            mows_auth_core::types::SubjectType::ServerMember => Self::ServerMember,
-            mows_auth_core::types::SubjectType::Public       => Self::Public,
-        }
-    }
-}
+// SubjectType (the principal axis: User / UserGroup / ServerMember /
+// Public) is engine-owned. Filez imports it directly from
+// mows_auth_core wherever needed — see mod-level `use` above.
 
 #[derive(
     Debug,
@@ -284,7 +239,7 @@ pub struct AccessPolicy {
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
 
-    pub subject_type: AccessPolicySubjectType,
+    pub subject_type: SubjectType,
     pub subject_id: AccessPolicySubjectId,
 
     /// The IDs of the application this policy is associated with
@@ -323,7 +278,7 @@ pub struct UpdateAccessPolicyChangeset {
     pub new_access_policy_name: Option<String>,
 
     #[diesel(column_name = subject_type)]
-    pub new_access_policy_subject_type: Option<AccessPolicySubjectType>,
+    pub new_access_policy_subject_type: Option<SubjectType>,
 
     #[diesel(column_name = subject_id)]
     pub new_access_policy_subject_id: Option<AccessPolicySubjectId>,
@@ -354,7 +309,7 @@ impl AccessPolicy {
     fn new(
         name: &str,
         owner_id: FilezUserId,
-        subject_type: AccessPolicySubjectType,
+        subject_type: SubjectType,
         subject_id: AccessPolicySubjectId,
         context_app_ids: Vec<MowsAppId>,
         resource_type: AccessPolicyResourceType,
@@ -383,7 +338,7 @@ impl AccessPolicy {
         database: &Database,
         name: &str,
         owner_id: FilezUserId,
-        subject_type: AccessPolicySubjectType,
+        subject_type: SubjectType,
         subject_id: AccessPolicySubjectId,
         context_app_ids: Vec<MowsAppId>,
         resource_type: AccessPolicyResourceType,
@@ -748,26 +703,14 @@ impl AccessPolicy {
 
 #[cfg(test)]
 mod engine_enum_parity {
-    //! Pin filez's enums to mows-auth-core's wire-stable enums. Any drift
-    //! (one side gains a variant, integers diverge) is caught here AND at
-    //! compile time via the exhaustive `match` arms in the `From` impls.
-    use super::{AccessPolicyEffect, AccessPolicySubjectType};
-    use mows_auth_core::types::{Effect, SubjectType};
-
-    #[test]
-    fn subject_type_roundtrip() {
-        for s in [
-            AccessPolicySubjectType::User,
-            AccessPolicySubjectType::UserGroup,
-            AccessPolicySubjectType::ServerMember,
-            AccessPolicySubjectType::Public,
-        ] {
-            let core: SubjectType = s.into();
-            let back: AccessPolicySubjectType = core.into();
-            assert_eq!(s, back, "filez↔core SubjectType roundtrip drifted at {s:?}");
-            assert_eq!(s as i16, core as i16, "integer mismatch at {s:?}");
-        }
-    }
+    //! Pins filez's local `AccessPolicyEffect` to the engine's
+    //! `Effect` via the From conversion. The SubjectType roundtrip
+    //! test that used to live here is gone — SubjectType is now the
+    //! engine type directly (no local enum, no conversion to test).
+    //! When AccessPolicyEffect itself is collapsed (Cleanup-2) this
+    //! module disappears entirely.
+    use super::AccessPolicyEffect;
+    use mows_auth_core::types::Effect;
 
     #[test]
     fn effect_roundtrip() {

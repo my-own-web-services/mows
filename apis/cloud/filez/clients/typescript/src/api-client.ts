@@ -21,6 +21,19 @@ export enum TagResourceType {
   StorageQuota = "StorageQuota",
 }
 
+/**
+ * Subject of an access policy — *who* the policy grants/denies to.
+ *
+ * The integer values are wire-stable per DATA_MODEL.md and must match
+ * the `subject_type` column.
+ */
+export enum SubjectType {
+  Value0 = 0,
+  Value1 = 1,
+  Value2 = 2,
+  Value3 = 3,
+}
+
 export enum StorageQuotaSubjectType {
   User = "User",
   UserGroup = "UserGroup",
@@ -122,13 +135,6 @@ export enum AppType {
   Backend = "backend",
 }
 
-export enum AccessPolicySubjectType {
-  User = "User",
-  UserGroup = "UserGroup",
-  ServerMember = "ServerMember",
-  Public = "Public",
-}
-
 export enum AccessPolicyResourceType {
   File = "File",
   FileGroup = "FileGroup",
@@ -220,7 +226,13 @@ export interface AccessPolicy {
   resource_id?: string | null;
   resource_type: AccessPolicyResourceType;
   subject_id: AccessPolicySubjectId;
-  subject_type: AccessPolicySubjectType;
+  /**
+   * Subject of an access policy — *who* the policy grants/denies to.
+   *
+   * The integer values are wire-stable per DATA_MODEL.md and must match
+   * the `subject_type` column.
+   */
+  subject_type: SubjectType;
 }
 
 /** @format uuid */
@@ -795,7 +807,13 @@ export interface CreateAccessPolicyRequestBody {
   access_policy_name: string;
   access_policy_resource_type: AccessPolicyResourceType;
   access_policy_subject_id: AccessPolicySubjectId;
-  access_policy_subject_type: AccessPolicySubjectType;
+  /**
+   * Subject of an access policy — *who* the policy grants/denies to.
+   *
+   * The integer values are wire-stable per DATA_MODEL.md and must match
+   * the `subject_type` column.
+   */
+  access_policy_subject_type: SubjectType;
   context_app_ids: MowsAppId[];
   /** @format uuid */
   resource_id?: string | null;
@@ -1748,7 +1766,7 @@ export interface UpdateAccessPolicyChangeset {
   new_access_policy_name?: string | null;
   new_access_policy_resource_type?: null | AccessPolicyResourceType;
   new_access_policy_subject_id?: null | AccessPolicySubjectId;
-  new_access_policy_subject_type?: null | AccessPolicySubjectType;
+  new_access_policy_subject_type?: null | SubjectType;
   new_context_app_ids?: any[] | null;
   /** @format uuid */
   new_resource_id?: string | null;

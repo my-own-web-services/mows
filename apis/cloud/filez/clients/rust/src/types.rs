@@ -21,7 +21,7 @@ pub struct AccessPolicy {
     pub resource_id: Option<Uuid>,
     pub resource_type: AccessPolicyResourceType,
     pub subject_id: AccessPolicySubjectId,
-    pub subject_type: AccessPolicySubjectType,
+    pub subject_type: SubjectType,
 }
 
 // AccessPolicyAction
@@ -107,15 +107,6 @@ pub enum AccessPolicyResourceType {
 
 // AccessPolicySubjectId
 pub type AccessPolicySubjectId = Uuid;
-
-// AccessPolicySubjectType
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AccessPolicySubjectType {
-    User,
-    UserGroup,
-    ServerMember,
-    Public,
-}
 
 // ApiResponseStatus
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -621,7 +612,7 @@ pub struct CreateAccessPolicyRequestBody {
     pub access_policy_name: String,
     pub access_policy_resource_type: AccessPolicyResourceType,
     pub access_policy_subject_id: AccessPolicySubjectId,
-    pub access_policy_subject_type: AccessPolicySubjectType,
+    pub access_policy_subject_type: SubjectType,
     pub context_app_ids: Vec<MowsAppId>,
     pub resource_id: Option<Uuid>,
 }
@@ -1643,6 +1634,13 @@ pub enum StorageQuotaSubjectType {
     UserGroup,
 }
 
+// SubjectType
+/// Subject of an access policy — *who* the policy grants/denies to.
+///
+/// The integer values are wire-stable per DATA_MODEL.md and must match
+/// the `subject_type` column.
+pub type SubjectType = i64;
+
 // TagResourceType
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TagResourceType {
@@ -1664,7 +1662,7 @@ pub struct UpdateAccessPolicyChangeset {
     pub new_access_policy_name: Option<String>,
     pub new_access_policy_resource_type: Option<AccessPolicyResourceType>,
     pub new_access_policy_subject_id: Option<AccessPolicySubjectId>,
-    pub new_access_policy_subject_type: Option<AccessPolicySubjectType>,
+    pub new_access_policy_subject_type: Option<SubjectType>,
     pub new_context_app_ids: Option<Vec<MowsAppId>>,
     pub new_resource_id: Option<Uuid>,
 }

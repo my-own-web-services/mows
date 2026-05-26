@@ -19,17 +19,18 @@ use crate::{
     utils::{get_current_timestamp, InvalidEnumType},
 };
 
-use super::{access_policies::AccessPolicySubjectType, user_groups::UserGroup};
+use super::user_groups::UserGroup;
+use mows_auth_core::types::SubjectType;
 use crate::models::user_groups::UserGroupId;
 
 #[macro_export]
 macro_rules! filter_subject_storage_quotas {
     ($requesting_user_id:expr, $user_group_ids:expr) => {
         schema::storage_quotas::subject_type
-            .eq(AccessPolicySubjectType::User)
+            .eq(SubjectType::User)
             .and(schema::storage_quotas::subject_id.eq($requesting_user_id))
             .or(schema::storage_quotas::subject_type
-                .eq(AccessPolicySubjectType::UserGroup)
+                .eq(SubjectType::UserGroup)
                 .and(schema::storage_quotas::subject_id.eq_any($user_group_ids)))
     };
 }

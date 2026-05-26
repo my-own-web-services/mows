@@ -2808,7 +2808,7 @@
             "$ref": "#/components/schemas/AccessPolicySubjectId"
           },
           "subject_type": {
-            "$ref": "#/components/schemas/AccessPolicySubjectType"
+            "$ref": "#/components/schemas/SubjectType"
           }
         }
       },
@@ -2897,15 +2897,6 @@
       "AccessPolicySubjectId": {
         "type": "string",
         "format": "uuid"
-      },
-      "AccessPolicySubjectType": {
-        "type": "string",
-        "enum": [
-          "User",
-          "UserGroup",
-          "ServerMember",
-          "Public"
-        ]
       },
       "ApiResponseStatus": {
         "oneOf": [
@@ -4788,7 +4779,7 @@
             "$ref": "#/components/schemas/AccessPolicySubjectId"
           },
           "access_policy_subject_type": {
-            "$ref": "#/components/schemas/AccessPolicySubjectType"
+            "$ref": "#/components/schemas/SubjectType"
           },
           "context_app_ids": {
             "type": "array",
@@ -7454,6 +7445,16 @@
           "UserGroup"
         ]
       },
+      "SubjectType": {
+        "type": "integer",
+        "description": "Subject of an access policy — *who* the policy grants/denies to.\n\nThe integer values are wire-stable per DATA_MODEL.md and must match\nthe `subject_type` column.",
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
       "TagResourceType": {
         "type": "string",
         "enum": [
@@ -7522,7 +7523,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/AccessPolicySubjectType"
+                "$ref": "#/components/schemas/SubjectType"
               }
             ]
           },

@@ -2,7 +2,7 @@ use super::{AccessPolicyAction, AccessPolicyResourceType};
 use crate::errors::FilezError;
 use crate::filter_subject_access_policies;
 use crate::models::access_policies::{
-    AccessPolicy, AccessPolicyEffect, AccessPolicyId, AccessPolicySubjectType,
+    AccessPolicy, AccessPolicyEffect, AccessPolicyId, SubjectType,
 };
 use crate::models::apps::MowsApp;
 use crate::models::user_groups::UserGroupId;
@@ -345,23 +345,23 @@ pub async fn check_resources_access_control(
                             allowed_by_direct = true;
                             current_evaluation.is_allowed = true;
                             current_evaluation.reason = match policy.subject_type {
-                                AccessPolicySubjectType::User => {
+                                SubjectType::User => {
                                     AuthReason::AllowedByDirectUserPolicy {
                                         policy_id: policy.id,
                                     }
                                 }
-                                AccessPolicySubjectType::UserGroup => {
+                                SubjectType::UserGroup => {
                                     AuthReason::AllowedByDirectUserGroupPolicy {
                                         policy_id: policy.id,
                                         via_user_group_id: UserGroupId(policy.subject_id.into()),
                                     }
                                 }
-                                AccessPolicySubjectType::Public => {
+                                SubjectType::Public => {
                                     AuthReason::AllowedByPubliclyAccessible {
                                         policy_id: policy.id,
                                     }
                                 }
-                                AccessPolicySubjectType::ServerMember => {
+                                SubjectType::ServerMember => {
                                     AuthReason::AllowedByServerAccessible {
                                         policy_id: policy.id,
                                     }
@@ -387,13 +387,13 @@ pub async fn check_resources_access_control(
                                     allowed_by_resource_group = true;
                                     current_evaluation.is_allowed = true;
                                     current_evaluation.reason = match policy.subject_type {
-                                        AccessPolicySubjectType::User => {
+                                        SubjectType::User => {
                                             AuthReason::AllowedByResourceGroupUserPolicy {
                                                 policy_id: policy.id,
                                                 on_resource_group_id: *rg_id,
                                             }
                                         }
-                                        AccessPolicySubjectType::UserGroup => {
+                                        SubjectType::UserGroup => {
                                             AuthReason::AllowedByResourceGroupUserGroupPolicy {
                                                 policy_id: policy.id,
                                                 via_user_group_id: UserGroupId(
@@ -402,12 +402,12 @@ pub async fn check_resources_access_control(
                                                 on_resource_group_id: *rg_id,
                                             }
                                         }
-                                        AccessPolicySubjectType::Public => {
+                                        SubjectType::Public => {
                                             AuthReason::AllowedByPubliclyAccessible {
                                                 policy_id: policy.id,
                                             }
                                         }
-                                        AccessPolicySubjectType::ServerMember => {
+                                        SubjectType::ServerMember => {
                                             AuthReason::AllowedByServerAccessible {
                                                 policy_id: policy.id,
                                             }
@@ -458,19 +458,19 @@ pub async fn check_resources_access_control(
                     resource_id: None,
                     is_allowed: false,
                     reason: match deny_policy.subject_type {
-                        AccessPolicySubjectType::User => AuthReason::DeniedByDirectUserPolicy {
+                        SubjectType::User => AuthReason::DeniedByDirectUserPolicy {
                             policy_id: deny_policy.id,
                         },
-                        AccessPolicySubjectType::UserGroup => {
+                        SubjectType::UserGroup => {
                             AuthReason::DeniedByDirectUserGroupPolicy {
                                 policy_id: deny_policy.id,
                                 via_user_group_id: UserGroupId(deny_policy.subject_id.into()),
                             }
                         }
-                        AccessPolicySubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
+                        SubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
                             policy_id: deny_policy.id,
                         },
-                        AccessPolicySubjectType::ServerMember => {
+                        SubjectType::ServerMember => {
                             AuthReason::DeniedByServerAccessible {
                                 policy_id: deny_policy.id,
                             }
@@ -491,21 +491,21 @@ pub async fn check_resources_access_control(
                     resource_id: None,
                     is_allowed: true,
                     reason: match allow_policy.subject_type {
-                        AccessPolicySubjectType::User => AuthReason::AllowedByDirectUserPolicy {
+                        SubjectType::User => AuthReason::AllowedByDirectUserPolicy {
                             policy_id: allow_policy.id,
                         },
-                        AccessPolicySubjectType::UserGroup => {
+                        SubjectType::UserGroup => {
                             AuthReason::AllowedByDirectUserGroupPolicy {
                                 policy_id: allow_policy.id,
                                 via_user_group_id: UserGroupId(allow_policy.subject_id.into()),
                             }
                         }
-                        AccessPolicySubjectType::Public => {
+                        SubjectType::Public => {
                             AuthReason::AllowedByPubliclyAccessible {
                                 policy_id: allow_policy.id,
                             }
                         }
-                        AccessPolicySubjectType::ServerMember => {
+                        SubjectType::ServerMember => {
                             AuthReason::AllowedByServerAccessible {
                                 policy_id: allow_policy.id,
                             }
@@ -899,17 +899,17 @@ impl AuthResult {
 /// (Public resource with overriding Deny).
 fn deny_reason_direct(policy: &AccessPolicy) -> AuthReason {
     match policy.subject_type {
-        AccessPolicySubjectType::User => AuthReason::DeniedByDirectUserPolicy {
+        SubjectType::User => AuthReason::DeniedByDirectUserPolicy {
             policy_id: policy.id,
         },
-        AccessPolicySubjectType::UserGroup => AuthReason::DeniedByDirectUserGroupPolicy {
+        SubjectType::UserGroup => AuthReason::DeniedByDirectUserGroupPolicy {
             policy_id: policy.id,
             via_user_group_id: UserGroupId(policy.subject_id.into()),
         },
-        AccessPolicySubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
+        SubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
             policy_id: policy.id,
         },
-        AccessPolicySubjectType::ServerMember => AuthReason::DeniedByServerAccessible {
+        SubjectType::ServerMember => AuthReason::DeniedByServerAccessible {
             policy_id: policy.id,
         },
     }
@@ -920,19 +920,19 @@ fn deny_reason_direct(policy: &AccessPolicy) -> AuthReason {
 /// subjects MUST map to `DeniedBy*`.
 fn deny_reason_via_resource_group(policy: &AccessPolicy, resource_group_id: Uuid) -> AuthReason {
     match policy.subject_type {
-        AccessPolicySubjectType::User => AuthReason::DeniedByResourceGroupUserPolicy {
+        SubjectType::User => AuthReason::DeniedByResourceGroupUserPolicy {
             policy_id: policy.id,
             on_resource_group_id: resource_group_id,
         },
-        AccessPolicySubjectType::UserGroup => AuthReason::DeniedByResourceGroupUserGroupPolicy {
+        SubjectType::UserGroup => AuthReason::DeniedByResourceGroupUserGroupPolicy {
             policy_id: policy.id,
             via_user_group_id: UserGroupId(policy.subject_id.into()),
             on_resource_group_id: resource_group_id,
         },
-        AccessPolicySubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
+        SubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
             policy_id: policy.id,
         },
-        AccessPolicySubjectType::ServerMember => AuthReason::DeniedByServerAccessible {
+        SubjectType::ServerMember => AuthReason::DeniedByServerAccessible {
             policy_id: policy.id,
         },
     }
@@ -955,7 +955,7 @@ mod tests {
     use uuid::Uuid;
 
     fn policy(
-        subject_type: AccessPolicySubjectType,
+        subject_type: SubjectType,
         effect: AccessPolicyEffect,
     ) -> AccessPolicy {
         AccessPolicy {
@@ -977,7 +977,7 @@ mod tests {
     #[test]
     fn deny_reason_direct_public_does_not_become_allowed() {
         let reason = deny_reason_direct(&policy(
-            AccessPolicySubjectType::Public,
+            SubjectType::Public,
             AccessPolicyEffect::Deny,
         ));
         // The pre-fix bug produced `AllowedByPubliclyAccessible` here.
@@ -990,7 +990,7 @@ mod tests {
     #[test]
     fn deny_reason_direct_server_member_does_not_become_allowed() {
         let reason = deny_reason_direct(&policy(
-            AccessPolicySubjectType::ServerMember,
+            SubjectType::ServerMember,
             AccessPolicyEffect::Deny,
         ));
         // The pre-fix bug produced `AllowedByServerAccessible` here.
@@ -1005,12 +1005,12 @@ mod tests {
         // Sanity: the User and UserGroup cases were never buggy; assert
         // they still produce the right Denied variants.
         let user = deny_reason_direct(&policy(
-            AccessPolicySubjectType::User,
+            SubjectType::User,
             AccessPolicyEffect::Deny,
         ));
         assert!(matches!(user, AuthReason::DeniedByDirectUserPolicy { .. }));
         let group = deny_reason_direct(&policy(
-            AccessPolicySubjectType::UserGroup,
+            SubjectType::UserGroup,
             AccessPolicyEffect::Deny,
         ));
         assert!(matches!(group, AuthReason::DeniedByDirectUserGroupPolicy { .. }));
@@ -1020,7 +1020,7 @@ mod tests {
     fn deny_reason_via_resource_group_public_does_not_become_allowed() {
         let resource_group_id = Uuid::new_v4();
         let reason = deny_reason_via_resource_group(
-            &policy(AccessPolicySubjectType::Public, AccessPolicyEffect::Deny),
+            &policy(SubjectType::Public, AccessPolicyEffect::Deny),
             resource_group_id,
         );
         assert!(
@@ -1033,7 +1033,7 @@ mod tests {
     fn deny_reason_via_resource_group_server_member_does_not_become_allowed() {
         let resource_group_id = Uuid::new_v4();
         let reason = deny_reason_via_resource_group(
-            &policy(AccessPolicySubjectType::ServerMember, AccessPolicyEffect::Deny),
+            &policy(SubjectType::ServerMember, AccessPolicyEffect::Deny),
             resource_group_id,
         );
         assert!(
@@ -1046,7 +1046,7 @@ mod tests {
     fn deny_reason_via_resource_group_carries_resource_group_id_for_user_variants() {
         let rg = Uuid::new_v4();
         let user = deny_reason_via_resource_group(
-            &policy(AccessPolicySubjectType::User, AccessPolicyEffect::Deny),
+            &policy(SubjectType::User, AccessPolicyEffect::Deny),
             rg,
         );
         match user {
@@ -1056,7 +1056,7 @@ mod tests {
             other => panic!("User+Deny via-rg wrong variant: {other:?}"),
         }
         let group = deny_reason_via_resource_group(
-            &policy(AccessPolicySubjectType::UserGroup, AccessPolicyEffect::Deny),
+            &policy(SubjectType::UserGroup, AccessPolicyEffect::Deny),
             rg,
         );
         match group {
@@ -1325,7 +1325,7 @@ mod engine_reason_parity {
             owner_id: FilezUserId::nil(),
             created_time: NaiveDateTime::default(),
             modified_time: NaiveDateTime::default(),
-            subject_type: AccessPolicySubjectType::UserGroup,
+            subject_type: SubjectType::UserGroup,
             subject_id: crate::models::access_policies::AccessPolicySubjectId(subject_uuid.into()),
             context_app_ids: vec![MowsAppId::nil()],
             resource_type: AccessPolicyResourceType::File,

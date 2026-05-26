@@ -11,14 +11,17 @@ use crate::{
     models::{
         access_policies::{
             AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyResourceType,
-            AccessPolicySubjectId, AccessPolicySubjectType,
+            AccessPolicySubjectId,
         },
         apps::MowsAppId,
     },
+    // SubjectType is engine-owned (mows_auth_core), re-imported here
+    // because the access_policies module no longer re-exports it.
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
+use mows_auth_core::types::SubjectType;
 
 #[utoipa::path(
     post,
@@ -98,7 +101,7 @@ pub struct CreateAccessPolicyRequestBody {
     #[schema(max_length = 256)]
     #[validate(max_length = 256)]
     pub access_policy_name: String,
-    pub access_policy_subject_type: AccessPolicySubjectType,
+    pub access_policy_subject_type: SubjectType,
     pub access_policy_subject_id: AccessPolicySubjectId,
     pub context_app_ids: Vec<MowsAppId>,
     pub access_policy_resource_type: AccessPolicyResourceType,
