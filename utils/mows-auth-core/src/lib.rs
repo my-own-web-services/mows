@@ -45,10 +45,10 @@ pub mod list;
 // Re-export the most-used items at the crate root so downstream services
 // don't need a deep import path.
 //
-// `check_access` and `list_visible` are deliberately NOT re-exported
-// — they're pub(crate) stubs today; re-exposing them would let a
-// downstream service wire up a `Err(Denied)` placeholder. They become
-// `pub` and re-exported when the real implementations land.
+// `list_visible` is still a stub returning Denied (lands in Phase 3
+// when listing extracts). `check_access` is the real evaluator on top
+// of `PolicyStore` — re-exported.
+pub use crate::check::check_access;
 pub use crate::evaluation::{AuthEvaluation, AuthReason, AuthResult};
 pub use crate::idp::{
     IntrospectedUser, IntrospectionError, IntrospectionResult, TokenIntrospector,

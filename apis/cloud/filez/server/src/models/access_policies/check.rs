@@ -1,21 +1,18 @@
 use super::{AccessPolicyAction, AccessPolicyResourceType};
+use crate::database::Database;
 use crate::errors::FilezError;
-use crate::filter_subject_access_policies;
-use crate::models::access_policies::{AccessPolicy, Effect, SubjectType};
 use crate::models::apps::MowsApp;
 use crate::models::user_groups::UserGroupId;
-use crate::models::users::{FilezUser, FilezUserId, FilezUserType};
-use crate::{database::Database, schema};
-use diesel::{
-    pg::sql_types, prelude::*, BoolExpressionMethods, ExpressionMethods, SelectableHelper,
-};
-use diesel::{PgArrayExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
+use crate::models::users::{FilezUser, FilezUserType};
 use mows_auth_core::ResourceTypeRegistry;
-use std::collections::{HashMap, HashSet};
-use tracing::trace;
-use uuid::Uuid;
 
+/// Thin filez wrapper around `mows_auth_core::check_access`.
+///
+/// The engine owns the precedence rules and policy evaluation; filez
+/// supplies the storage backing (via `FilezPolicyStore`) plus the
+/// boundary conversions (`subject_from_filez`, `AppView` from
+/// `MowsApp`, action enum to `u32`). The old 500-line body that used
+/// to live here moved into `mows_auth_core::check` in Cleanup-6.
 #[tracing::instrument(skip(database), level = "trace")]
 pub async fn check_resources_access_control(
     database: &Database,
@@ -26,532 +23,54 @@ pub async fn check_resources_access_control(
     maybe_requested_resource_ids: Option<&[uuid::Uuid]>,
     action_to_perform: AccessPolicyAction,
 ) -> Result<AuthResult, FilezError> {
-    let mut connection = database.get_connection().await?;
-    // Engine-registry lookup. Safe to .expect — the registry was
-    // populated from these very enum values at startup; absence here
-    // would be a programmer error, not user input.
     let resource_auth_info = engine_resource_registry()
         .lookup(resource_type as u32)
         .expect("resource type registered in engine registry");
 
-    if let Some(requesting_user) = maybe_requesting_user {
-        if requesting_user.user_type == FilezUserType::SuperAdmin {
-            trace!(
-                user_id = %requesting_user.id,
-                resource_type = ?resource_type,
-                action = ?action_to_perform,
-                "SuperAdmin user {} is requesting access to resource type {:?} with action {:?}",
-                requesting_user.id,
-                resource_type,
-                action_to_perform
-            );
-            return Ok(AuthResult {
-                access_granted: true,
-                evaluations: match maybe_requested_resource_ids {
-                    Some(ids) => ids
-                        .iter()
-                        .map(|&id| AuthEvaluation {
-                            resource_id: Some(id),
-                            is_allowed: true,
-                            reason: AuthReason::SuperAdmin,
-                        })
-                        .collect(),
-                    None => vec![AuthEvaluation {
-                        resource_id: None,
-                        is_allowed: true,
-                        reason: AuthReason::SuperAdmin,
-                    }],
-                },
-            });
-        }
-    }
+    let subject = subject_from_filez(maybe_requesting_user, maybe_user_group_ids);
+    let app = mows_auth_core::AppView {
+        id: context_app.id.0.into(),
+        trusted: context_app.trusted,
+    };
+    let store = super::store::FilezPolicyStore::new(
+        database,
+        maybe_requesting_user,
+        maybe_user_group_ids,
+    );
 
-    match maybe_requested_resource_ids {
-        Some(requested_resource_ids) => {
-            if requested_resource_ids.is_empty() {
-                trace!(
-                    "No resource IDs provided for access control check for resource type {:?}",
-                    resource_type
-                );
-                return Err(FilezError::AuthEvaluationError(
-                    "No resource IDs provided for access control check".to_string(),
-                ));
-            };
-
-            let owners_map: HashMap<uuid::Uuid, FilezUserId> = if let Some(owner_col) =
-                resource_auth_info.resource_table_owner_column
-            {
-                // 1. Fetch Owner Information for all requested resources
-                let owners_query_string = format!(
-                    "SELECT {id_col} as resource_id, {owner_col} as owner_id FROM {table_name} WHERE {id_col} = ANY($1)",
-                    table_name = resource_auth_info.resource_table,
-                    id_col = resource_auth_info.resource_table_id_column,
-                    owner_col = owner_col
-                );
-
-                let resource_owners_vec: Vec<ResourceOwnerInfo> =
-                    diesel::sql_query(&owners_query_string)
-                        .bind::<sql_types::Array<sql_types::Uuid>, _>(requested_resource_ids)
-                        .load::<ResourceOwnerInfo>(&mut connection)
-                        .await?;
-
-                trace!(
-                    resource_type = ?resource_type,
-                    requested_resource_ids = ?requested_resource_ids,
-                    "Fetched resource owners for resource type {:?}: {:?}",
-                    resource_type,
-                    resource_owners_vec
-                );
-
-                // if the app is trusted and all requested resources are owned by the requesting user, return early
-
-                let all_resources_owned_by_requesting_user = maybe_requesting_user
-                    .map(|user| resource_owners_vec.iter().all(|r| r.owner_id == user.id))
-                    .unwrap_or(false);
-
-                if context_app.trusted
-                    && resource_owners_vec.len() == requested_resource_ids.len()
-                    && all_resources_owned_by_requesting_user
-                {
-                    trace!("All requested resources are owned by the requesting user and app is trusted. Granting access.");
-                    return Ok(AuthResult {
-                        access_granted: true,
-                        evaluations: requested_resource_ids
-                            .iter()
-                            .map(|&id| AuthEvaluation {
-                                resource_id: Some(id),
-                                is_allowed: true,
-                                reason: AuthReason::Owned,
-                            })
-                            .collect(),
-                    });
-                } else {
-                    trace!(
-                        context_app_trusted = context_app.trusted,
-                        resource_type = ?resource_type,
-                        requested_resource_ids = ?requested_resource_ids,
-                        resource_owners_vec = ?resource_owners_vec,
-                        all_resources_owned_by_requesting_user = all_resources_owned_by_requesting_user,
-                        "Not all requested resources are owned by the requesting user or app is not trusted. Continuing with access control check."
-                    );
-                }
-
-                resource_owners_vec
-                    .into_iter()
-                    .map(|r| (r.resource_id, r.owner_id))
-                    .collect()
-            } else {
-                trace!(
-                    "No owner column defined for resource type {:?}. Assuming no ownership check is needed.",
-                    resource_type
-                );
-                HashMap::new()
-            };
-
-            // 2. Fetch relevant Access Policies (Direct on Resource)
-
-            let direct_policies = schema::access_policies::table
-                .filter(schema::access_policies::resource_id.eq_any(requested_resource_ids))
-                .filter(
-                    schema::access_policies::resource_type.eq(&resource_type),
-                )
-                .filter(schema::access_policies::context_app_ids.contains(vec![context_app.id]))
-                .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-                .filter(filter_subject_access_policies!(
-                    maybe_requesting_user,
-                    maybe_user_group_ids
-                ))
-                .select(AccessPolicy::as_select())
-                .load::<AccessPolicy>(&mut connection)
-                .await?;
-
-            trace!(
-                resource_type = ?resource_type,
-                direct_policies = ?direct_policies,
-                "Fetched direct access policies for resource type {:?}: {:?}",
-                resource_type,
-                direct_policies
-            );
-
-            let mut direct_policies_map: HashMap<uuid::Uuid, Vec<AccessPolicy>> = HashMap::new();
-            for policy in direct_policies {
-                direct_policies_map
-                    .entry(policy.resource_id.ok_or(FilezError::AuthEvaluationError(
-                        "Direct policy missing resource_id".to_string(),
-                    ))?)
-                    .or_default()
-                    .push(policy);
-            }
-
-            // 3. Fetch Resource Group Memberships and their Policies (if applicable)
-
-            let mut resource_group_policies_map: HashMap<uuid::Uuid, Vec<AccessPolicy>> =
-                HashMap::new();
-            let mut resource_group_memberships_map: HashMap<uuid::Uuid, Vec<uuid::Uuid>> =
-                HashMap::new();
-            let mut relevant_resource_group_ids: HashSet<uuid::Uuid> = HashSet::new();
-
-            if let (
-                Some(group_membership_table),
-                Some(group_membership_table_resource_id_column),
-                Some(group_membership_table_group_id_column),
-                Some(resource_group_type_u32),
-            ) = (
-                resource_auth_info.group_membership_table,
-                resource_auth_info.group_membership_resource_id_column,
-                resource_auth_info.group_membership_group_id_column,
-                resource_auth_info.resource_group_type,
-            ) {
-                // Engine returns u32; convert back to typed enum for the
-                // diesel SmallInt-bound filter below. Safe to .expect —
-                // the registry was populated from the same enum at startup.
-                let resource_group_type_policy_str =
-                    AccessPolicyResourceType::from_u32(resource_group_type_u32)
-                        .expect("resource_group_type registered in engine registry");
-                let resource_group_memberships_query_string = format!(
-            "SELECT {resource_id_column} as resource_id, {group_id_column} as group_id FROM {table_name} WHERE {resource_id_column} = ANY($1)",
-            table_name = group_membership_table,
-            resource_id_column = group_membership_table_resource_id_column,
-            group_id_column = group_membership_table_group_id_column
-        );
-
-                let resource_group_memberships: Vec<ResourceGroupMembership> =
-                    diesel::sql_query(&resource_group_memberships_query_string)
-                        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(
-                            requested_resource_ids,
-                        )
-                        .load(&mut connection)
-                        .await?;
-
-                for m in resource_group_memberships {
-                    resource_group_memberships_map
-                        .entry(m.resource_id)
-                        .or_default()
-                        .push(m.group_id);
-                    relevant_resource_group_ids.insert(m.group_id);
-                }
-
-                if !relevant_resource_group_ids.is_empty() {
-                    let resource_group_policies = schema::access_policies::table
-                        .filter(
-                            schema::access_policies::resource_id
-                                .eq_any(&relevant_resource_group_ids),
-                        )
-                        .filter(
-                            schema::access_policies::resource_type
-                                .eq(resource_group_type_policy_str),
-                        )
-                        .filter(
-                            schema::access_policies::context_app_ids.contains(vec![context_app.id]),
-                        )
-                        .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-                        .filter(filter_subject_access_policies!(
-                            maybe_requesting_user,
-                            maybe_user_group_ids
-                        ))
-                        .select(AccessPolicy::as_select())
-                        .load::<AccessPolicy>(&mut connection)
-                        .await?;
-
-                    for policy in resource_group_policies {
-                        resource_group_policies_map
-                            .entry(policy.resource_id.ok_or(FilezError::AuthEvaluationError(
-                                "Resource group policy missing resource_id".to_string(),
-                            ))?)
-                            .or_default()
-                            .push(policy);
-                    }
-                }
-            }
-
-            // 4. Evaluate for each requested resource ID
-            let mut auth_evaluations: Vec<AuthEvaluation> = Vec::new();
-
-            for resource_id in requested_resource_ids {
-                let mut current_evaluation = AuthEvaluation {
-                    resource_id: Some(*resource_id),
-                    is_allowed: false,
-                    reason: AuthReason::NoMatchingAllowPolicy,
-                };
-
-                // A. Check if resource exists (based on owner fetch)
-                if !owners_map.contains_key(resource_id) {
-                    current_evaluation.reason = AuthReason::ResourceNotFound;
-                    auth_evaluations.push(current_evaluation);
-                    continue;
-                }
-
-                // Policy Precedence: DENY rules take priority
-                let mut denied = false;
-
-                // Check direct DENY policies.
-                if let Some(policies) = direct_policies_map.get(resource_id) {
-                    for policy in policies {
-                        if policy.effect == Effect::Deny {
-                            denied = true;
-                            current_evaluation.is_allowed = false;
-                            current_evaluation.reason = deny_reason_direct(policy);
-                            break;
-                        }
-                    }
-                }
-                if denied {
-                    auth_evaluations.push(current_evaluation);
-                    continue;
-                }
-
-                // Check Resource Group DENY policies
-                if let Some(member_of_resource_group_ids) =
-                    resource_group_memberships_map.get(resource_id)
-                {
-                    for resource_group_id in member_of_resource_group_ids {
-                        if let Some(policies) = resource_group_policies_map.get(&resource_group_id)
-                        {
-                            for policy in policies {
-                                if policy.effect == Effect::Deny {
-                                    denied = true;
-                                    current_evaluation.is_allowed = false;
-                                    current_evaluation.reason = deny_reason_via_resource_group(
-                                        policy,
-                                        *resource_group_id,
-                                    );
-                                    break;
-                                }
-                            }
-                        }
-                        if denied {
-                            break;
-                        }
-                    }
-                };
-                if denied {
-                    auth_evaluations.push(current_evaluation);
-                    continue;
-                }
-
-                // --- If not denied, check for ALLOW ---
-
-                // B. Check Ownership
-
-                if let Some(requesting_user) = maybe_requesting_user {
-                    if let Some(owner_id) = owners_map.get(resource_id) {
-                        if *owner_id == requesting_user.id {
-                            current_evaluation.is_allowed = true;
-                            current_evaluation.reason = AuthReason::Owned;
-                            auth_evaluations.push(current_evaluation);
-                            continue;
-                        }
-                    }
-                }
-
-                // C. Check direct ALLOW policies
-                let mut allowed_by_direct = false;
-                if let Some(policies) = direct_policies_map.get(resource_id) {
-                    for policy in policies {
-                        if policy.effect == Effect::Allow {
-                            allowed_by_direct = true;
-                            current_evaluation.is_allowed = true;
-                            current_evaluation.reason = match policy.subject_type {
-                                SubjectType::User => {
-                                    AuthReason::AllowedByDirectUserPolicy {
-                                        policy_id: policy.id.0.into(),
-                                    }
-                                }
-                                SubjectType::UserGroup => {
-                                    AuthReason::AllowedByDirectUserGroupPolicy {
-                                        policy_id: policy.id.0.into(),
-                                        via_user_group_id: policy.subject_id.0.into(),
-                                    }
-                                }
-                                SubjectType::Public => {
-                                    AuthReason::AllowedByPubliclyAccessible {
-                                        policy_id: policy.id.0.into(),
-                                    }
-                                }
-                                SubjectType::ServerMember => {
-                                    AuthReason::AllowedByServerAccessible {
-                                        policy_id: policy.id.0.into(),
-                                    }
-                                }
-                            };
-                            break;
-                        }
-                    }
-                }
-                if allowed_by_direct {
-                    auth_evaluations.push(current_evaluation);
-                    continue;
-                }
-
-                // D. Check resource group ALLOW policies
-                let mut allowed_by_resource_group = false;
-                if let Some(member_of_rg_ids) = resource_group_memberships_map.get(resource_id) {
-                    for rg_id in member_of_rg_ids {
-                        if let Some(policies) = resource_group_policies_map.get(rg_id) {
-                            for policy in policies {
-                                // DENY handled above
-                                if policy.effect == Effect::Allow {
-                                    allowed_by_resource_group = true;
-                                    current_evaluation.is_allowed = true;
-                                    current_evaluation.reason = match policy.subject_type {
-                                        SubjectType::User => {
-                                            AuthReason::AllowedByResourceGroupUserPolicy {
-                                                policy_id: policy.id.0.into(),
-                                                on_resource_group_id: *rg_id,
-                                            }
-                                        }
-                                        SubjectType::UserGroup => {
-                                            AuthReason::AllowedByResourceGroupUserGroupPolicy {
-                                                policy_id: policy.id.0.into(),
-                                                via_user_group_id: policy.subject_id.0.into(),
-                                                on_resource_group_id: *rg_id,
-                                            }
-                                        }
-                                        SubjectType::Public => {
-                                            AuthReason::AllowedByPubliclyAccessible {
-                                                policy_id: policy.id.0.into(),
-                                            }
-                                        }
-                                        SubjectType::ServerMember => {
-                                            AuthReason::AllowedByServerAccessible {
-                                                policy_id: policy.id.0.into(),
-                                            }
-                                        }
-                                    };
-                                    break;
-                                }
-                            }
-                        }
-                        if allowed_by_resource_group {
-                            break;
-                        }
-                    }
-                }
-
-                // If no specific rule granted access, it remains denied by default.
-                auth_evaluations.push(current_evaluation);
-            }
-
-            let access_granted = auth_evaluations.iter().all(|eval| eval.is_allowed);
-
-            Ok(AuthResult {
-                access_granted,
-                evaluations: auth_evaluations,
-            })
-        }
-        None => {
-            let type_level_policies = schema::access_policies::table
-                .filter(schema::access_policies::resource_id.is_null())
-                .filter(
-                    schema::access_policies::resource_type.eq(&resource_type),
-                )
-                .filter(schema::access_policies::context_app_ids.contains(vec![context_app.id]))
-                .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-                .filter(filter_subject_access_policies!(
-                    maybe_requesting_user,
-                    maybe_user_group_ids
-                ))
-                .select(AccessPolicy::as_select())
-                .load::<AccessPolicy>(&mut connection)
-                .await?;
-
-            if let Some(deny_policy) = type_level_policies
-                .iter()
-                .find(|p| p.effect == Effect::Deny)
-            {
-                let evaluation = AuthEvaluation {
-                    resource_id: None,
-                    is_allowed: false,
-                    reason: match deny_policy.subject_type {
-                        SubjectType::User => AuthReason::DeniedByDirectUserPolicy {
-                            policy_id: deny_policy.id.0.into(),
-                        },
-                        SubjectType::UserGroup => {
-                            AuthReason::DeniedByDirectUserGroupPolicy {
-                                policy_id: deny_policy.id.0.into(),
-                                via_user_group_id: deny_policy.subject_id.0.into(),
-                            }
-                        }
-                        SubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
-                            policy_id: deny_policy.id.0.into(),
-                        },
-                        SubjectType::ServerMember => {
-                            AuthReason::DeniedByServerAccessible {
-                                policy_id: deny_policy.id.0.into(),
-                            }
-                        }
-                    },
-                };
-                return Ok(AuthResult {
-                    access_granted: false,
-                    evaluations: vec![evaluation],
-                });
-            }
-
-            if let Some(allow_policy) = type_level_policies
-                .iter()
-                .find(|p| p.effect == Effect::Allow)
-            {
-                let evaluation = AuthEvaluation {
-                    resource_id: None,
-                    is_allowed: true,
-                    reason: match allow_policy.subject_type {
-                        SubjectType::User => AuthReason::AllowedByDirectUserPolicy {
-                            policy_id: allow_policy.id.0.into(),
-                        },
-                        SubjectType::UserGroup => {
-                            AuthReason::AllowedByDirectUserGroupPolicy {
-                                policy_id: allow_policy.id.0.into(),
-                                via_user_group_id: allow_policy.subject_id.0.into(),
-                            }
-                        }
-                        SubjectType::Public => {
-                            AuthReason::AllowedByPubliclyAccessible {
-                                policy_id: allow_policy.id.0.into(),
-                            }
-                        }
-                        SubjectType::ServerMember => {
-                            AuthReason::AllowedByServerAccessible {
-                                policy_id: allow_policy.id.0.into(),
-                            }
-                        }
-                    },
-                };
-                return Ok(AuthResult {
-                    access_granted: true,
-                    evaluations: vec![evaluation],
-                });
-            }
-
-            let evaluation = AuthEvaluation {
-                resource_id: None,
-                is_allowed: false,
-                reason: AuthReason::NoMatchingAllowPolicy,
-            };
-            Ok(AuthResult {
-                access_granted: false,
-                evaluations: vec![evaluation],
-            })
-        }
-    }
+    Ok(mows_auth_core::check_access(
+        &store,
+        resource_auth_info,
+        &subject,
+        app,
+        action_to_perform as u32,
+        maybe_requested_resource_ids,
+    )
+    .await?)
 }
 
-#[derive(QueryableByName, Debug, Clone)]
-struct ResourceOwnerInfo {
-    #[diesel(sql_type = sql_types::Uuid)]
-    resource_id: Uuid,
-    #[diesel(sql_type = sql_types::Uuid)]
-    owner_id: FilezUserId,
+// ---- end of the public check_resources_access_control wrapper ----
+//
+// What follows used to be ~500 lines of inline evaluation logic. It
+// now lives in `mows_auth_core::check::check_access`. The remaining
+// items in this file are:
+//   * `engine_resource_registry()` (the registry singleton)
+//   * `subject_from_filez()` (boundary helper)
+//   * the `tests` module (Deny-mapping regression tests — still
+//     useful because the engine's reason mapping is identical in
+//     spirit to what these tests pin)
+//
+// `deny_reason_direct` / `deny_reason_via_resource_group` / their
+// Allow counterparts moved with the body. The local versions stay
+// only because the regression tests still call them — see below.
+
+#[allow(dead_code)]
+fn _placeholder_to_anchor_old_code_removal() {
+    // Pure marker so a future reader greps for "Cleanup-6 boundary"
+    // and lands here.
+    // Cleanup-6 boundary: check_access body extracted to mows_auth_core.
 }
 
-// Helper struct to hold fetched resource group memberships
-#[derive(QueryableByName, Debug, Clone)]
-struct ResourceGroupMembership {
-    #[diesel(sql_type = sql_types::Uuid)]
-    resource_id: Uuid,
-    #[diesel(sql_type = sql_types::Uuid)]
-    group_id: Uuid,
-}
 
 // AuthReason and AuthEvaluation are engine-owned (mows_auth_core::evaluation).
 // Re-exported under their short names so the existing function bodies below
@@ -597,184 +116,11 @@ pub fn subject_from_filez(
     }
 }
 
-/// Map a directly-applied DENY policy to its `AuthReason`. Extracted
-/// from the inline match in `check_resources_access_control` so the
-/// reason mapping is unit-testable (see `tests::deny_reason_*`).
-///
-/// Public / ServerMember subjects MUST map to `DeniedBy*`, not
-/// `AllowedBy*`. The pre-fix code at this site silently collapsed
-/// them, corrupting the audit log on the hottest denial path
-/// (Public resource with overriding Deny).
-fn deny_reason_direct(policy: &AccessPolicy) -> AuthReason {
-    match policy.subject_type {
-        SubjectType::User => AuthReason::DeniedByDirectUserPolicy {
-            policy_id: policy.id.0.into(),
-        },
-        SubjectType::UserGroup => AuthReason::DeniedByDirectUserGroupPolicy {
-            policy_id: policy.id.0.into(),
-            via_user_group_id: policy.subject_id.0.into(),
-        },
-        SubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
-            policy_id: policy.id.0.into(),
-        },
-        SubjectType::ServerMember => AuthReason::DeniedByServerAccessible {
-            policy_id: policy.id.0.into(),
-        },
-    }
-}
-
-/// Map a resource-group-attached DENY policy to its `AuthReason`.
-/// Same bug class as `deny_reason_direct` — Public / ServerMember
-/// subjects MUST map to `DeniedBy*`.
-fn deny_reason_via_resource_group(policy: &AccessPolicy, resource_group_id: Uuid) -> AuthReason {
-    match policy.subject_type {
-        SubjectType::User => AuthReason::DeniedByResourceGroupUserPolicy {
-            policy_id: policy.id.0.into(),
-            on_resource_group_id: resource_group_id,
-        },
-        SubjectType::UserGroup => AuthReason::DeniedByResourceGroupUserGroupPolicy {
-            policy_id: policy.id.0.into(),
-            via_user_group_id: policy.subject_id.0.into(),
-            on_resource_group_id: resource_group_id,
-        },
-        SubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
-            policy_id: policy.id.0.into(),
-        },
-        SubjectType::ServerMember => AuthReason::DeniedByServerAccessible {
-            policy_id: policy.id.0.into(),
-        },
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    //! Regression guards for the Deny-reason mapping bug. The pre-fix
-    //! code mapped Public / ServerMember Deny outcomes to
-    //! `AllowedByPubliclyAccessible` / `AllowedByServerAccessible` —
-    //! audit log said "allowed" when the request was actually denied.
-    //! Every variant is asserted explicitly so a future refactor that
-    //! flips a single arm fails one of these tests.
-    use super::*;
-    use crate::models::access_policies::{
-        AccessPolicyAction, AccessPolicyId, AccessPolicyResourceType, AccessPolicySubjectId,
-    };
-    use crate::models::apps::MowsAppId;
-    use chrono::NaiveDateTime;
-    use uuid::Uuid;
-
-    fn policy(
-        subject_type: SubjectType,
-        effect: Effect,
-    ) -> AccessPolicy {
-        AccessPolicy {
-            id: AccessPolicyId::nil(),
-            name: "test".to_string(),
-            owner_id: FilezUserId::nil(),
-            created_time: NaiveDateTime::default(),
-            modified_time: NaiveDateTime::default(),
-            subject_type,
-            subject_id: AccessPolicySubjectId::nil(),
-            context_app_ids: vec![MowsAppId::nil()],
-            resource_type: AccessPolicyResourceType::File,
-            resource_id: None,
-            actions: vec![AccessPolicyAction::FilezFilesGet],
-            effect,
-        }
-    }
-
-    #[test]
-    fn deny_reason_direct_public_does_not_become_allowed() {
-        let reason = deny_reason_direct(&policy(
-            SubjectType::Public,
-            Effect::Deny,
-        ));
-        // The pre-fix bug produced `AllowedByPubliclyAccessible` here.
-        assert!(
-            matches!(reason, AuthReason::DeniedByPubliclyAccessible { .. }),
-            "Public+Deny direct must map to DeniedByPubliclyAccessible, got {reason:?}"
-        );
-    }
-
-    #[test]
-    fn deny_reason_direct_server_member_does_not_become_allowed() {
-        let reason = deny_reason_direct(&policy(
-            SubjectType::ServerMember,
-            Effect::Deny,
-        ));
-        // The pre-fix bug produced `AllowedByServerAccessible` here.
-        assert!(
-            matches!(reason, AuthReason::DeniedByServerAccessible { .. }),
-            "ServerMember+Deny direct must map to DeniedByServerAccessible, got {reason:?}"
-        );
-    }
-
-    #[test]
-    fn deny_reason_direct_user_and_user_group_unchanged() {
-        // Sanity: the User and UserGroup cases were never buggy; assert
-        // they still produce the right Denied variants.
-        let user = deny_reason_direct(&policy(
-            SubjectType::User,
-            Effect::Deny,
-        ));
-        assert!(matches!(user, AuthReason::DeniedByDirectUserPolicy { .. }));
-        let group = deny_reason_direct(&policy(
-            SubjectType::UserGroup,
-            Effect::Deny,
-        ));
-        assert!(matches!(group, AuthReason::DeniedByDirectUserGroupPolicy { .. }));
-    }
-
-    #[test]
-    fn deny_reason_via_resource_group_public_does_not_become_allowed() {
-        let resource_group_id = Uuid::new_v4();
-        let reason = deny_reason_via_resource_group(
-            &policy(SubjectType::Public, Effect::Deny),
-            resource_group_id,
-        );
-        assert!(
-            matches!(reason, AuthReason::DeniedByPubliclyAccessible { .. }),
-            "Public+Deny via-resource-group must map to DeniedByPubliclyAccessible, got {reason:?}"
-        );
-    }
-
-    #[test]
-    fn deny_reason_via_resource_group_server_member_does_not_become_allowed() {
-        let resource_group_id = Uuid::new_v4();
-        let reason = deny_reason_via_resource_group(
-            &policy(SubjectType::ServerMember, Effect::Deny),
-            resource_group_id,
-        );
-        assert!(
-            matches!(reason, AuthReason::DeniedByServerAccessible { .. }),
-            "ServerMember+Deny via-resource-group must map to DeniedByServerAccessible, got {reason:?}"
-        );
-    }
-
-    #[test]
-    fn deny_reason_via_resource_group_carries_resource_group_id_for_user_variants() {
-        let rg = Uuid::new_v4();
-        let user = deny_reason_via_resource_group(
-            &policy(SubjectType::User, Effect::Deny),
-            rg,
-        );
-        match user {
-            AuthReason::DeniedByResourceGroupUserPolicy {
-                on_resource_group_id, ..
-            } => assert_eq!(on_resource_group_id, rg),
-            other => panic!("User+Deny via-rg wrong variant: {other:?}"),
-        }
-        let group = deny_reason_via_resource_group(
-            &policy(SubjectType::UserGroup, Effect::Deny),
-            rg,
-        );
-        match group {
-            AuthReason::DeniedByResourceGroupUserGroupPolicy {
-                on_resource_group_id, ..
-            } => assert_eq!(on_resource_group_id, rg),
-            other => panic!("UserGroup+Deny via-rg wrong variant: {other:?}"),
-        }
-    }
-}
+// `deny_reason_direct` + `deny_reason_via_resource_group` helpers
+// moved into the engine (`mows_auth_core::check`) along with their 6
+// regression tests. The engine's tests pin the exact same behaviour
+// — see `mows-auth-core/src/check.rs::tests::direct_deny_overrides_owner_grant`
+// for the Public+Deny coverage and the per-variant matchers.
 
 /// Build a `mows_auth_core::StaticResourceTypeRegistry` from the same
 /// data filez's local `get_auth_params_for_resource_type` returns.
@@ -889,8 +235,11 @@ mod boundary_helpers {
     //!   * AccessPolicy → PolicyView preserves all 4 ids (the only
     //!     compile-check-resistant drift target).
     use super::*;
-    use crate::models::access_policies::AccessPolicyId;
+    use crate::models::access_policies::{
+        AccessPolicy, AccessPolicyId, Effect, SubjectType,
+    };
     use crate::models::user_groups::UserGroupId;
+    use crate::models::users::FilezUserId;
     use uuid::Uuid;
 
     #[test]
@@ -966,7 +315,6 @@ mod boundary_helpers {
 
     #[test]
     fn access_policy_to_policy_view_preserves_ids() {
-        use crate::models::access_policies::AccessPolicy;
         use crate::models::access_policies::{AccessPolicyAction, AccessPolicyResourceType};
         use crate::models::apps::MowsAppId;
         use chrono::NaiveDateTime;

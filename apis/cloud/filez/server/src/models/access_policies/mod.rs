@@ -1,4 +1,5 @@
 pub mod check;
+pub mod store;
 use super::{user_groups::UserGroup, users::FilezUser};
 use crate::models::user_groups::UserGroupId;
 use crate::{
