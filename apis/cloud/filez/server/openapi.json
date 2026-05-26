@@ -2758,6 +2758,7 @@
           "resource_type",
           "actions",
           "effect",
+          "resource_scope",
           "revoked"
         ],
         "properties": {
@@ -2817,6 +2818,10 @@
             ],
             "format": "uuid",
             "description": "The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type."
+          },
+          "resource_scope": {
+            "$ref": "#/components/schemas/ResourceScope",
+            "description": "How broadly the policy applies (POLICY_SEMANTICS.md §4).\nSingle = the historic behaviour (`resource_id` pins the target).\nOwnedByOwner / AccessibleByOwner apply to whole resource sets\ndefined by the policy's owner."
           },
           "resource_type": {
             "$ref": "#/components/schemas/AccessPolicyResourceType"
@@ -4517,6 +4522,50 @@
           },
           {
             "type": "object",
+            "description": "POLICY_SEMANTICS.md §4 — Allow via `resource_scope = OwnedByOwner`.",
+            "required": [
+              "AllowedByOwnedByOwnerPolicy"
+            ],
+            "properties": {
+              "AllowedByOwnedByOwnerPolicy": {
+                "type": "object",
+                "description": "POLICY_SEMANTICS.md §4 — Allow via `resource_scope = OwnedByOwner`.",
+                "required": [
+                  "policy_id"
+                ],
+                "properties": {
+                  "policy_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "POLICY_SEMANTICS.md §4 — Allow via `AccessibleByOwner`.",
+            "required": [
+              "AllowedByAccessibleByOwnerPolicy"
+            ],
+            "properties": {
+              "AllowedByAccessibleByOwnerPolicy": {
+                "type": "object",
+                "description": "POLICY_SEMANTICS.md §4 — Allow via `AccessibleByOwner`.",
+                "required": [
+                  "policy_id"
+                ],
+                "properties": {
+                  "policy_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
             "required": [
               "DeniedByPubliclyAccessible"
             ],
@@ -4648,6 +4697,50 @@
                     "format": "uuid"
                   },
                   "via_user_group_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "POLICY_SEMANTICS.md §4 — Deny via `resource_scope = OwnedByOwner`.",
+            "required": [
+              "DeniedByOwnedByOwnerPolicy"
+            ],
+            "properties": {
+              "DeniedByOwnedByOwnerPolicy": {
+                "type": "object",
+                "description": "POLICY_SEMANTICS.md §4 — Deny via `resource_scope = OwnedByOwner`.",
+                "required": [
+                  "policy_id"
+                ],
+                "properties": {
+                  "policy_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "POLICY_SEMANTICS.md §4 — Deny via `AccessibleByOwner`.",
+            "required": [
+              "DeniedByAccessibleByOwnerPolicy"
+            ],
+            "properties": {
+              "DeniedByAccessibleByOwnerPolicy": {
+                "type": "object",
+                "description": "POLICY_SEMANTICS.md §4 — Deny via `AccessibleByOwner`.",
+                "required": [
+                  "policy_id"
+                ],
+                "properties": {
+                  "policy_id": {
                     "type": "string",
                     "format": "uuid"
                   }
@@ -7383,6 +7476,15 @@
             "format": "int64"
           }
         }
+      },
+      "ResourceScope": {
+        "type": "integer",
+        "description": "How broadly a policy applies — see DATA_MODEL.md §2.4 and\nPOLICY_SEMANTICS.md §4.",
+        "enum": [
+          0,
+          1,
+          2
+        ]
       },
       "SortDirection": {
         "type": "string",

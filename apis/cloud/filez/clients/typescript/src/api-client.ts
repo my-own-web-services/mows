@@ -45,6 +45,16 @@ export enum SortDirection {
   Neutral = "Neutral",
 }
 
+/**
+ * How broadly a policy applies — see DATA_MODEL.md §2.4 and
+ * POLICY_SEMANTICS.md §4.
+ */
+export enum ResourceScope {
+  Value0 = 0,
+  Value1 = 1,
+  Value2 = 2,
+}
+
 export enum ListUsersSortBy {
   CreatedTime = "CreatedTime",
   ModifiedTime = "ModifiedTime",
@@ -241,6 +251,13 @@ export interface AccessPolicy {
    * @format uuid
    */
   resource_id?: string | null;
+  /**
+   * How broadly the policy applies (POLICY_SEMANTICS.md §4).
+   * Single = the historic behaviour (`resource_id` pins the target).
+   * OwnedByOwner / AccessibleByOwner apply to whole resource sets
+   * defined by the policy's owner.
+   */
+  resource_scope: ResourceScope;
   resource_type: AccessPolicyResourceType;
   /**
    * Soft delete (revocation that preserves audit trail). PolicyStore
@@ -781,6 +798,20 @@ export type AuthReason =
       };
     }
   | {
+      /** POLICY_SEMANTICS.md §4 — Allow via `resource_scope = OwnedByOwner`. */
+      AllowedByOwnedByOwnerPolicy: {
+        /** @format uuid */
+        policy_id: string;
+      };
+    }
+  | {
+      /** POLICY_SEMANTICS.md §4 — Allow via `AccessibleByOwner`. */
+      AllowedByAccessibleByOwnerPolicy: {
+        /** @format uuid */
+        policy_id: string;
+      };
+    }
+  | {
       DeniedByPubliclyAccessible: {
         /** @format uuid */
         policy_id: string;
@@ -822,6 +853,20 @@ export type AuthReason =
         policy_id: string;
         /** @format uuid */
         via_user_group_id: string;
+      };
+    }
+  | {
+      /** POLICY_SEMANTICS.md §4 — Deny via `resource_scope = OwnedByOwner`. */
+      DeniedByOwnedByOwnerPolicy: {
+        /** @format uuid */
+        policy_id: string;
+      };
+    }
+  | {
+      /** POLICY_SEMANTICS.md §4 — Deny via `AccessibleByOwner`. */
+      DeniedByAccessibleByOwnerPolicy: {
+        /** @format uuid */
+        policy_id: string;
       };
     }
   | "NoMatchingAllowPolicy"

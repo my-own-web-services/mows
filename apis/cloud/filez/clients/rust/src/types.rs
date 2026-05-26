@@ -27,6 +27,7 @@ pub struct AccessPolicy {
     pub policy_bundle_id: Option<Uuid>,
     /// The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
     pub resource_id: Option<Uuid>,
+    pub resource_scope: ResourceScope,
     pub resource_type: AccessPolicyResourceType,
     /// Soft delete (revocation that preserves audit trail). PolicyStore
     /// queries filter on `NOT revoked`. The Picker UI flips this column
@@ -562,6 +563,14 @@ pub enum AuthReason {
         policy_id: Uuid,
         via_user_group_id: Uuid,
     },
+    /// POLICY_SEMANTICS.md §4 — Allow via `resource_scope = OwnedByOwner`.
+    AllowedByOwnedByOwnerPolicy {
+        policy_id: Uuid,
+    },
+    /// POLICY_SEMANTICS.md §4 — Allow via `AccessibleByOwner`.
+    AllowedByAccessibleByOwnerPolicy {
+        policy_id: Uuid,
+    },
     DeniedByPubliclyAccessible {
         policy_id: Uuid,
     },
@@ -583,6 +592,14 @@ pub enum AuthReason {
         on_resource_group_id: Uuid,
         policy_id: Uuid,
         via_user_group_id: Uuid,
+    },
+    /// POLICY_SEMANTICS.md §4 — Deny via `resource_scope = OwnedByOwner`.
+    DeniedByOwnedByOwnerPolicy {
+        policy_id: Uuid,
+    },
+    /// POLICY_SEMANTICS.md §4 — Deny via `AccessibleByOwner`.
+    DeniedByAccessibleByOwnerPolicy {
+        policy_id: Uuid,
     },
     /// No active Allow policy covered the requested action and no
     /// Deny fired either — default-deny per
@@ -1615,6 +1632,11 @@ pub struct RefreshSessionRequestBody {}
 pub struct RefreshSessionResponseBody {
     pub inactivity_timeout_seconds: i64,
 }
+
+// ResourceScope
+/// How broadly a policy applies — see DATA_MODEL.md §2.4 and
+/// POLICY_SEMANTICS.md §4.
+pub type ResourceScope = i64;
 
 // SortDirection
 #[derive(Debug, Clone, Serialize, Deserialize)]
