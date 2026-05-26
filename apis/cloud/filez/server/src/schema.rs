@@ -187,6 +187,11 @@ diesel::table! {
         actions -> Array<SmallInt>,
 
         effect -> SmallInt,
+
+        // Phase-2 lifecycle columns (migration 00000000000004).
+        expires_at -> Nullable<Timestamp>,
+        revoked -> Bool,
+        policy_bundle_id -> Nullable<Uuid>,
     }
 }
 

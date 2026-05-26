@@ -216,17 +216,37 @@ export interface AccessPolicy {
   created_time: string;
   /** Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3). */
   effect: Effect;
+  /**
+   * Soft auto-expiry (DATA_MODEL.md §2.4). NULL = never expires.
+   * PolicyStore queries filter on `(expires_at IS NULL OR expires_at > now())`.
+   * @format date-time
+   */
+  expires_at?: string | null;
   id: AccessPolicyId;
   /** @format date-time */
   modified_time: string;
   name: string;
   owner_id: FilezUserId;
   /**
+   * Cross-API bundle grouping (USAGE_LIMITS.md "Cross-API bundles").
+   * Non-NULL when this policy was created together with other policies
+   * in one Picker consent transaction. Opaque to the engine — only
+   * the share-management UI / bulk-revoke queries consult it.
+   * @format uuid
+   */
+  policy_bundle_id?: string | null;
+  /**
    * The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
    * @format uuid
    */
   resource_id?: string | null;
   resource_type: AccessPolicyResourceType;
+  /**
+   * Soft delete (revocation that preserves audit trail). PolicyStore
+   * queries filter on `NOT revoked`. The Picker UI flips this column
+   * to revoke a consent; never `DELETE FROM access_policies`.
+   */
+  revoked: boolean;
   subject_id: AccessPolicySubjectId;
   /**
    * Subject of an access policy — *who* the policy grants/denies to.

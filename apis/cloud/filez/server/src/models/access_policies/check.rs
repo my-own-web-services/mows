@@ -333,6 +333,9 @@ mod boundary_helpers {
             resource_id: None,
             actions: vec![AccessPolicyAction::FilezFilesGet],
             effect: Effect::Deny,
+            expires_at: None,
+            revoked: false,
+            policy_bundle_id: None,
         };
         let view: mows_auth_core::PolicyView = (&policy).into();
         assert_eq!(view.id, policy_uuid);

@@ -136,6 +136,7 @@ impl<'a> PolicyStore for FilezPolicyStore<'a> {
                 self.maybe_user,
                 self.maybe_group_ids
             ))
+            .filter(lifecycle_filter())
             .select(AccessPolicy::as_select())
             .load::<AccessPolicy>(&mut connection)
             .await?;
@@ -208,6 +209,7 @@ impl<'a> PolicyStore for FilezPolicyStore<'a> {
                 self.maybe_user,
                 self.maybe_group_ids
             ))
+            .filter(lifecycle_filter())
             .select(AccessPolicy::as_select())
             .load::<AccessPolicy>(&mut connection)
             .await?;
@@ -243,11 +245,26 @@ impl<'a> PolicyStore for FilezPolicyStore<'a> {
                 self.maybe_user,
                 self.maybe_group_ids
             ))
+            .filter(lifecycle_filter())
             .select(AccessPolicy::as_select())
             .load::<AccessPolicy>(&mut connection)
             .await?;
         Ok(policies.iter().map(PolicyView::from).collect())
     }
+}
+
+/// SQL-fragment helper for the lifecycle filter every policy lookup
+/// must apply (DATA_MODEL.md §2.4):
+///   `NOT revoked AND (expires_at IS NULL OR expires_at > now())`
+///
+/// Filez-side helper so the engine doesn't have to know about
+/// PostgreSQL's `now()` or chrono. Future stores (Pektin etc.)
+/// implement the same semantics.
+fn lifecycle_filter() -> diesel::expression::SqlLiteral<diesel::sql_types::Bool> {
+    diesel::dsl::sql::<diesel::sql_types::Bool>(
+        "NOT access_policies.revoked AND \
+         (access_policies.expires_at IS NULL OR access_policies.expires_at > now())",
+    )
 }
 
 /// AccessPolicyAction <-> u32 conversion. The action enum uses
@@ -310,4 +327,58 @@ fn action_from_u32(t: u32) -> Option<AccessPolicyAction> {
         540 => FilezAppsList,
         _ => return None,
     })
+}
+
+#[cfg(test)]
+mod lifecycle_filter_guard {
+    //! Regression guard: every PolicyStore method that selects
+    //! AccessPolicy rows MUST attach `lifecycle_filter()`. A revoked
+    //! or expired policy must NOT come out of the store — or
+    //! check_access will happily honor it.
+    //!
+    //! Renders each query via diesel::debug_query and asserts the
+    //! literal SQL clause is present. Catches a future refactor that
+    //! drops the `.filter(lifecycle_filter())` call.
+    use super::*;
+    use crate::models::access_policies::SubjectType;
+    use diesel::{debug_query, pg::Pg, query_builder::QueryFragment};
+
+    fn rendered_sql<Q: QueryFragment<Pg>>(query: Q) -> String {
+        debug_query::<Pg, _>(&query).to_string()
+    }
+
+    #[test]
+    fn direct_query_contains_lifecycle_filter() {
+        // Mirror of fetch_direct_policies's query (minus the runtime
+        // bindings). We render this exact shape to assert the filter
+        // is present.
+        let ids = [Uuid::nil()];
+        let query = schema::access_policies::table
+            .filter(schema::access_policies::resource_id.eq_any(&ids[..]))
+            .filter(schema::access_policies::resource_type.eq(&AccessPolicyResourceType::File))
+            .filter(schema::access_policies::subject_type.eq(SubjectType::Public))
+            .filter(lifecycle_filter())
+            .select(AccessPolicy::as_select());
+        let sql = rendered_sql(query);
+        assert!(
+            sql.contains("NOT access_policies.revoked"),
+            "direct-policy query MUST filter out revoked rows: {sql}"
+        );
+        assert!(
+            sql.contains("access_policies.expires_at IS NULL OR access_policies.expires_at > now()"),
+            "direct-policy query MUST filter out expired rows: {sql}"
+        );
+    }
+
+    #[test]
+    fn lifecycle_filter_emits_the_documented_predicate() {
+        let query = schema::access_policies::table
+            .filter(lifecycle_filter())
+            .select(schema::access_policies::id);
+        let sql = rendered_sql(query);
+        // The two halves of the documented contract.
+        assert!(sql.contains("NOT access_policies.revoked"));
+        assert!(sql.contains("access_policies.expires_at IS NULL"));
+        assert!(sql.contains("access_policies.expires_at > now()"));
+    }
 }

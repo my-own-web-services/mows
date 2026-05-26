@@ -2757,7 +2757,8 @@
           "context_app_ids",
           "resource_type",
           "actions",
-          "effect"
+          "effect",
+          "revoked"
         ],
         "properties": {
           "actions": {
@@ -2780,6 +2781,14 @@
           "effect": {
             "$ref": "#/components/schemas/Effect"
           },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Soft auto-expiry (DATA_MODEL.md §2.4). NULL = never expires.\nPolicyStore queries filter on `(expires_at IS NULL OR expires_at > now())`."
+          },
           "id": {
             "$ref": "#/components/schemas/AccessPolicyId"
           },
@@ -2793,6 +2802,14 @@
           "owner_id": {
             "$ref": "#/components/schemas/FilezUserId"
           },
+          "policy_bundle_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Cross-API bundle grouping (USAGE_LIMITS.md \"Cross-API bundles\").\nNon-NULL when this policy was created together with other policies\nin one Picker consent transaction. Opaque to the engine — only\nthe share-management UI / bulk-revoke queries consult it."
+          },
           "resource_id": {
             "type": [
               "string",
@@ -2803,6 +2820,10 @@
           },
           "resource_type": {
             "$ref": "#/components/schemas/AccessPolicyResourceType"
+          },
+          "revoked": {
+            "type": "boolean",
+            "description": "Soft delete (revocation that preserves audit trail). PolicyStore\nqueries filter on `NOT revoked`. The Picker UI flips this column\nto revoke a consent; never `DELETE FROM access_policies`."
           },
           "subject_id": {
             "$ref": "#/components/schemas/AccessPolicySubjectId"

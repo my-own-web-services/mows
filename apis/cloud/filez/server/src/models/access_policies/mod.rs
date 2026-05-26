@@ -240,6 +240,19 @@ pub struct AccessPolicy {
     pub actions: Vec<AccessPolicyAction>,
 
     pub effect: Effect,
+
+    /// Soft auto-expiry (DATA_MODEL.md §2.4). NULL = never expires.
+    /// PolicyStore queries filter on `(expires_at IS NULL OR expires_at > now())`.
+    pub expires_at: Option<chrono::NaiveDateTime>,
+    /// Soft delete (revocation that preserves audit trail). PolicyStore
+    /// queries filter on `NOT revoked`. The Picker UI flips this column
+    /// to revoke a consent; never `DELETE FROM access_policies`.
+    pub revoked: bool,
+    /// Cross-API bundle grouping (USAGE_LIMITS.md "Cross-API bundles").
+    /// Non-NULL when this policy was created together with other policies
+    /// in one Picker consent transaction. Opaque to the engine — only
+    /// the share-management UI / bulk-revoke queries consult it.
+    pub policy_bundle_id: Option<Uuid>,
 }
 
 impl From<&AccessPolicy> for mows_auth_core::PolicyView {
@@ -318,6 +331,12 @@ impl AccessPolicy {
             resource_id,
             actions,
             effect,
+            // Phase-2 lifecycle: new policies start unrevoked, never-expiring,
+            // not part of a bundle. The Picker (CONSENT_FLOW.md) overrides
+            // these when committing a bundled consent.
+            expires_at: None,
+            revoked: false,
+            policy_bundle_id: None,
         }
     }
 

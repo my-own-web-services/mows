@@ -13,13 +13,25 @@ pub struct AccessPolicy {
     pub context_app_ids: Vec<MowsAppId>,
     pub created_time: NaiveDateTime,
     pub effect: Effect,
+    /// Soft auto-expiry (DATA_MODEL.md §2.4). NULL = never expires.
+    /// PolicyStore queries filter on `(expires_at IS NULL OR expires_at > now())`.
+    pub expires_at: Option<NaiveDateTime>,
     pub id: AccessPolicyId,
     pub modified_time: NaiveDateTime,
     pub name: String,
     pub owner_id: FilezUserId,
+    /// Cross-API bundle grouping (USAGE_LIMITS.md "Cross-API bundles").
+    /// Non-NULL when this policy was created together with other policies
+    /// in one Picker consent transaction. Opaque to the engine — only
+    /// the share-management UI / bulk-revoke queries consult it.
+    pub policy_bundle_id: Option<Uuid>,
     /// The ID of the resource this policy applies to, if no resource ID is provided, the policy is a type level policy, allowing for example the creation of a resource of that type.
     pub resource_id: Option<Uuid>,
     pub resource_type: AccessPolicyResourceType,
+    /// Soft delete (revocation that preserves audit trail). PolicyStore
+    /// queries filter on `NOT revoked`. The Picker UI flips this column
+    /// to revoke a consent; never `DELETE FROM access_policies`.
+    pub revoked: bool,
     pub subject_id: AccessPolicySubjectId,
     pub subject_type: SubjectType,
 }
