@@ -213,12 +213,12 @@ impl IntoResponse for FilezError {
                 "AuthEvaluationError".to_string(),
             ),
             FilezError::AuthCoreError(auth_core_error) => {
-                let status = match auth_core_error {
-                    mows_auth_core::types::AuthError::Denied => {
-                        axum::http::StatusCode::FORBIDDEN
-                    }
-                    _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                };
+                // Delegate to the engine's canonical mapping so the
+                // status codes stay consistent across every consuming
+                // service (ARCH-6).
+                let code = auth_core_error.http_status() as u16;
+                let status = axum::http::StatusCode::from_u16(code)
+                    .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR);
                 (status, None, "AuthCoreError".to_string())
             }
             FilezError::AuthEvaluationAccessDenied(auth_result) => (

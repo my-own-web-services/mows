@@ -171,6 +171,7 @@ impl MowsApp {
         }
     }
 
+
     #[tracing::instrument(skip(database), level = "trace")]
     pub async fn delete(database: &Database, name: &str) -> Result<(), FilezError> {
         use diesel_async::RunQueryDsl;
@@ -445,4 +446,38 @@ impl MowsApp {
         let app_map = apps.into_iter().map(|app| (app.id, app)).collect();
         Ok(app_map)
     }
+}
+
+#[cfg(test)]
+mod constructor_idp_id_stamping {
+    //! QA-8: every constructor MUST stamp idp_id with ZITADEL_IDP_ID.
+    //! Without these tests, a future refactor that introduces
+    //! `Default::default()` for `MowsApp` would silently produce
+    //! `Uuid::nil()` for idp_id — the FK to idp_providers would fire
+    //! at runtime on the next INSERT, not at compile time. These tests
+    //! cover constructors that don't need runtime config.
+    use super::*;
+
+    #[test]
+    fn new_stamps_zitadel_idp_id() {
+        let app = MowsApp::new(
+            "test-app".to_string(),
+            None,
+            false,
+            None,
+            AppType::Backend,
+        );
+        assert_eq!(app.idp_id, mows_auth_core::ZITADEL_IDP_ID);
+    }
+
+    #[test]
+    fn no_origin_stamps_zitadel_idp_id() {
+        let app = MowsApp::no_origin();
+        assert_eq!(app.idp_id, mows_auth_core::ZITADEL_IDP_ID);
+    }
+
+    // first_party() and dev() both depend on the runtime config; they
+    // are exercised by integration tests that bootstrap the config.
+    // The direct-stamping pattern is identical to no_origin / new, so
+    // these two suffice for the unit-level QA-8 guard.
 }

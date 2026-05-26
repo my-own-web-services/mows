@@ -528,6 +528,28 @@ impl FilezUser {
 }
 
 #[cfg(test)]
+mod constructor_idp_id_stamping {
+    //! QA-8: FilezUser::new MUST stamp idp_id with ZITADEL_IDP_ID. A
+    //! future refactor that introduced a `Default::default()` path
+    //! would silently produce Uuid::nil() for idp_id — the FK to
+    //! idp_providers would fire at runtime on the next INSERT, not at
+    //! compile time. Mirrors apps::constructor_idp_id_stamping.
+    use super::*;
+
+    #[test]
+    fn new_stamps_zitadel_idp_id() {
+        let user = FilezUser::new(
+            Some("sub-abc".to_string()),
+            None,
+            Some("Test User".to_string()),
+            None,
+            FilezUserType::Regular,
+        );
+        assert_eq!(user.idp_id, mows_auth_core::ZITADEL_IDP_ID);
+    }
+}
+
+#[cfg(test)]
 mod multi_idp_lookup {
     //! Regression guard for SEC-5: the partial UNIQUE in migration 002
     //! deliberately allows two users with the same `external_user_id`

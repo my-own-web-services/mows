@@ -18,6 +18,17 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// The deterministic UUID for the v1 Zitadel row in `idp_providers`.
+///
+/// Seeded by the `00000000000001_idp_providers` migration in every
+/// service that consumes mows-auth-core. The leading `7a17ade1`
+/// (zitade1) is a mnemonic so the sentinel is recognizable in raw
+/// rows; future IdPs (Keycloak, Authentik) use random UUIDs.
+///
+/// Referenced from `users.idp_id` / `apps.idp_id` columns. See
+/// AUTHENTICATION.md §2 "Pluggable IdP".
+pub const ZITADEL_IDP_ID: Uuid = Uuid::from_u128(0x7a17ade1_0000_0000_0000_000000000001);
+
 /// Maximum size in bytes of a single introspection response body the
 /// engine will deserialise. Caps the attack surface of a compromised
 /// or malicious IdP returning a giant payload (SEC-2). `TokenIntrospector`
@@ -207,6 +218,53 @@ pub trait TokenIntrospector: Send + Sync {
 mod tests {
     use super::*;
 
+    #[test]
+    fn zitadel_idp_id_matches_migration_seed() {
+        assert_eq!(
+            ZITADEL_IDP_ID.to_string(),
+            "7a17ade1-0000-0000-0000-000000000001",
+            "must match the seed UUID in filez's 00000000000001_idp_providers migration"
+        );
+    }
+
+    /// ARCH-3: the sentinel UUID is triplicated — Rust constant here,
+    /// and SQL string literals in two migrations. The Rust-constant
+    /// roundtrip test above checks the string form; this test asserts
+    /// each migration file actually contains the literal. Catches a
+    /// typo in *either* the migration or the Rust constant.
+    ///
+    /// Belt-and-braces: build the literal from the constant at runtime
+    /// (via `format!`) so the test source doesn't itself contain a
+    /// matchable hardcoded string.
+    #[test]
+    fn migration_files_contain_zitadel_uuid_literal() {
+        let literal = format!("'{}'", ZITADEL_IDP_ID);
+
+        let migration_001 = include_str!(
+            "../../../../apis/cloud/filez/server/migrations/00000000000001_idp_providers/up.sql"
+        );
+        assert!(
+            migration_001.contains(&literal),
+            "migration 001 must seed idp_providers with the sentinel UUID {literal}"
+        );
+
+        let migration_002 = include_str!(
+            "../../../../apis/cloud/filez/server/migrations/00000000000002_idp_id_on_users_apps/up.sql"
+        );
+        assert!(
+            migration_002.contains(&literal),
+            "migration 002 must reference the sentinel UUID {literal} in DEFAULTs"
+        );
+
+        let migration_003 = include_str!(
+            "../../../../apis/cloud/filez/server/migrations/00000000000003_drop_idp_defaults_and_harden_seed/up.sql"
+        );
+        assert!(
+            migration_003.contains(&literal),
+            "migration 003 must reference the sentinel UUID {literal} in the seed UPDATE"
+        );
+    }
+
     /// Minimal mock used by other test modules in this crate (and by
     /// downstream services) that need an introspector without hitting
     /// a real IdP. Returns the same canned result for every token.
@@ -253,7 +311,7 @@ mod tests {
         let result = stub.introspect("ignored").await.expect("stub never fails");
         assert!(result.active);
         assert_eq!(result.client_id, "test-client");
-        assert_eq!(stub.idp_id(), crate::ZITADEL_IDP_ID);
+        assert_eq!(stub.idp_id(), ZITADEL_IDP_ID);
         let user = result.user.expect("stub returns Some(user)");
         assert_eq!(user.sub, "user-123");
         assert!(user.email_verified);

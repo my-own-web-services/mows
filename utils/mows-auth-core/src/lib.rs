@@ -47,6 +47,8 @@ pub mod list;
 // — they're pub(crate) stubs today; re-exposing them would let a
 // downstream service wire up a `Err(Denied)` placeholder. They become
 // `pub` and re-exported when the real implementations land.
-pub use crate::idp::{IntrospectedUser, IntrospectionError, IntrospectionResult, TokenIntrospector};
-pub use crate::subjects::ZITADEL_IDP_ID;
+pub use crate::idp::{
+    IntrospectedUser, IntrospectionError, IntrospectionResult, TokenIntrospector,
+    ZITADEL_IDP_ID,
+};
 pub use crate::types::AuthError;
