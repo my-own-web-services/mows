@@ -12,7 +12,7 @@ pub struct AccessPolicy {
     /// The IDs of the application this policy is associated with
     pub context_app_ids: Vec<MowsAppId>,
     pub created_time: NaiveDateTime,
-    pub effect: AccessPolicyEffect,
+    pub effect: Effect,
     pub id: AccessPolicyId,
     pub modified_time: NaiveDateTime,
     pub name: String,
@@ -79,13 +79,6 @@ pub enum AccessPolicyAction {
     FilezJobsPickup,
     FilezAppsGet,
     FilezAppsList,
-}
-
-// AccessPolicyEffect
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AccessPolicyEffect {
-    Deny,
-    Allow,
 }
 
 // AccessPolicyId
@@ -608,7 +601,7 @@ pub struct ControllerHealthStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateAccessPolicyRequestBody {
     pub access_policy_actions: Vec<AccessPolicyAction>,
-    pub access_policy_effect: AccessPolicyEffect,
+    pub access_policy_effect: Effect,
     pub access_policy_name: String,
     pub access_policy_resource_type: AccessPolicyResourceType,
     pub access_policy_subject_id: AccessPolicySubjectId,
@@ -775,6 +768,10 @@ pub struct DevResetDatabaseRequestBody {}
 // DynamicGroupRule
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DynamicGroupRule {}
+
+// Effect
+/// Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3).
+pub type Effect = i64;
 
 // EmptyApiResponse
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1658,7 +1655,7 @@ pub enum TagResourceType {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateAccessPolicyChangeset {
     pub new_access_policy_actions: Option<Vec<AccessPolicyAction>>,
-    pub new_access_policy_effect: Option<AccessPolicyEffect>,
+    pub new_access_policy_effect: Option<Effect>,
     pub new_access_policy_name: Option<String>,
     pub new_access_policy_resource_type: Option<AccessPolicyResourceType>,
     pub new_access_policy_subject_id: Option<AccessPolicySubjectId>,

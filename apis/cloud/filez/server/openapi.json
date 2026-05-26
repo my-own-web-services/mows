@@ -2778,7 +2778,7 @@
             "format": "date-time"
           },
           "effect": {
-            "$ref": "#/components/schemas/AccessPolicyEffect"
+            "$ref": "#/components/schemas/Effect"
           },
           "id": {
             "$ref": "#/components/schemas/AccessPolicyId"
@@ -2867,13 +2867,6 @@
           "FilezJobsPickup",
           "FilezAppsGet",
           "FilezAppsList"
-        ]
-      },
-      "AccessPolicyEffect": {
-        "type": "string",
-        "enum": [
-          "Deny",
-          "Allow"
         ]
       },
       "AccessPolicyId": {
@@ -4766,7 +4759,7 @@
             }
           },
           "access_policy_effect": {
-            "$ref": "#/components/schemas/AccessPolicyEffect"
+            "$ref": "#/components/schemas/Effect"
           },
           "access_policy_name": {
             "type": "string",
@@ -5228,6 +5221,14 @@
       },
       "DynamicGroupRule": {
         "type": "object"
+      },
+      "Effect": {
+        "type": "integer",
+        "description": "Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3).",
+        "enum": [
+          0,
+          1
+        ]
       },
       "EmptyApiResponse": {
         "type": "object"
@@ -7486,7 +7487,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/AccessPolicyEffect"
+                "$ref": "#/components/schemas/Effect"
               }
             ]
           },

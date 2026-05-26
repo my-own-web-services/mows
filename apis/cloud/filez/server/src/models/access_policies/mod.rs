@@ -25,7 +25,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_enum::DbEnum;
-use mows_auth_core::types::SubjectType;
+use mows_auth_core::types::{Effect, SubjectType};
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
 use std::collections::HashSet;
@@ -105,44 +105,8 @@ pub enum AccessPolicyResourceType {
     MowsApp = 8,
 }
 
-#[derive(
-    Debug,
-    Serialize,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    AsExpression,
-    FromSqlRow,
-    DbEnum,
-    Deserialize,
-    ToSchema,
-)]
-#[diesel(sql_type = SmallInt)]
-#[diesel_enum(error_fn = InvalidEnumType::invalid_type_log)]
-#[diesel_enum(error_type = InvalidEnumType)]
-pub enum AccessPolicyEffect {
-    Deny = 0,
-    Allow = 1,
-}
-
-impl From<AccessPolicyEffect> for mows_auth_core::types::Effect {
-    fn from(e: AccessPolicyEffect) -> Self {
-        match e {
-            AccessPolicyEffect::Deny  => Self::Deny,
-            AccessPolicyEffect::Allow => Self::Allow,
-        }
-    }
-}
-
-impl From<mows_auth_core::types::Effect> for AccessPolicyEffect {
-    fn from(e: mows_auth_core::types::Effect) -> Self {
-        match e {
-            mows_auth_core::types::Effect::Deny  => Self::Deny,
-            mows_auth_core::types::Effect::Allow => Self::Allow,
-        }
-    }
-}
+// Effect (Deny=0, Allow=1) is engine-owned. Filez imports
+// mows_auth_core::types::Effect wherever needed.
 
 #[derive(DbEnum, Debug, Serialize, Clone, Copy, PartialEq, Eq, Deserialize, ToSchema)]
 #[diesel(sql_type = SmallInt)]
@@ -251,7 +215,7 @@ pub struct AccessPolicy {
 
     pub actions: Vec<AccessPolicyAction>,
 
-    pub effect: AccessPolicyEffect,
+    pub effect: Effect,
 }
 
 impl From<&AccessPolicy> for mows_auth_core::PolicyView {
@@ -301,7 +265,7 @@ pub struct UpdateAccessPolicyChangeset {
     pub new_access_policy_actions: Option<Vec<AccessPolicyAction>>,
 
     #[diesel(column_name = effect)]
-    pub new_access_policy_effect: Option<AccessPolicyEffect>,
+    pub new_access_policy_effect: Option<Effect>,
 }
 
 impl AccessPolicy {
@@ -315,7 +279,7 @@ impl AccessPolicy {
         resource_type: AccessPolicyResourceType,
         resource_id: Option<Uuid>,
         actions: Vec<AccessPolicyAction>,
-        effect: AccessPolicyEffect,
+        effect: Effect,
     ) -> Self {
         Self {
             id: AccessPolicyId::new(),
@@ -344,7 +308,7 @@ impl AccessPolicy {
         resource_type: AccessPolicyResourceType,
         resource_id: Option<Uuid>,
         actions: Vec<AccessPolicyAction>,
-        effect: AccessPolicyEffect,
+        effect: Effect,
     ) -> Result<AccessPolicy, FilezError> {
         let access_policy = AccessPolicy::new(
             name,
@@ -453,16 +417,16 @@ impl AccessPolicy {
                 schema::access_policies::resource_id,
                 schema::access_policies::effect,
             ))
-            .load::<(Option<Uuid>, AccessPolicyEffect)>(&mut connection)
+            .load::<(Option<Uuid>, Effect)>(&mut connection)
             .await?;
 
         for (resource_id, effect) in direct_policies {
             if let Some(id) = resource_id {
                 match effect {
-                    AccessPolicyEffect::Allow => {
+                    Effect::Allow => {
                         allowed_ids.insert(id);
                     }
-                    AccessPolicyEffect::Deny => {
+                    Effect::Deny => {
                         denied_ids.insert(id);
                     }
                 }
@@ -486,7 +450,7 @@ impl AccessPolicy {
                 #[diesel(sql_type = diesel::sql_types::Uuid)]
                 id: Uuid,
                 #[diesel(sql_type = diesel::sql_types::SmallInt)]
-                effect: AccessPolicyEffect,
+                effect: Effect,
             }
 
             let resource_group_policies: Vec<GroupPolicyResult> = match maybe_requesting_user {
@@ -557,10 +521,10 @@ impl AccessPolicy {
 
             for result in resource_group_policies {
                 match result.effect {
-                    AccessPolicyEffect::Allow => {
+                    Effect::Allow => {
                         allowed_ids.insert(result.id);
                     }
-                    AccessPolicyEffect::Deny => {
+                    Effect::Deny => {
                         denied_ids.insert(result.id);
                     }
                 }
@@ -701,27 +665,6 @@ impl AccessPolicy {
     }
 }
 
-#[cfg(test)]
-mod engine_enum_parity {
-    //! Pins filez's local `AccessPolicyEffect` to the engine's
-    //! `Effect` via the From conversion. The SubjectType roundtrip
-    //! test that used to live here is gone — SubjectType is now the
-    //! engine type directly (no local enum, no conversion to test).
-    //! When AccessPolicyEffect itself is collapsed (Cleanup-2) this
-    //! module disappears entirely.
-    use super::AccessPolicyEffect;
-    use mows_auth_core::types::Effect;
-
-    #[test]
-    fn effect_roundtrip() {
-        for e in [AccessPolicyEffect::Deny, AccessPolicyEffect::Allow] {
-            let core: Effect = e.into();
-            let back: AccessPolicyEffect = core.into();
-            assert_eq!(e, back, "filez↔core Effect roundtrip drifted at {e:?}");
-            assert_eq!(e as i16, core as i16, "integer mismatch at {e:?}");
-        }
-    }
-}
 
 #[cfg(test)]
 mod context_app_ids_typo_guard {

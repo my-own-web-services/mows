@@ -130,6 +130,12 @@ export enum FileGroupType {
   Dynamic = "Dynamic",
 }
 
+/** Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3). */
+export enum Effect {
+  Value0 = 0,
+  Value1 = 1,
+}
+
 export enum AppType {
   Frontend = "frontend",
   Backend = "backend",
@@ -145,11 +151,6 @@ export enum AccessPolicyResourceType {
   StorageQuota = "StorageQuota",
   FilezJob = "FilezJob",
   MowsApp = "MowsApp",
-}
-
-export enum AccessPolicyEffect {
-  Deny = "Deny",
-  Allow = "Allow",
 }
 
 export enum AccessPolicyAction {
@@ -213,7 +214,8 @@ export interface AccessPolicy {
   context_app_ids: MowsAppId[];
   /** @format date-time */
   created_time: string;
-  effect: AccessPolicyEffect;
+  /** Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3). */
+  effect: Effect;
   id: AccessPolicyId;
   /** @format date-time */
   modified_time: string;
@@ -802,7 +804,8 @@ export interface ControllerHealthStatus {
 
 export interface CreateAccessPolicyRequestBody {
   access_policy_actions: AccessPolicyAction[];
-  access_policy_effect: AccessPolicyEffect;
+  /** Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3). */
+  access_policy_effect: Effect;
   /** @maxLength 256 */
   access_policy_name: string;
   access_policy_resource_type: AccessPolicyResourceType;
@@ -1761,7 +1764,7 @@ export type StorageQuotaSubjectId = string;
 
 export interface UpdateAccessPolicyChangeset {
   new_access_policy_actions?: any[] | null;
-  new_access_policy_effect?: null | AccessPolicyEffect;
+  new_access_policy_effect?: null | Effect;
   /** @maxLength 256 */
   new_access_policy_name?: string | null;
   new_access_policy_resource_type?: null | AccessPolicyResourceType;

@@ -2,7 +2,7 @@ use super::{AccessPolicyAction, AccessPolicyResourceType};
 use crate::errors::FilezError;
 use crate::filter_subject_access_policies;
 use crate::models::access_policies::{
-    AccessPolicy, AccessPolicyEffect, AccessPolicyId, SubjectType,
+    AccessPolicy, Effect, AccessPolicyId, SubjectType,
 };
 use crate::models::apps::MowsApp;
 use crate::models::user_groups::UserGroupId;
@@ -280,7 +280,7 @@ pub async fn check_resources_access_control(
                 // Check direct DENY policies.
                 if let Some(policies) = direct_policies_map.get(resource_id) {
                     for policy in policies {
-                        if policy.effect == AccessPolicyEffect::Deny {
+                        if policy.effect == Effect::Deny {
                             denied = true;
                             current_evaluation.is_allowed = false;
                             current_evaluation.reason = deny_reason_direct(policy);
@@ -301,7 +301,7 @@ pub async fn check_resources_access_control(
                         if let Some(policies) = resource_group_policies_map.get(&resource_group_id)
                         {
                             for policy in policies {
-                                if policy.effect == AccessPolicyEffect::Deny {
+                                if policy.effect == Effect::Deny {
                                     denied = true;
                                     current_evaluation.is_allowed = false;
                                     current_evaluation.reason = deny_reason_via_resource_group(
@@ -341,7 +341,7 @@ pub async fn check_resources_access_control(
                 let mut allowed_by_direct = false;
                 if let Some(policies) = direct_policies_map.get(resource_id) {
                     for policy in policies {
-                        if policy.effect == AccessPolicyEffect::Allow {
+                        if policy.effect == Effect::Allow {
                             allowed_by_direct = true;
                             current_evaluation.is_allowed = true;
                             current_evaluation.reason = match policy.subject_type {
@@ -383,7 +383,7 @@ pub async fn check_resources_access_control(
                         if let Some(policies) = resource_group_policies_map.get(rg_id) {
                             for policy in policies {
                                 // DENY handled above
-                                if policy.effect == AccessPolicyEffect::Allow {
+                                if policy.effect == Effect::Allow {
                                     allowed_by_resource_group = true;
                                     current_evaluation.is_allowed = true;
                                     current_evaluation.reason = match policy.subject_type {
@@ -452,7 +452,7 @@ pub async fn check_resources_access_control(
 
             if let Some(deny_policy) = type_level_policies
                 .iter()
-                .find(|p| p.effect == AccessPolicyEffect::Deny)
+                .find(|p| p.effect == Effect::Deny)
             {
                 let evaluation = AuthEvaluation {
                     resource_id: None,
@@ -485,7 +485,7 @@ pub async fn check_resources_access_control(
 
             if let Some(allow_policy) = type_level_policies
                 .iter()
-                .find(|p| p.effect == AccessPolicyEffect::Allow)
+                .find(|p| p.effect == Effect::Allow)
             {
                 let evaluation = AuthEvaluation {
                     resource_id: None,
@@ -956,7 +956,7 @@ mod tests {
 
     fn policy(
         subject_type: SubjectType,
-        effect: AccessPolicyEffect,
+        effect: Effect,
     ) -> AccessPolicy {
         AccessPolicy {
             id: AccessPolicyId::nil(),
@@ -978,7 +978,7 @@ mod tests {
     fn deny_reason_direct_public_does_not_become_allowed() {
         let reason = deny_reason_direct(&policy(
             SubjectType::Public,
-            AccessPolicyEffect::Deny,
+            Effect::Deny,
         ));
         // The pre-fix bug produced `AllowedByPubliclyAccessible` here.
         assert!(
@@ -991,7 +991,7 @@ mod tests {
     fn deny_reason_direct_server_member_does_not_become_allowed() {
         let reason = deny_reason_direct(&policy(
             SubjectType::ServerMember,
-            AccessPolicyEffect::Deny,
+            Effect::Deny,
         ));
         // The pre-fix bug produced `AllowedByServerAccessible` here.
         assert!(
@@ -1006,12 +1006,12 @@ mod tests {
         // they still produce the right Denied variants.
         let user = deny_reason_direct(&policy(
             SubjectType::User,
-            AccessPolicyEffect::Deny,
+            Effect::Deny,
         ));
         assert!(matches!(user, AuthReason::DeniedByDirectUserPolicy { .. }));
         let group = deny_reason_direct(&policy(
             SubjectType::UserGroup,
-            AccessPolicyEffect::Deny,
+            Effect::Deny,
         ));
         assert!(matches!(group, AuthReason::DeniedByDirectUserGroupPolicy { .. }));
     }
@@ -1020,7 +1020,7 @@ mod tests {
     fn deny_reason_via_resource_group_public_does_not_become_allowed() {
         let resource_group_id = Uuid::new_v4();
         let reason = deny_reason_via_resource_group(
-            &policy(SubjectType::Public, AccessPolicyEffect::Deny),
+            &policy(SubjectType::Public, Effect::Deny),
             resource_group_id,
         );
         assert!(
@@ -1033,7 +1033,7 @@ mod tests {
     fn deny_reason_via_resource_group_server_member_does_not_become_allowed() {
         let resource_group_id = Uuid::new_v4();
         let reason = deny_reason_via_resource_group(
-            &policy(SubjectType::ServerMember, AccessPolicyEffect::Deny),
+            &policy(SubjectType::ServerMember, Effect::Deny),
             resource_group_id,
         );
         assert!(
@@ -1046,7 +1046,7 @@ mod tests {
     fn deny_reason_via_resource_group_carries_resource_group_id_for_user_variants() {
         let rg = Uuid::new_v4();
         let user = deny_reason_via_resource_group(
-            &policy(SubjectType::User, AccessPolicyEffect::Deny),
+            &policy(SubjectType::User, Effect::Deny),
             rg,
         );
         match user {
@@ -1056,7 +1056,7 @@ mod tests {
             other => panic!("User+Deny via-rg wrong variant: {other:?}"),
         }
         let group = deny_reason_via_resource_group(
-            &policy(SubjectType::UserGroup, AccessPolicyEffect::Deny),
+            &policy(SubjectType::UserGroup, Effect::Deny),
             rg,
         );
         match group {
@@ -1331,7 +1331,7 @@ mod engine_reason_parity {
             resource_type: AccessPolicyResourceType::File,
             resource_id: None,
             actions: vec![AccessPolicyAction::FilezFilesGet],
-            effect: AccessPolicyEffect::Deny,
+            effect: Effect::Deny,
         };
         let view: mows_auth_core::PolicyView = (&policy).into();
         assert_eq!(view.id, policy_uuid);

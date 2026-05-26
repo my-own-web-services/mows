@@ -10,18 +10,17 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{
-            AccessPolicy, AccessPolicyAction, AccessPolicyEffect, AccessPolicyResourceType,
-            AccessPolicySubjectId,
+            AccessPolicy, AccessPolicyAction, AccessPolicyResourceType, AccessPolicySubjectId,
         },
         apps::MowsAppId,
     },
-    // SubjectType is engine-owned (mows_auth_core), re-imported here
-    // because the access_policies module no longer re-exports it.
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
-use mows_auth_core::types::SubjectType;
+// SubjectType + Effect are engine-owned (mows_auth_core); the
+// access_policies module no longer re-exports them.
+use mows_auth_core::types::{Effect, SubjectType};
 
 #[utoipa::path(
     post,
@@ -107,7 +106,7 @@ pub struct CreateAccessPolicyRequestBody {
     pub access_policy_resource_type: AccessPolicyResourceType,
     pub resource_id: Option<Uuid>,
     pub access_policy_actions: Vec<AccessPolicyAction>,
-    pub access_policy_effect: AccessPolicyEffect,
+    pub access_policy_effect: Effect,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
