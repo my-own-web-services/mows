@@ -24,7 +24,12 @@ const ANCHOR = {
     setupProvider: `setup-provider`,
     setupAppShell: `setup-app-shell`,
     patterns: `patterns`,
-    patternSidebar: `pattern-sidebar`
+    patternSidebar: `pattern-sidebar`,
+    actions: `actions`,
+    actionsDefine: `actions-define`,
+    actionsExtra: `actions-extra`,
+    actionsContextMenu: `actions-context-menu`,
+    actionsVariants: `actions-variants`
 } as const;
 
 const PROVIDER_SNIPPET = `import { MowsProvider } from "@mows/react-components";
@@ -58,6 +63,147 @@ export const Root = () => (
         <Toaster />
     </MowsProvider>
 );`;
+
+const DEFINE_ACTION_SNIPPET = `import {
+    Action,
+    ActionVisibility
+} from "@mows/react-components/lib/mowsContext/ActionManager";
+import { Plus } from "lucide-react";
+
+// Stable, namespaced ids — they show up in localStorage (recents,
+// hotkey overrides) and the command palette, so don't rename them
+// lightly.
+export enum AppActionIds {
+    CREATE_DOCUMENT = "myapp.document.create",
+    DELETE_DOCUMENT = "myapp.document.delete"
+}
+
+// Build once and pass into <MowsProvider extraActions={…}>. The same
+// Action instance can carry multiple handlers — one per scope — so
+// the command palette, a hotkey, and a context menu can all dispatch
+// the same id with different behaviour.
+export const buildAppActions = (): Action[] => [
+    new Action({
+        id: AppActionIds.CREATE_DOCUMENT,
+        category: "Documents",
+        actionHandlers: new Map([
+            [
+                "global",
+                {
+                    id: "GlobalCreateDocument",
+                    executeAction: () => createDocument(),
+                    // \`visibility\` drives both the command palette and
+                    // the context menu. Use Disabled (not Hidden) when
+                    // the action exists but can't run right now —
+                    // disabled rows are still discoverable.
+                    getState: () => ({
+                        visibility: ActionVisibility.Shown,
+                        icon: () => <Plus />
+                    })
+                }
+            ]
+        ])
+    })
+];`;
+
+const REGISTER_ACTIONS_SNIPPET = `import { MowsProvider } from "@mows/react-components";
+import { buildAppActions } from "./actions";
+
+createRoot(document.getElementById("root")!).render(
+    <MowsProvider
+        storagePrefix="my-app"
+        extraActions={buildAppActions()}
+    >
+        <App />
+        <CommandPalette />
+        <ModalHandler />
+        <GlobalContextMenu />
+        <Toaster />
+    </MowsProvider>
+);`;
+
+const CONTEXT_MENU_SNIPPET = `// 1. Mark which DOM regions a scope applies to. \`data-actionscope\`
+//    names the scope; everything else is whatever payload your
+//    handler needs to identify the target.
+<li
+    data-actionscope="document-row"
+    data-doc-id={doc.id}
+    data-doc-name={doc.name}
+>
+    {doc.name}
+</li>
+
+// 2. Define the action with a handler keyed to that scope. The
+//    handler's \`executeAction\` receives the original click event
+//    and the \`[data-actionscope]\` element the user right-clicked,
+//    so you read identifiers off that element instead of
+//    re-traversing the DOM.
+new Action({
+    id: AppActionIds.DELETE_DOCUMENT,
+    category: "Documents",
+    actionHandlers: new Map([
+        [
+            "document-row",
+            {
+                id: "DocumentRowDelete",
+                scopes: ["document-row"],
+                executeAction: (_event, target) => {
+                    const id = target?.getAttribute("data-doc-id");
+                    if (!id) return;
+                    deleteDocument(id);
+                },
+                getState: () => ({
+                    visibility: ActionVisibility.Shown,
+                    icon: () => <Trash2 />
+                })
+            }
+        ]
+    ])
+})
+
+// 3. Make sure <GlobalContextMenu /> is mounted somewhere inside
+//    <MowsProvider>. Right-clicking the marked DOM region now
+//    opens a popover listing every action whose handler's
+//    \`scopes\` includes \`"document-row"\`. Outside that region the
+//    browser's native context menu shows up — the suppression is
+//    deliberately scoped so normal copy/paste keeps working.`;
+
+const VARIANTS_SNIPPET = `new Action({
+    id: AppActionIds.DELETE_DOCUMENT,
+    category: "Documents",
+    actionHandlers: new Map([
+        [
+            "document-row",
+            {
+                id: "DocumentRowDelete",
+                scopes: ["document-row"],
+                executeAction: (_event, target) => {
+                    moveToBin(target?.getAttribute("data-doc-id")!);
+                },
+                getState: () => ({
+                    visibility: ActionVisibility.Shown,
+                    label: "Move to bin",
+                    icon: () => <Trash2 />
+                }),
+                // Variants resolve top-to-bottom against the live
+                // modifier mask — first match wins. Place the most
+                // specific predicate first.
+                variants: [
+                    {
+                        when: (mods) => mods.shift,
+                        label: "Delete permanently",
+                        icon: () => <TrashX />,
+                        execute: (_event, target) => {
+                            permanentlyDelete(
+                                target?.getAttribute("data-doc-id")!
+                            );
+                        }
+                    }
+                ]
+            }
+        ]
+    ])
+})`;
 
 const SIDEBAR_LAYOUT_SNIPPET = `import {
     PrimaryMenu,
@@ -179,9 +325,22 @@ export const CreatingAppsGuide = () => {
                 children: [
                     { id: ANCHOR.patternSidebar, label: t.patterns.sidebar.title }
                 ]
+            },
+            {
+                id: ANCHOR.actions,
+                label: t.actions.title,
+                children: [
+                    { id: ANCHOR.actionsDefine, label: t.actions.define.title },
+                    { id: ANCHOR.actionsExtra, label: t.actions.register.title },
+                    {
+                        id: ANCHOR.actionsContextMenu,
+                        label: t.actions.contextMenu.title
+                    },
+                    { id: ANCHOR.actionsVariants, label: t.actions.variants.title }
+                ]
             }
         ],
-        [t.setup, t.patterns]
+        [t.setup, t.patterns, t.actions]
     );
 
     return (
@@ -240,6 +399,68 @@ export const CreatingAppsGuide = () => {
                             />
                         </ExpandableCode>
                     </div>
+                </DocSubsection>
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.actions}
+                title={t.actions.title}
+                description={t.actions.intro}
+            >
+                <DocSubsection
+                    id={ANCHOR.actionsDefine}
+                    title={t.actions.define.title}
+                    description={t.actions.define.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer
+                            code={DEFINE_ACTION_SNIPPET}
+                            language={`tsx`}
+                            fitContent
+                        />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.actionsExtra}
+                    title={t.actions.register.title}
+                    description={t.actions.register.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer
+                            code={REGISTER_ACTIONS_SNIPPET}
+                            language={`tsx`}
+                            fitContent
+                        />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.actionsContextMenu}
+                    title={t.actions.contextMenu.title}
+                    description={t.actions.contextMenu.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer
+                            code={CONTEXT_MENU_SNIPPET}
+                            language={`tsx`}
+                            fitContent
+                        />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.actionsVariants}
+                    title={t.actions.variants.title}
+                    description={t.actions.variants.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer
+                            code={VARIANTS_SNIPPET}
+                            language={`tsx`}
+                            fitContent
+                        />
+                    </ExpandableCode>
                 </DocSubsection>
             </DocSection>
         </DocPage>

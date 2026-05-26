@@ -12,4 +12,5 @@ pub mod events;
 pub mod kinds;
 pub mod qemu;
 pub mod ssh_keys;
+pub mod ssh_sessions;
 pub mod state;

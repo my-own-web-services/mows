@@ -118,10 +118,24 @@ pub fn builtin_shell() -> AgentKind {
 /// All work happens inside the VM via the SSH-launched shell, so it only
 /// runs once per agent spawn and leaves the host `/creds` untouched.
 pub fn builtin_claude() -> AgentKind {
-    // Claude refuses to run with `--dangerously-skip-permissions` as root, so
-    // we run it as a dedicated non-root `agent` user inside the VM. The user
-    // is created lazily on first agent spawn (idempotent) so the cached image
+    // Claude refuses to run several permission modes as root, so we run it
+    // as a dedicated non-root `agent` user inside the VM. The user is
+    // created lazily on first agent spawn (idempotent) so the cached image
     // doesn't have to know about it.
+    //
+    // `--permission-mode acceptEdits` ("auto mode" in the TUI) auto-approves
+    // file edits but still prompts for shell commands, which is the right
+    // default inside a per-VM sandbox: edits are scoped to the ephemeral
+    // qcow2 overlay, but operators still want a confirmation before random
+    // `rm -rf` style commands run unattended.
+    //
+    // `DISABLE_AUTOUPDATER=1` stops claude from trying to npm-i a new
+    // version in-place (the binary lives under `/usr/local`, the agent
+    // user can't write there — every boot would emit a noisy
+    // "Auto-update failed" line otherwise). The `autoUpdaterStatus` /
+    // `autoUpdates` keys staged into `.claude.json` cover the equivalent
+    // config-file knob so changing the launch command later won't
+    // accidentally re-enable it.
     //
     // Steps (all happen inside the VM via the SSH-launched shell, every time
     // an agent is created — cheap on warm runs):
@@ -178,6 +192,8 @@ src=p.read_text() if p.exists() else '{}'; \
 d=(lambda v: v if isinstance(v, dict) else {})(json.loads(src)); \
 d.setdefault('hasCompletedOnboarding', True); \
 d.setdefault('bypassPermissionsModeAccepted', True); \
+d['autoUpdaterStatus']='disabled'; \
+d['autoUpdates']=False; \
 prj=d.setdefault('projects', {}); \
 [prj.__setitem__(k, dict((prj.get(k) if isinstance(prj.get(k), dict) else {}), hasTrustDialogAccepted=True, hasCompletedProjectOnboarding=True)) for k in ('/workspace', '/home/agent', '/')]; \
 p.parent.mkdir(parents=True, exist_ok=True); \
@@ -187,8 +203,8 @@ p.write_text(json.dumps(d, indent=2))\" 2>/dev/null || true; \
         if [ -d /workspace ]; then chown agent:agent /workspace 2>/dev/null || true; fi; \
         exec su -s /bin/sh agent -c \
             'cd /workspace 2>/dev/null || cd; \
-             export HOME=/home/agent CLAUDE_CONFIG_DIR=/home/agent/.claude; \
-             exec /usr/local/bin/claude --dangerously-skip-permissions'";
+             export HOME=/home/agent CLAUDE_CONFIG_DIR=/home/agent/.claude DISABLE_AUTOUPDATER=1; \
+             exec /usr/local/bin/claude --permission-mode acceptEdits'";
 
     AgentKind {
         name: "claude".to_string(),

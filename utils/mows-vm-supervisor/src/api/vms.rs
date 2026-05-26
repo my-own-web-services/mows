@@ -653,6 +653,12 @@ async fn delete_vm(
     .execute(&state.db)
     .await;
     state.agent_runtimes.stop_for_vm(&id).await;
+    // Kill every long-lived ssh-backed terminal session the web UI
+    // had open against this VM (`/v1/vms/{id}/ssh-io?sessionId=…`).
+    // Otherwise the ssh subprocess would outlive its QEMU process
+    // and the registry entry would block a future VM that happens to
+    // reuse the same id from reattaching.
+    state.ssh_sessions.shutdown_vm(&id);
 
     // Tear down the QEMU child (if still running) and the per-VM on-disk
     // directory (qcow2 overlay, console.log, authorized_keys, ssh keypair,
@@ -856,6 +862,7 @@ async fn get_vm_ssh_io(
             Some(raw.to_owned())
         }
     };
+    let sessions = state.ssh_sessions.clone();
     Ok(ws
         .max_message_size(WS_MAX_PAYLOAD_BYTES)
         .max_frame_size(WS_MAX_PAYLOAD_BYTES)
@@ -872,6 +879,7 @@ async fn get_vm_ssh_io(
                     rows: query.rows,
                     command_kind,
                     session_id,
+                    sessions,
                 },
             )
             .await
@@ -888,11 +896,12 @@ struct VmSshIoQuery {
     /// Which remote command to exec inside the guest. Defaults to `shell`
     /// (interactive login shell). `claude` stages the host's `~/.claude`
     /// credentials from the read-only `/creds` mount into a writable
-    /// per-VM copy and execs `claude --dangerously-skip-permissions`,
-    /// matching what the agent kind does when spawned via `/v1/agents`.
+    /// per-VM copy and execs `claude --permission-mode acceptEdits`
+    /// with the auto-updater disabled, matching what the agent kind
+    /// does when spawned via `/v1/agents`.
     command: Option<String>,
-    /// Stable per-tab session id. When present the supervisor wraps
-    /// the remote process in a tmux session named `mows-<sessionId>`;
+    /// Stable per-tab session id. When present the supervisor keeps
+    /// the spawned ssh subprocess alive across attach/detach;
     /// the same id on a future connection reattaches to the live
     /// session instead of spawning a new one. Matches the
     /// `ConsoleManager` tabId persisted in localStorage by the web UI.
@@ -916,40 +925,18 @@ struct VmSshSpec {
     rows: Option<u16>,
     command_kind: SshCommandKind,
     session_id: Option<String>,
+    sessions: std::sync::Arc<crate::ssh_sessions::VmSshSessionRegistry>,
 }
 
 async fn proxy_vm_ssh(ws: WebSocket, spec: VmSshSpec) -> std::io::Result<()> {
     use futures_util::{SinkExt, StreamExt};
-    use std::process::Stdio;
-    use tokio::io::{AsyncReadExt, AsyncWriteExt};
-    use tokio::process::Command;
-
-    // Per-attach known_hosts so a future host-key rotation doesn't poison
-    // parallel connections. Same convention as `proxy_agent_io`.
-    let known_hosts = spec
-        .state_dir
-        .join("vms")
-        .join(&spec.vm_id)
-        .join(format!("known_hosts.ws-{}", uuid::Uuid::new_v4().simple()));
-    if let Some(parent) = known_hosts.parent() {
-        let _ = tokio::fs::create_dir_all(parent).await;
-    }
-    let _ = tokio::fs::remove_file(&known_hosts).await;
-
-    struct KnownHostsGuard(std::path::PathBuf);
-    impl Drop for KnownHostsGuard {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_file(&self.0);
-        }
-    }
-    let _known_hosts_guard = KnownHostsGuard(known_hosts.clone());
 
     let cols = spec.cols.unwrap_or(80);
     let rows = spec.rows.unwrap_or(24);
 
     // Per `command` query param: either an interactive login shell or the
     // claude bootstrap that stages `/creds` into `/home/agent/.claude` and
-    // execs `claude --dangerously-skip-permissions`. The bootstrap source
+    // execs `claude --permission-mode acceptEdits`. The bootstrap source
     // of truth is `kinds::builtin_claude()` (third element of `argv`) so
     // both `/v1/agents` and the click-to-launch ssh-io tab stay aligned.
     let inner_command = match spec.command_kind {
@@ -965,102 +952,161 @@ async fn proxy_vm_ssh(ws: WebSocket, spec: VmSshSpec) -> std::io::Result<()> {
         },
     };
 
-    // When the client passes a sessionId, wrap the inner command in a
-    // tmux session named `mows-<sessionId>`. The first connection
-    // creates the session; later connections (after a page reload)
-    // attach to the same long-running process. The supervisor doesn't
-    // allocate a host-side PTY around ssh, so SIGWINCH never reaches
-    // the remote tmux client — we send the initial geometry via an
-    // explicit `stty` before exec'ing tmux, which tmux then uses as
-    // the client size. Without sessionId the inner command runs
-    // directly (legacy path, no reattach).
-    let remote_command = if let Some(sid) = spec.session_id.as_deref() {
-        let session_name = format!("mows-{sid}");
-        // Base64-encode the inner command so we don't have to wrestle
-        // with nested quoting through ssh -> tmux -> sh -c. Alpine
-        // ships busybox `base64`. We round-trip via a sh -c that does
-        // `echo <base64> | base64 -d | sh`.
-        use base64::engine::general_purpose::STANDARD;
-        use base64::Engine as _;
-        let inner_b64 = STANDARD.encode(inner_command.as_bytes());
-        format!(
-            "stty cols {cols} rows {rows} 2>/dev/null; \
-             if tmux has-session -t {session_name} 2>/dev/null; then \
-                 exec tmux attach-session -t {session_name}; \
-             fi; \
-             exec tmux new-session -s {session_name} \
-                 sh -c \"echo {inner_b64} | base64 -d | sh\""
-        )
+    // The remote command runs the inner payload directly inside the
+    // ssh-allocated pty. No tmux mediation — the supervisor itself
+    // multiplexes the session across multiple websocket attachments
+    // via `VmSshSessionRegistry` so a page reload doesn't kill the
+    // underlying process.
+    let remote_command = format!(
+        "stty cols {cols} rows {rows} 2>/dev/null; \
+         export COLORTERM=truecolor; {inner_command}"
+    );
+
+    // Per-VM known_hosts (no `.ws-<uuid>` suffix when we want the
+    // file to outlive a single attach — the session manager keeps
+    // the ssh subprocess alive across attach/detach). The directory
+    // hierarchy mirrors what `proxy_agent_io` uses for non-session
+    // attachments.
+    let known_hosts_dir = spec.state_dir.join("vms").join(&spec.vm_id);
+    let _ = tokio::fs::create_dir_all(&known_hosts_dir).await;
+    let known_hosts = if let Some(sid) = spec.session_id.as_deref() {
+        // One known_hosts file per long-lived session; deleted by
+        // `VmSshSessionRegistry::shutdown_vm` (transitively via the
+        // session Drop chain) when the VM is removed.
+        known_hosts_dir.join(format!("known_hosts.session-{sid}"))
     } else {
-        format!("stty cols {cols} rows {rows} 2>/dev/null; {inner_command}")
+        // Legacy per-attach path: file dies with this single proxy.
+        let path = known_hosts_dir
+            .join(format!("known_hosts.ws-{}", uuid::Uuid::new_v4().simple()));
+        let _ = tokio::fs::remove_file(&path).await;
+        path
     };
 
-    let mut ssh = Command::new("ssh")
-        .arg("-tt")
-        .arg("-i")
-        .arg(&spec.priv_key)
-        .arg("-p")
-        .arg(spec.port.to_string())
-        .arg("-o")
-        .arg("StrictHostKeyChecking=accept-new")
-        .arg("-o")
-        .arg(format!("UserKnownHostsFile={}", known_hosts.display()))
-        .arg("-o")
-        .arg("IdentitiesOnly=yes")
-        .arg("-o")
-        .arg("ServerAliveInterval=15")
-        .arg("-o")
-        .arg("ConnectTimeout=10")
-        .arg("-o")
-        .arg(format!("SendEnv=COLUMNS LINES TERM COLORTERM"))
-        .arg(&spec.ssh_target)
-        // Force the remote shell to honour the size we passed in via env.
-        // SendEnv requires server-side AcceptEnv; the explicit `stty` and
-        // `export` in the login command guarantee the right size + 24-bit
-        // colour even when the server's sshd_config doesn't forward the
-        // vars. claude-code reads `COLORTERM=truecolor` to switch its
-        // brand orange (#d97757) from a quantised 256-colour fallback
-        // (which looks salmon/pink in xterm.js) to the real 24-bit
-        // ANSI escape that xterm renders untouched.
-        .arg(format!("export COLORTERM=truecolor; {}", remote_command))
-        .env("COLUMNS", cols.to_string())
-        .env("LINES", rows.to_string())
-        .env("TERM", "xterm-256color")
-        .env("COLORTERM", "truecolor")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true)
-        .spawn()
-        .map_err(|e| {
-            std::io::Error::new(std::io::ErrorKind::Other, format!("spawn ssh: {e}"))
-        })?;
+    // Resolve (or spawn) the session if a sessionId was passed. The
+    // ?: branch below is a hard split between session-multiplexed
+    // attach (long-lived ssh) and a one-shot direct proxy (legacy
+    // path; the ssh dies with the websocket).
+    let session = if let Some(sid) = spec.session_id.as_deref() {
+        if let Some(existing) = spec.sessions.get(&spec.vm_id, sid) {
+            existing
+        } else {
+            let new_session = crate::ssh_sessions::spawn_session(
+                crate::ssh_sessions::SpawnSshSessionSpec {
+                    vm_id: spec.vm_id.clone(),
+                    session_id: sid.to_owned(),
+                    priv_key: spec.priv_key.clone(),
+                    port: spec.port,
+                    ssh_target: spec.ssh_target.clone(),
+                    known_hosts: known_hosts.clone(),
+                    remote_command: remote_command.clone(),
+                    cols,
+                    rows,
+                },
+                spec.sessions.clone(),
+            )?;
+            match spec
+                .sessions
+                .insert(spec.vm_id.clone(), sid.to_owned(), new_session.clone())
+            {
+                Ok(()) => new_session,
+                // Another attach beat us to the insert (race during
+                // first hit). The new ssh subprocess we just spawned
+                // will be terminated when its `Arc` drops below — use
+                // the existing session for this WS instead.
+                Err(existing) => existing,
+            }
+        }
+    } else {
+        // Legacy: no sessionId → spawn a one-shot session that dies
+        // with this websocket. We still go through the same registry
+        // helper so the I/O wiring stays single-sourced; we just
+        // never insert it into the map and cancel it on WS close.
+        let throwaway = crate::ssh_sessions::spawn_session(
+            crate::ssh_sessions::SpawnSshSessionSpec {
+                vm_id: spec.vm_id.clone(),
+                session_id: format!(
+                    "_oneshot_{}",
+                    uuid::Uuid::new_v4().simple()
+                ),
+                priv_key: spec.priv_key.clone(),
+                port: spec.port,
+                ssh_target: spec.ssh_target.clone(),
+                known_hosts: known_hosts.clone(),
+                remote_command: remote_command.clone(),
+                cols,
+                rows,
+            },
+            spec.sessions.clone(),
+        )?;
+        throwaway
+    };
 
-    let mut ssh_stdout = ssh.stdout.take().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::BrokenPipe,
-            "ssh child reported no stdout despite Stdio::piped()",
-        )
-    })?;
-    let mut ssh_stdin = ssh.stdin.take().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::BrokenPipe,
-            "ssh child reported no stdin despite Stdio::piped()",
-        )
-    })?;
-
+    // Replay the session's recent output so the freshly-attached
+    // xterm re-paints the current screen state (claude TUI etc.).
+    // Subscribe BEFORE replay so any concurrent live output that
+    // arrives between the snapshot and the subscribe call still
+    // reaches us — at worst the client sees a few duplicate bytes.
+    let mut receiver = session.subscribe();
+    let snapshot = session.replay_snapshot();
     let (mut sink, mut stream) = ws.split();
+    if !snapshot.is_empty() {
+        if sink
+            .send(Message::Binary(snapshot.into()))
+            .await
+            .is_err()
+        {
+            // Client gave up before the snapshot finished — nothing
+            // to do.
+            return Ok(());
+        }
+    }
 
-    let ws_to_ssh = async move {
+    // Fanout direction: session output → websocket.
+    let session_for_output = session.clone();
+    let ws_writer = async move {
+        loop {
+            match receiver.recv().await {
+                Ok(chunk) => {
+                    if sink
+                        .send(Message::Binary(chunk.into()))
+                        .await
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                    // Slow client — drop everything queued and
+                    // replay the current screen state instead so the
+                    // xterm catches up without a torn frame.
+                    let catchup = session_for_output.replay_snapshot();
+                    if !catchup.is_empty()
+                        && sink
+                            .send(Message::Binary(catchup.into()))
+                            .await
+                            .is_err()
+                    {
+                        break;
+                    }
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+            }
+        }
+        let _ = sink.close().await;
+    };
+
+    // Fanin direction: websocket input → session input.
+    let session_for_input = session.clone();
+    let ws_reader = async move {
         while let Some(msg) = stream.next().await {
             match msg {
                 Ok(Message::Binary(b)) => {
-                    if ssh_stdin.write_all(&b).await.is_err() {
+                    if !session_for_input.send_input(b.to_vec()).await {
                         break;
                     }
                 }
                 Ok(Message::Text(t)) => {
-                    if ssh_stdin.write_all(t.as_bytes()).await.is_err() {
+                    if !session_for_input.send_input(t.as_bytes().to_vec()).await {
                         break;
                     }
                 }
@@ -1068,33 +1114,9 @@ async fn proxy_vm_ssh(ws: WebSocket, spec: VmSshSpec) -> std::io::Result<()> {
                 Ok(_) => {}
             }
         }
-        let _ = ssh_stdin.shutdown().await;
-        Ok::<(), std::io::Error>(())
     };
 
-    let ssh_to_ws = async move {
-        let mut read_buffer = vec![0u8; WS_PROXY_CHUNK_BYTES];
-        loop {
-            let bytes_read = ssh_stdout.read(&mut read_buffer).await?;
-            if bytes_read == 0 {
-                break;
-            }
-            if sink
-                .send(Message::Binary(read_buffer[..bytes_read].to_vec().into()))
-                .await
-                .is_err()
-            {
-                break;
-            }
-        }
-        let _ = sink.close().await;
-        Ok::<(), std::io::Error>(())
-    };
-
-    let (ws_to_ssh_result, ssh_to_ws_result) = tokio::join!(ws_to_ssh, ssh_to_ws);
-    let _ = ssh.kill().await;
-    ws_to_ssh_result?;
-    ssh_to_ws_result?;
+    tokio::join!(ws_writer, ws_reader);
     Ok(())
 }
 

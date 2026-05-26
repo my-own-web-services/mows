@@ -84,6 +84,26 @@ const translation: Translation = {
                         title: `Sidebar layout`,
                         body: `Reach for the \`<Sidebar>\` primitive whenever the app surfaces more than one or two top-level views. Pin a header at the top with your own app's logo + name — do NOT ship the MOWS logo, that belongs to the platform and not to your app. Route between surfaces via \`<SidebarContent>\`, and drop \`<PrimaryMenu variant="inline" />\` into the footer so theme / language / auth controls live in one consistent place across every MOWS app. This is the same shell the docs sidebar on the left uses.`
                     }
+                },
+                actions: {
+                    title: `Actions`,
+                    intro: `Every user-invokable verb in your app — "create document", "delete row", "open settings" — should be an \`Action\`. One definition flows into four invocation surfaces at once: the command palette (Ctrl/Cmd-K), the hotkey manager, the global context menu (right-click), and direct dispatch from your own UI. The same id ends up in localStorage (recents, custom shortcuts) and in the keyboard-shortcut editor, so users can rebind and rediscover anything you ship.`,
+                    define: {
+                        title: `Define an action`,
+                        body: `An \`Action\` is a stable id + category + map of handlers keyed by \`scope\`. The handler's \`getState()\` returns an \`ActionVisibility\` and optional \`icon\` / \`label\` so the same row in the command palette or context menu picks up live state (e.g. hidden when the user lacks permission, disabled when not yet applicable). Keep ids namespaced (\`myapp.document.create\`) — they survive renames in storage and persist across sessions. Prefer \`ActionVisibility.Disabled\` over \`Hidden\` when the action is contextually unavailable so users can still discover it.`
+                    },
+                    register: {
+                        title: `Register with the provider`,
+                        body: `Pass your actions to \`<MowsProvider extraActions={…}>\`. Built-in core actions (open command palette, open settings, login/logout, …) merge automatically. From here, hotkeys defined for any id automatically resolve to your handler, and \`actionManager.dispatchAction(id)\` works from anywhere via \`useMows()\`. The \`<CommandPalette />\` mount picks them up too — that's why all four app-shell mounts are non-negotiable (see Setup above).`
+                    },
+                    contextMenu: {
+                        title: `Right-click context menus`,
+                        body: `MOWS apps should expose row-level verbs through the \`<GlobalContextMenu />\` instead of building bespoke popovers. Mark each interactive DOM region with \`data-actionscope="<scope-name>"\` plus any \`data-*\` payload the handler needs (id, name, current status). When the user right-clicks inside a marked region, the menu opens with every action whose handler is registered for that scope. The handler's \`executeAction\` receives the original click event and the marked element as arguments — read identifiers off that element instead of re-traversing the DOM. Outside marked regions the browser's native menu still fires, so copy / paste / inspect keep working untouched.`
+                    },
+                    variants: {
+                        title: `Modifier-key variants`,
+                        body: `An action can morph its label, icon, and handler under a modifier-key combination via \`variants\`. The classic case is a "Move to bin" row that becomes "Delete permanently" while Shift is held — the menu re-renders live as the user holds and releases the modifier. Variants resolve in order against the live modifier mask; the first matching predicate wins, so put the most specific variants first. The handler resolution and dispatch path is shared with the right-click menu and the command palette, so the behaviour stays consistent across surfaces.`
+                    }
                 }
             }
         },

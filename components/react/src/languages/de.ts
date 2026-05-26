@@ -84,6 +84,26 @@ const translation: Translation = {
                         title: `Sidebar-Layout`,
                         body: `Greife zum \`<Sidebar>\`-Primitiv, sobald die App mehr als ein oder zwei Top-Level-Oberflächen hat. Fixiere oben einen Header mit dem eigenen Logo und Namen deiner App — verwende NICHT das MOWS-Logo, das gehört der Plattform und nicht deiner App. Navigiere zwischen den Oberflächen über \`<SidebarContent>\` und packe \`<PrimaryMenu variant="inline" />\` in den Footer, damit Theme- / Sprach- / Auth-Steuerungen über jede MOWS-App hinweg an einer konsistenten Stelle leben. Die Doku-Sidebar links nutzt genau diesen Aufbau.`
                     }
+                },
+                actions: {
+                    title: `Aktionen`,
+                    intro: `Jedes vom Nutzer auslösbare Verb in deiner App — „Dokument anlegen“, „Zeile löschen“, „Einstellungen öffnen“ — sollte eine \`Action\` sein. Eine Definition fließt in vier Aufrufsoberflächen zugleich: die Command Palette (Strg/Cmd-K), den Hotkey-Manager, das globale Kontextmenü (Rechtsklick) und direktes Dispatch aus deiner eigenen UI. Dieselbe id landet in localStorage (zuletzt verwendet, eigene Shortcuts) und im Tastenkürzel-Editor, sodass Nutzer alles, was du ausspielst, neu binden und wiederfinden können.`,
+                    define: {
+                        title: `Eine Aktion definieren`,
+                        body: `Eine \`Action\` ist eine stabile id + Kategorie + Map von Handlern, geschlüsselt nach \`scope\`. Das \`getState()\` des Handlers liefert eine \`ActionVisibility\` und optional \`icon\` / \`label\`, sodass dieselbe Zeile in der Command Palette oder im Kontextmenü Live-Status übernimmt (z. B. ausgeblendet, wenn die Berechtigung fehlt; deaktiviert, wenn noch nicht anwendbar). Halte ids namensbereinigt (\`myapp.document.create\`) — sie überleben Umbenennungen in der Persistenz und sitzen sitzungsübergreifend. Bevorzuge \`ActionVisibility.Disabled\` gegenüber \`Hidden\`, wenn die Aktion kontextuell nicht verfügbar ist, damit Nutzer sie weiter entdecken können.`
+                    },
+                    register: {
+                        title: `Beim Provider registrieren`,
+                        body: `Übergib deine Aktionen an \`<MowsProvider extraActions={…}>\`. Eingebaute Core-Aktionen (Command Palette öffnen, Einstellungen öffnen, Login/Logout, …) werden automatisch zusammengeführt. Ab hier lösen Hotkeys für jede id automatisch deinen Handler aus, und \`actionManager.dispatchAction(id)\` funktioniert von überall via \`useMows()\`. Der \`<CommandPalette />\`-Mount greift sie ebenfalls auf — deshalb sind alle vier App-Shell-Mounts nicht verhandelbar (siehe Setup oben).`
+                    },
+                    contextMenu: {
+                        title: `Rechtsklick-Kontextmenüs`,
+                        body: `MOWS-Apps sollten zeilenbezogene Verben über \`<GlobalContextMenu />\` ausspielen, statt eigene Popover zu bauen. Markiere jede interaktive DOM-Region mit \`data-actionscope="<scope-name>"\` plus beliebigen \`data-*\`-Payload, den der Handler braucht (id, Name, aktueller Status). Beim Rechtsklick innerhalb einer markierten Region öffnet sich das Menü mit jeder Aktion, deren Handler für diesen Scope registriert ist. Das \`executeAction\` des Handlers bekommt den ursprünglichen Click-Event und das markierte Element als Argumente — lies Identifikatoren von diesem Element ab, statt das DOM erneut zu traversieren. Außerhalb markierter Regionen feuert weiterhin das native Browser-Menü, damit Kopieren / Einfügen / Untersuchen unberührt bleiben.`
+                    },
+                    variants: {
+                        title: `Modifier-Tasten-Varianten`,
+                        body: `Eine Aktion kann ihr Label, Icon und ihren Handler unter einer Modifier-Tasten-Kombination via \`variants\` morphen. Der Klassiker: eine Zeile „In den Papierkorb verschieben“ wird zu „Endgültig löschen“, während Shift gehalten wird — das Menü rendert live neu, sobald der Nutzer den Modifier hält oder loslässt. Varianten werden in Reihenfolge gegen die Live-Modifier-Maske aufgelöst; das erste passende Prädikat gewinnt, also packe die spezifischsten Varianten zuerst. Der Auflösungs- und Dispatch-Pfad wird mit dem Rechtsklick-Menü und der Command Palette geteilt, sodass das Verhalten über alle Oberflächen hinweg konsistent bleibt.`
+                    }
                 }
             }
         },

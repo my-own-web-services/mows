@@ -75,6 +75,14 @@ declare module "../lib/lib/languages" {
                             body: string;
                         };
                     };
+                    actions: {
+                        title: string;
+                        intro: string;
+                        define: { title: string; body: string };
+                        register: { title: string; body: string };
+                        contextMenu: { title: string; body: string };
+                        variants: { title: string; body: string };
+                    };
                 };
             };
             examples: {

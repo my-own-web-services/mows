@@ -42,6 +42,10 @@ default-features = false
 features = ["sink", "std"]
 version = "0.3.31"
 
+[workspace.dependencies.parking_lot]
+default-features = false
+version = "0.12.4"
+
 [workspace.dependencies.petname]
 default-features = false
 features = ["default-rng", "default-words"]

@@ -7,6 +7,7 @@ use crate::agent_runtime::AgentRuntimeRegistry;
 use crate::config::SupervisorConfig;
 use crate::events::EventBus;
 use crate::qemu::{PortAllocator, VmRegistry};
+use crate::ssh_sessions::VmSshSessionRegistry;
 
 pub struct AppState {
     pub config: SupervisorConfig,
@@ -19,6 +20,11 @@ pub struct AppState {
     /// In-process state-change broadcast. Mutation sites emit; the
     /// `/v1/events` websocket forwards to connected UI clients.
     pub events: EventBus,
+    /// Long-lived ssh-backed terminal sessions, keyed by
+    /// `(vm_id, sessionId)`. A reload of the web UI reattaches to the
+    /// same entry instead of spawning a fresh ssh subprocess so the
+    /// inner shell / claude process stays alive.
+    pub ssh_sessions: Arc<VmSshSessionRegistry>,
 }
 
 impl AppState {
@@ -31,6 +37,7 @@ impl AppState {
             agent_runtimes: AgentRuntimeRegistry::new(),
             port_allocator,
             events: EventBus::new(),
+            ssh_sessions: Arc::new(VmSshSessionRegistry::new()),
         }
     }
 
@@ -51,6 +58,7 @@ impl AppState {
             agent_runtimes: AgentRuntimeRegistry::new(),
             port_allocator,
             events: EventBus::new(),
+            ssh_sessions: Arc::new(VmSshSessionRegistry::new()),
         }
     }
 }

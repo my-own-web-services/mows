@@ -1,0 +1,1 @@
+rename outputs folder from template rendering of mows pm compose from `results` to the name of the project so that when one uses plain docker compose on the templates folder it does not use the false name

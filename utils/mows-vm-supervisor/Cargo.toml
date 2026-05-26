@@ -28,6 +28,8 @@ utoipa-swagger-ui = { workspace = true, features = ["axum", "vendored"] }
 axum = { workspace = true, features = ["default", "macros", "json", "ws"] }
 axum-extra = { workspace = true, features = ["default", "typed-header", "cookie", "cookie-private"] }
 tokio = { workspace = true, features = ["default", "macros", "rt-multi-thread", "process", "signal", "fs", "net", "sync", "io-util", "time"] }
+tokio-util = { version = "0.7", default-features = false }
+parking_lot = { workspace = true }
 tower = { workspace = true, features = ["util"] }
 tower-http = { workspace = true, features = [
     "cors",

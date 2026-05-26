@@ -433,6 +433,17 @@ export default class ConsoleManager extends PureComponent<
         this.state = hydrateFromStorage(props) ?? initialState(props);
     }
 
+    componentDidMount = () => {
+        // Persist the *seeded* state on first mount — without this the
+        // initial `initialTabs` layout never reaches localStorage, so
+        // a page reload regenerates fresh tab ids (different
+        // `tabId`s) and any sessionId-keyed backend (tmux, etc.)
+        // can't reattach to the original sessions.
+        if (this.props.persistenceKey) {
+            writeToStorage(this.state, this.props.persistenceKey);
+        }
+    };
+
     componentDidUpdate = (
         _prevProps: ConsoleManagerProps,
         prevState: State
