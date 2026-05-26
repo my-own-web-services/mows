@@ -1,7 +1,6 @@
 use super::key_access::KeyAccess;
 use crate::config::SESSION_INFO_KEY;
 use crate::http_api::authentication::sessions::SessionInfo;
-use crate::http_api::authentication::user::IntrospectedUser;
 use crate::impl_typed_uuid;
 use crate::models::files::FilezFileId;
 use crate::{
@@ -237,10 +236,13 @@ impl FilezUser {
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
-    /// Creates or updates a user based on the provided external user information.
+    /// Creates or updates a user based on the engine's IntrospectionResult.
+    /// Caller passes the introspector's idp_id alongside so the lookup
+    /// uses the composite key (idp_id, sub) per AUTHENTICATION.md §2.
     pub async fn apply_one(
         database: &Database,
-        external_user: IntrospectedUser,
+        idp_id: Uuid,
+        external_user: mows_auth_core::IntrospectedUser,
     ) -> Result<FilezUser, FilezError> {
         let mut connection = database.get_connection().await?;
 
@@ -248,17 +250,22 @@ impl FilezUser {
 
         debug!(
             "Trying to apply user with external user id: {:?}",
-            external_user.user_id
+            external_user.sub
         );
 
-        let external_user_id = external_user.user_id;
+        let external_user_id = external_user.sub;
+        let display_name = external_user.name.clone().unwrap_or_default();
 
-        let display_name = external_user.name.unwrap_or("".to_string());
-
+        // IdP-specific super-admin bootstrap: filez treats any Zitadel
+        // user with a `project_roles["admin"]` claim as SuperAdmin.
+        // The claim lives in the IdP-agnostic `extra` blob the engine
+        // surfaces (mows_auth_core::idp::IntrospectedUser.extra) —
+        // pulled out by JSON path here. A second IdP would need its
+        // own equivalent claim extraction.
         let is_super_admin = (config.enable_dev && display_name == "ZITADEL Admin")
             || external_user
-                .project_roles
-                .as_ref()
+                .extra
+                .get("project_roles")
                 .and_then(|roles| roles.get("admin"))
                 .is_some();
 
@@ -267,14 +274,8 @@ impl FilezUser {
             external_user_id, display_name
         );
 
-        // v1: the IntrospectedUser shape filez carries today doesn't yet
-        // include an idp_id (filez's local introspector talks only to
-        // Zitadel). Hardcode the sentinel here; once the
-        // ZitadelIntrospector trait impl lands in mows-auth-core, the
-        // introspector will surface the idp_id and this becomes
-        // `.eq(introspected_user.idp_id)`. See AUTHENTICATION.md §2.
         let existing_user = crate::schema::users::table
-            .filter(crate::schema::users::idp_id.eq(mows_auth_core::ZITADEL_IDP_ID))
+            .filter(crate::schema::users::idp_id.eq(idp_id))
             .filter(crate::schema::users::external_user_id.eq(&external_user_id))
             .first::<FilezUser>(&mut connection)
             .await
@@ -286,14 +287,11 @@ impl FilezUser {
                 "No existing user found with external_user_id: {}",
                 external_user_id
             );
-            if external_user
-                .email_verified
-                .is_some_and(|verified| verified)
-            {
-                let lowercased_email = external_user
-                    .email
-                    .clone()
-                    .and_then(|email| email.to_lowercase().into());
+            // The engine drops unverified emails before returning them
+            // (defense in depth — see ZitadelIntrospector::map_zitadel_response).
+            // So an Option<String> here is already trustable.
+            if let Some(email) = external_user.email.as_ref() {
+                let lowercased_email = Some(email.to_lowercase());
 
                 let maybe_email_identified_user = crate::schema::users::table
                     .filter(crate::schema::users::pre_identifier_email.eq(lowercased_email))
@@ -321,8 +319,12 @@ impl FilezUser {
                     return Ok(updated_user);
                 };
             } else {
+                // Engine returns email=None for unverified emails
+                // (defense-in-depth at the boundary). For pre-introspection
+                // users we can't match by email — they'll just get a new
+                // row created below.
                 debug!(
-                    "User with external_user_id: {} has not verified their email",
+                    "User with external_user_id: {} has no verified email — skipping pre_identifier match",
                     external_user_id
                 );
             };
@@ -413,7 +415,8 @@ impl FilezUser {
     #[tracing::instrument(level = "trace", skip(database))]
     pub async fn handle_authentication(
         database: &Database,
-        external_user: &Option<IntrospectedUser>,
+        idp_id: Uuid,
+        external_user: &Option<mows_auth_core::IntrospectedUser>,
         request_headers: &HeaderMap,
         request_method: &Method,
         session: &Session,
@@ -431,18 +434,17 @@ impl FilezUser {
         {
             (Some(external_user), None, _) => {
                 // Composite-key lookup per AUTHENTICATION.md §2.
-                // ZITADEL_IDP_ID hardcoded until the IntrospectedUser
-                // shape carries idp_id (same migration window as
-                // apply_one above).
                 match schema::users::table
-                    .filter(schema::users::idp_id.eq(mows_auth_core::ZITADEL_IDP_ID))
-                    .filter(schema::users::external_user_id.eq(&external_user.user_id))
+                    .filter(schema::users::idp_id.eq(idp_id))
+                    .filter(schema::users::external_user_id.eq(&external_user.sub))
                     .first::<FilezUser>(&mut connection)
                     .await
                     .optional()?
                 {
                     Some(user) => user,
-                    None => FilezUser::apply_one(&database, external_user.clone()).await?,
+                    None => {
+                        FilezUser::apply_one(&database, idp_id, external_user.clone()).await?
+                    }
                 }
             }
             (None, Some(key_access), None) => {

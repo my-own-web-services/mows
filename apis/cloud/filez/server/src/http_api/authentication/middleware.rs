@@ -1,7 +1,7 @@
 use crate::{
     config::RUNTIME_INSTANCE_ID_HEADER_NAME,
     errors::FilezError,
-    http_api::authentication::user::{introspect_via_engine, IntrospectedUser},
+    http_api::authentication::user::introspection_error_into_filez,
     models::{
         apps::{AppType, MowsApp},
         jobs::FilezJob,
@@ -14,6 +14,7 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
+use mows_auth_core::IntrospectedUser;
 
 use tower_sessions::Session;
 use tracing::trace;
@@ -22,6 +23,10 @@ use tracing::trace;
 pub struct AuthenticationInformation {
     pub requesting_user: Option<FilezUser>,
     pub job: Option<FilezJob>,
+    /// The verified introspection result for the bearer token (engine
+    /// type — fields: sub, name, email, email_verified, locale, extra).
+    /// Downstream handlers that need IdP-specific claims pull them out
+    /// of `extra` by JSON path.
     pub external_user: Option<IntrospectedUser>,
     pub requesting_app: MowsApp,
     pub requesting_app_runtime_instance_id: Option<String>,
@@ -40,9 +45,28 @@ pub async fn authentication_middleware(
     mut request: axum::extract::Request,
     next: Next,
 ) -> Result<Response, FilezError> {
+    // Directly call the engine introspector; map the engine error
+    // type to FilezError at this single point.
+    let introspector_idp_id = introspector.idp_id();
     let external_user = match maybe_bearer {
         Some(TypedHeader(Authorization(bearer))) => {
-            Some(introspect_via_engine(bearer.token(), introspector.as_ref()).await?)
+            let result = introspector
+                .introspect(bearer.token())
+                .await
+                .map_err(introspection_error_into_filez)?;
+            if !result.active {
+                return Err(introspection_error_into_filez(
+                    mows_auth_core::IntrospectionError::Inactive,
+                ));
+            }
+            // Filez handlers require a user — Client Credentials grants
+            // (user: None) get rejected at the auth boundary the same
+            // way the old handle_oidc did.
+            Some(result.user.ok_or_else(|| {
+                FilezError::IntrospectionGuardError(
+                    crate::http_api::authentication::user::IntrospectionGuardError::NoUserId,
+                )
+            })?)
         }
         None => None,
     };
@@ -60,6 +84,7 @@ pub async fn authentication_middleware(
 
     let mut requesting_user = FilezUser::handle_authentication(
         &database,
+        introspector_idp_id,
         &external_user,
         &request_headers,
         &request_method,
