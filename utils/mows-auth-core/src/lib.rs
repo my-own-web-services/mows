@@ -34,6 +34,8 @@ pub mod groups;
 
 pub mod subjects;
 
+pub mod idp;
+
 pub mod check;
 
 pub mod list;
@@ -41,6 +43,7 @@ pub mod list;
 // Re-export the most-used items at the crate root so downstream services
 // don't need a deep import path.
 pub use crate::check::check_access;
+pub use crate::idp::{IntrospectedUser, IntrospectionError, IntrospectionResult, TokenIntrospector};
 pub use crate::list::list_visible;
 pub use crate::subjects::ZITADEL_IDP_ID;
 pub use crate::types::AuthError;

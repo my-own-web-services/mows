@@ -48,6 +48,11 @@ diesel-async = { version = "0.5.2", features = [
 # hand-rolling FromSql/ToSql every time.
 diesel-enum = { workspace = true }
 
+# async-trait for the TokenIntrospector trait — needed because rustc
+# does not yet support async fns in traits with auto-trait bounds on
+# the returned future (we need `Send` for the Axum executor).
+async-trait = { workspace = true }
+
 # Tracing per CLAUDE.md — every public function gets #[tracing::instrument]
 tracing = { workspace = true, features = ["default"] }
 
