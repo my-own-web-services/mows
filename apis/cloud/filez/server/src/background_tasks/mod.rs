@@ -1,8 +1,8 @@
 use crate::{models::jobs::FilezJob, state::ServerState};
-use tracing::{error, info, trace, warn};
+use tracing::{error, info, warn};
 
-/// Retry interval in seconds for introspection URI discovery when it fails
-const INTROSPECTION_DISCOVERY_RETRY_SECONDS: u64 = 5;
+/// Retry interval in seconds for introspector reachability probe when it fails.
+const INTROSPECTOR_PROBE_RETRY_SECONDS: u64 = 5;
 
 const JOB_TIMEOUT_SECONDS: u64 = 60 * 60;
 
@@ -19,39 +19,27 @@ pub fn run_background_tasks(server_state: &ServerState) {
         }
     });
 
-    // Introspection URI discovery task
-    let introspection_state = server_state.introspection_state.clone();
+    // Introspector warm-up: probe until the IdP is reachable, then
+    // exit. The first `introspect()` call would discover the URL
+    // lazily anyway — this just makes the first authenticated request
+    // fast instead of paying the discovery cost in the hot path. If
+    // the IdP is unreachable at boot we keep retrying so the cluster
+    // can come up before Zitadel.
+    let introspector = server_state.introspector.clone();
     tokio::spawn(async move {
-        // Initial delay to allow server to start
         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-
         loop {
-            // Check if introspection_uri is already set
-            let is_already_set = {
-                let config = introspection_state.config.read().await;
-                config.introspection_uri.is_some()
-            };
-
-            // If already discovered, exit the task
-            if is_already_set {
-                trace!("Introspection URI already discovered, stopping discovery task");
-                break;
-            }
-
-            info!("Introspection URI not set, attempting discovery...");
-            match introspection_state.get_introspection_uri().await {
-                Ok(uri) => {
-                    info!("Successfully discovered introspection URI: {:?}", uri);
-                    // Exit the loop after successful discovery
+            match introspector.health_check().await {
+                Ok(()) => {
+                    info!("Introspector reachable; warm-up complete");
                     break;
                 }
                 Err(e) => {
                     warn!(
-                        "Failed to discover introspection URI: {}. Will retry in {} seconds.",
-                        e, INTROSPECTION_DISCOVERY_RETRY_SECONDS
+                        "Introspector unreachable: {e}. Retrying in {INTROSPECTOR_PROBE_RETRY_SECONDS}s."
                     );
                     tokio::time::sleep(std::time::Duration::from_secs(
-                        INTROSPECTION_DISCOVERY_RETRY_SECONDS,
+                        INTROSPECTOR_PROBE_RETRY_SECONDS,
                     ))
                     .await;
                 }

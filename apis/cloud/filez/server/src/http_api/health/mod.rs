@@ -53,7 +53,7 @@ pub async fn get_health(
     Query(params): Query<HealthQueryParams>,
     State(ServerState {
         database,
-        introspection_state,
+        introspector,
         controller_state,
         storage_location_providers,
         ..
@@ -66,7 +66,7 @@ pub async fn get_health(
         storage_locations_health_future,
     ) = (
         database.get_health(),
-        introspection_state.get_health(),
+        introspector.health_check(),
         get_controller_health_with_state(&controller_state),
         StorageLocation::get_all_storage_locations_health(&storage_location_providers),
     );

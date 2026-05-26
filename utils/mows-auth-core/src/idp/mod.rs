@@ -207,7 +207,7 @@ pub enum IntrospectionError {
 /// `mows_auth.apps` — that mapping happens at the caller so the trait
 /// stays connection-pool-agnostic.
 #[async_trait]
-pub trait TokenIntrospector: Send + Sync {
+pub trait TokenIntrospector: Send + Sync + std::fmt::Debug {
     /// The IdP this introspector is bound to. Matches
     /// `mows_auth.idp_providers.id`.
     fn idp_id(&self) -> Uuid;
@@ -218,6 +218,16 @@ pub trait TokenIntrospector: Send + Sync {
         &self,
         bearer_token: &str,
     ) -> Result<IntrospectionResult, IntrospectionError>;
+
+    /// Reachability probe. Used by service `/health` endpoints to
+    /// surface IdP outages distinctly from "the API itself is down".
+    /// Implementations should perform a lightweight call (typically
+    /// OIDC discovery) that fails iff the IdP is genuinely unreachable.
+    /// Default returns `Ok(())` for impls that don't need a custom
+    /// probe (e.g. test stubs).
+    async fn health_check(&self) -> Result<(), IntrospectionError> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -274,6 +284,7 @@ mod tests {
     /// Minimal mock used by other test modules in this crate (and by
     /// downstream services) that need an introspector without hitting
     /// a real IdP. Returns the same canned result for every token.
+    #[derive(Debug)]
     pub struct StubIntrospector {
         pub idp: Uuid,
         pub result: IntrospectionResult,

@@ -216,6 +216,19 @@ impl TokenIntrospector for ZitadelIntrospector {
         enforce_extra_depth(&result.extra)?;
         Ok(result)
     }
+
+    async fn health_check(&self) -> Result<(), IntrospectionError> {
+        let authority = {
+            let config = self.config.read().await;
+            config.authority.clone()
+        };
+        discover(&authority).await.map_err(|source| {
+            IntrospectionError::Unreachable(format!(
+                "zitadel discovery probe failed for {authority}: {source}"
+            ))
+        })?;
+        Ok(())
+    }
 }
 
 /// Translate a Zitadel introspection response into the canonical

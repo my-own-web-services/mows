@@ -2,24 +2,27 @@ use crate::{
     config::FilezServerConfig,
     database::Database,
     errors::FilezError,
-    http_api::authentication::{
-        state::IntrospectionState, state_builder::IntrospectionStateBuilder,
-    },
     kubernetes_controller::{ControllerContext, ControllerState, Diagnostics},
     models::storage_locations::{StorageLocation, StorageLocationId},
     storage::providers::StorageProvider,
 };
-use anyhow::Context;
 use kube::Client;
+use mows_auth_core::{TokenIntrospector, ZitadelIntrospector, ZITADEL_IDP_ID};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 
-use zitadel::oidc::introspection::cache::in_memory::InMemoryIntrospectionCache;
+use zitadel::oidc::introspection::{
+    cache::in_memory::InMemoryIntrospectionCache, AuthorityAuthentication,
+};
 
 #[derive(Clone, Debug)]
 pub struct ServerState {
     pub database: Database,
-    pub introspection_state: IntrospectionState,
+    /// IdP-agnostic introspection — v1 is `ZitadelIntrospector` under
+    /// the hood, but the middleware never names the concrete type.
+    /// Swapping to a different IdP later is a single-line change in
+    /// `ServerState::new`.
+    pub introspector: Arc<dyn TokenIntrospector>,
     pub controller_state: ControllerState,
     pub storage_location_providers: StorageLocationState,
 }
@@ -29,15 +32,15 @@ pub type StorageLocationState = Arc<RwLock<HashMap<StorageLocationId, StoragePro
 impl ServerState {
     #[tracing::instrument(level = "trace")]
     pub async fn new(config: &FilezServerConfig) -> Result<Self, FilezError> {
-        let introspection_state = IntrospectionStateBuilder::new(&config.oidc_issuer.clone())
-            .with_basic_auth(
-                &config.oidc_client_id.clone(),
-                &config.oidc_client_secret.clone(),
-            )
-            .with_introspection_cache(InMemoryIntrospectionCache::new())
-            .build()
-            .await
-            .context("Failed to create introspection state")?;
+        let introspector: Arc<dyn TokenIntrospector> = Arc::new(ZitadelIntrospector::new(
+            ZITADEL_IDP_ID,
+            config.oidc_issuer.clone(),
+            AuthorityAuthentication::Basic {
+                client_id: config.oidc_client_id.clone(),
+                client_secret: config.oidc_client_secret.clone(),
+            },
+            Some(Box::new(InMemoryIntrospectionCache::new())),
+        ));
 
         let database = Database::new(&config.db_url).await;
 
@@ -57,7 +60,7 @@ impl ServerState {
 
         Ok(Self {
             database,
-            introspection_state,
+            introspector,
             controller_state: ControllerState::default(),
             storage_location_providers,
         })

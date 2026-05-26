@@ -1,7 +1,7 @@
 use crate::{
     config::RUNTIME_INSTANCE_ID_HEADER_NAME,
     errors::FilezError,
-    http_api::authentication::user::{handle_oidc, IntrospectedUser},
+    http_api::authentication::user::{introspect_via_engine, IntrospectedUser},
     models::{
         apps::{AppType, MowsApp},
         jobs::FilezJob,
@@ -27,10 +27,10 @@ pub struct AuthenticationInformation {
     pub requesting_app_runtime_instance_id: Option<String>,
 }
 
-#[tracing::instrument(skip(database, session), level = "trace")]
+#[tracing::instrument(skip(database, session, introspector), level = "trace")]
 pub async fn authentication_middleware(
     State(ServerState {
-        introspection_state,
+        introspector,
         database,
         ..
     }): State<ServerState>,
@@ -42,7 +42,7 @@ pub async fn authentication_middleware(
 ) -> Result<Response, FilezError> {
     let external_user = match maybe_bearer {
         Some(TypedHeader(Authorization(bearer))) => {
-            Some(handle_oidc(bearer, &introspection_state).await?)
+            Some(introspect_via_engine(bearer.token(), introspector.as_ref()).await?)
         }
         None => None,
     };

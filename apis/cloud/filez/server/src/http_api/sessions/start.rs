@@ -39,10 +39,7 @@ use utoipa::ToSchema;
 #[axum::debug_handler]
 pub async fn start_session(
     Extension(authentication_information): Extension<AuthenticationInformation>,
-    State(ServerState {
-        introspection_state,
-        ..
-    }): State<ServerState>,
+    State(ServerState { .. }): State<ServerState>,
     maybe_bearer: Option<TypedHeader<Authorization<Bearer>>>,
     session: Session,
     Json(request_body): Json<StartSessionRequestBody>,
