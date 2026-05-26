@@ -22,7 +22,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::registry::ResourceAuthInfo;
-use crate::types::{AuthError, Effect, SubjectType};
+use crate::types::{AuthError, Effect, ResourceScope, SubjectType};
 
 /// Minimal projection of an `access_policies` row used by
 /// `check_access`. The full filez `AccessPolicy` struct has 13+
@@ -34,6 +34,10 @@ use crate::types::{AuthError, Effect, SubjectType};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PolicyView {
     pub id: Uuid,
+    /// Who created this policy. Needed by the engine when evaluating
+    /// `resource_scope = OwnedByOwner` policies (the policy applies
+    /// to resources whose `owner_id == policy.owner_id`).
+    pub owner_id: Uuid,
     pub effect: Effect,
     pub subject_type: SubjectType,
     /// The subject identifier. Semantics depend on `subject_type`:
@@ -41,6 +45,10 @@ pub struct PolicyView {
     ///   - `UserGroup` → `mows_auth.user_groups.id`
     ///   - `ServerMember` / `Public` → the nil UUID (sentinel)
     pub subject_id: Uuid,
+    /// How broadly this policy applies (POLICY_SEMANTICS.md §4).
+    /// Single = `resource_id` pins the target (historic default).
+    /// OwnedByOwner / AccessibleByOwner apply to entire resource sets.
+    pub resource_scope: ResourceScope,
 }
 
 /// Who is making the request — the input side of the engine.
@@ -101,9 +109,11 @@ mod tests {
     fn policy_view_round_trips_through_serde() {
         let p = PolicyView {
             id: uuid(1),
+            owner_id: uuid(3),
             effect: Effect::Allow,
             subject_type: SubjectType::UserGroup,
             subject_id: uuid(2),
+            resource_scope: ResourceScope::Single,
         };
         let json = serde_json::to_value(&p).unwrap();
         let back: PolicyView = serde_json::from_value(json).unwrap();
@@ -237,6 +247,24 @@ pub trait PolicyStore: Send + Sync {
         app: AppView,
         action: u32,
     ) -> Result<Vec<PolicyView>, AuthError>;
+
+    /// Policies with `resource_scope IN (OwnedByOwner, AccessibleByOwner)`
+    /// for the given subject/app/action (POLICY_SEMANTICS.md §4). These
+    /// have `resource_id IS NULL` and apply to *sets* of resources via
+    /// the policy's `owner_id`. The engine matches per-resource via
+    /// `policy.owner_id == resource.owner_id` for OwnedByOwner.
+    ///
+    /// Default returns empty so existing stores keep compiling; stores
+    /// that want scope support override this.
+    async fn fetch_owner_scoped_policies(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _subject: &Subject,
+        _app: AppView,
+        _action: u32,
+    ) -> Result<Vec<PolicyView>, AuthError> {
+        Ok(vec![])
+    }
 }
 
 #[cfg(test)]

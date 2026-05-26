@@ -192,6 +192,9 @@ diesel::table! {
         expires_at -> Nullable<Timestamp>,
         revoked -> Bool,
         policy_bundle_id -> Nullable<Uuid>,
+
+        // Phase-2 scope (migration 00000000000006).
+        resource_scope -> SmallInt,
     }
 }
 

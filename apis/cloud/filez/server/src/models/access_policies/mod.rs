@@ -241,6 +241,12 @@ pub struct AccessPolicy {
 
     pub effect: Effect,
 
+    /// How broadly the policy applies (POLICY_SEMANTICS.md §4).
+    /// Single = the historic behaviour (`resource_id` pins the target).
+    /// OwnedByOwner / AccessibleByOwner apply to whole resource sets
+    /// defined by the policy's owner.
+    pub resource_scope: mows_auth_core::types::ResourceScope,
+
     /// Soft auto-expiry (DATA_MODEL.md §2.4). NULL = never expires.
     /// PolicyStore queries filter on `(expires_at IS NULL OR expires_at > now())`.
     pub expires_at: Option<chrono::NaiveDateTime>,
@@ -263,9 +269,11 @@ impl From<&AccessPolicy> for mows_auth_core::PolicyView {
     fn from(p: &AccessPolicy) -> Self {
         Self {
             id: p.id.0.into(),
+            owner_id: p.owner_id.0.into(),
             effect: p.effect.into(),
             subject_type: p.subject_type.into(),
             subject_id: p.subject_id.0.into(),
+            resource_scope: p.resource_scope,
         }
     }
 }
@@ -331,9 +339,10 @@ impl AccessPolicy {
             resource_id,
             actions,
             effect,
-            // Phase-2 lifecycle: new policies start unrevoked, never-expiring,
-            // not part of a bundle. The Picker (CONSENT_FLOW.md) overrides
-            // these when committing a bundled consent.
+            // Phase-2 defaults: Single scope (historic behaviour),
+            // unrevoked, never-expiring, not part of a bundle. The
+            // Picker (CONSENT_FLOW.md) overrides these as needed.
+            resource_scope: mows_auth_core::types::ResourceScope::Single,
             expires_at: None,
             revoked: false,
             policy_bundle_id: None,

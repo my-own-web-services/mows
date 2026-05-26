@@ -333,6 +333,7 @@ mod boundary_helpers {
             resource_id: None,
             actions: vec![AccessPolicyAction::FilezFilesGet],
             effect: Effect::Deny,
+            resource_scope: mows_auth_core::types::ResourceScope::Single,
             expires_at: None,
             revoked: false,
             policy_bundle_id: None,

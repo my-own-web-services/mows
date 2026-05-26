@@ -241,6 +241,49 @@ impl<'a> PolicyStore for FilezPolicyStore<'a> {
                     .contains(vec![crate::models::apps::MowsAppId(app.id.into())]),
             )
             .filter(schema::access_policies::actions.contains(vec![action_enum]))
+            // Only Single-scope type-level policies. OwnedByOwner /
+            // AccessibleByOwner have resource_id IS NULL too but go
+            // through fetch_owner_scoped_policies — they need
+            // per-resource matching against the policy's owner.
+            .filter(schema::access_policies::resource_scope.eq(0_i16))
+            .filter(filter_subject_access_policies!(
+                self.maybe_user,
+                self.maybe_group_ids
+            ))
+            .filter(lifecycle_filter())
+            .select(AccessPolicy::as_select())
+            .load::<AccessPolicy>(&mut connection)
+            .await?;
+        Ok(policies.iter().map(PolicyView::from).collect())
+    }
+
+    async fn fetch_owner_scoped_policies(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        _subject: &Subject,
+        app: AppView,
+        action: u32,
+    ) -> Result<Vec<PolicyView>, AuthError> {
+        // resource_id IS NULL AND resource_scope != 0 (Single).
+        let resource_type = AccessPolicyResourceType::from_u32(auth_info.resource_type)
+            .expect("resource_type registered");
+        let action_enum =
+            action_from_u32(action).expect("AccessPolicyAction value out of range");
+        let pool = self
+            .database
+            .pool
+            .as_ref()
+            .ok_or_else(|| AuthError::Evaluation("database pool not initialized".to_string()))?;
+        let mut connection = pool.get().await?;
+        let policies = schema::access_policies::table
+            .filter(schema::access_policies::resource_id.is_null())
+            .filter(schema::access_policies::resource_type.eq(&resource_type))
+            .filter(
+                schema::access_policies::context_app_ids
+                    .contains(vec![crate::models::apps::MowsAppId(app.id.into())]),
+            )
+            .filter(schema::access_policies::actions.contains(vec![action_enum]))
+            .filter(schema::access_policies::resource_scope.ne(0_i16))
             .filter(filter_subject_access_policies!(
                 self.maybe_user,
                 self.maybe_group_ids

@@ -51,6 +51,11 @@ pub enum AuthReason {
         on_resource_group_id: Uuid,
     },
 
+    /// POLICY_SEMANTICS.md §4 — Allow via `resource_scope = OwnedByOwner`.
+    AllowedByOwnedByOwnerPolicy { policy_id: Uuid },
+    /// POLICY_SEMANTICS.md §4 — Allow via `AccessibleByOwner`.
+    AllowedByAccessibleByOwnerPolicy { policy_id: Uuid },
+
     DeniedByPubliclyAccessible { policy_id: Uuid },
     DeniedByServerAccessible { policy_id: Uuid },
     DeniedByDirectUserPolicy { policy_id: Uuid },
@@ -67,6 +72,11 @@ pub enum AuthReason {
         via_user_group_id: Uuid,
         on_resource_group_id: Uuid,
     },
+
+    /// POLICY_SEMANTICS.md §4 — Deny via `resource_scope = OwnedByOwner`.
+    DeniedByOwnedByOwnerPolicy { policy_id: Uuid },
+    /// POLICY_SEMANTICS.md §4 — Deny via `AccessibleByOwner`.
+    DeniedByAccessibleByOwnerPolicy { policy_id: Uuid },
 
     /// No active Allow policy covered the requested action and no
     /// Deny fired either — default-deny per
@@ -94,6 +104,8 @@ impl AuthReason {
                 | AuthReason::AllowedByDirectUserGroupPolicy { .. }
                 | AuthReason::AllowedByResourceGroupUserPolicy { .. }
                 | AuthReason::AllowedByResourceGroupUserGroupPolicy { .. }
+                | AuthReason::AllowedByOwnedByOwnerPolicy { .. }
+                | AuthReason::AllowedByAccessibleByOwnerPolicy { .. }
         )
     }
 
@@ -114,14 +126,16 @@ impl AuthReason {
             | AuthReason::AllowedByDirectUserGroupPolicy { policy_id, .. }
             | AuthReason::AllowedByResourceGroupUserPolicy { policy_id, .. }
             | AuthReason::AllowedByResourceGroupUserGroupPolicy { policy_id, .. }
+            | AuthReason::AllowedByOwnedByOwnerPolicy { policy_id }
+            | AuthReason::AllowedByAccessibleByOwnerPolicy { policy_id }
             | AuthReason::DeniedByPubliclyAccessible { policy_id }
             | AuthReason::DeniedByServerAccessible { policy_id }
             | AuthReason::DeniedByDirectUserPolicy { policy_id }
             | AuthReason::DeniedByDirectUserGroupPolicy { policy_id, .. }
             | AuthReason::DeniedByResourceGroupUserPolicy { policy_id, .. }
-            | AuthReason::DeniedByResourceGroupUserGroupPolicy { policy_id, .. } => {
-                Some(*policy_id)
-            }
+            | AuthReason::DeniedByResourceGroupUserGroupPolicy { policy_id, .. }
+            | AuthReason::DeniedByOwnedByOwnerPolicy { policy_id }
+            | AuthReason::DeniedByAccessibleByOwnerPolicy { policy_id } => Some(*policy_id),
         }
     }
 }

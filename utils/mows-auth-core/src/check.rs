@@ -24,7 +24,7 @@ use uuid::Uuid;
 use crate::evaluation::{AuthEvaluation, AuthReason, AuthResult};
 use crate::policies::{AppView, PolicyStore, PolicyView, Subject};
 use crate::registry::ResourceAuthInfo;
-use crate::types::{AuthError, Effect, SubjectType};
+use crate::types::{AuthError, Effect, ResourceScope, SubjectType};
 
 /// Evaluate access. See module docs for the precedence rules.
 ///
@@ -146,7 +146,13 @@ async fn check_specific_resources(
         }
     }
 
-    // 4. Per-resource evaluation.
+    // 4. Owner-scoped policies (OwnedByOwner / AccessibleByOwner). Flat
+    //    Vec; per-resource matching happens in evaluate_one.
+    let owner_scoped_policies = store
+        .fetch_owner_scoped_policies(auth_info, subject, app, action)
+        .await?;
+
+    // 5. Per-resource evaluation.
     let mut evaluations: Vec<AuthEvaluation> = Vec::with_capacity(resource_ids.len());
     for &resource_id in resource_ids {
         evaluations.push(evaluate_one(
@@ -156,6 +162,7 @@ async fn check_specific_resources(
             &direct_policies_map,
             &memberships,
             &rg_policies_map,
+            &owner_scoped_policies,
         ));
     }
 
@@ -221,6 +228,7 @@ fn evaluate_one(
     direct_policies_map: &std::collections::HashMap<Uuid, Vec<PolicyView>>,
     memberships: &std::collections::HashMap<Uuid, Vec<Uuid>>,
     rg_policies_map: &std::collections::HashMap<Uuid, Vec<PolicyView>>,
+    owner_scoped_policies: &[PolicyView],
 ) -> AuthEvaluation {
     let mut eval = AuthEvaluation {
         resource_id: Some(resource_id),
@@ -257,6 +265,27 @@ fn evaluate_one(
         }
     }
 
+    // Owner-scoped Deny (POLICY_SEMANTICS.md §4) — walked before
+    // owner-grant + direct Allow so a Deny via OwnedByOwner overrides
+    // the resource owner's own access (Deny precedence still wins).
+    if let Some(p) = owner_scoped_policy_match(
+        resource_id,
+        owners_map,
+        owner_scoped_policies,
+        Effect::Deny,
+    ) {
+        eval.reason = match p.resource_scope {
+            ResourceScope::OwnedByOwner => {
+                AuthReason::DeniedByOwnedByOwnerPolicy { policy_id: p.id }
+            }
+            ResourceScope::AccessibleByOwner => {
+                AuthReason::DeniedByAccessibleByOwnerPolicy { policy_id: p.id }
+            }
+            ResourceScope::Single => deny_reason_direct(p),
+        };
+        return eval;
+    }
+
     // Owner-grant.
     if let Some(user_id) = subject.user_id() {
         if owners_map.get(&resource_id) == Some(&user_id) {
@@ -288,8 +317,62 @@ fn evaluate_one(
         }
     }
 
+    // Owner-scoped Allow.
+    if let Some(p) = owner_scoped_policy_match(
+        resource_id,
+        owners_map,
+        owner_scoped_policies,
+        Effect::Allow,
+    ) {
+        eval.is_allowed = true;
+        eval.reason = match p.resource_scope {
+            ResourceScope::OwnedByOwner => {
+                AuthReason::AllowedByOwnedByOwnerPolicy { policy_id: p.id }
+            }
+            ResourceScope::AccessibleByOwner => {
+                AuthReason::AllowedByAccessibleByOwnerPolicy { policy_id: p.id }
+            }
+            ResourceScope::Single => allow_reason_direct(p),
+        };
+        return eval;
+    }
+
     // Fall through: NoMatchingAllowPolicy.
     eval
+}
+
+/// Find an owner-scoped policy that matches the given resource at the
+/// given effect. POLICY_SEMANTICS.md §4:
+///
+///   - `OwnedByOwner` matches iff `policy.owner_id == resource.owner_id`.
+///   - `AccessibleByOwner` matches recursively (depth-1 cycle break).
+///     Engine implementation deferred — for now these policies are
+///     skipped with a tracing warning so a service owner notices.
+///     Fail-closed under default-deny.
+fn owner_scoped_policy_match<'a>(
+    resource_id: Uuid,
+    owners_map: &std::collections::HashMap<Uuid, Uuid>,
+    candidates: &'a [PolicyView],
+    effect: Effect,
+) -> Option<&'a PolicyView> {
+    let resource_owner = owners_map.get(&resource_id).copied()?;
+    candidates.iter().find(|p| {
+        if p.effect != effect {
+            return false;
+        }
+        match p.resource_scope {
+            ResourceScope::OwnedByOwner => p.owner_id == resource_owner,
+            ResourceScope::AccessibleByOwner => {
+                tracing::warn!(
+                    policy_id = ?p.id,
+                    "AccessibleByOwner policy skipped — recursive evaluation not yet implemented \
+                     (POLICY_SEMANTICS.md §4 cycle break)"
+                );
+                false
+            }
+            ResourceScope::Single => false,
+        }
+    })
 }
 
 fn deny_reason_direct(p: &PolicyView) -> AuthReason {
@@ -365,6 +448,7 @@ mod tests {
         memberships: HashMap<Uuid, Vec<Uuid>>,
         rg_policies: Vec<PolicyView>,
         type_level: Vec<PolicyView>,
+        owner_scoped: Vec<PolicyView>,
     }
 
     #[async_trait]
@@ -411,6 +495,15 @@ mod tests {
             _: u32,
         ) -> Result<Vec<PolicyView>, AuthError> {
             Ok(self.type_level.clone())
+        }
+        async fn fetch_owner_scoped_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+        ) -> Result<Vec<PolicyView>, AuthError> {
+            Ok(self.owner_scoped.clone())
         }
     }
 
@@ -495,7 +588,7 @@ mod tests {
         let policy_id = Uuid::new_v4();
         let mut store = CannedStore::default();
         store.owners.insert(resource, user_id);
-        store.direct.push(PolicyView {
+        store.direct.push(PolicyView { owner_id: Uuid::nil(), resource_scope: crate::types::ResourceScope::Single,
             id: policy_id,
             effect: Effect::Deny,
             subject_type: SubjectType::Public,
@@ -545,13 +638,13 @@ mod tests {
     async fn type_level_deny_takes_precedence() {
         let policy_id = Uuid::new_v4();
         let mut store = CannedStore::default();
-        store.type_level.push(PolicyView {
+        store.type_level.push(PolicyView { owner_id: Uuid::nil(), resource_scope: crate::types::ResourceScope::Single,
             id: policy_id,
             effect: Effect::Deny,
             subject_type: SubjectType::Public,
             subject_id: Uuid::nil(),
         });
-        store.type_level.push(PolicyView {
+        store.type_level.push(PolicyView { owner_id: Uuid::nil(), resource_scope: crate::types::ResourceScope::Single,
             id: Uuid::new_v4(),
             effect: Effect::Allow,
             subject_type: SubjectType::Public,
@@ -565,6 +658,79 @@ mod tests {
         assert_eq!(
             result.evaluations[0].reason,
             AuthReason::DeniedByPubliclyAccessible { policy_id }
+        );
+    }
+
+    #[tokio::test]
+    async fn owned_by_owner_allow_grants_access_when_policy_owner_owns_the_resource() {
+        let alice = Uuid::new_v4();
+        let resource = Uuid::new_v4();
+        let policy_id = Uuid::new_v4();
+        let mut store = CannedStore::default();
+        store.owners.insert(resource, alice);
+        store.owner_scoped.push(PolicyView {
+            id: policy_id,
+            owner_id: alice,
+            effect: Effect::Allow,
+            subject_type: SubjectType::Public,
+            subject_id: Uuid::nil(),
+            resource_scope: ResourceScope::OwnedByOwner,
+        });
+        let result = check_access(&store, &auth_info(), &Subject::Anonymous, untrusted_app(), 0, Some(&[resource]))
+            .await
+            .unwrap();
+        assert!(result.access_granted);
+        assert_eq!(
+            result.evaluations[0].reason,
+            AuthReason::AllowedByOwnedByOwnerPolicy { policy_id }
+        );
+    }
+
+    #[tokio::test]
+    async fn owned_by_owner_does_not_match_resources_owned_by_someone_else() {
+        let alice = Uuid::new_v4();
+        let bob = Uuid::new_v4();
+        let resource = Uuid::new_v4();
+        let mut store = CannedStore::default();
+        store.owners.insert(resource, bob);
+        store.owner_scoped.push(PolicyView {
+            id: Uuid::new_v4(),
+            owner_id: alice,
+            effect: Effect::Allow,
+            subject_type: SubjectType::Public,
+            subject_id: Uuid::nil(),
+            resource_scope: ResourceScope::OwnedByOwner,
+        });
+        let result = check_access(&store, &auth_info(), &Subject::Anonymous, untrusted_app(), 0, Some(&[resource]))
+            .await
+            .unwrap();
+        assert!(!result.access_granted);
+        assert_eq!(result.evaluations[0].reason, AuthReason::NoMatchingAllowPolicy);
+    }
+
+    #[tokio::test]
+    async fn owned_by_owner_deny_overrides_owner_grant() {
+        let alice = Uuid::new_v4();
+        let resource = Uuid::new_v4();
+        let policy_id = Uuid::new_v4();
+        let mut store = CannedStore::default();
+        store.owners.insert(resource, alice);
+        store.owner_scoped.push(PolicyView {
+            id: policy_id,
+            owner_id: alice,
+            effect: Effect::Deny,
+            subject_type: SubjectType::User,
+            subject_id: alice,
+            resource_scope: ResourceScope::OwnedByOwner,
+        });
+        let subject = Subject::user(alice, vec![]);
+        let result = check_access(&store, &auth_info(), &subject, untrusted_app(), 0, Some(&[resource]))
+            .await
+            .unwrap();
+        assert!(!result.access_granted);
+        assert_eq!(
+            result.evaluations[0].reason,
+            AuthReason::DeniedByOwnedByOwnerPolicy { policy_id }
         );
     }
 
