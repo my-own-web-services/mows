@@ -1,6 +1,9 @@
 //! Token introspection abstraction — the IdP-pluggable layer described
 //! in AUTHENTICATION.md §2.
 //!
+//! v1 ships the Zitadel implementation in [`zitadel`]. Future IdPs
+//! land as sibling modules under `idp/`.
+//!
 //! Middleware in each MOWS service holds an
 //! `Arc<dyn TokenIntrospector>` (or a registry of them, once a second
 //! IdP is wired up), calls [`TokenIntrospector::introspect`] on every
@@ -12,6 +15,9 @@
 //! v2 IdP (Keycloak, Authentik, …) only needs a second impl — no
 //! schema change, no engine change. See AUTHENTICATION.md §2 for the
 //! schema-cost rationale.
+
+pub mod zitadel;
+pub use crate::idp::zitadel::ZitadelIntrospector;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};

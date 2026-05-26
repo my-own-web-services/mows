@@ -49,6 +49,6 @@ pub mod list;
 // `pub` and re-exported when the real implementations land.
 pub use crate::idp::{
     IntrospectedUser, IntrospectionError, IntrospectionResult, TokenIntrospector,
-    ZITADEL_IDP_ID,
+    ZitadelIntrospector, ZITADEL_IDP_ID,
 };
 pub use crate::types::AuthError;

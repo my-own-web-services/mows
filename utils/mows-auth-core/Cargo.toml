@@ -48,6 +48,18 @@ diesel-async = { version = "0.5.2", features = [
 # hand-rolling FromSql/ToSql every time.
 diesel-enum = { workspace = true }
 
+# zitadel — the v1 IdP. The trait abstraction (TokenIntrospector)
+# lets a v2 IdP land without touching this dep. openidconnect is a
+# transitive dep (the introspection response type implements
+# `openidconnect::TokenIntrospectionResponse`).
+zitadel = { workspace = true, features = [
+    "default",
+    "oidc",
+    "introspection_cache",
+] }
+openidconnect = { workspace = true, features = ["default"] }
+tokio = { workspace = true, features = ["sync"] }
+
 # async-trait for the TokenIntrospector trait — needed because rustc
 # does not yet support async fns in traits with auto-trait bounds on
 # the returned future (we need `Send` for the Axum executor).

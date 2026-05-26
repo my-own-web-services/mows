@@ -4905,6 +4905,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "diesel-enum",
+ "openidconnect",
  "serde",
  "serde_json",
  "thiserror 2.0.12",
@@ -4912,6 +4913,7 @@ dependencies = [
  "tracing",
  "utoipa",
  "uuid",
+ "zitadel",
 ]
 
 [[package]]
