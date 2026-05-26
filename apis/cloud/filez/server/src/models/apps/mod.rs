@@ -23,6 +23,7 @@ use std::{collections::HashMap, str::FromStr};
 use tracing::trace;
 use url::Url;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 impl_typed_uuid!(MowsAppId);
 
@@ -63,6 +64,11 @@ pub struct MowsApp {
     pub modified_time: chrono::NaiveDateTime,
 
     pub app_type: AppType,
+    /// The identity provider that issued this app's OIDC client_id. v1
+    /// has a single provider (Zitadel — `mows_auth_core::ZITADEL_IDP_ID`).
+    /// Forward-compat for adding a second IdP without a table rewrite —
+    /// see AUTHENTICATION.md §2 "Pluggable IdP".
+    pub idp_id: Uuid,
 }
 
 #[derive(
@@ -115,6 +121,7 @@ impl MowsApp {
             created_time: get_current_timestamp(),
             modified_time: get_current_timestamp(),
             app_type,
+            idp_id: mows_auth_core::ZITADEL_IDP_ID,
         }
     }
 
@@ -130,6 +137,7 @@ impl MowsApp {
             created_time: get_current_timestamp(),
             modified_time: get_current_timestamp(),
             app_type: AppType::Frontend,
+            idp_id: mows_auth_core::ZITADEL_IDP_ID,
         }
     }
 
@@ -144,6 +152,7 @@ impl MowsApp {
             created_time: get_current_timestamp(),
             modified_time: get_current_timestamp(),
             app_type: AppType::Frontend,
+            idp_id: mows_auth_core::ZITADEL_IDP_ID,
         }
     }
 
@@ -158,6 +167,7 @@ impl MowsApp {
             created_time: get_current_timestamp(),
             modified_time: get_current_timestamp(),
             app_type: AppType::Frontend,
+            idp_id: mows_auth_core::ZITADEL_IDP_ID,
         }
     }
 
@@ -200,6 +210,7 @@ impl MowsApp {
                     created_time: get_current_timestamp(),
                     modified_time: get_current_timestamp(),
                     app_type: AppType::Frontend,
+                    idp_id: mows_auth_core::ZITADEL_IDP_ID,
                 };
 
                 diesel::insert_into(crate::schema::apps::table)

@@ -10,8 +10,10 @@ diesel::table! {
         profile_picture -> Nullable<Uuid>,
         created_by -> Nullable<Uuid>,
         user_type -> SmallInt,
+        idp_id -> Uuid,
     }
 }
+diesel::joinable!(users -> idp_providers (idp_id));
 
 diesel::table! {
     user_relations (user_id, friend_id) {
@@ -273,8 +275,10 @@ diesel::table! {
         created_time -> Timestamp,
         modified_time -> Timestamp,
         app_type -> SmallInt,
+        idp_id -> Uuid,
     }
 }
+diesel::joinable!(apps -> idp_providers (idp_id));
 
 diesel::table! {
     key_access {

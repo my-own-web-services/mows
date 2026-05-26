@@ -5623,7 +5623,8 @@
           "created_time",
           "modified_time",
           "deleted",
-          "user_type"
+          "user_type",
+          "idp_id"
         ],
         "properties": {
           "created_by": {
@@ -5656,6 +5657,11 @@
           },
           "id": {
             "$ref": "#/components/schemas/FilezUserId"
+          },
+          "idp_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The identity provider that issued `external_user_id`. v1 has a\nsingle provider (Zitadel — `mows_auth_core::ZITADEL_IDP_ID`).\nForward-compat for adding a second IdP without a table rewrite —\nsee AUTHENTICATION.md §2 \"Pluggable IdP\"."
           },
           "modified_time": {
             "type": "string",
@@ -7205,7 +7211,8 @@
           "trusted",
           "created_time",
           "modified_time",
-          "app_type"
+          "app_type",
+          "idp_id"
         ],
         "properties": {
           "app_type": {
@@ -7224,6 +7231,11 @@
           "id": {
             "$ref": "#/components/schemas/MowsAppId",
             "description": "Unique identifier for the app in the database, this is used to identify the app in all database operations"
+          },
+          "idp_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The identity provider that issued this app's OIDC client_id. v1\nhas a single provider (Zitadel — `mows_auth_core::ZITADEL_IDP_ID`).\nForward-compat for adding a second IdP without a table rewrite —\nsee AUTHENTICATION.md §2 \"Pluggable IdP\"."
           },
           "modified_time": {
             "type": "string",

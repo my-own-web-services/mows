@@ -1136,6 +1136,14 @@ export interface FilezUser {
   /** The external user ID, e.g. from ZITADEL or other identity providers */
   external_user_id?: string | null;
   id: FilezUserId;
+  /**
+   * The identity provider that issued `external_user_id`. v1 has a
+   * single provider (Zitadel — `mows_auth_core::ZITADEL_IDP_ID`).
+   * Forward-compat for adding a second IdP without a table rewrite —
+   * see AUTHENTICATION.md §2 "Pluggable IdP".
+   * @format uuid
+   */
+  idp_id: string;
   /** @format date-time */
   modified_time: string;
   /** Used to create a user before the external user ID is known, when the user then logs in with a verified email address the email is switched to the external user ID */
@@ -1637,6 +1645,14 @@ export interface MowsApp {
   description?: string | null;
   /** Unique identifier for the app in the database, this is used to identify the app in all database operations */
   id: MowsAppId;
+  /**
+   * The identity provider that issued this app's OIDC client_id. v1
+   * has a single provider (Zitadel — `mows_auth_core::ZITADEL_IDP_ID`).
+   * Forward-compat for adding a second IdP without a table rewrite —
+   * see AUTHENTICATION.md §2 "Pluggable IdP".
+   * @format uuid
+   */
+  idp_id: string;
   /** @format date-time */
   modified_time: string;
   /**
@@ -2169,7 +2185,7 @@ export class HttpClient<SecurityDataType = unknown> {
 
 /**
  * @title filez-server
- * @version 0.0.1
+ * @version 0.1.0
  * @license
  *
  * API for MOWS Filez

@@ -939,6 +939,11 @@ pub struct FilezUser {
     /// The external user ID, e.g. from ZITADEL or other identity providers
     pub external_user_id: Option<String>,
     pub id: FilezUserId,
+    /// The identity provider that issued `external_user_id`. v1 has a
+    /// single provider (Zitadel — `mows_auth_core::ZITADEL_IDP_ID`).
+    /// Forward-compat for adding a second IdP without a table rewrite —
+    /// see AUTHENTICATION.md §2 "Pluggable IdP".
+    pub idp_id: Uuid,
     pub modified_time: NaiveDateTime,
     /// Used to create a user before the external user ID is known, when the user then logs in with a verified email address the email is switched to the external user ID
     pub pre_identifier_email: Option<String>,
@@ -1525,6 +1530,11 @@ pub struct MowsApp {
     pub created_time: NaiveDateTime,
     pub description: Option<String>,
     pub id: MowsAppId,
+    /// The identity provider that issued this app's OIDC client_id. v1
+    /// has a single provider (Zitadel — `mows_auth_core::ZITADEL_IDP_ID`).
+    /// Forward-compat for adding a second IdP without a table rewrite —
+    /// see AUTHENTICATION.md §2 "Pluggable IdP".
+    pub idp_id: Uuid,
     pub modified_time: NaiveDateTime,
     /// Name and Namespace of the app in Kubernetes
     /// Renaming an app in Kubernetes will not change the name in the database but create a new app with the new name

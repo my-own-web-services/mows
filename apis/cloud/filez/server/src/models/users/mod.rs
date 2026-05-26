@@ -77,6 +77,11 @@ pub struct FilezUser {
     pub profile_picture: Option<FilezFileId>,
     pub created_by: Option<FilezUserId>,
     pub user_type: FilezUserType,
+    /// The identity provider that issued `external_user_id`. v1 has a
+    /// single provider (Zitadel — `mows_auth_core::ZITADEL_IDP_ID`).
+    /// Forward-compat for adding a second IdP without a table rewrite —
+    /// see AUTHENTICATION.md §2 "Pluggable IdP".
+    pub idp_id: Uuid,
 }
 
 #[derive(Serialize, Deserialize, AsChangeset, ToSchema, Clone, Debug)]
@@ -115,6 +120,7 @@ impl FilezUser {
             profile_picture: None,
             created_by,
             user_type,
+            idp_id: mows_auth_core::ZITADEL_IDP_ID,
         }
     }
 
