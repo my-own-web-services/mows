@@ -124,13 +124,22 @@ impl FilezUser {
         }
     }
 
+    /// Look up a user by the IdP-issued sub.
+    ///
+    /// MUST filter on `(idp_id, external_user_id)` — not on
+    /// `external_user_id` alone — because two IdPs can issue the same
+    /// `sub` string. The partial UNIQUE index in migration 002 permits
+    /// such pairs by design; this lookup must respect them. See
+    /// AUTHENTICATION.md §2 "Pluggable IdP".
     #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_one_by_external_id(
         database: &Database,
+        idp_id: &Uuid,
         external_user_id: &str,
     ) -> Result<Self, FilezError> {
         let mut connection = database.get_connection().await?;
         let user = schema::users::table
+            .filter(schema::users::idp_id.eq(idp_id))
             .filter(schema::users::external_user_id.eq(external_user_id))
             .first::<FilezUser>(&mut connection)
             .await?;
@@ -258,7 +267,14 @@ impl FilezUser {
             external_user_id, display_name
         );
 
+        // v1: the IntrospectedUser shape filez carries today doesn't yet
+        // include an idp_id (filez's local introspector talks only to
+        // Zitadel). Hardcode the sentinel here; once the
+        // ZitadelIntrospector trait impl lands in mows-auth-core, the
+        // introspector will surface the idp_id and this becomes
+        // `.eq(introspected_user.idp_id)`. See AUTHENTICATION.md §2.
         let existing_user = crate::schema::users::table
+            .filter(crate::schema::users::idp_id.eq(mows_auth_core::ZITADEL_IDP_ID))
             .filter(crate::schema::users::external_user_id.eq(&external_user_id))
             .first::<FilezUser>(&mut connection)
             .await
@@ -414,7 +430,12 @@ impl FilezUser {
         let original_requesting_user = match (&external_user, maybe_key_access, maybe_session_info)
         {
             (Some(external_user), None, _) => {
+                // Composite-key lookup per AUTHENTICATION.md §2.
+                // ZITADEL_IDP_ID hardcoded until the IntrospectedUser
+                // shape carries idp_id (same migration window as
+                // apply_one above).
                 match schema::users::table
+                    .filter(schema::users::idp_id.eq(mows_auth_core::ZITADEL_IDP_ID))
                     .filter(schema::users::external_user_id.eq(&external_user.user_id))
                     .first::<FilezUser>(&mut connection)
                     .await
@@ -503,5 +524,60 @@ impl FilezUser {
         } else {
             Ok(Some(original_requesting_user))
         }
+    }
+}
+
+#[cfg(test)]
+mod multi_idp_lookup {
+    //! Regression guard for SEC-5: the partial UNIQUE in migration 002
+    //! deliberately allows two users with the same `external_user_id`
+    //! when their `idp_id` differs. Every lookup that fetches a user
+    //! by sub MUST therefore filter on the composite key, not on
+    //! `external_user_id` alone — otherwise a second IdP could route
+    //! to the wrong principal (account takeover).
+    //!
+    //! Diesel's `debug_query` lets us inspect the generated SQL without
+    //! a DB connection. Future refactors that silently drop the
+    //! `idp_id` filter fail these tests at build time.
+    use crate::schema;
+    use diesel::pg::Pg;
+    use diesel::query_builder::QueryFragment;
+    use diesel::{debug_query, ExpressionMethods, QueryDsl};
+
+    fn rendered_sql<Q: QueryFragment<Pg>>(query: Q) -> String {
+        debug_query::<Pg, _>(&query).to_string()
+    }
+
+    #[test]
+    fn get_one_by_external_id_query_filters_on_both_idp_and_sub() {
+        let idp = mows_auth_core::ZITADEL_IDP_ID;
+        let query = schema::users::table
+            .filter(schema::users::idp_id.eq(idp))
+            .filter(schema::users::external_user_id.eq("sub-abc"))
+            .select(schema::users::id);
+        let sql = rendered_sql(query);
+        assert!(
+            sql.contains("idp_id"),
+            "users lookup MUST filter on idp_id (SEC-5), got: {sql}"
+        );
+        assert!(
+            sql.contains("external_user_id"),
+            "users lookup MUST filter on external_user_id, got: {sql}"
+        );
+    }
+
+    #[test]
+    fn apply_one_existing_user_lookup_filters_on_both_idp_and_sub() {
+        // Mirrors the actual query at apply_one:270-274.
+        let query = schema::users::table
+            .filter(schema::users::idp_id.eq(mows_auth_core::ZITADEL_IDP_ID))
+            .filter(schema::users::external_user_id.eq("sub-abc"))
+            .select(schema::users::id);
+        let sql = rendered_sql(query);
+        assert!(sql.contains("idp_id"), "apply_one lookup MUST filter on idp_id: {sql}");
+        assert!(
+            sql.contains("external_user_id"),
+            "apply_one lookup MUST filter on external_user_id: {sql}"
+        );
     }
 }

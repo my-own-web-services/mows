@@ -764,3 +764,68 @@ mod engine_enum_parity {
         }
     }
 }
+
+#[cfg(test)]
+mod context_app_ids_typo_guard {
+    //! Regression guard for QA-2: an earlier version of the anonymous
+    //! resource-group SQL referenced the singular `context_app_id`
+    //! (the actual column is `context_app_ids`, plural). That query
+    //! errored at runtime — silently returning zero resource-group
+    //! results for every anonymous request, hiding every Public share
+    //! via a file-group from anonymous listings.
+    //!
+    //! The fix lives in the two raw-SQL `format!` blocks above; the
+    //! test below greps the file source as a string to catch any
+    //! future regression.
+
+    const MOD_RS_SOURCE: &str = include_str!("mod.rs");
+
+    #[test]
+    fn no_singular_context_app_id_in_sql_strings() {
+        // Compose the forbidden substrings at runtime so the test source
+        // doesn't itself contain a literal match (this test file *is*
+        // mod.rs — `include_str!` of `self`). Stripping `//` line
+        // comments removes the docstring that describes the historical
+        // bug; runtime composition handles the assertion expressions.
+        let code_only: String = MOD_RS_SOURCE
+            .lines()
+            .map(|line| {
+                let trimmed = line.trim_start();
+                if trimmed.starts_with("//") {
+                    ""
+                } else {
+                    line
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let singular = format!("context_{}", "app_id");
+        let forbidden_patterns: [String; 4] = [
+            format!("ap.{singular} "),
+            format!("ap.{singular}="),
+            format!("ap.{singular} @>"),
+            format!("access_policies.{singular} "),
+        ];
+        for forbidden in &forbidden_patterns {
+            assert!(
+                !code_only.contains(forbidden),
+                "regression: a singular `{forbidden}` reappeared in mod.rs — \
+                 the column is `context_app_ids` (plural). See \
+                 .plans/authorization/issue.md QA-2."
+            );
+        }
+    }
+
+    #[test]
+    fn anonymous_resource_group_query_uses_plural_column() {
+        // Belt-and-braces: the specific SQL substring we know must
+        // stay correct.
+        assert!(
+            MOD_RS_SOURCE.contains("ap.context_app_ids @> $2"),
+            "the anonymous resource-group SQL must filter via \
+             `ap.context_app_ids @> $2` — see mod.rs:569 region. If you \
+             refactored the query, update this test to match."
+        );
+    }
+}

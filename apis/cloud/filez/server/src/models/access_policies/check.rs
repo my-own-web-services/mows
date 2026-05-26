@@ -278,41 +278,12 @@ pub async fn check_resources_access_control(
                 let mut denied = false;
 
                 // Check direct DENY policies.
-                // NOTE: Public/ServerMember subjects MUST map to the
-                // `DeniedBy*` reason variants here. An earlier version
-                // mapped them to `AllowedByPubliclyAccessible` /
-                // `AllowedByServerAccessible`, which silently reported
-                // the wrong outcome to the audit log on the hottest
-                // denial path (Public resource with overriding Deny).
-                // Mirror change in the resource-group Deny block below.
                 if let Some(policies) = direct_policies_map.get(resource_id) {
                     for policy in policies {
                         if policy.effect == AccessPolicyEffect::Deny {
                             denied = true;
                             current_evaluation.is_allowed = false;
-                            current_evaluation.reason = match policy.subject_type {
-                                AccessPolicySubjectType::User => {
-                                    AuthReason::DeniedByDirectUserPolicy {
-                                        policy_id: policy.id,
-                                    }
-                                }
-                                AccessPolicySubjectType::UserGroup => {
-                                    AuthReason::DeniedByDirectUserGroupPolicy {
-                                        policy_id: policy.id,
-                                        via_user_group_id: UserGroupId(policy.subject_id.into()),
-                                    }
-                                }
-                                AccessPolicySubjectType::Public => {
-                                    AuthReason::DeniedByPubliclyAccessible {
-                                        policy_id: policy.id,
-                                    }
-                                }
-                                AccessPolicySubjectType::ServerMember => {
-                                    AuthReason::DeniedByServerAccessible {
-                                        policy_id: policy.id,
-                                    }
-                                }
-                            };
+                            current_evaluation.reason = deny_reason_direct(policy);
                             break;
                         }
                     }
@@ -333,33 +304,10 @@ pub async fn check_resources_access_control(
                                 if policy.effect == AccessPolicyEffect::Deny {
                                     denied = true;
                                     current_evaluation.is_allowed = false;
-                                    current_evaluation.reason = match policy.subject_type {
-                                        AccessPolicySubjectType::User => {
-                                            AuthReason::DeniedByResourceGroupUserPolicy {
-                                                policy_id: policy.id,
-                                                on_resource_group_id: resource_group_id.clone(),
-                                            }
-                                        }
-                                        AccessPolicySubjectType::UserGroup => {
-                                            AuthReason::DeniedByResourceGroupUserGroupPolicy {
-                                                policy_id: policy.id,
-                                                via_user_group_id: UserGroupId(
-                                                    policy.subject_id.into(),
-                                                ),
-                                                on_resource_group_id: resource_group_id.clone(),
-                                            }
-                                        }
-                                        AccessPolicySubjectType::Public => {
-                                            AuthReason::DeniedByPubliclyAccessible {
-                                                policy_id: policy.id,
-                                            }
-                                        }
-                                        AccessPolicySubjectType::ServerMember => {
-                                            AuthReason::DeniedByServerAccessible {
-                                                policy_id: policy.id,
-                                            }
-                                        }
-                                    };
+                                    current_evaluation.reason = deny_reason_via_resource_group(
+                                        policy,
+                                        *resource_group_id,
+                                    );
                                     break;
                                 }
                             }
@@ -814,6 +762,185 @@ impl AuthResult {
             Ok(())
         } else {
             Err(FilezError::AuthEvaluationAccessDenied(self.clone()))
+        }
+    }
+}
+
+/// Map a directly-applied DENY policy to its `AuthReason`. Extracted
+/// from the inline match in `check_resources_access_control` so the
+/// reason mapping is unit-testable (see `tests::deny_reason_*`).
+///
+/// Public / ServerMember subjects MUST map to `DeniedBy*`, not
+/// `AllowedBy*`. The pre-fix code at this site silently collapsed
+/// them, corrupting the audit log on the hottest denial path
+/// (Public resource with overriding Deny).
+fn deny_reason_direct(policy: &AccessPolicy) -> AuthReason {
+    match policy.subject_type {
+        AccessPolicySubjectType::User => AuthReason::DeniedByDirectUserPolicy {
+            policy_id: policy.id,
+        },
+        AccessPolicySubjectType::UserGroup => AuthReason::DeniedByDirectUserGroupPolicy {
+            policy_id: policy.id,
+            via_user_group_id: UserGroupId(policy.subject_id.into()),
+        },
+        AccessPolicySubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
+            policy_id: policy.id,
+        },
+        AccessPolicySubjectType::ServerMember => AuthReason::DeniedByServerAccessible {
+            policy_id: policy.id,
+        },
+    }
+}
+
+/// Map a resource-group-attached DENY policy to its `AuthReason`.
+/// Same bug class as `deny_reason_direct` — Public / ServerMember
+/// subjects MUST map to `DeniedBy*`.
+fn deny_reason_via_resource_group(policy: &AccessPolicy, resource_group_id: Uuid) -> AuthReason {
+    match policy.subject_type {
+        AccessPolicySubjectType::User => AuthReason::DeniedByResourceGroupUserPolicy {
+            policy_id: policy.id,
+            on_resource_group_id: resource_group_id,
+        },
+        AccessPolicySubjectType::UserGroup => AuthReason::DeniedByResourceGroupUserGroupPolicy {
+            policy_id: policy.id,
+            via_user_group_id: UserGroupId(policy.subject_id.into()),
+            on_resource_group_id: resource_group_id,
+        },
+        AccessPolicySubjectType::Public => AuthReason::DeniedByPubliclyAccessible {
+            policy_id: policy.id,
+        },
+        AccessPolicySubjectType::ServerMember => AuthReason::DeniedByServerAccessible {
+            policy_id: policy.id,
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Regression guards for the Deny-reason mapping bug. The pre-fix
+    //! code mapped Public / ServerMember Deny outcomes to
+    //! `AllowedByPubliclyAccessible` / `AllowedByServerAccessible` —
+    //! audit log said "allowed" when the request was actually denied.
+    //! Every variant is asserted explicitly so a future refactor that
+    //! flips a single arm fails one of these tests.
+    use super::*;
+    use crate::models::access_policies::{
+        AccessPolicyAction, AccessPolicyId, AccessPolicyResourceType, AccessPolicySubjectId,
+    };
+    use crate::models::apps::MowsAppId;
+    use chrono::NaiveDateTime;
+    use uuid::Uuid;
+
+    fn policy(
+        subject_type: AccessPolicySubjectType,
+        effect: AccessPolicyEffect,
+    ) -> AccessPolicy {
+        AccessPolicy {
+            id: AccessPolicyId::nil(),
+            name: "test".to_string(),
+            owner_id: FilezUserId::nil(),
+            created_time: NaiveDateTime::default(),
+            modified_time: NaiveDateTime::default(),
+            subject_type,
+            subject_id: AccessPolicySubjectId::nil(),
+            context_app_ids: vec![MowsAppId::nil()],
+            resource_type: AccessPolicyResourceType::File,
+            resource_id: None,
+            actions: vec![AccessPolicyAction::FilezFilesGet],
+            effect,
+        }
+    }
+
+    #[test]
+    fn deny_reason_direct_public_does_not_become_allowed() {
+        let reason = deny_reason_direct(&policy(
+            AccessPolicySubjectType::Public,
+            AccessPolicyEffect::Deny,
+        ));
+        // The pre-fix bug produced `AllowedByPubliclyAccessible` here.
+        assert!(
+            matches!(reason, AuthReason::DeniedByPubliclyAccessible { .. }),
+            "Public+Deny direct must map to DeniedByPubliclyAccessible, got {reason:?}"
+        );
+    }
+
+    #[test]
+    fn deny_reason_direct_server_member_does_not_become_allowed() {
+        let reason = deny_reason_direct(&policy(
+            AccessPolicySubjectType::ServerMember,
+            AccessPolicyEffect::Deny,
+        ));
+        // The pre-fix bug produced `AllowedByServerAccessible` here.
+        assert!(
+            matches!(reason, AuthReason::DeniedByServerAccessible { .. }),
+            "ServerMember+Deny direct must map to DeniedByServerAccessible, got {reason:?}"
+        );
+    }
+
+    #[test]
+    fn deny_reason_direct_user_and_user_group_unchanged() {
+        // Sanity: the User and UserGroup cases were never buggy; assert
+        // they still produce the right Denied variants.
+        let user = deny_reason_direct(&policy(
+            AccessPolicySubjectType::User,
+            AccessPolicyEffect::Deny,
+        ));
+        assert!(matches!(user, AuthReason::DeniedByDirectUserPolicy { .. }));
+        let group = deny_reason_direct(&policy(
+            AccessPolicySubjectType::UserGroup,
+            AccessPolicyEffect::Deny,
+        ));
+        assert!(matches!(group, AuthReason::DeniedByDirectUserGroupPolicy { .. }));
+    }
+
+    #[test]
+    fn deny_reason_via_resource_group_public_does_not_become_allowed() {
+        let resource_group_id = Uuid::new_v4();
+        let reason = deny_reason_via_resource_group(
+            &policy(AccessPolicySubjectType::Public, AccessPolicyEffect::Deny),
+            resource_group_id,
+        );
+        assert!(
+            matches!(reason, AuthReason::DeniedByPubliclyAccessible { .. }),
+            "Public+Deny via-resource-group must map to DeniedByPubliclyAccessible, got {reason:?}"
+        );
+    }
+
+    #[test]
+    fn deny_reason_via_resource_group_server_member_does_not_become_allowed() {
+        let resource_group_id = Uuid::new_v4();
+        let reason = deny_reason_via_resource_group(
+            &policy(AccessPolicySubjectType::ServerMember, AccessPolicyEffect::Deny),
+            resource_group_id,
+        );
+        assert!(
+            matches!(reason, AuthReason::DeniedByServerAccessible { .. }),
+            "ServerMember+Deny via-resource-group must map to DeniedByServerAccessible, got {reason:?}"
+        );
+    }
+
+    #[test]
+    fn deny_reason_via_resource_group_carries_resource_group_id_for_user_variants() {
+        let rg = Uuid::new_v4();
+        let user = deny_reason_via_resource_group(
+            &policy(AccessPolicySubjectType::User, AccessPolicyEffect::Deny),
+            rg,
+        );
+        match user {
+            AuthReason::DeniedByResourceGroupUserPolicy {
+                on_resource_group_id, ..
+            } => assert_eq!(on_resource_group_id, rg),
+            other => panic!("User+Deny via-rg wrong variant: {other:?}"),
+        }
+        let group = deny_reason_via_resource_group(
+            &policy(AccessPolicySubjectType::UserGroup, AccessPolicyEffect::Deny),
+            rg,
+        );
+        match group {
+            AuthReason::DeniedByResourceGroupUserGroupPolicy {
+                on_resource_group_id, ..
+            } => assert_eq!(on_resource_group_id, rg),
+            other => panic!("UserGroup+Deny via-rg wrong variant: {other:?}"),
         }
     }
 }

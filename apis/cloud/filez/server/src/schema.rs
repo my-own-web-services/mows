@@ -316,7 +316,7 @@ diesel::table! {
     idp_providers {
         id -> Uuid,
         name -> Text,
-        discovery_url -> Text,
+        discovery_url -> Nullable<Text>,
         created_time -> Timestamp,
     }
 }

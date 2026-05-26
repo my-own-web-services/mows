@@ -43,9 +43,17 @@ pub async fn delete_user(
     let user_id = match request_body.delete_user_method {
         DeleteUserMethod::ById(id) => id,
         DeleteUserMethod::ByExternalId(external_id) => {
-            FilezUser::get_one_by_external_id(&database, &external_id)
-                .await?
-                .id
+            // v1 has a single IdP (Zitadel). When a second IdP lands, this
+            // call site must accept an `idp_id` parameter from the request
+            // body — see AUTHENTICATION.md §2. Until then the sentinel is
+            // the only valid value.
+            FilezUser::get_one_by_external_id(
+                &database,
+                &mows_auth_core::ZITADEL_IDP_ID,
+                &external_id,
+            )
+            .await?
+            .id
         }
         DeleteUserMethod::ByEmail(email) => {
             FilezUser::get_one_by_email(&database, &email).await?.id
