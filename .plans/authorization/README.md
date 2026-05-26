@@ -29,6 +29,12 @@ it to a system-wide primitive, and addresses the open questions raised in
 6. **[USER_GROUPS.md](./USER_GROUPS.md)** — invitation, public, and
    restricted-listed groups. Membership lifecycle, join requests, and
    delegated administration.
+6a. **[AUTHENTICATION.md](./AUTHENTICATION.md)** — the AuthN side, kept
+    strictly separate from authorization. Zitadel as the only token
+    issuer; one Zitadel principal per API and per app (in addition to
+    humans); how each request shape produces the
+    `(requesting_user, requesting_app)` pair the engine consumes;
+    the realtime API as a worked second-API example.
 7. **[APP_AUTHORIZATION.md](./APP_AUTHORIZATION.md)** — apps as first-class
    subjects, account-less app access, trusted apps, scope grants by the user,
    and the "share an object with an app even when I'm offline" pattern.

@@ -155,7 +155,13 @@ CREATE TABLE access_policies (
     effect            SMALLINT NOT NULL,   -- 0 Deny, 1 Allow
 
     expires_at        TIMESTAMP NULL,      -- NEW: time-bounded shares
-    revoked           BOOL NOT NULL DEFAULT FALSE  -- NEW: soft delete for audit
+    revoked           BOOL NOT NULL DEFAULT FALSE,  -- NEW: soft delete for audit
+
+    policy_bundle_id  UUID NULL            -- NEW: groups policies created in one
+                                           -- Picker consent that spans multiple
+                                           -- services (USAGE_LIMITS.md
+                                           -- "Cross-API bundles"). Opaque to the
+                                           -- engine — never read on the hot path.
 );
 
 CREATE INDEX ap_lookup_idx
@@ -171,6 +177,12 @@ CREATE INDEX ap_context_apps_gin
 
 CREATE INDEX ap_actions_gin
     ON access_policies USING GIN (actions);
+
+-- For the share-management UI's bundle grouping + bulk revoke; never
+-- consulted on the check/list hot path. Partial index keeps it small.
+CREATE INDEX ap_policy_bundle_id_idx
+    ON access_policies (policy_bundle_id)
+    WHERE policy_bundle_id IS NOT NULL;
 ```
 
 The two new B-tree indexes are tuned for the two access patterns we have:

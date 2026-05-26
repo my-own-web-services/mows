@@ -171,28 +171,24 @@ operational events and the auth decisions in one place.
 
 ## Q10 — Cross-service single sign-on of authorization
 
-A user opens the manager UI; the manager queries the user's accessible
-file_groups from filez; the manager calls filez with the user's token.
-Each service runs its own auth-core instance against its own Postgres.
+**Resolved by AUTHENTICATION.md.** The decision recorded there:
 
-This works today via the same Zitadel-issued OIDC token. The only
-cross-service knowledge needed is the *user identity* (already in the
-token) and the *app identity* (already in the request's `Origin` header
-or service-account token).
+- One shared `mows_auth.apps` table in the `mows_auth` schema, owned
+  by the auth-service repo (DEPLOYMENT.md §"What lives in
+  `mows_auth`"). All services read from it; only the auth service
+  (and Zitadel-sync tooling) writes to it.
+- The join key is `external_client_id` (the Zitadel OIDC
+  `client_id`). Zitadel is the source of truth for app existence;
+  `mows_auth.apps` is a thin projection.
+- The manager UI is seeded as a Zitadel client at cluster install
+  by mpm; its `mows_auth.apps` row is inserted in the same install
+  step with `trusted = true`.
+- A user's Zitadel access token works against every API in the
+  cluster project (AUTHENTICATION.md §6.3) — no per-service login.
 
-Open: how does the manager UI register itself as a trusted app *in
-filez's database*? Two paths:
-
-- **Manual registration at install time** (current filez): each service
-  has an `apps` table; the install process or first-run seeds the
-  trusted first-party app id.
-- **Cluster-wide app registry** (future): a single `apps` table shared
-  by all services. Cleaner; requires the shared-table model to allow
-  multiple services to read/write the same table.
-
-**Recommendation:** keep per-service `apps` tables for v1, but use a
-deterministic id derivation (e.g. `hash(service_name || cluster_id)`)
-so the same app gets the same id across services. Operationally simpler.
+The earlier sketch of per-service `apps` tables with deterministic
+id derivation is superseded; the shared-schema approach in
+DEPLOYMENT.md makes a single table both possible and preferable.
 
 ---
 

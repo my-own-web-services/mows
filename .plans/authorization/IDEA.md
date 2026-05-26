@@ -12,8 +12,9 @@ matter, and the same way for every MOWS service that ever exists.
 | **UserGroup**   | A named set of users. Owned by one user. Membership joins users to it.  |
 | **Resource**    | Any addressable thing a service exposes — file, file_group, DNS zone, … |
 | **ResourceGroup** | A named set of resources (e.g. file_group). Owned by one user.        |
-| **App**         | A frontend (identified by browser Origin) or backend (identified by    |
-|                 | Kubernetes service-account token) that acts on a user's behalf.        |
+| **App**         | A frontend SPA, a backend daemon, or another MOWS API that acts on a   |
+|                 | user's behalf. Identified by its Zitadel OIDC `client_id` (see         |
+|                 | AUTHENTICATION.md). Each app has exactly one Zitadel principal.        |
 
 ## Subjects of a share
 
@@ -180,6 +181,15 @@ Anti-abuse ceilings (e.g. *no single user may offer more than
 config**, enforced inside filez's `on_policy_created`. A future
 service with its own units sets its own ceilings the same way.
 
+**Cross-API bundles.** A single Picker consent can span multiple
+services — e.g. a Gaussian-splatting viewer that needs filez
+storage + AI compute + realtime bandwidth gets all three on one
+screen, committed in one transaction, revocable as one row.
+Achieved with a single nullable `policy_bundle_id` column on
+`access_policies` — opaque to the engine, used only by the
+share-management UI and bulk revoke. Each service's quota stays in
+its own side table; no cluster-wide "credit" unit.
+
 Full design: `USAGE_LIMITS.md`.
 
 ## Deployment — separate, but blazingly fast
@@ -251,9 +261,11 @@ Resolved by:
 Full design: `ARCHITECTURE.md` (rationale), `DATA_MODEL.md` (schema),
 `POLICY_SEMANTICS.md` (evaluation algorithm), `LISTING.md`
 (scale-aware listing), `USER_GROUPS.md` (lifecycle),
-`APP_AUTHORIZATION.md` (apps as context), `CONSENT_FLOW.md` (Picker +
-SDK for third-party SPAs), `BACKEND_APPS.md` (on-behalf-of for
-non-browser apps), `USAGE_LIMITS.md` (per-service per-policy
+`AUTHENTICATION.md` (Zitadel as the only token issuer; one Zitadel
+principal per API and per app; request shapes; realtime API worked
+example), `APP_AUTHORIZATION.md` (apps as context), `CONSENT_FLOW.md`
+(Picker + SDK for third-party SPAs), `BACKEND_APPS.md` (on-behalf-of
+for non-browser apps), `USAGE_LIMITS.md` (per-service per-policy
 quotas), `DEPLOYMENT.md` (shared-Postgres separate-schema topology
 that gives separation without the network hop), `OPEN_QUESTIONS.md`
 (decisions still to make), `ROADMAP.md` (phased implementation),

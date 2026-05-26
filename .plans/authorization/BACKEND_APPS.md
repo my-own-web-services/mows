@@ -56,17 +56,25 @@ specific user.
 
 ### How the backend uses the authorisation
 
-When the backend wants to act, it sends two headers:
+When the backend wants to act, it sends one of two header
+combinations:
 
-| Header                          | Value                                       | Purpose                                |
-| ------------------------------- | ------------------------------------------- | -------------------------------------- |
-| `X-Mows-Service-Account-Token`  | the pod's Kubernetes SA token               | proves *which backend* this is         |
-| `X-Mows-On-Behalf-Of`           | the UUID of the user being acted for        | declares *which user* it's acting for  |
+| Auth path                             | Headers                                                                                  | Purpose                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------- |
+| **Zitadel Client Credentials** (preferred — AUTHENTICATION.md §3.3) | `Authorization: Bearer <client-credentials-token>` + `X-Mows-On-Behalf-Of: <user-uuid>`  | client_id in the introspected token identifies the backend; on-behalf-of declares the user |
+| **Kubernetes SA token** (legacy, in-cluster only) | `X-Mows-Service-Account-Token: <sa-token>` + `X-Mows-On-Behalf-Of: <user-uuid>`          | TokenReview identifies the SA → backend; on-behalf-of declares the user |
 
-The auth middleware:
-1. Verifies the SA token via `TokenReview` (existing filez logic).
-   → resolves to `MowsApp` row, `app_type = Backend`. Reject if
-   the token is for a frontend app or invalid.
+Both paths resolve to the same `MowsApp` row and run the same
+EXISTS-check below. The auth middleware:
+
+1. Identifies the backend.
+   - **Zitadel path:** Introspects the bearer token; joins
+     `mows_auth.apps` on `external_client_id` to resolve the
+     `MowsApp`. Rejects if `app_type` is not `Backend` or `Api`.
+   - **SA path:** Verifies the SA token via `TokenReview` (existing
+     filez logic); maps `system:serviceaccount:<ns>:<sa>` to a
+     `MowsApp` row, `app_type = Backend`. Rejects if the SA does
+     not map to a registered backend.
 2. Reads the on-behalf-of header.
 3. **Validates the impersonation** by checking the policy table.
    `effect = 1` (Allow) is essential — without it, a user who tries to

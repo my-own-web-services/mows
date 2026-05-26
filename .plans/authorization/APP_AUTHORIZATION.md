@@ -12,22 +12,33 @@ the engine.
 
 ## 1. App identity
 
-Two cases, both already implemented in filez:
+Authoritative reference: **AUTHENTICATION.md §3 — every app has a
+Zitadel principal**. Summarized:
 
-1. **Frontend apps** — identified by the browser `Origin` header. The
-   `apps.origins TEXT[]` column holds the allowed origins; the lookup is
-   a GIN-index match. `app_type = Frontend`.
-2. **Backend apps** — identified by a Kubernetes service-account token in
-   the `X-Mows-Service-Account-Token` header. The token is verified via a
-   Kubernetes `TokenReview` API call (filez does this in
-   `verify_kubernetes_service_account_token`). The app name is derived
-   from `system:serviceaccount:<namespace>:<sa-name>`. `app_type = Backend`.
+1. **Frontend apps** — Zitadel Public OIDC clients (Code + PKCE). The
+   access token carries the SPA's `client_id`; the middleware joins
+   on `apps.external_client_id` to resolve the `MowsApp` row. The
+   browser `Origin` header is cross-checked against
+   `apps.origins TEXT[]` as defense in depth. `app_type = Frontend`.
+2. **Backend apps** — Zitadel Confidential OIDC clients (Client
+   Credentials). Same join on `external_client_id`. The legacy
+   Kubernetes service-account-token path is still accepted during the
+   migration window (AUTHENTICATION.md §8) and resolves to the same
+   `MowsApp`. `app_type = Backend`.
+3. **APIs calling APIs** — also Zitadel Confidential OIDC clients
+   (`app_type = Api`), introduced so cross-API calls (e.g. filez
+   posting an event to the realtime API) use the same identification
+   mechanism as everything else (see AUTHENTICATION.md §3.4 and §6.4).
 
-If no origin and no SA token are present, the request is anonymous and
-uses a sentinel "no-origin" app with `id = nil_uuid`. This is the path for
-fully public access to resources marked `subject_type = Public`.
+If no token is presented, the request is anonymous and uses a
+sentinel "no-origin" app with `id = nil_uuid`. This is the only
+`MowsApp` row without a Zitadel mapping; it's the path for fully
+public access to resources marked `subject_type = Public`.
 
-The shared crate moves this code as-is and exposes `MowsApp::resolve(...)`.
+The shared crate moves the resolution code as-is and exposes
+`MowsApp::resolve(...)` — the new Zitadel-`client_id` lookup is one
+Diesel query swap with the old origin lookup as the fallback during
+migration.
 
 ## 2. `trusted` flag
 
