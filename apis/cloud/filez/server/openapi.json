@@ -2534,6 +2534,82 @@
         }
       }
     },
+    "/api/user_groups/my/invitations": {
+      "get": {
+        "description": "Caller-facing: list invitations addressed to the calling user.",
+        "operationId": "list_my_invitations",
+        "responses": {
+          "200": {
+            "description": "Caller's pending invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ListInvitationsResponseBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Anonymous callers have no invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user_groups/my/join_requests": {
+      "get": {
+        "description": "Caller-facing: list join requests the calling user has sent.",
+        "operationId": "list_my_join_requests",
+        "responses": {
+          "200": {
+            "description": "Caller's pending requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ListJoinRequestsResponseBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Anonymous callers have no pending requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/user_groups/update": {
       "put": {
         "description": "Update an existing user group in the database",
@@ -2611,6 +2687,53 @@
       }
     },
     "/api/user_groups/{user_group_id}/invitations": {
+      "get": {
+        "description": "Owner-facing: list pending invitations for a group.",
+        "operationId": "list_group_invitations",
+        "parameters": [
+          {
+            "name": "user_group_id",
+            "in": "path",
+            "description": "Target user group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserGroupId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pending invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ListInvitationsResponseBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller cannot manage this group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "description": "Invite a user to a group. Idempotent — re-invites are a no-op.",
         "operationId": "invite_to_user_group",
@@ -2758,6 +2881,53 @@
       }
     },
     "/api/user_groups/{user_group_id}/join_requests": {
+      "get": {
+        "description": "Owner-facing: list pending join requests for a group.",
+        "operationId": "list_group_join_requests",
+        "parameters": [
+          {
+            "name": "user_group_id",
+            "in": "path",
+            "description": "Target user group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserGroupId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pending requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ListJoinRequestsResponseBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller cannot manage this group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "description": "Request to join a user group; direct-joins OpenJoin groups.",
         "operationId": "request_to_join_user_group",
@@ -4234,6 +4404,35 @@
           }
         }
       },
+      "ApiResponse_ListInvitationsResponseBody": {
+        "type": "object",
+        "required": [
+          "message",
+          "status"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "invitations"
+            ],
+            "properties": {
+              "invitations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UserUserGroupInvitation"
+                }
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
       "ApiResponse_ListJobsResponseBody": {
         "type": "object",
         "required": [
@@ -4258,6 +4457,35 @@
                 "type": "integer",
                 "format": "int64",
                 "minimum": 0
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
+      "ApiResponse_ListJoinRequestsResponseBody": {
+        "type": "object",
+        "required": [
+          "message",
+          "status"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "join_requests"
+            ],
+            "properties": {
+              "join_requests": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UserUserGroupJoinRequest"
+                }
               }
             }
           },
@@ -7273,6 +7501,20 @@
           }
         }
       },
+      "ListInvitationsResponseBody": {
+        "type": "object",
+        "required": [
+          "invitations"
+        ],
+        "properties": {
+          "invitations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserUserGroupInvitation"
+            }
+          }
+        }
+      },
       "ListJobsRequestBody": {
         "type": "object",
         "properties": {
@@ -7343,6 +7585,20 @@
           "Status",
           "AppId"
         ]
+      },
+      "ListJoinRequestsResponseBody": {
+        "type": "object",
+        "required": [
+          "join_requests"
+        ],
+        "properties": {
+          "join_requests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserUserGroupJoinRequest"
+            }
+          }
+        }
       },
       "ListStorageLocationsRequestBody": {
         "type": "object",
@@ -8805,6 +9061,62 @@
         "properties": {
           "user": {
             "$ref": "#/components/schemas/FilezUser"
+          }
+        }
+      },
+      "UserUserGroupInvitation": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "user_group_id",
+          "invited_time",
+          "invited_by"
+        ],
+        "properties": {
+          "invited_by": {
+            "$ref": "#/components/schemas/FilezUserId"
+          },
+          "invited_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_group_id": {
+            "$ref": "#/components/schemas/UserGroupId"
+          },
+          "user_id": {
+            "$ref": "#/components/schemas/FilezUserId"
+          }
+        }
+      },
+      "UserUserGroupJoinRequest": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "user_group_id",
+          "requested_time"
+        ],
+        "properties": {
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user_group_id": {
+            "$ref": "#/components/schemas/UserGroupId"
+          },
+          "user_id": {
+            "$ref": "#/components/schemas/FilezUserId"
           }
         }
       }

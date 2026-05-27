@@ -366,10 +366,26 @@ pub struct ApiResponseListFilesResponseBody {
     pub status: ApiResponseStatus,
 }
 
+// ApiResponse_ListInvitationsResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiResponseListInvitationsResponseBody {
+    pub data: ListInvitationsResponseBody,
+    pub message: String,
+    pub status: ApiResponseStatus,
+}
+
 // ApiResponse_ListJobsResponseBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponseListJobsResponseBody {
     pub data: ListJobsResponseBody,
+    pub message: String,
+    pub status: ApiResponseStatus,
+}
+
+// ApiResponse_ListJoinRequestsResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiResponseListJoinRequestsResponseBody {
+    pub data: ListJoinRequestsResponseBody,
     pub message: String,
     pub status: ApiResponseStatus,
 }
@@ -1394,6 +1410,12 @@ pub struct ListFilesStoredSortOrder {
     pub stored_sort_order_id: Uuid,
 }
 
+// ListInvitationsResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListInvitationsResponseBody {
+    pub invitations: Vec<UserUserGroupInvitation>,
+}
+
 // ListJobsRequestBody
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListJobsRequestBody {
@@ -1418,6 +1440,12 @@ pub enum ListJobsSortBy {
     ModifiedTime,
     Status,
     AppId,
+}
+
+// ListJoinRequestsResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListJoinRequestsResponseBody {
+    pub join_requests: Vec<UserUserGroupJoinRequest>,
 }
 
 // ListStorageLocationsRequestBody
@@ -1988,4 +2016,23 @@ pub type UserGroupId = Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserMeta {
     pub user: FilezUser,
+}
+
+// UserUserGroupInvitation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserUserGroupInvitation {
+    pub invited_by: FilezUserId,
+    pub invited_time: NaiveDateTime,
+    pub message: Option<String>,
+    pub user_group_id: UserGroupId,
+    pub user_id: FilezUserId,
+}
+
+// UserUserGroupJoinRequest
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserUserGroupJoinRequest {
+    pub message: Option<String>,
+    pub requested_time: NaiveDateTime,
+    pub user_group_id: UserGroupId,
+    pub user_id: FilezUserId,
 }

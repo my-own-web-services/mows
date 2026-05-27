@@ -591,6 +591,14 @@ export interface ApiResponseListFilesResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseListInvitationsResponseBody {
+  data?: {
+    invitations: UserUserGroupInvitation[];
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseListJobsResponseBody {
   data?: {
     jobs: FilezJob[];
@@ -599,6 +607,14 @@ export interface ApiResponseListJobsResponseBody {
      * @min 0
      */
     total_count: number;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseListJoinRequestsResponseBody {
+  data?: {
+    join_requests: UserUserGroupJoinRequest[];
   };
   message: string;
   status: ApiResponseStatus;
@@ -1629,6 +1645,10 @@ export interface ListFilesStoredSortOrder {
   stored_sort_order_id: string;
 }
 
+export interface ListInvitationsResponseBody {
+  invitations: UserUserGroupInvitation[];
+}
+
 export interface ListJobsRequestBody {
   /**
    * @format int64
@@ -1651,6 +1671,10 @@ export interface ListJobsResponseBody {
    * @min 0
    */
   total_count: number;
+}
+
+export interface ListJoinRequestsResponseBody {
+  join_requests: UserUserGroupJoinRequest[];
 }
 
 export interface ListStorageLocationsRequestBody {
@@ -2137,6 +2161,23 @@ export type UserGroupId = string;
 
 export interface UserMeta {
   user: FilezUser;
+}
+
+export interface UserUserGroupInvitation {
+  invited_by: FilezUserId;
+  /** @format date-time */
+  invited_time: string;
+  message?: string | null;
+  user_group_id: UserGroupId;
+  user_id: FilezUserId;
+}
+
+export interface UserUserGroupJoinRequest {
+  message?: string | null;
+  /** @format date-time */
+  requested_time: string;
+  user_group_id: UserGroupId;
+  user_id: FilezUserId;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -3510,6 +3551,40 @@ export class Api<
       }),
 
     /**
+     * @description Caller-facing: list invitations addressed to the calling user.
+     *
+     * @name ListMyInvitations
+     * @request GET:/api/user_groups/my/invitations
+     */
+    listMyInvitations: (params: RequestParams = {}) =>
+      this.request<
+        ApiResponseListInvitationsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/user_groups/my/invitations`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Caller-facing: list join requests the calling user has sent.
+     *
+     * @name ListMyJoinRequests
+     * @request GET:/api/user_groups/my/join_requests
+     */
+    listMyJoinRequests: (params: RequestParams = {}) =>
+      this.request<
+        ApiResponseListJoinRequestsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/user_groups/my/join_requests`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Update an existing user group in the database
      *
      * @name UpdateUserGroup
@@ -3546,6 +3621,26 @@ export class Api<
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Owner-facing: list pending invitations for a group.
+     *
+     * @name ListGroupInvitations
+     * @request GET:/api/user_groups/{user_group_id}/invitations
+     */
+    listGroupInvitations: (
+      userGroupId: UserGroupId,
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        ApiResponseListInvitationsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/user_groups/${userGroupId}/invitations`,
+        method: "GET",
         format: "json",
         ...params,
       }),
@@ -3594,6 +3689,26 @@ export class Api<
       this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/user_groups/${userGroupId}/invitations/decline`,
         method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Owner-facing: list pending join requests for a group.
+     *
+     * @name ListGroupJoinRequests
+     * @request GET:/api/user_groups/{user_group_id}/join_requests
+     */
+    listGroupJoinRequests: (
+      userGroupId: UserGroupId,
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        ApiResponseListJoinRequestsResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/user_groups/${userGroupId}/join_requests`,
+        method: "GET",
         format: "json",
         ...params,
       }),

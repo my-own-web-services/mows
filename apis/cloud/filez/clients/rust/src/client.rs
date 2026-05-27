@@ -2352,6 +2352,82 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Caller-facing: list invitations addressed to the calling user.
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_my_invitations(
+        &self,
+    ) -> Result<ApiResponseListInvitationsResponseBody, ApiClientError> {
+        let full_url = format!("{}/api/user_groups/my/invitations", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .get(full_url)
+            .headers(self.add_auth_headers()?)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
+    /// Caller-facing: list join requests the calling user has sent.
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_my_join_requests(
+        &self,
+    ) -> Result<ApiResponseListJoinRequestsResponseBody, ApiClientError> {
+        let full_url = format!("{}/api/user_groups/my/join_requests", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .get(full_url)
+            .headers(self.add_auth_headers()?)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
     /// Update an existing user group in the database
     #[tracing::instrument(level = "trace")]
     pub async fn update_user_group(
@@ -2406,6 +2482,48 @@ impl ApiClient {
             .post(full_url)
             .headers(self.add_auth_headers()?)
             .json(&request_body)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
+    /// Owner-facing: list pending invitations for a group.
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_group_invitations(
+        &self,
+        user_group_id: UserGroupId,
+    ) -> Result<ApiResponseListInvitationsResponseBody, ApiClientError> {
+        let full_url = format!(
+            "{}/api/user_groups/{user_group_id}/invitations",
+            self.base_url
+        );
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .get(full_url)
+            .headers(self.add_auth_headers()?)
             .send()
             .await?;
 
@@ -2578,6 +2696,48 @@ impl ApiClient {
             .post(full_url)
             .headers(self.add_auth_headers()?)
             .json(&request_body)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
+    /// Owner-facing: list pending join requests for a group.
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_group_join_requests(
+        &self,
+        user_group_id: UserGroupId,
+    ) -> Result<ApiResponseListJoinRequestsResponseBody, ApiClientError> {
+        let full_url = format!(
+            "{}/api/user_groups/{user_group_id}/join_requests",
+            self.base_url
+        );
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .get(full_url)
+            .headers(self.add_auth_headers()?)
             .send()
             .await?;
 
