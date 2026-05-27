@@ -92,6 +92,11 @@ pub enum AccessPolicyAction {
     FilezJobsPickup,
     FilezAppsGet,
     FilezAppsList,
+    UserGroupsRequestJoin,
+    UserGroupsApprove,
+    UserGroupsInvite,
+    UserGroupsRespondToInvite,
+    UserGroupsLeave,
 }
 
 // AccessPolicyId
@@ -1157,6 +1162,14 @@ pub struct GetUsersResponseBody {
     pub users_meta: HashMap<Uuid, UserMeta>,
 }
 
+// GroupJoinPolicy
+/// User-group join policy axis (USER_GROUPS.md §1).
+pub type GroupJoinPolicy = i64;
+
+// GroupVisibility
+/// User-group visibility axis (USER_GROUPS.md §1).
+pub type GroupVisibility = i64;
+
 // HealthResBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthResBody {
@@ -1633,6 +1646,15 @@ pub struct RefreshSessionResponseBody {
     pub inactivity_timeout_seconds: i64,
 }
 
+// RequestJoinUserGroupRequestBody
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RequestJoinUserGroupRequestBody {
+    /// Optional message shown to the group owner alongside the
+    /// pending request. Capped at 1024 chars (USER_GROUPS.md §6
+    /// edge cases — avoid abuse of the dashboard).
+    pub message: Option<String>,
+}
+
 // ResourceScope
 /// How broadly a policy applies — see DATA_MODEL.md §2.4 and
 /// POLICY_SEMANTICS.md §4.
@@ -1921,10 +1943,13 @@ pub struct UpdateUserGroupResponseBody {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserGroup {
     pub created_time: NaiveDateTime,
+    pub description: Option<String>,
     pub id: UserGroupId,
+    pub join_policy: GroupJoinPolicy,
     pub modified_time: NaiveDateTime,
     pub name: String,
     pub owner_id: FilezUserId,
+    pub visibility: GroupVisibility,
 }
 
 // UserGroupId

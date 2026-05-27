@@ -2610,6 +2610,171 @@
         }
       }
     },
+    "/api/user_groups/{user_group_id}/join_requests": {
+      "post": {
+        "description": "Request to join a user group; direct-joins OpenJoin groups.",
+        "operationId": "request_to_join_user_group",
+        "parameters": [
+          {
+            "name": "user_group_id",
+            "in": "path",
+            "description": "Target user group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserGroupId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestJoinUserGroupRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request created or membership granted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Group is InviteOnly or caller lacks permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user_groups/{user_group_id}/join_requests/{user_id}/approve": {
+      "post": {
+        "description": "Approve a pending join request; inserts the membership row in one transaction.",
+        "operationId": "approve_join_request",
+        "parameters": [
+          {
+            "name": "user_group_id",
+            "in": "path",
+            "description": "Target user group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserGroupId"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User whose request is being approved",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FilezUserId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request approved; user is now a member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No pending request for that (user, group)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user_groups/{user_group_id}/join_requests/{user_id}/reject": {
+      "post": {
+        "description": "Reject a pending join request (idempotent).",
+        "operationId": "reject_join_request",
+        "parameters": [
+          {
+            "name": "user_group_id",
+            "in": "path",
+            "description": "Target user group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserGroupId"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "User whose request is being rejected",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FilezUserId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request rejected (or was already gone)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/users/create": {
       "post": {
         "description": "Create a new user in the database",
@@ -2941,7 +3106,12 @@
           "FilezJobsList",
           "FilezJobsPickup",
           "FilezAppsGet",
-          "FilezAppsList"
+          "FilezAppsList",
+          "UserGroupsRequestJoin",
+          "UserGroupsApprove",
+          "UserGroupsInvite",
+          "UserGroupsRespondToInvite",
+          "UserGroupsLeave"
         ]
       },
       "AccessPolicyId": {
@@ -6272,6 +6442,24 @@
           }
         }
       },
+      "GroupJoinPolicy": {
+        "type": "integer",
+        "description": "User-group join policy axis (USER_GROUPS.md §1).",
+        "enum": [
+          0,
+          1,
+          2
+        ]
+      },
+      "GroupVisibility": {
+        "type": "integer",
+        "description": "User-group visibility axis (USER_GROUPS.md §1).",
+        "enum": [
+          0,
+          1,
+          2
+        ]
+      },
       "HealthResBody": {
         "type": "object",
         "required": [
@@ -7526,6 +7714,19 @@
           }
         }
       },
+      "RequestJoinUserGroupRequestBody": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional message shown to the group owner alongside the\npending request. Capped at 1024 chars (USER_GROUPS.md §6\nedge cases — avoid abuse of the dashboard).",
+            "maxLength": 1024
+          }
+        }
+      },
       "ResourceScope": {
         "type": "integer",
         "description": "How broadly a policy applies — see DATA_MODEL.md §2.4 and\nPOLICY_SEMANTICS.md §4.",
@@ -8285,15 +8486,27 @@
           "owner_id",
           "name",
           "created_time",
-          "modified_time"
+          "modified_time",
+          "visibility",
+          "join_policy"
         ],
         "properties": {
           "created_time": {
             "type": "string",
             "format": "date-time"
           },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "id": {
             "$ref": "#/components/schemas/UserGroupId"
+          },
+          "join_policy": {
+            "$ref": "#/components/schemas/GroupJoinPolicy",
+            "description": "USER_GROUPS.md §1 — who can become a member.\nWire-stable per mows_auth_core::types::GroupJoinPolicy."
           },
           "modified_time": {
             "type": "string",
@@ -8304,6 +8517,10 @@
           },
           "owner_id": {
             "$ref": "#/components/schemas/FilezUserId"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/GroupVisibility",
+            "description": "USER_GROUPS.md §1 — who can see this group exists.\nWire-stable per mows_auth_core::types::GroupVisibility."
           }
         }
       },

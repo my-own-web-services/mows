@@ -83,6 +83,15 @@ pub fn build_api_router() -> OpenApiRouter<ServerState> {
         .routes(routes!(
             http_api::user_groups::update_members::update_user_group_members
         ))
+        .routes(routes!(
+            http_api::user_groups::join_requests::request::request_to_join_user_group
+        ))
+        .routes(routes!(
+            http_api::user_groups::join_requests::approve::approve_join_request
+        ))
+        .routes(routes!(
+            http_api::user_groups::join_requests::reject::reject_join_request
+        ))
         // ACCESS POLICIES
         .routes(routes!(
             http_api::access_policies::check_resource_access::check_resource_access

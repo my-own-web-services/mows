@@ -549,6 +549,11 @@ fn action_from_u32(t: u32) -> Option<AccessPolicyAction> {
         520 => FilezJobsPickup,
         530 => FilezAppsGet,
         540 => FilezAppsList,
+        550 => UserGroupsRequestJoin,
+        560 => UserGroupsApprove,
+        570 => UserGroupsInvite,
+        580 => UserGroupsRespondToInvite,
+        590 => UserGroupsLeave,
         _ => return None,
     })
 }

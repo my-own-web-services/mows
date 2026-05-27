@@ -129,6 +129,20 @@ export enum JobPersistenceType {
   Persistent = "Persistent",
 }
 
+/** User-group visibility axis (USER_GROUPS.md §1). */
+export enum GroupVisibility {
+  Value0 = 0,
+  Value1 = 1,
+  Value2 = 2,
+}
+
+/** User-group join policy axis (USER_GROUPS.md §1). */
+export enum GroupJoinPolicy {
+  Value0 = 0,
+  Value1 = 1,
+  Value2 = 2,
+}
+
 export enum FilezUserType {
   SuperAdmin = "SuperAdmin",
   Regular = "Regular",
@@ -217,6 +231,11 @@ export enum AccessPolicyAction {
   FilezJobsPickup = "FilezJobsPickup",
   FilezAppsGet = "FilezAppsGet",
   FilezAppsList = "FilezAppsList",
+  UserGroupsRequestJoin = "UserGroupsRequestJoin",
+  UserGroupsApprove = "UserGroupsApprove",
+  UserGroupsInvite = "UserGroupsInvite",
+  UserGroupsRespondToInvite = "UserGroupsRespondToInvite",
+  UserGroupsLeave = "UserGroupsLeave",
 }
 
 export interface AccessPolicy {
@@ -1830,6 +1849,16 @@ export interface RefreshSessionResponseBody {
   inactivity_timeout_seconds: number;
 }
 
+export interface RequestJoinUserGroupRequestBody {
+  /**
+   * Optional message shown to the group owner alongside the
+   * pending request. Capped at 1024 chars (USER_GROUPS.md §6
+   * edge cases — avoid abuse of the dashboard).
+   * @maxLength 1024
+   */
+  message?: string | null;
+}
+
 export type StartSessionRequestBody = object;
 
 export interface StartSessionResponseBody {
@@ -2045,11 +2074,22 @@ export interface UpdateUserGroupResponseBody {
 export interface UserGroup {
   /** @format date-time */
   created_time: string;
+  description?: string | null;
   id: UserGroupId;
+  /**
+   * USER_GROUPS.md §1 — who can become a member.
+   * Wire-stable per mows_auth_core::types::GroupJoinPolicy.
+   */
+  join_policy: GroupJoinPolicy;
   /** @format date-time */
   modified_time: string;
   name: string;
   owner_id: FilezUserId;
+  /**
+   * USER_GROUPS.md §1 — who can see this group exists.
+   * Wire-stable per mows_auth_core::types::GroupVisibility.
+   */
+  visibility: GroupVisibility;
 }
 
 /** @format uuid */
@@ -3466,6 +3506,62 @@ export class Api<
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Request to join a user group; direct-joins OpenJoin groups.
+     *
+     * @name RequestToJoinUserGroup
+     * @request POST:/api/user_groups/{user_group_id}/join_requests
+     */
+    requestToJoinUserGroup: (
+      userGroupId: UserGroupId,
+      data: RequestJoinUserGroupRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+        path: `/api/user_groups/${userGroupId}/join_requests`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Approve a pending join request; inserts the membership row in one transaction.
+     *
+     * @name ApproveJoinRequest
+     * @request POST:/api/user_groups/{user_group_id}/join_requests/{user_id}/approve
+     */
+    approveJoinRequest: (
+      userGroupId: UserGroupId,
+      userId: FilezUserId,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+        path: `/api/user_groups/${userGroupId}/join_requests/${userId}/approve`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Reject a pending join request (idempotent).
+     *
+     * @name RejectJoinRequest
+     * @request POST:/api/user_groups/{user_group_id}/join_requests/{user_id}/reject
+     */
+    rejectJoinRequest: (
+      userGroupId: UserGroupId,
+      userId: FilezUserId,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+        path: `/api/user_groups/${userGroupId}/join_requests/${userId}/reject`,
+        method: "POST",
         format: "json",
         ...params,
       }),

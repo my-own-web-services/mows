@@ -36,6 +36,13 @@ pub struct UserGroup {
     pub name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
+    pub description: Option<String>,
+    /// USER_GROUPS.md §1 — who can see this group exists.
+    /// Wire-stable per mows_auth_core::types::GroupVisibility.
+    pub visibility: mows_auth_core::types::GroupVisibility,
+    /// USER_GROUPS.md §1 — who can become a member.
+    /// Wire-stable per mows_auth_core::types::GroupJoinPolicy.
+    pub join_policy: mows_auth_core::types::GroupJoinPolicy,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Validate, AsChangeset, Clone, Debug)]
@@ -56,7 +63,26 @@ impl UserGroup {
             name: name.to_string(),
             created_time: get_current_timestamp(),
             modified_time: get_current_timestamp(),
+            description: None,
+            // Conservative defaults per USER_GROUPS.md §1 — owner
+            // can flip them via update_user_group later.
+            visibility: mows_auth_core::types::GroupVisibility::Private,
+            join_policy: mows_auth_core::types::GroupJoinPolicy::InviteOnly,
         }
+    }
+
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn get_one_by_id(
+        database: &Database,
+        user_group_id: &UserGroupId,
+    ) -> Result<UserGroup, FilezError> {
+        let mut connection = database.get_connection().await?;
+        let user_group = schema::user_groups::table
+            .filter(schema::user_groups::id.eq(user_group_id))
+            .select(UserGroup::as_select())
+            .first::<UserGroup>(&mut connection)
+            .await?;
+        Ok(user_group)
     }
 
     #[tracing::instrument(level = "trace", skip(database))]

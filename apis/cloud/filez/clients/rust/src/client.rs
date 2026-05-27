@@ -2432,6 +2432,136 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Request to join a user group; direct-joins OpenJoin groups.
+    #[tracing::instrument(level = "trace")]
+    pub async fn request_to_join_user_group(
+        &self,
+        user_group_id: UserGroupId,
+        request_body: RequestJoinUserGroupRequestBody,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+        let full_url = format!(
+            "{}/api/user_groups/{user_group_id}/join_requests",
+            self.base_url
+        );
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .json(&request_body)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
+    /// Approve a pending join request; inserts the membership row in one transaction.
+    #[tracing::instrument(level = "trace")]
+    pub async fn approve_join_request(
+        &self,
+        user_group_id: UserGroupId,
+        user_id: FilezUserId,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+        let full_url = format!(
+            "{}/api/user_groups/{user_group_id}/join_requests/{user_id}/approve",
+            self.base_url
+        );
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
+    /// Reject a pending join request (idempotent).
+    #[tracing::instrument(level = "trace")]
+    pub async fn reject_join_request(
+        &self,
+        user_group_id: UserGroupId,
+        user_id: FilezUserId,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+        let full_url = format!(
+            "{}/api/user_groups/{user_group_id}/join_requests/{user_id}/reject",
+            self.base_url
+        );
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
     /// Create a new user in the database
     #[tracing::instrument(level = "trace")]
     pub async fn create_user(

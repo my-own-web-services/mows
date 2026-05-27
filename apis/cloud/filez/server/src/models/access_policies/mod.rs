@@ -198,6 +198,15 @@ pub enum AccessPolicyAction {
 
     FilezAppsGet = 530,
     FilezAppsList = 540,
+
+    // Phase 4 user-group lifecycle (USER_GROUPS.md §6). Gaps in
+    // the discriminant sequence are deliberate — pre-allocates space
+    // for sibling actions on the same surface without renumbering.
+    UserGroupsRequestJoin = 550,
+    UserGroupsApprove = 560,
+    UserGroupsInvite = 570,
+    UserGroupsRespondToInvite = 580,
+    UserGroupsLeave = 590,
 }
 
 impl_typed_uuid!(AccessPolicyId);
