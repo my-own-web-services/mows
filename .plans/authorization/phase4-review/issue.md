@@ -41,7 +41,8 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
 | MAJ   | MAJ-1, MAJ-2, MAJ-5 (commit `d954a9eb`); MAJ-3, MAJ-6 (commit `1304d20a`); MAJ-4, FUTURE-1 (commit `a43213c8`); MAJ-7 markers + MIN-4 + MIN-5 (commit `52fa72ec`); MAJ-8 spec rewrite + DOC-2 + DOC-4 (this commit) |
 | MIN   | MIN-6, MIN-7 (commit `1304d20a`); MIN-8 (commit `d954a9eb`); MIN-4, MIN-5 (commit `52fa72ec`) |
 | ⁉️    | MAJ-9, MAJ-10 (false positives); MIN-2 (attribute macros require literal ints, can't share a `const`) |
-| Deferred | MIN-1 (cosmetic only, non-runtime); MIN-9 (default-policy bootstrap — tracked in ROADMAP Phase 4); MAJ-7 audit-log table itself (Phase 5 work; TODO markers in place) |
+| Deferred | MIN-1 (cosmetic only, non-runtime) |
+| Closed in follow-up | MAJ-7 audit_log table (commit `11a1dad8`, replaces the TODO markers); MIN-9 default-policy bootstrap (commit `2e13fbb7`); P4-9 row-based auth for accept/decline/leave (commit `a056aff2`) |
 
 Total: **3/3 critical, 8/8 actionable major, 5/5 actionable minor**
 resolved. The remaining ⁉️ entries are false positives or
@@ -217,7 +218,7 @@ are tracked elsewhere with concrete next-step pointers.
   - **Fix:** early `if user_id == NOBODY_USER_ID { return Err… }`
     before the auth check.
 
-- **MIN-9** ❌ — `create_one` does not seed any default policies.
+- **MIN-9** ✅ — `create_one` does not seed any default policies.
   USER_GROUPS.md §6 implies the owner gets a full set + members
   get list-related actions at creation time. Currently the owner is
   covered by the implicit owner-grant, but no member has any

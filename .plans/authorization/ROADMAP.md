@@ -160,16 +160,17 @@ fixture. Filez owner-only listings touch zero rows of
       Source-grep + diesel-debug_query structural guards landed; full
       e2e against a real postgres requires the test infra Phase 5
       introduces.
-- [ ] Audit-event emission for invite, accept, reject, leave, transfer,
-      delete (per OPEN_QUESTIONS Q9). **Phase 5 work** — `tracing::info!`
-      stand-ins are in place at the §7.2 / §7.5 sites with
-      `// TODO(audit-log)` markers for the Phase-5 grep.
-- [ ] Default policy bootstrap in `UserGroup::create_one` (owner gets
-      the full action set, members get `UserGroupsList`/
-      `UserGroupsListUsers`). USER_GROUPS.md §6 implies this; today
-      the implicit owner-grant covers the owner, but no non-owner
-      flow works without policies that an admin has to insert
-      manually. **Follow-up PR.**
+- [x] Audit-event emission for invite, accept, reject, leave, transfer,
+      delete (per OPEN_QUESTIONS Q9). audit_log table + AuditEvent
+      enum landed in Phase 5 P5-1; the §7.2 / §7.5 call sites now
+      write durable rows alongside the existing tracing::info!
+      events.
+- [x] Default policy bootstrap in `UserGroup::create_one` (members
+      get `UserGroupsList`/`UserGroupsListUsers`; ServerMember gets
+      `UserGroupsRequestJoin` when join_policy != InviteOnly).
+      Server-wide ServerMember UserGroupsList grant landed in
+      migration 00000000000016. Owner remains covered by the
+      implicit owner-grant.
 
 Exit (backend): HTTP endpoints from USER_GROUPS.md §6 are shipped,
 documented in openapi.json, and gated by the right policy actions.
