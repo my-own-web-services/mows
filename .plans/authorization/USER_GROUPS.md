@@ -153,12 +153,22 @@ sketches; nothing new conceptually.
 | `POST /user-groups/{id}/requests/{user_id}/approve`      | approve a join request                             | owner only                                 |
 
 Each endpoint is gated by a corresponding `AccessPolicyAction`:
-`UserGroupsList`, `UserGroupsListMembers`, `UserGroupsInvite`,
+`UserGroupsList`, `UserGroupsListUsers` (the implementation name for
+listing members of a group; an earlier draft called this
+`UserGroupsListMembers` — same semantics, kept as `ListUsers` to
+mirror `UsersList` elsewhere in the enum), `UserGroupsInvite`,
 `UserGroupsRespondToInvite`, `UserGroupsRequestJoin`, `UserGroupsApprove`,
 `UserGroupsLeave`, `UserGroupsDelete`. The default policies (created when
 a group is created) grant the owner everything and grant members
-`UserGroupsList`/`UserGroupsListMembers`. Anything beyond that is
-configurable.
+`UserGroupsList`/`UserGroupsListUsers`. Default-policy bootstrap is
+deferred — see ROADMAP.md Phase 4 follow-up. Anything beyond the
+defaults is configurable.
+
+Implementation note: endpoint paths in the spec table above use the
+shorthand `/user-groups/{id}/…`; the actual API mounts these under
+`/api/user_groups/{id}/…` (underscored, mirroring the table name
+`user_user_group_*`). The `requests/` segment in the spec is
+`join_requests/` in the implementation for the same reason.
 
 ## 7. Edge cases the implementation must handle
 

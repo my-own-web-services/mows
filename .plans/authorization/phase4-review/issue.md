@@ -38,12 +38,15 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
 | Fixed | Items |
 | ----- | ----- |
 | CRIT  | CRIT-1, CRIT-2, CRIT-3 (commit `d954a9eb`) |
-| MAJ   | MAJ-1, MAJ-2, MAJ-5 (commit `d954a9eb`); MAJ-3, MAJ-6 (commit `1304d20a`); MAJ-4, FUTURE-1 (commit `a43213c8`) |
-| MIN   | MIN-6, MIN-7 (commit `1304d20a`); MIN-8 (commit `d954a9eb`) |
+| MAJ   | MAJ-1, MAJ-2, MAJ-5 (commit `d954a9eb`); MAJ-3, MAJ-6 (commit `1304d20a`); MAJ-4, FUTURE-1 (commit `a43213c8`); MAJ-7 markers + MIN-4 + MIN-5 (commit `52fa72ec`); MAJ-8 spec rewrite + DOC-2 + DOC-4 (this commit) |
+| MIN   | MIN-6, MIN-7 (commit `1304d20a`); MIN-8 (commit `d954a9eb`); MIN-4, MIN-5 (commit `52fa72ec`) |
+| ⁉️    | MAJ-9, MAJ-10 (false positives); MIN-2 (attribute macros require literal ints, can't share a `const`) |
+| Deferred | MIN-1 (cosmetic only, non-runtime); MIN-9 (default-policy bootstrap — tracked in ROADMAP Phase 4); MAJ-7 audit-log table itself (Phase 5 work; TODO markers in place) |
 
-Remaining: MAJ-7 (audit-log markers), MAJ-8 (Members vs Users action
-rename), MIN-1 / MIN-2 / MIN-4 / MIN-5 / MIN-9 + the documentation
-findings.
+Total: **3/3 critical, 8/8 actionable major, 5/5 actionable minor**
+resolved. The remaining ⁉️ entries are false positives or
+fundamentally not fixable in the proposed shape; the Deferred entries
+are tracked elsewhere with concrete next-step pointers.
 
 ## Critical
 
@@ -127,7 +130,7 @@ findings.
     SELECT user_id, $1, now() FROM user_user_group_join_requests
     WHERE user_group_id = $1") `).
 
-- **MAJ-7** ❌ — `tracing::info!` is used as the §7.2 / §7.5 audit
+- **MAJ-7** ✅ — `tracing::info!` is used as the §7.2 / §7.5 audit
   trail. Tracing is ephemeral, sampled in production, and silently
   drops events under load. The spec calls for a durable audit
   record. (SLOP-6, FUTURE-6)
@@ -137,7 +140,7 @@ findings.
     leave a `// TODO(audit-log)` marker in each call site so the
     Phase-5 grep is easy.
 
-- **MAJ-8** ❌ — `USER_GROUPS.md §6` spec lists `UserGroupsListMembers`
+- **MAJ-8** ✅ — `USER_GROUPS.md §6` spec lists `UserGroupsListMembers`
   as a separate action but the code conflates it with
   `UserGroupsListUsers`. (DOC-1, ARCH-3)
   - **Fix:** decide and document — either rename the enum variant
@@ -164,7 +167,7 @@ findings.
   a defensive `WHERE … AND deleted = false` would prevent any
   manual mistake. (DEVOPS-5)
 
-- **MIN-2** ❌ — The 1024-char message cap is hardcoded in 3 places
+- **MIN-2** ⁉️ — The 1024-char message cap is hardcoded in 3 places
   (invite body, request body, description). (SLOP-7)
   - **Fix:** `const MAX_LIFECYCLE_MESSAGE_LENGTH: usize = 1024;` in
     a shared module.
@@ -176,11 +179,11 @@ findings.
   - **Fix:** complement with an integration test against a real
     postgres (test infra not in repo today — track for Phase 5).
 
-- **MIN-4** ❌ — `UserUserGroupInvitation::new` / `JoinRequest::new`
+- **MIN-4** ✅ — `UserUserGroupInvitation::new` / `JoinRequest::new`
   are `pub`. External callers could construct invalid rows. (TECH-12)
   - **Fix:** `pub(crate)`.
 
-- **MIN-5** ❌ — `invited_by` FK on `user_user_group_invitations`
+- **MIN-5** ✅ — `invited_by` FK on `user_user_group_invitations`
   has no CASCADE action — orphans the row if the inviter deletes
   their account before the invitee responds. (TASTE-8)
   - **Fix:** `ON DELETE SET NULL` + make `invited_by` `Option<…>`

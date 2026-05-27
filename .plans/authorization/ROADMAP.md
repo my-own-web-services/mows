@@ -150,18 +150,36 @@ fixture. Filez owner-only listings touch zero rows of
 
 **Goal.** Ship the visibility/join_policy/invite/request endpoints.
 
-- [ ] HTTP endpoints (filez first, since it's the only consumer today)
+- [x] HTTP endpoints (filez first, since it's the only consumer today)
       from USER_GROUPS.md §6.
-- [ ] OpenAPI / typescript client regeneration (`bash scripts/codegen.sh`).
+- [x] OpenAPI / typescript client regeneration (`bash scripts/codegen.sh`).
 - [ ] Frontend UI in the filez UI (or the manager UI, depending on which
-      ships group management first).
+      ships group management first). **Out of scope for the Phase 4
+      backend batch — tracked separately.**
 - [ ] End-to-end tests for the lifecycle paths from USER_GROUPS.md §2.
+      Source-grep + diesel-debug_query structural guards landed; full
+      e2e against a real postgres requires the test infra Phase 5
+      introduces.
 - [ ] Audit-event emission for invite, accept, reject, leave, transfer,
-      delete (per OPEN_QUESTIONS Q9).
+      delete (per OPEN_QUESTIONS Q9). **Phase 5 work** — `tracing::info!`
+      stand-ins are in place at the §7.2 / §7.5 sites with
+      `// TODO(audit-log)` markers for the Phase-5 grep.
+- [ ] Default policy bootstrap in `UserGroup::create_one` (owner gets
+      the full action set, members get `UserGroupsList`/
+      `UserGroupsListUsers`). USER_GROUPS.md §6 implies this; today
+      the implicit owner-grant covers the owner, but no non-owner
+      flow works without policies that an admin has to insert
+      manually. **Follow-up PR.**
 
-Exit: a user can create a `ListedRestricted, RequestToJoin` group, see
-it in the directory, request to join, and have the owner approve them,
-all via UI.
+Exit (backend): HTTP endpoints from USER_GROUPS.md §6 are shipped,
+documented in openapi.json, and gated by the right policy actions.
+A user can hit `POST /api/user_groups/{id}/join_requests` against a
+`RequestToJoin` group, the owner can list pending requests and
+`POST .../approve`, and the user becomes a member. End-to-end via
+API.
+
+Exit (UI): tracked as a separate milestone — the API surface is
+stable enough to build against.
 
 ---
 

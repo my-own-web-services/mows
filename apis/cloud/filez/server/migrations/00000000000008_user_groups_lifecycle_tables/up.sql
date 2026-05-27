@@ -14,9 +14,9 @@ ALTER TABLE user_groups
     ADD COLUMN join_policy SMALLINT NOT NULL DEFAULT 0;
 
 -- 2. Pending join requests. Populated by users hitting
---    POST /user-groups/{id}/join-requests on RequestToJoin groups
---    (USER_GROUPS.md §6). One row per (user, group) — a second
---    request for the same group is a no-op.
+--    POST /api/user_groups/{id}/join_requests on RequestToJoin
+--    groups (USER_GROUPS.md §6). One row per (user, group) — a
+--    second request for the same group is a no-op.
 CREATE TABLE user_user_group_join_requests (
     user_id        UUID NOT NULL REFERENCES users(id)        ON DELETE CASCADE ON UPDATE CASCADE,
     user_group_id  UUID NOT NULL REFERENCES user_groups(id)  ON DELETE CASCADE ON UPDATE CASCADE,
@@ -26,7 +26,7 @@ CREATE TABLE user_user_group_join_requests (
 );
 
 -- 3. Pending invitations from owners to users. Populated by owners
---    hitting POST /user-groups/{id}/invitations on InviteOnly or
+--    hitting POST /api/user_groups/{id}/invitations on InviteOnly or
 --    RequestToJoin groups. Acceptance moves the row to
 --    user_user_group_members in a single transaction.
 CREATE TABLE user_user_group_invitations (
