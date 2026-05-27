@@ -368,10 +368,116 @@ impl PartialOrd for HeapEntry {
 /// stream wins; subsequent occurrences are silently skipped. The
 /// dedup set is bounded by `page_size + small_dedup_buffer` per
 /// LISTING.md §5.1.
+/// Per-candidate Deny check hook for the listing engine
+/// (LISTING.md §5.3). The merge calls
+/// `is_denied(item, source)` for every candidate it pops; items
+/// where the checker returns true are silently skipped. Items
+/// where the checker errors propagate.
+///
+/// Caller-supplied so the engine doesn't have to know about
+/// PolicyStore or the caller's auth context. The concrete
+/// [`PolicyStoreDenyChecker`] wires the most common case (filez
+/// using its own PolicyStore impl); other deployments can write
+/// their own.
+#[async_trait]
+pub trait DenyChecker: Send + Sync {
+    /// Returns true iff the engine MUST skip this item because of
+    /// an overriding Deny. `source` enables the
+    /// "ownership is never Denied" optimisation
+    /// (LISTING.md §5.3) — owner-sourced candidates skip the
+    /// roundtrip.
+    async fn is_denied(
+        &self,
+        item: &StreamItem,
+        source: StreamSource,
+    ) -> Result<bool, AuthError>;
+}
+
+/// PolicyStore-backed [`DenyChecker`]. Holds the subject + app +
+/// action + auth_info so the merge only carries the trait object
+/// — no per-item parameter assembly.
+///
+/// Honors the `owner_source_skip` optimisation: items from
+/// [`StreamSource::Owned`] skip the Deny query entirely.
+/// POLICY_SEMANTICS.md §3 step 4: a Deny against the resource
+/// owner never applies (ownership is unilateral). Saves a round
+/// trip on the owner-dominated path that the Phase-3 design
+/// already optimises via OwnerOnly fast path; the optimisation
+/// here covers the combined "owned + shared" tab where Owned
+/// participates in the merge.
+pub struct PolicyStoreDenyChecker<'a, S: PolicyStore + ?Sized> {
+    store: &'a S,
+    auth_info: &'a ResourceAuthInfo,
+    subject: &'a Subject,
+    app: AppView,
+    action: u32,
+}
+
+impl<'a, S: PolicyStore + ?Sized> PolicyStoreDenyChecker<'a, S> {
+    pub fn new(
+        store: &'a S,
+        auth_info: &'a ResourceAuthInfo,
+        subject: &'a Subject,
+        app: AppView,
+        action: u32,
+    ) -> Self {
+        Self {
+            store,
+            auth_info,
+            subject,
+            app,
+            action,
+        }
+    }
+}
+
+#[async_trait]
+impl<'a, S: PolicyStore + ?Sized> DenyChecker for PolicyStoreDenyChecker<'a, S> {
+    async fn is_denied(
+        &self,
+        item: &StreamItem,
+        source: StreamSource,
+    ) -> Result<bool, AuthError> {
+        // Owner-source skip: ownership is never Denied
+        // (POLICY_SEMANTICS.md §3 step 4 / LISTING.md §5.3).
+        if matches!(source, StreamSource::Owned) {
+            return Ok(false);
+        }
+        self.store
+            .is_denied(
+                self.auth_info,
+                self.subject,
+                self.app,
+                self.action,
+                item.resource_id,
+            )
+            .await
+    }
+}
+
 pub async fn merge_streams<'a>(
     streams: &mut [Box<dyn SortedStream + 'a>],
     cursor: Option<ListingCursor>,
     page_size: usize,
+) -> Result<ListingPage, AuthError> {
+    merge_streams_with_deny_check(streams, cursor, page_size, None).await
+}
+
+/// Same as [`merge_streams`] but accepts a [`DenyChecker`]. Each
+/// candidate yielded by the merge is filtered through
+/// `deny_checker.is_denied(item, source)`; items that come back
+/// `Ok(true)` are silently skipped (the cursor still advances past
+/// them so the next page picks up after).
+///
+/// `merge_streams` itself delegates here with `deny_check = None`
+/// for the test path that doesn't need Deny filtering. Production
+/// callers should always pass `Some(checker)` so Deny precedence
+/// is enforced (LISTING.md §5.3 + POLICY_SEMANTICS.md §3 step 5).
+pub async fn merge_streams_with_deny_check<'a>(
+    streams: &mut [Box<dyn SortedStream + 'a>],
+    cursor: Option<ListingCursor>,
+    page_size: usize,
+    deny_checker: Option<&dyn DenyChecker>,
 ) -> Result<ListingPage, AuthError> {
     use std::collections::HashSet;
 
@@ -472,6 +578,21 @@ pub async fn merge_streams<'a>(
         // Dedup. First stream to yield this id wins.
         if !seen.insert(top.item.resource_id) {
             continue;
+        }
+
+        // Deny check per LISTING.md §5.3. The checker honors the
+        // "ownership is never Denied" optimisation when the source
+        // is Owned (PolicyStoreDenyChecker handles this). Items
+        // where is_denied returns true are silently skipped — the
+        // cursor still advances past them so the next page picks
+        // up where we left off.
+        if let Some(checker) = deny_checker {
+            // `streams[top.stream_idx].source()` is a constant —
+            // unaffected by the advance call earlier in the loop.
+            let source = streams[top.stream_idx].source();
+            if checker.is_denied(&top.item, source).await? {
+                continue;
+            }
         }
 
         yielded.push(top.item.resource_id);
@@ -2044,6 +2165,161 @@ mod merge_tests {
         assert!(
             result.is_err(),
             "merge_streams must propagate the inner stream's error"
+        );
+    }
+
+    /// DenyChecker that flags a fixed set of resource_ids.
+    struct DenyList {
+        denied: std::collections::HashSet<Uuid>,
+        /// Tracks which (resource_id, source) pairs were checked.
+        /// Lets the owner-skip test verify the optimisation fires.
+        checked: std::sync::Mutex<Vec<(Uuid, StreamSource)>>,
+    }
+    impl DenyList {
+        fn new(denied_ids: &[Uuid]) -> Self {
+            Self {
+                denied: denied_ids.iter().copied().collect(),
+                checked: std::sync::Mutex::new(Vec::new()),
+            }
+        }
+    }
+    #[async_trait]
+    impl DenyChecker for DenyList {
+        async fn is_denied(
+            &self,
+            item: &StreamItem,
+            source: StreamSource,
+        ) -> Result<bool, AuthError> {
+            self.checked
+                .lock()
+                .unwrap()
+                .push((item.resource_id, source));
+            Ok(self.denied.contains(&item.resource_id))
+        }
+    }
+
+    /// DenyChecker that errors on every call — verifies the merge
+    /// propagates checker errors.
+    struct DenyError;
+    #[async_trait]
+    impl DenyChecker for DenyError {
+        async fn is_denied(
+            &self,
+            _item: &StreamItem,
+            _source: StreamSource,
+        ) -> Result<bool, AuthError> {
+            Err(AuthError::Evaluation("deny check boom".into()))
+        }
+    }
+
+    // phase3-review A2 / LISTING.md §5.3: items the DenyChecker
+    // flags are silently skipped; the cursor still advances past
+    // them so the next page picks up correctly.
+    #[tokio::test]
+    async fn deny_check_filters_candidates() {
+        let mut streams = vec![stream(
+            StreamSource::PublicMaterialized,
+            vec![(100, 1), (90, 2), (80, 3), (70, 4)],
+        )];
+        let checker = DenyList::new(&[uuid(2), uuid(3)]);
+        let page = merge_streams_with_deny_check(&mut streams, None, 10, Some(&checker))
+            .await
+            .unwrap();
+        assert_eq!(
+            page.resource_ids,
+            vec![uuid(1), uuid(4)],
+            "Denied items 2 + 3 must be skipped"
+        );
+    }
+
+    // LISTING.md §5.3 optimisation: owner-sourced items skip the
+    // Deny check (ownership is never Denied). The wrapper's
+    // matches!(source, Owned) guard prevents the store call.
+    #[tokio::test]
+    async fn owner_source_skips_deny_check() {
+        struct OwnerSkipChecker {
+            // Owner-sourced items must not reach this checker at
+            // all; if they do, we panic.
+            inner_checked: std::sync::Mutex<Vec<StreamSource>>,
+        }
+        #[async_trait]
+        impl DenyChecker for OwnerSkipChecker {
+            async fn is_denied(
+                &self,
+                _item: &StreamItem,
+                source: StreamSource,
+            ) -> Result<bool, AuthError> {
+                self.inner_checked.lock().unwrap().push(source);
+                Ok(false)
+            }
+        }
+        // Wrapper that mimics PolicyStoreDenyChecker's owner-skip.
+        struct OwnerSkipWrapper(OwnerSkipChecker);
+        #[async_trait]
+        impl DenyChecker for OwnerSkipWrapper {
+            async fn is_denied(
+                &self,
+                item: &StreamItem,
+                source: StreamSource,
+            ) -> Result<bool, AuthError> {
+                if matches!(source, StreamSource::Owned) {
+                    return Ok(false);
+                }
+                self.0.is_denied(item, source).await
+            }
+        }
+        let wrapper = OwnerSkipWrapper(OwnerSkipChecker {
+            inner_checked: std::sync::Mutex::new(Vec::new()),
+        });
+        let mut streams = vec![
+            stream(StreamSource::Owned, vec![(100, 1), (80, 3)]),
+            stream(StreamSource::PublicMaterialized, vec![(90, 2)]),
+        ];
+        let page = merge_streams_with_deny_check(&mut streams, None, 10, Some(&wrapper))
+            .await
+            .unwrap();
+        assert_eq!(page.resource_ids, vec![uuid(1), uuid(2), uuid(3)]);
+        let inner_checks = wrapper.0.inner_checked.lock().unwrap();
+        // Owner-sourced items (1, 3) skipped → only Public item 2
+        // hit the inner checker.
+        assert_eq!(inner_checks.len(), 1);
+        assert_eq!(inner_checks[0], StreamSource::PublicMaterialized);
+    }
+
+    #[tokio::test]
+    async fn deny_check_errors_propagate() {
+        let mut streams = vec![stream(
+            StreamSource::PublicMaterialized,
+            vec![(100, 1)],
+        )];
+        let checker = DenyError;
+        let result =
+            merge_streams_with_deny_check(&mut streams, None, 10, Some(&checker)).await;
+        assert!(result.is_err());
+    }
+
+    // Cursor MUST advance past skipped items so the next page
+    // picks up correctly (not loop on the same Denied row).
+    #[tokio::test]
+    async fn next_cursor_carries_past_denied_items() {
+        let mut streams = vec![stream(
+            StreamSource::PublicMaterialized,
+            vec![(100, 1), (90, 2), (80, 3)],
+        )];
+        let checker = DenyList::new(&[uuid(2)]);
+        // page_size=2, item 2 denied → page returns [1, 3], cursor
+        // at the last YIELDED item (3).
+        let page = merge_streams_with_deny_check(&mut streams, None, 2, Some(&checker))
+            .await
+            .unwrap();
+        assert_eq!(page.resource_ids, vec![uuid(1), uuid(3)]);
+        assert_eq!(
+            page.next_cursor,
+            Some(ListingCursor {
+                sort_key: ts(80),
+                resource_id: uuid(3),
+            }),
+            "cursor must be the last YIELDED item, not the last popped"
         );
     }
 

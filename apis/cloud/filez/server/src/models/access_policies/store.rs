@@ -840,6 +840,122 @@ impl<'a> PolicyStore for FilezPolicyStore<'a> {
             .collect())
     }
 
+    /// Phase 3 P3-5 — per-candidate Deny lookup (LISTING.md §5.3).
+    /// Single indexed lookup against `ap_lookup_idx (resource_type,
+    /// resource_id, subject_type, subject_id) WHERE NOT revoked`
+    /// (migration 00009). Returns true iff a Deny matching the
+    /// subject / app / action / lifecycle filter exists for this
+    /// (resource_type, resource_id).
+    ///
+    /// Subject matching follows POLICY_SEMANTICS.md §3 step 5:
+    /// User+id, UserGroup IN caller's groups, ServerMember (any
+    /// authenticated caller), Public (all callers). The hand-rolled
+    /// SQL captures all four branches in one query so postgres
+    /// picks the best plan per subject shape; the OR chain stays
+    /// small enough for the planner.
+    async fn is_denied(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        subject: &Subject,
+        app: AppView,
+        action: u32,
+        resource_id: Uuid,
+    ) -> Result<bool, AuthError> {
+        let resource_type = AccessPolicyResourceType::from_u32(auth_info.resource_type)
+            .expect("resource_type registered");
+        let action_enum =
+            action_from_u32(action).expect("AccessPolicyAction value out of range");
+
+        let pool = self
+            .database
+            .pool
+            .as_ref()
+            .ok_or_else(|| AuthError::Evaluation("database pool not initialized".to_string()))?;
+        let mut connection = pool.get().await?;
+
+        let (subject_type_i16, subject_id, group_ids) = match subject {
+            Subject::Anonymous => {
+                // Anonymous caller can only be hit by Public Denies
+                // (subject_type = 3). No User / UserGroup branch.
+                // ServerMember Denies also don't apply — anonymous
+                // isn't a server member by definition.
+                (None, Uuid::nil(), Vec::<Uuid>::new())
+            }
+            Subject::User {
+                user_id,
+                groups,
+                is_super_admin,
+            } => {
+                if *is_super_admin {
+                    // SuperAdmin bypasses every Deny per
+                    // POLICY_SEMANTICS.md §2.1. The listing engine
+                    // shouldn't even ask, but if it does, we say no.
+                    return Ok(false);
+                }
+                (Some(0_i16), *user_id, groups.clone())
+            }
+        };
+
+        // Compose the subject filter. Always include Public (3);
+        // include ServerMember (2) only when authenticated; include
+        // User (0) + UserGroup (1) only when the subject is a user.
+        let mut clauses: Vec<&str> = Vec::with_capacity(4);
+        clauses.push("subject_type = 3");
+        if subject_type_i16.is_some() {
+            clauses.push("subject_type = 2");
+            clauses.push("(subject_type = 0 AND subject_id = $5)");
+            clauses.push("(subject_type = 1 AND subject_id = ANY($6))");
+        }
+        let subject_filter = clauses.join(" OR ");
+
+        let sql = format!(
+            "SELECT 1 \
+             FROM   access_policies \
+             WHERE  resource_type = $1 \
+               AND  resource_id   = $2 \
+               AND  effect        = 0 \
+               AND  actions      @> ARRAY[$3]::SMALLINT[] \
+               AND  context_app_ids && ARRAY[$4, '00000000-0000-0000-0000-000000000000']::UUID[] \
+               AND  NOT revoked \
+               AND  (expires_at IS NULL OR expires_at > now()) \
+               AND  ({subject_filter}) \
+             LIMIT 1"
+        );
+
+        #[derive(QueryableByName, Debug)]
+        struct Hit {
+            #[diesel(sql_type = diesel::sql_types::Integer)]
+            #[diesel(column_name = "?column?")]
+            _one: i32,
+        }
+
+        let resource_type_i16 = resource_type as i16;
+        let action_i16 = action_enum as i16;
+
+        let rows: Vec<Hit> = if subject_type_i16.is_some() {
+            diesel::sql_query(sql)
+                .bind::<diesel::sql_types::SmallInt, _>(resource_type_i16)
+                .bind::<sql_types::Uuid, _>(resource_id)
+                .bind::<diesel::sql_types::SmallInt, _>(action_i16)
+                .bind::<sql_types::Uuid, _>(app.id)
+                .bind::<sql_types::Uuid, _>(subject_id)
+                .bind::<sql_types::Array<sql_types::Uuid>, _>(group_ids)
+                .load(&mut connection)
+                .await?
+        } else {
+            // Anonymous: only the Public branch is bound.
+            diesel::sql_query(sql)
+                .bind::<diesel::sql_types::SmallInt, _>(resource_type_i16)
+                .bind::<sql_types::Uuid, _>(resource_id)
+                .bind::<diesel::sql_types::SmallInt, _>(action_i16)
+                .bind::<sql_types::Uuid, _>(app.id)
+                .load(&mut connection)
+                .await?
+        };
+
+        Ok(!rows.is_empty())
+    }
+
     /// Phase 3 P3-4 — Public cover-backed stream. Pure indexed
     /// scan of `public_resources` using
     /// `public_resources_by_created (resource_type,

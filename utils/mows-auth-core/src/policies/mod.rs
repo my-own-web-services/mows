@@ -468,6 +468,40 @@ pub trait PolicyStore: Send + Sync {
         ))
     }
 
+    /// Phase 3 P3-5 — per-candidate Deny lookup for the listing
+    /// engine (LISTING.md §5.3). Given a (subject, app, action,
+    /// resource_type, resource_id) tuple, returns true iff an
+    /// access_policies row exists that:
+    ///
+    ///   * matches the subject (User+id / UserGroup+any of caller's
+    ///     groups / ServerMember / Public)
+    ///   * has `effect = Deny`
+    ///   * has `actions @> ARRAY[$action]`
+    ///   * has `context_app_ids && ARRAY[$app, nil_uuid]`
+    ///   * passes the lifecycle filter
+    ///     (`NOT revoked AND (expires_at IS NULL OR expires_at > now())`)
+    ///
+    /// Single indexed lookup against `ap_lookup_idx
+    /// (resource_type, resource_id, subject_type, subject_id)
+    /// WHERE NOT revoked` (migration 00009). Typical case 0 rows —
+    /// most resources have no Deny.
+    ///
+    /// Default returns Ok(false) — stores that participate in the
+    /// listing engine but don't yet implement Deny-checking will
+    /// silently surface every Allow. That's the historic Phase-1
+    /// shape, so this default is the "safe migration default", not
+    /// a fail-loud guard like the stream methods.
+    async fn is_denied(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _subject: &Subject,
+        _app: AppView,
+        _action: u32,
+        _resource_id: Uuid,
+    ) -> Result<bool, AuthError> {
+        Ok(false)
+    }
+
     /// Phase 3 P3-4 — cover-backed stream for one large user-group
     /// (LISTING.md §6.2). Reads from
     /// `user_group_accessible_resources` filtered by
