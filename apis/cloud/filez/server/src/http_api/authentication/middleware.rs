@@ -14,7 +14,7 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
-use mows_auth_core::IntrospectedUser;
+use mows_auth_core::{IntrospectedUser, IntrospectionResult};
 
 use tower_sessions::Session;
 use tracing::trace;
@@ -48,7 +48,7 @@ pub async fn authentication_middleware(
     // Directly call the engine introspector; map the engine error
     // type to FilezError at this single point.
     let introspector_idp_id = introspector.idp_id();
-    let external_user = match maybe_bearer {
+    let introspection_result: Option<IntrospectionResult> = match maybe_bearer {
         Some(TypedHeader(Authorization(bearer))) => {
             let result = introspector
                 .introspect(bearer.token())
@@ -59,15 +59,21 @@ pub async fn authentication_middleware(
                     mows_auth_core::IntrospectionError::Inactive,
                 ));
             }
-            // Filez handlers require a user — Client Credentials grants
-            // (user: None) get rejected at the auth boundary the same
-            // way the old handle_oidc did.
-            Some(result.user.ok_or_else(|| {
-                FilezError::IntrospectionGuardError(
-                    crate::http_api::authentication::user::IntrospectionGuardError::NoUserId,
-                )
-            })?)
+            Some(result)
         }
+        None => None,
+    };
+
+    // Filez handlers still require a user — Client Credentials grants
+    // (user: None) get rejected at the auth boundary the same way the
+    // old handle_oidc did. The IntrospectionResult itself is retained
+    // for the client_id-based app lookup below.
+    let external_user: Option<IntrospectedUser> = match &introspection_result {
+        Some(result) => Some(result.user.clone().ok_or_else(|| {
+            FilezError::IntrospectionGuardError(
+                crate::http_api::authentication::user::IntrospectionGuardError::NoUserId,
+            )
+        })?),
         None => None,
     };
 
@@ -80,7 +86,39 @@ pub async fn authentication_middleware(
     let request_headers = request.headers();
     let request_method = request.method();
 
-    let requesting_app = MowsApp::get_from_headers(&database, &request_headers).await?;
+    // AUTHENTICATION.md §4.2 + §8: prefer the `(idp_id,
+    // external_client_id)` composite from the introspected token over
+    // the Origin / SA-token path. Origin lookup remains as the
+    // documented fallback for the migration window — first-party apps
+    // whose Zitadel registration row hasn't been backfilled yet still
+    // resolve via Origin, and anonymous requests (no bearer token)
+    // still land on the sentinel `no-origin` app.
+    let requesting_app = match &introspection_result {
+        Some(result) => match MowsApp::get_by_idp_and_external_client_id(
+            &database,
+            &introspector_idp_id,
+            &result.client_id,
+        )
+        .await?
+        {
+            Some(app) => {
+                trace!(
+                    client_id = %result.client_id,
+                    app_id = %app.id,
+                    "Resolved requesting_app by (idp_id, external_client_id)"
+                );
+                app
+            }
+            None => {
+                trace!(
+                    client_id = %result.client_id,
+                    "No app row for (idp_id, external_client_id) — falling back to header-based lookup"
+                );
+                MowsApp::get_from_headers(&database, &request_headers).await?
+            }
+        },
+        None => MowsApp::get_from_headers(&database, &request_headers).await?,
+    };
 
     let mut requesting_user = FilezUser::handle_authentication(
         &database,

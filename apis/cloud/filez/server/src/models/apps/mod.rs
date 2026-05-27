@@ -12,7 +12,7 @@ use diesel::{
     prelude::{AsChangeset, Insertable, Queryable, QueryableByName},
     query_dsl::methods::{FilterDsl, SelectDsl},
     sql_types::SmallInt,
-    ExpressionMethods, PgArrayExpressionMethods, Selectable, SelectableHelper,
+    ExpressionMethods, OptionalExtension, PgArrayExpressionMethods, Selectable, SelectableHelper,
 };
 use diesel_enum::DbEnum;
 use k8s_openapi::api::authentication::v1::TokenReview;
@@ -248,6 +248,36 @@ impl MowsApp {
                 Ok(new_app)
             }
         }
+    }
+
+    /// AUTHENTICATION.md §4.2 + §8: the new primary lookup path.
+    /// Resolves a `MowsApp` by the `(idp_id, external_client_id)`
+    /// composite — i.e. the `client_id` claim from an introspected
+    /// bearer token plus the IdP that issued it. Returns `None`
+    /// (not `Err`) when no row matches, so the middleware can fall
+    /// back to the legacy Origin / SA-token path during the
+    /// migration window.
+    ///
+    /// Note: `external_client_id` is NULL for the sentinel no-origin
+    /// app and (during migration) for any first-party app whose
+    /// Zitadel registration row has not yet been backfilled. Both
+    /// cases hit the fallback path automatically.
+    #[tracing::instrument(skip(database), level = "trace")]
+    pub async fn get_by_idp_and_external_client_id(
+        database: &Database,
+        idp_id: &Uuid,
+        external_client_id: &str,
+    ) -> Result<Option<MowsApp>, FilezError> {
+        use diesel_async::RunQueryDsl;
+        let mut connection = database.get_connection().await?;
+        let app = crate::schema::apps::table
+            .filter(crate::schema::apps::idp_id.eq(idp_id))
+            .filter(crate::schema::apps::external_client_id.eq(external_client_id))
+            .select(MowsApp::as_select())
+            .first::<MowsApp>(&mut connection)
+            .await
+            .optional()?;
+        Ok(app)
     }
 
     #[tracing::instrument(skip(database), level = "trace")]
