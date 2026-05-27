@@ -1,0 +1,15 @@
+-- Phase 4 multi-review FUTURE-1 + MAJ-4 fix.
+--
+-- `UserGroup::list_with_filter` Public / ServerListed branches scan
+-- `user_groups WHERE visibility = 2` / `IN (1, 2)`. Without an
+-- index this is a seq scan; at the LISTING.md §1 target of 1M
+-- Public groups the per-page latency is unacceptable.
+--
+-- Visibility has only 3 distinct values so the index is small (BTREE
+-- over a 3-cardinality SMALLINT) but the planner still uses it to
+-- skip the bulk of the table for the rare Private rows.
+--
+-- Partial index on the two "discoverable" visibilities would be
+-- even tighter, but the full-column index also serves the inverse
+-- ("who can see this Private group?") use case Phase 7 may add.
+CREATE INDEX user_groups_by_visibility ON user_groups (visibility);

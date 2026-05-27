@@ -285,6 +285,17 @@ impl UserGroup {
     ///   - `Public` is the only mode that allows anonymous callers.
     ///   - Every other mode requires `maybe_requesting_user.is_some()`;
     ///     the handler MUST enforce that before dispatch (401).
+    ///
+    /// Visibility-scan fast path (phase4-review MAJ-4): `Public`
+    /// and `ServerListed` filters bypass the candidate-ids Vec
+    /// entirely and run `SELECT … FROM user_groups WHERE visibility
+    /// = X ORDER BY … LIMIT N OFFSET M` directly. At the
+    /// USER_GROUPS.md §1 scale target (1M Public groups) this saves
+    /// a 16MB Rust allocation + the eq_any indirection per page.
+    /// Per-user lifecycle filters (Owned/Member/Invited/Requested)
+    /// keep the candidate-ids shape — their result sets are bounded
+    /// by user state (tens to low hundreds) so the indirection is
+    /// fine.
     #[tracing::instrument(level = "trace", skip(database, maybe_requesting_user))]
     pub async fn list_with_filter(
         database: &Database,
@@ -295,7 +306,41 @@ impl UserGroup {
         sort_by: Option<ListUserGroupsSortBy>,
         sort_order: Option<SortDirection>,
     ) -> Result<(Vec<UserGroup>, u64), FilezError> {
+        use mows_auth_core::types::GroupVisibility;
         let mut connection = database.get_connection().await?;
+
+        // Visibility-scan fast path. Compile-time assert the
+        // hand-rolled SQL literals match the enum discriminants —
+        // a future renumber of GroupVisibility breaks the build,
+        // not production.
+        const _: () = {
+            assert!(GroupVisibility::Public as i16 == 2);
+            assert!(GroupVisibility::ListedRestricted as i16 == 1);
+        };
+        let visibility_predicate_sql: Option<&'static str> = match filter {
+            ListUserGroupsFilter::Public => Some("user_groups.visibility = 2"),
+            ListUserGroupsFilter::ServerListed => Some("user_groups.visibility IN (1, 2)"),
+            _ => None,
+        };
+        if let Some(predicate_sql) = visibility_predicate_sql {
+            let total_count = schema::user_groups::table
+                .filter(diesel::dsl::sql::<diesel::sql_types::Bool>(predicate_sql))
+                .count()
+                .get_result::<i64>(&mut connection)
+                .await?;
+            let user_groups = load_user_groups_with_predicate(
+                &mut connection,
+                predicate_sql,
+                from_index,
+                limit,
+                sort_by,
+                sort_order,
+            )
+            .await?;
+            return Ok((user_groups, total_count.try_into()?));
+        }
+
+        // Naturally-bounded path for per-user lifecycle filters.
         let candidate_ids = Self::candidate_ids_for_filter(
             database,
             maybe_requesting_user.map(|u| &u.id),
@@ -786,6 +831,66 @@ async fn load_and_paginate(
 
     let user_groups = query.load::<UserGroup>(connection).await?;
     Ok((user_groups, total_count.try_into()?))
+}
+
+/// Visibility-scan helper for `list_with_filter`'s Public /
+/// ServerListed branches: `SELECT … FROM user_groups WHERE <raw
+/// predicate> ORDER BY … LIMIT N OFFSET M` in one round trip. No
+/// candidate-ids Vec, no eq_any indirection (phase4-review MAJ-4).
+///
+/// `predicate_sql` is a constant string literal — never a caller-
+/// supplied value (the only call site passes one of two compile-
+/// time literals checked against the GroupVisibility enum). No
+/// SQL-injection surface.
+#[tracing::instrument(level = "trace", skip(connection))]
+async fn load_user_groups_with_predicate(
+    connection: &mut diesel_async::pooled_connection::deadpool::Object<
+        diesel_async::AsyncPgConnection,
+    >,
+    predicate_sql: &'static str,
+    from_index: Option<u64>,
+    limit: Option<u64>,
+    sort_by: Option<ListUserGroupsSortBy>,
+    sort_order: Option<SortDirection>,
+) -> Result<Vec<UserGroup>, FilezError> {
+    let mut query = schema::user_groups::table
+        .filter(diesel::dsl::sql::<diesel::sql_types::Bool>(predicate_sql))
+        .select(UserGroup::as_select())
+        .into_boxed();
+
+    let sort_by = sort_by.unwrap_or(ListUserGroupsSortBy::CreatedTime);
+    let sort_order = sort_order.unwrap_or(SortDirection::Descending);
+
+    query = match (sort_by, sort_order) {
+        (ListUserGroupsSortBy::CreatedTime, SortDirection::Ascending) => {
+            query.order_by(schema::user_groups::created_time.asc())
+        }
+        (ListUserGroupsSortBy::CreatedTime, SortDirection::Descending) => {
+            query.order_by(schema::user_groups::created_time.desc())
+        }
+        (ListUserGroupsSortBy::Name, SortDirection::Ascending) => {
+            query.order_by(schema::user_groups::name.asc())
+        }
+        (ListUserGroupsSortBy::Name, SortDirection::Descending) => {
+            query.order_by(schema::user_groups::name.desc())
+        }
+        (ListUserGroupsSortBy::ModifiedTime, SortDirection::Ascending) => {
+            query.order_by(schema::user_groups::modified_time.asc())
+        }
+        (ListUserGroupsSortBy::ModifiedTime, SortDirection::Descending) => {
+            query.order_by(schema::user_groups::modified_time.desc())
+        }
+        _ => query.order_by(schema::user_groups::created_time.desc()),
+    };
+
+    if let Some(from_index) = from_index {
+        query = query.offset(from_index.try_into()?);
+    }
+    if let Some(limit) = limit {
+        query = query.limit(limit.try_into()?);
+    }
+
+    Ok(query.load::<UserGroup>(connection).await?)
 }
 
 #[cfg(test)]
