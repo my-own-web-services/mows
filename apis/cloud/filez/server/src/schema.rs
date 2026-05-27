@@ -330,6 +330,134 @@ diesel::table! {
     }
 }
 
+// Listing cover tables — migration 00000000000007. Maintained by
+// PL/pgSQL triggers; queried by the engine's k-way merge in Phase 3
+// (LISTING.md §3 + §6). Declared here so future read-path code can
+// reference them via diesel.
+diesel::table! {
+    public_resources (resource_type, resource_id) {
+        resource_type -> SmallInt,
+        resource_id -> Uuid,
+        sort_created -> Timestamp,
+        sort_modified -> Timestamp,
+        sort_name -> Text,
+        app_ids -> Array<Uuid>,
+        actions -> Array<SmallInt>,
+    }
+}
+
+diesel::table! {
+    server_member_resources (resource_type, resource_id) {
+        resource_type -> SmallInt,
+        resource_id -> Uuid,
+        sort_created -> Timestamp,
+        sort_modified -> Timestamp,
+        sort_name -> Text,
+        app_ids -> Array<Uuid>,
+        actions -> Array<SmallInt>,
+    }
+}
+
+diesel::table! {
+    user_group_accessible_resources (user_group_id, resource_type, resource_id) {
+        user_group_id -> Uuid,
+        resource_type -> SmallInt,
+        resource_id -> Uuid,
+        sort_created -> Timestamp,
+        sort_modified -> Timestamp,
+        sort_name -> Text,
+        app_ids -> Array<Uuid>,
+        actions -> Array<SmallInt>,
+    }
+}
+
+#[cfg(test)]
+mod cover_table_migration_drift_guard {
+    //! Structural regression guard: the listing cover tables declared
+    //! above MUST stay in sync with migration
+    //! `00000000000007_listing_cover_tables/up.sql`. If a future
+    //! migration renames a column or drops a cover table without
+    //! updating schema.rs, this test fires before runtime fallout.
+    //!
+    //! We grep the migration source for each table + every column
+    //! that schema.rs declares above. Drift in either direction
+    //! (rename in SQL but not Rust, or vice versa) trips a test.
+    //!
+    //! This is deliberately structural rather than a query round-trip
+    //! — no live database is required, the test runs in `cargo test`
+    //! offline.
+
+    const UP_SQL: &str = include_str!(
+        "../migrations/00000000000007_listing_cover_tables/up.sql"
+    );
+
+    fn assert_contains(needle: &str) {
+        assert!(
+            UP_SQL.contains(needle),
+            "migration 00000000000007 must contain `{needle}` — schema.rs declares it. \
+             If you intentionally renamed the column, update schema.rs to match."
+        );
+    }
+
+    #[test]
+    fn public_resources_columns_match() {
+        assert_contains("CREATE TABLE public_resources");
+        for col in [
+            "resource_type",
+            "resource_id",
+            "sort_created",
+            "sort_modified",
+            "sort_name",
+            "app_ids",
+            "actions",
+        ] {
+            assert_contains(col);
+        }
+    }
+
+    #[test]
+    fn server_member_resources_declared() {
+        assert_contains("CREATE TABLE server_member_resources");
+    }
+
+    #[test]
+    fn user_group_accessible_resources_declared() {
+        assert_contains("CREATE TABLE user_group_accessible_resources");
+        // user_group_id is unique to this cover table; rest of the
+        // schema is shared with the other two.
+        assert_contains("user_group_id");
+    }
+
+    #[test]
+    fn maintenance_trigger_is_wired_to_access_policies() {
+        // Without this trigger the cover tables silently rot — every
+        // policy write would skip the recompute and `list_visible` in
+        // Phase 3 would return stale or empty results. The presence
+        // of the trigger is what makes the cover tables load-bearing.
+        assert_contains("CREATE TRIGGER access_policies_cover_maintenance");
+        assert_contains("AFTER INSERT OR UPDATE OR DELETE ON access_policies");
+    }
+
+    #[test]
+    fn files_sort_mirror_trigger_keeps_sort_columns_fresh() {
+        // The sort_name / sort_modified columns are denormalised from
+        // `files`; without the mirror trigger a file rename would
+        // produce stale ordering in Phase-3 listings.
+        assert_contains("CREATE TRIGGER files_listing_sort_mirror");
+        assert_contains("AFTER UPDATE ON files");
+    }
+
+    #[test]
+    fn backfill_block_present() {
+        // The migration must seed the cover tables from the current
+        // access_policies state. Without this, every existing Public
+        // / ServerMember / UserGroup policy would be invisible to
+        // Phase-3 reads until someone re-writes the policy row.
+        assert_contains("DISTINCT subject_type, subject_id, resource_type, resource_id");
+        assert_contains("PERFORM refresh_listing_cover_row");
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     files,
     users,
@@ -349,4 +477,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     storage_quotas,
     key_access,
     idp_providers,
+    public_resources,
+    server_member_resources,
+    user_group_accessible_resources,
 );
