@@ -358,40 +358,44 @@ impl UserGroup {
                     // redundant — promote them to memberships in the
                     // same transaction so the user immediately sees
                     // membership instead of a stale pending row.
+                    //
+                    // Single-shot raw SQL keeps the work in postgres
+                    // (no round-trip to load ids into a Vec, no in-
+                    // Rust struct construction). At 10k pending
+                    // requests this halves the lock-hold time vs the
+                    // earlier SELECT-loop-INSERT shape
+                    // (phase4-review MAJ-6).
                     let auto_promoted_requests = if previous_join_policy
                         != GroupJoinPolicy::OpenJoin
                         && updated_user_group.join_policy == GroupJoinPolicy::OpenJoin
                     {
-                        let pending_user_ids: Vec<FilezUserId> =
-                            schema::user_user_group_join_requests::table
-                                .filter(
-                                    schema::user_user_group_join_requests::user_group_id
-                                        .eq(user_group_id),
-                                )
-                                .select(schema::user_user_group_join_requests::user_id)
-                                .load::<FilezUserId>(conn)
-                                .await?;
-                        let count = pending_user_ids.len();
-                        if count > 0 {
-                            let new_members: Vec<UserUserGroupMember> = pending_user_ids
-                                .iter()
-                                .map(|user_id| UserUserGroupMember::new(user_id, user_group_id))
-                                .collect();
-                            diesel::insert_into(schema::user_user_group_members::table)
-                                .values(&new_members)
-                                .on_conflict_do_nothing()
-                                .execute(conn)
-                                .await?;
-                            diesel::delete(
-                                schema::user_user_group_join_requests::table.filter(
-                                    schema::user_user_group_join_requests::user_group_id
-                                        .eq(user_group_id),
-                                ),
-                            )
-                            .execute(conn)
-                            .await?;
-                        }
-                        count
+                        // INSERT first so the deletes can't strand a
+                        // user as neither-pending-nor-member (we're
+                        // inside a tx so order is invisible to readers,
+                        // but the explicit order matches the spec
+                        // wording "convert pending requests to
+                        // memberships").
+                        diesel::sql_query(
+                            "INSERT INTO user_user_group_members \
+                                 (user_id, user_group_id, created_time) \
+                             SELECT user_id, user_group_id, now() \
+                             FROM user_user_group_join_requests \
+                             WHERE user_group_id = $1 \
+                             ON CONFLICT DO NOTHING",
+                        )
+                        .bind::<diesel::sql_types::Uuid, _>(user_group_id.0)
+                        .execute(conn)
+                        .await?;
+
+                        let deleted = diesel::delete(
+                            schema::user_user_group_join_requests::table.filter(
+                                schema::user_user_group_join_requests::user_group_id
+                                    .eq(user_group_id),
+                            ),
+                        )
+                        .execute(conn)
+                        .await?;
+                        deleted
                     } else {
                         0
                     };
@@ -597,6 +601,108 @@ impl UserGroup {
 
         Ok(users_list)
     }
+}
+
+/// Which kind of pending row [`promote_pending_to_member`] should
+/// consume. Both invitation-accept and join-request-approve share
+/// the same delete-then-insert shape; this enum selects the source
+/// table without duplicating the transaction code in two handlers
+/// (phase4-review MAJ-3 / REPO-1 / TASTE-3).
+#[derive(Debug, Clone, Copy)]
+pub enum PendingMembershipKind {
+    JoinRequest,
+    Invitation,
+}
+
+/// Outcome of [`promote_pending_to_member`].
+///
+/// `existed` is `false` when the DELETE matched zero rows — either
+/// the pending row never existed, or a concurrent accept/reject
+/// won the race. Either way the caller returns 404.
+///
+/// `already_member` is `true` when the membership insert matched
+/// zero rows under `ON CONFLICT DO NOTHING` — the user was already
+/// a member via a different path. Caller treats this as success
+/// (the desired end state holds) but it's worth a `tracing::warn!`
+/// so we notice if it starts happening often (it indicates a UI
+/// race or a duplicate-path bug worth investigating).
+#[derive(Debug, Clone, Copy)]
+pub struct PromotePendingOutcome {
+    pub existed: bool,
+    pub already_member: bool,
+}
+
+/// Shared transaction for accepting an invitation / approving a
+/// join request: DELETE the pending row, INSERT the membership row,
+/// both atomic. Replaces the near-identical
+/// `accept_in_transaction` + `approve_in_transaction` helpers each
+/// handler used to carry (phase4-review MAJ-3).
+///
+/// Race handling:
+///   * Pre-transaction read removed (phase4-review MIN-6) — the
+///     DELETE's affected count is the source of truth, so the
+///     handler can't observe a window where the row existed
+///     between the check and the act.
+///   * The membership insert no longer uses ON CONFLICT silently
+///     (phase4-review MIN-7) — we capture whether it actually
+///     inserted, and log the no-op case.
+#[tracing::instrument(level = "trace", skip(database))]
+pub async fn promote_pending_to_member(
+    database: &Database,
+    kind: PendingMembershipKind,
+    user_group_id: &UserGroupId,
+    user_id: &FilezUserId,
+) -> Result<PromotePendingOutcome, FilezError> {
+    use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
+
+    let mut connection = database.get_connection().await?;
+    connection
+        .transaction::<PromotePendingOutcome, FilezError, _>(|conn| {
+            async move {
+                let deleted: usize = match kind {
+                    PendingMembershipKind::JoinRequest => diesel::delete(
+                        schema::user_user_group_join_requests::table
+                            .filter(
+                                schema::user_user_group_join_requests::user_id.eq(user_id),
+                            )
+                            .filter(
+                                schema::user_user_group_join_requests::user_group_id
+                                    .eq(user_group_id),
+                            ),
+                    )
+                    .execute(conn)
+                    .await?,
+                    PendingMembershipKind::Invitation => diesel::delete(
+                        schema::user_user_group_invitations::table
+                            .filter(schema::user_user_group_invitations::user_id.eq(user_id))
+                            .filter(
+                                schema::user_user_group_invitations::user_group_id
+                                    .eq(user_group_id),
+                            ),
+                    )
+                    .execute(conn)
+                    .await?,
+                };
+                if deleted == 0 {
+                    return Ok(PromotePendingOutcome {
+                        existed: false,
+                        already_member: false,
+                    });
+                }
+
+                let inserted = diesel::insert_into(schema::user_user_group_members::table)
+                    .values(UserUserGroupMember::new(user_id, user_group_id))
+                    .on_conflict_do_nothing()
+                    .execute(conn)
+                    .await?;
+                Ok(PromotePendingOutcome {
+                    existed: true,
+                    already_member: inserted == 0,
+                })
+            }
+            .scope_boxed()
+        })
+        .await
 }
 
 /// USER_GROUPS.md §6 discovery modes. Each `filter` query value

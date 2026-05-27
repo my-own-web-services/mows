@@ -12,17 +12,14 @@
 //! this group" — the existence of the invitation IS the consent.
 
 use crate::{
-    database::Database,
     errors::{AuthResultExt, FilezError},
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        user_groups::UserGroupId,
-        user_user_group_invitations::UserUserGroupInvitation,
-        user_user_group_members::UserUserGroupMember,
-        users::FilezUserId,
+        user_groups::{
+            promote_pending_to_member, PendingMembershipKind, UserGroupId,
+        },
     },
-    schema,
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     validation::Json,
@@ -32,8 +29,6 @@ use axum::{
     extract::{Path, State},
     Extension,
 };
-use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl};
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection, RunQueryDsl};
 
 #[utoipa::path(
     post,
@@ -79,65 +74,38 @@ pub async fn accept_invitation(
             FilezError::Unauthorized("Anonymous callers cannot accept invitations".to_string())
         })?;
 
-    let pending = with_timing!(
-        UserUserGroupInvitation::get_one(&database, &invitee.id, &user_group_id).await?,
-        "Database operation to load pending invitation",
+    let outcome = with_timing!(
+        promote_pending_to_member(
+            &database,
+            PendingMembershipKind::Invitation,
+            &user_group_id,
+            &invitee.id,
+        )
+        .await?,
+        "Database transaction: delete invitation + insert member",
         timing
     );
-    if pending.is_none() {
+
+    if !outcome.existed {
         return Err(FilezError::ResourceNotFound(
             "No pending invitation for this user/group".to_string(),
         ));
     }
-
-    with_timing!(
-        accept_in_transaction(&database, &user_group_id, &invitee.id).await?,
-        "Database transaction: delete invitation + insert member",
-        timing
-    );
+    if outcome.already_member {
+        // Real race signal — the invitee was already a member via
+        // another path (concurrent accept, or membership added
+        // outside the invitation flow). Surface it to ops but
+        // return success: the desired end state holds.
+        tracing::warn!(
+            user_id = %invitee.id,
+            user_group_id = %user_group_id,
+            "Invitation accepted but invitee was already a member — concurrent flow or duplicate path",
+        );
+    }
 
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
         message: "Invitation accepted".to_string(),
         data: None,
     }))
-}
-
-#[tracing::instrument(skip(database), level = "trace")]
-async fn accept_in_transaction(
-    database: &Database,
-    user_group_id: &UserGroupId,
-    user_id: &FilezUserId,
-) -> Result<(), FilezError> {
-    let mut connection = database.get_connection().await?;
-    connection
-        .transaction::<(), FilezError, _>(|conn| {
-            async move {
-                let affected = diesel::delete(
-                    schema::user_user_group_invitations::table.filter(
-                        schema::user_user_group_invitations::user_id
-                            .eq(user_id)
-                            .and(
-                                schema::user_user_group_invitations::user_group_id
-                                    .eq(user_group_id),
-                            ),
-                    ),
-                )
-                .execute(conn)
-                .await?;
-                if affected == 0 {
-                    return Err(FilezError::ResourceNotFound(
-                        "Invitation already resolved".to_string(),
-                    ));
-                }
-                diesel::insert_into(schema::user_user_group_members::table)
-                    .values(UserUserGroupMember::new(user_id, user_group_id))
-                    .on_conflict_do_nothing()
-                    .execute(conn)
-                    .await?;
-                Ok(())
-            }
-            .scope_boxed()
-        })
-        .await
 }
