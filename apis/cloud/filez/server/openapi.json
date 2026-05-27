@@ -2818,6 +2818,16 @@
               }
             }
           },
+          "401": {
+            "description": "Anonymous callers cannot accept",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "No pending invitation for the caller",
             "content": {
@@ -2859,6 +2869,16 @@
         "responses": {
           "200": {
             "description": "Invitation declined (or was already gone)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Anonymous callers cannot decline",
             "content": {
               "application/json": {
                 "schema": {
@@ -3118,8 +3138,18 @@
               }
             }
           },
+          "401": {
+            "description": "Anonymous callers cannot leave",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
           "403": {
-            "description": "Caller is the group's owner",
+            "description": "Caller is the group's owner (must transfer ownership first)",
             "content": {
               "application/json": {
                 "schema": {
@@ -9086,12 +9116,19 @@
         "required": [
           "user_id",
           "user_group_id",
-          "invited_time",
-          "invited_by"
+          "invited_time"
         ],
         "properties": {
           "invited_by": {
-            "$ref": "#/components/schemas/FilezUserId"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FilezUserId",
+                "description": "`None` after the inviter's account is deleted\n(USER_GROUPS.md §7.4 — \"the invitation is irrelevant but\nharmless. Leave it\"). FK is `ON DELETE SET NULL` per\nmigration 00000000000013."
+              }
+            ]
           },
           "invited_time": {
             "type": "string",

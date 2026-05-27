@@ -4,13 +4,17 @@
 //! missing invitation returns 200, since the security-relevant
 //! outcome is the same: no membership exists.
 //!
-//! Gated by `UserGroupsRespondToInvite` (same authority as accept).
+//! **Authorization model** (USER_GROUPS.md §6): row-based, mirror
+//! of `accept`. The DELETE targets only the (caller, group)
+//! invitation row — even if a row exists for a DIFFERENT caller on
+//! this group, this caller's DELETE is a no-op. No
+//! `AccessPolicy::check(UserGroupsRespondToInvite)` for the same
+//! reason as accept (see accept.rs module docstring).
 
 use crate::{
-    errors::{AuthResultExt, FilezError},
+    errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
-        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
         user_groups::UserGroupId,
         user_user_group_invitations::UserUserGroupInvitation,
     },
@@ -34,6 +38,8 @@ use axum::{
     responses(
         (status = 200, description = "Invitation declined (or was already gone)",
          body = ApiResponse<EmptyApiResponse>),
+        (status = 401, description = "Anonymous callers cannot decline",
+         body = ApiResponse<EmptyApiResponse>),
         (status = 500, description = "Internal server error",
          body = ApiResponse<EmptyApiResponse>),
     )
@@ -45,20 +51,6 @@ pub async fn decline_invitation(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(user_group_id): Path<UserGroupId>,
 ) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
-    with_timing!(
-        AccessPolicy::check(
-            &database,
-            &authentication_information,
-            AccessPolicyResourceType::UserGroup,
-            Some(&vec![user_group_id.into()]),
-            AccessPolicyAction::UserGroupsRespondToInvite,
-        )
-        .await?
-        .verify()?,
-        "Database operation to check access control",
-        timing
-    );
-
     let invitee = authentication_information
         .requesting_user
         .as_ref()

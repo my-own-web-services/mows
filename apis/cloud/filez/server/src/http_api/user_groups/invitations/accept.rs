@@ -6,19 +6,23 @@
 //! caller — no path param for user_id, deliberately, since only
 //! the invitee can act on their own invitation.
 //!
-//! USER_GROUPS.md §6 — gated by `UserGroupsRespondToInvite` on the
-//! group. The default policy created at group setup grants this
-//! action to "anyone with a row in user_user_group_invitations for
-//! this group" — the existence of the invitation IS the consent.
+//! **Authorization model** (USER_GROUPS.md §6): the existence of
+//! the invitation row IS the authorization signal. The handler
+//! does NOT call `AccessPolicy::check(UserGroupsRespondToInvite)`
+//! because that check would either need a per-invitation policy
+//! seeded at invite time (huge churn for transient state) or a
+//! blanket "any user can RespondToInvite on any group" policy
+//! (overly broad). Instead the transactional DELETE of the
+//! invitation row is the source of truth: if the affected count is
+//! zero, the caller had no pending invitation and we return 404.
+//! This matches the spec wording ("the existence of the invitation
+//! IS the consent").
 
 use crate::{
-    errors::{AuthResultExt, FilezError},
+    errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
-    models::{
-        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        user_groups::{
-            promote_pending_to_member, PendingMembershipKind, UserGroupId,
-        },
+    models::user_groups::{
+        promote_pending_to_member, PendingMembershipKind, UserGroupId,
     },
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
@@ -40,6 +44,8 @@ use axum::{
     responses(
         (status = 200, description = "Invitation accepted; caller is now a member",
          body = ApiResponse<EmptyApiResponse>),
+        (status = 401, description = "Anonymous callers cannot accept",
+         body = ApiResponse<EmptyApiResponse>),
         (status = 404, description = "No pending invitation for the caller",
          body = ApiResponse<EmptyApiResponse>),
         (status = 500, description = "Internal server error",
@@ -53,20 +59,6 @@ pub async fn accept_invitation(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(user_group_id): Path<UserGroupId>,
 ) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
-    with_timing!(
-        AccessPolicy::check(
-            &database,
-            &authentication_information,
-            AccessPolicyResourceType::UserGroup,
-            Some(&vec![user_group_id.into()]),
-            AccessPolicyAction::UserGroupsRespondToInvite,
-        )
-        .await?
-        .verify()?,
-        "Database operation to check access control",
-        timing
-    );
-
     let invitee = authentication_information
         .requesting_user
         .as_ref()
@@ -74,6 +66,11 @@ pub async fn accept_invitation(
             FilezError::Unauthorized("Anonymous callers cannot accept invitations".to_string())
         })?;
 
+    // Row-based auth: the transactional DELETE inside
+    // `promote_pending_to_member` returns affected=0 when the
+    // (invitee, group) invitation doesn't exist — that's the 404
+    // signal. No AccessPolicy::check needed; the invitation row IS
+    // the consent (see module docstring).
     let outcome = with_timing!(
         promote_pending_to_member(
             &database,
@@ -92,10 +89,6 @@ pub async fn accept_invitation(
         ));
     }
     if outcome.already_member {
-        // Real race signal — the invitee was already a member via
-        // another path (concurrent accept, or membership added
-        // outside the invitation flow). Surface it to ops but
-        // return success: the desired end state holds.
         tracing::warn!(
             user_id = %invitee.id,
             user_group_id = %user_group_id,

@@ -2188,7 +2188,13 @@ export interface UserMeta {
 }
 
 export interface UserUserGroupInvitation {
-  invited_by: FilezUserId;
+  /**
+   * `None` after the inviter's account is deleted
+   * (USER_GROUPS.md §7.4 — "the invitation is irrelevant but
+   * harmless. Leave it"). FK is `ON DELETE SET NULL` per
+   * migration 00000000000013.
+   */
+  invited_by?: null | FilezUserId;
   /** @format date-time */
   invited_time: string;
   message?: string | null;

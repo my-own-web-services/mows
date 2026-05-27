@@ -3,19 +3,22 @@
 //! Member self-removes from a group. Idempotent — a non-member
 //! returns 200 (security-equivalent: caller is not a member).
 //!
-//! USER_GROUPS.md §6 — gated by `UserGroupsLeave` on the target
-//! group. Owners cannot leave their own group via this endpoint
-//! (USER_GROUPS.md §7 edge case: "Demoting an owner — cannot
-//! happen — only way out is to transfer ownership first"). The
-//! handler returns 403 in that case.
+//! **Authorization model** (USER_GROUPS.md §6): row-based. The
+//! membership row (`user_user_group_members`) IS the consent
+//! signal — being a member IS the authorization to leave. The
+//! DELETE targets only the (caller, group) membership row; even
+//! when the caller is not a member, the DELETE is a no-op and we
+//! still return 200 (the desired end state — caller is not a
+//! member — holds either way).
+//!
+//! Owners cannot leave their own group per USER_GROUPS.md §7
+//! ("Demoting an owner — cannot happen — only way out is to
+//! transfer ownership first") — explicit early-return.
 
 use crate::{
-    errors::{AuthResultExt, FilezError},
+    errors::FilezError,
     http_api::authentication::middleware::AuthenticationInformation,
-    models::{
-        access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
-        user_groups::{UserGroup, UserGroupId},
-    },
+    models::user_groups::{UserGroup, UserGroupId},
     state::ServerState,
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     validation::Json,
@@ -36,7 +39,9 @@ use axum::{
     responses(
         (status = 200, description = "Left the group (or was already not a member)",
          body = ApiResponse<EmptyApiResponse>),
-        (status = 403, description = "Caller is the group's owner",
+        (status = 401, description = "Anonymous callers cannot leave",
+         body = ApiResponse<EmptyApiResponse>),
+        (status = 403, description = "Caller is the group's owner (must transfer ownership first)",
          body = ApiResponse<EmptyApiResponse>),
         (status = 500, description = "Internal server error",
          body = ApiResponse<EmptyApiResponse>),
@@ -49,20 +54,6 @@ pub async fn leave_user_group(
     Extension(timing): Extension<axum_server_timing::ServerTimingExtension>,
     Path(user_group_id): Path<UserGroupId>,
 ) -> Result<Json<ApiResponse<EmptyApiResponse>>, FilezError> {
-    with_timing!(
-        AccessPolicy::check(
-            &database,
-            &authentication_information,
-            AccessPolicyResourceType::UserGroup,
-            Some(&vec![user_group_id.into()]),
-            AccessPolicyAction::UserGroupsLeave,
-        )
-        .await?
-        .verify()?,
-        "Database operation to check access control",
-        timing
-    );
-
     let leaving = authentication_information
         .requesting_user
         .as_ref()
@@ -70,6 +61,9 @@ pub async fn leave_user_group(
             FilezError::Unauthorized("Anonymous callers cannot leave groups".to_string())
         })?;
 
+    // Load the group to check the owner guard. The membership-row
+    // DELETE itself is the actual authorization (row-based per
+    // USER_GROUPS.md §6); this load is only for the owner check.
     let user_group = with_timing!(
         UserGroup::get_one_by_id(&database, &user_group_id).await?,
         "Load target user group",

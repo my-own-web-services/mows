@@ -2032,7 +2032,7 @@ pub struct UserMeta {
 // UserUserGroupInvitation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserUserGroupInvitation {
-    pub invited_by: FilezUserId,
+    pub invited_by: Option<FilezUserId>,
     pub invited_time: NaiveDateTime,
     pub message: Option<String>,
     pub user_group_id: UserGroupId,
