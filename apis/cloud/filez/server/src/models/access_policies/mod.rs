@@ -574,6 +574,33 @@ impl AccessPolicy {
         Ok(())
     }
 
+    /// USER_GROUPS.md §7.2 cleanup: when a user-group is deleted,
+    /// every `access_policies` row whose subject was that group must
+    /// go too. Returns the number of dropped policy rows so the
+    /// caller can include the count in the audit log entry the spec
+    /// asks for ("an admin can restore the shape if it was a
+    /// mistake").
+    ///
+    /// Intentionally a hard DELETE rather than `revoked = TRUE` —
+    /// the subject is gone, so an audit-trail row would reference
+    /// a dangling subject_id with no way to interpret it later.
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn delete_all_by_subject(
+        database: &Database,
+        subject_type: SubjectType,
+        subject_id: &Uuid,
+    ) -> Result<usize, FilezError> {
+        let mut connection = database.get_connection().await?;
+        let affected = diesel::delete(
+            schema::access_policies::table
+                .filter(schema::access_policies::subject_type.eq(subject_type))
+                .filter(schema::access_policies::subject_id.eq(subject_id)),
+        )
+        .execute(&mut connection)
+        .await?;
+        Ok(affected)
+    }
+
     /// Soft-delete by flipping `revoked = TRUE`. Preserves the row
     /// for audit and lets `PolicyStore` queries exclude it via the
     /// canonical lifecycle filter (`NOT revoked AND …`). The Picker
@@ -678,6 +705,34 @@ mod context_app_ids_typo_guard {
                  .plans/authorization/issue.md QA-2."
             );
         }
+    }
+
+    #[test]
+    fn delete_all_by_subject_filters_on_both_columns() {
+        // USER_GROUPS.md §7.2 regression guard: the cleanup query
+        // MUST filter on both `subject_type` and `subject_id`. A
+        // refactor that drops either clause turns a single-group
+        // cleanup into a cross-group wipe.
+        use diesel::{debug_query, pg::Pg, ExpressionMethods, QueryDsl};
+        let query = diesel::delete(
+            crate::schema::access_policies::table
+                .filter(
+                    crate::schema::access_policies::subject_type
+                        .eq(mows_auth_core::types::SubjectType::UserGroup),
+                )
+                .filter(
+                    crate::schema::access_policies::subject_id.eq(uuid::Uuid::nil()),
+                ),
+        );
+        let sql = debug_query::<Pg, _>(&query).to_string();
+        assert!(
+            sql.contains("\"subject_type\" ="),
+            "cleanup query must filter on subject_type: {sql}"
+        );
+        assert!(
+            sql.contains("\"subject_id\" ="),
+            "cleanup query must filter on subject_id: {sql}"
+        );
     }
 
     #[test]
