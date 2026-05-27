@@ -13,5 +13,7 @@ pub mod tag_members;
 pub mod tags;
 pub mod user_groups;
 pub mod user_relations;
+pub mod user_user_group_invitations;
+pub mod user_user_group_join_requests;
 pub mod user_user_group_members;
 pub mod users;
