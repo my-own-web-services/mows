@@ -744,6 +744,450 @@ impl<'a, S: PolicyStore + ?Sized> SortedStream for DirectUserGroupStream<'a, S> 
     }
 }
 
+/// Macro to declare a cover-backed stream wrapper. The three
+/// cover sources (Public, ServerMember, LargeUserGroup) all share
+/// the same lazy-refill skeleton — only the store method and
+/// source tag differ. Defining them via macro removes ~80 lines of
+/// near-identical boilerplate.
+macro_rules! declare_cover_stream {
+    (
+        $(#[$attr:meta])*
+        $name:ident, $source:expr, $store_method:ident
+    ) => {
+        $(#[$attr])*
+        pub struct $name<'a, S: PolicyStore + ?Sized> {
+            store: &'a S,
+            auth_info: &'a ResourceAuthInfo,
+            app: AppView,
+            action: u32,
+            buffer: std::collections::VecDeque<StreamItem>,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+            exhausted: bool,
+        }
+
+        impl<'a, S: PolicyStore + ?Sized> $name<'a, S> {
+            pub fn new(
+                store: &'a S,
+                auth_info: &'a ResourceAuthInfo,
+                app: AppView,
+                action: u32,
+                initial_cursor: Option<ListingCursor>,
+                batch_size: usize,
+            ) -> Self {
+                debug_assert!(batch_size > 0, "batch_size must be > 0");
+                Self {
+                    store,
+                    auth_info,
+                    app,
+                    action,
+                    buffer: std::collections::VecDeque::with_capacity(batch_size),
+                    cursor: initial_cursor,
+                    batch_size,
+                    exhausted: false,
+                }
+            }
+        }
+
+        #[async_trait]
+        impl<'a, S: PolicyStore + ?Sized> SortedStream for $name<'a, S> {
+            fn source(&self) -> StreamSource {
+                $source
+            }
+            async fn next(&mut self) -> Result<Option<StreamItem>, AuthError> {
+                if self.buffer.is_empty() && !self.exhausted {
+                    let batch = self
+                        .store
+                        .$store_method(
+                            self.auth_info,
+                            self.app,
+                            self.action,
+                            self.cursor,
+                            self.batch_size,
+                        )
+                        .await?;
+                    if batch.len() < self.batch_size {
+                        self.exhausted = true;
+                    }
+                    if let Some(last) = batch.last() {
+                        self.cursor = Some(ListingCursor {
+                            sort_key: last.sort_key,
+                            resource_id: last.resource_id,
+                        });
+                    }
+                    self.buffer.extend(batch);
+                }
+                Ok(self.buffer.pop_front())
+            }
+        }
+    };
+}
+
+declare_cover_stream!(
+    /// LISTING.md §5 row 4 / §6 — Public-shared resources via
+    /// `public_resources` cover table. Pure indexed scan; no JOIN
+    /// to access_policies. Same lazy refill as [`OwnedStream`].
+    PublicCoverStream,
+    StreamSource::PublicMaterialized,
+    stream_public_cover_resources
+);
+
+declare_cover_stream!(
+    /// LISTING.md §5 row 5 / §6 — ServerMember-shared resources
+    /// via `server_member_resources` cover table. The engine MUST
+    /// only construct this stream when the caller is
+    /// authenticated (anonymous → not a ServerMember).
+    ServerMemberCoverStream,
+    StreamSource::ServerMemberMaterialized,
+    stream_server_member_cover_resources
+);
+
+/// LISTING.md §6.2 — cover-backed stream for ONE large user-group.
+/// Doesn't fit the macro's shape because it carries a
+/// `user_group_id` and uses a different store method signature.
+pub struct LargeUserGroupCoverStream<'a, S: PolicyStore + ?Sized> {
+    store: &'a S,
+    auth_info: &'a ResourceAuthInfo,
+    user_group_id: Uuid,
+    app: AppView,
+    action: u32,
+    buffer: std::collections::VecDeque<StreamItem>,
+    cursor: Option<ListingCursor>,
+    batch_size: usize,
+    exhausted: bool,
+}
+
+impl<'a, S: PolicyStore + ?Sized> LargeUserGroupCoverStream<'a, S> {
+    pub fn new(
+        store: &'a S,
+        auth_info: &'a ResourceAuthInfo,
+        user_group_id: Uuid,
+        app: AppView,
+        action: u32,
+        initial_cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Self {
+        debug_assert!(batch_size > 0, "batch_size must be > 0");
+        Self {
+            store,
+            auth_info,
+            user_group_id,
+            app,
+            action,
+            buffer: std::collections::VecDeque::with_capacity(batch_size),
+            cursor: initial_cursor,
+            batch_size,
+            exhausted: false,
+        }
+    }
+}
+
+#[async_trait]
+impl<'a, S: PolicyStore + ?Sized> SortedStream for LargeUserGroupCoverStream<'a, S> {
+    fn source(&self) -> StreamSource {
+        StreamSource::DirectUserGroup
+    }
+
+    async fn next(&mut self) -> Result<Option<StreamItem>, AuthError> {
+        if self.buffer.is_empty() && !self.exhausted {
+            let batch = self
+                .store
+                .stream_large_user_group_cover_resources(
+                    self.auth_info,
+                    &self.user_group_id,
+                    self.app,
+                    self.action,
+                    self.cursor,
+                    self.batch_size,
+                )
+                .await?;
+            if batch.len() < self.batch_size {
+                self.exhausted = true;
+            }
+            if let Some(last) = batch.last() {
+                self.cursor = Some(ListingCursor {
+                    sort_key: last.sort_key,
+                    resource_id: last.resource_id,
+                });
+            }
+            self.buffer.extend(batch);
+        }
+        Ok(self.buffer.pop_front())
+    }
+}
+
+#[cfg(test)]
+mod cover_stream_tests {
+    //! Validate the three cover-backed streams behave like the
+    //! other streams (DESC walk, error propagation, exhaustion).
+    //! The PolicyStore stub serves canned cover-row batches.
+    use super::*;
+    use crate::registry::ResourceAuthInfo;
+    use async_trait::async_trait;
+
+    #[derive(Default, Debug)]
+    struct CoverStore {
+        public: Vec<StreamItem>,
+        server_member: Vec<StreamItem>,
+        groups: std::collections::HashMap<Uuid, Vec<StreamItem>>,
+    }
+
+    #[async_trait]
+    impl PolicyStore for CoverStore {
+        async fn fetch_owners(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Uuid>, AuthError> {
+            Ok(Default::default())
+        }
+        async fn fetch_direct_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+            _: &[Uuid],
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn fetch_resource_group_memberships(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>, AuthError> {
+            Ok(Default::default())
+        }
+        async fn fetch_resource_group_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+            _: &[Uuid],
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn fetch_type_level_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn stream_public_cover_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            _: AppView,
+            _: u32,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            Ok(slice_after_cursor(&self.public, cursor, batch_size))
+        }
+        async fn stream_server_member_cover_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            _: AppView,
+            _: u32,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            Ok(slice_after_cursor(&self.server_member, cursor, batch_size))
+        }
+        async fn stream_large_user_group_cover_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            user_group_id: &Uuid,
+            _: AppView,
+            _: u32,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            let v = self.groups.get(user_group_id).cloned().unwrap_or_default();
+            Ok(slice_after_cursor(&v, cursor, batch_size))
+        }
+    }
+
+    fn slice_after_cursor(
+        items: &[StreamItem],
+        cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Vec<StreamItem> {
+        let mut sorted: Vec<StreamItem> = items.iter().cloned().collect();
+        sorted.sort_by(|a, b| {
+            b.sort_key
+                .cmp(&a.sort_key)
+                .then_with(|| b.resource_id.cmp(&a.resource_id))
+        });
+        let mut filtered: Vec<StreamItem> = sorted
+            .into_iter()
+            .filter(|it| match cursor {
+                Some(c) => {
+                    let cmp = it
+                        .sort_key
+                        .cmp(&c.sort_key)
+                        .then_with(|| it.resource_id.cmp(&c.resource_id));
+                    cmp == std::cmp::Ordering::Less
+                }
+                None => true,
+            })
+            .collect();
+        filtered.truncate(batch_size);
+        filtered
+    }
+
+    fn ts(s: i64) -> chrono::NaiveDateTime {
+        chrono::DateTime::from_timestamp(s, 0).unwrap().naive_utc()
+    }
+    fn uuid(n: u128) -> Uuid {
+        Uuid::from_u128(n)
+    }
+    fn auth_info() -> ResourceAuthInfo {
+        ResourceAuthInfo {
+            resource_table: "files",
+            resource_table_id_column: "id",
+            resource_table_owner_column: Some("owner_id"),
+            resource_type: 0,
+            group_membership_table: Some("file_file_group_members"),
+            group_membership_resource_id_column: Some("file_id"),
+            group_membership_group_id_column: Some("file_group_id"),
+            resource_group_type: Some(1),
+        }
+    }
+    fn app() -> AppView {
+        AppView { id: uuid(99), trusted: false }
+    }
+    async fn drain<S: SortedStream + ?Sized>(stream: &mut S) -> Vec<Uuid> {
+        let mut out = Vec::new();
+        while let Some(it) = stream.next().await.unwrap() {
+            out.push(it.resource_id);
+        }
+        out
+    }
+
+    #[tokio::test]
+    async fn public_cover_stream_walks_desc() {
+        let store = CoverStore {
+            public: vec![
+                StreamItem { sort_key: ts(100), resource_id: uuid(1) },
+                StreamItem { sort_key: ts(90),  resource_id: uuid(2) },
+                StreamItem { sort_key: ts(80),  resource_id: uuid(3) },
+            ],
+            ..Default::default()
+        };
+        let info = auth_info();
+        let mut s = PublicCoverStream::new(&store, &info, app(), 0, None, 2);
+        assert_eq!(drain(&mut s).await, vec![uuid(1), uuid(2), uuid(3)]);
+        assert_eq!(s.source(), StreamSource::PublicMaterialized);
+    }
+
+    #[tokio::test]
+    async fn server_member_cover_stream_walks_desc() {
+        let store = CoverStore {
+            server_member: vec![
+                StreamItem { sort_key: ts(100), resource_id: uuid(10) },
+                StreamItem { sort_key: ts(90),  resource_id: uuid(20) },
+            ],
+            ..Default::default()
+        };
+        let info = auth_info();
+        let mut s = ServerMemberCoverStream::new(&store, &info, app(), 0, None, 10);
+        assert_eq!(drain(&mut s).await, vec![uuid(10), uuid(20)]);
+        assert_eq!(s.source(), StreamSource::ServerMemberMaterialized);
+    }
+
+    #[tokio::test]
+    async fn large_user_group_cover_stream_walks_per_group() {
+        let g1 = uuid(11);
+        let g2 = uuid(12);
+        let mut store = CoverStore::default();
+        store.groups.insert(
+            g1,
+            vec![
+                StreamItem { sort_key: ts(100), resource_id: uuid(1) },
+                StreamItem { sort_key: ts(80),  resource_id: uuid(3) },
+            ],
+        );
+        store.groups.insert(
+            g2,
+            vec![StreamItem { sort_key: ts(90), resource_id: uuid(2) }],
+        );
+        let info = auth_info();
+        let mut s = LargeUserGroupCoverStream::new(&store, &info, g1, app(), 0, None, 10);
+        // Group g1 only — must NOT include g2 items.
+        assert_eq!(drain(&mut s).await, vec![uuid(1), uuid(3)]);
+    }
+
+    #[tokio::test]
+    async fn cover_streams_propagate_store_errors() {
+        struct E;
+        #[async_trait]
+        impl PolicyStore for E {
+            async fn fetch_owners(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &[Uuid],
+            ) -> Result<std::collections::HashMap<Uuid, Uuid>, AuthError> {
+                Ok(Default::default())
+            }
+            async fn fetch_direct_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+                _: &[Uuid],
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn fetch_resource_group_memberships(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &[Uuid],
+            ) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>, AuthError>
+            {
+                Ok(Default::default())
+            }
+            async fn fetch_resource_group_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+                _: &[Uuid],
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn fetch_type_level_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn stream_public_cover_resources(
+                &self,
+                _: &ResourceAuthInfo,
+                _: AppView,
+                _: u32,
+                _: Option<ListingCursor>,
+                _: usize,
+            ) -> Result<Vec<StreamItem>, AuthError> {
+                Err(AuthError::Evaluation("cover boom".into()))
+            }
+        }
+        let store = E;
+        let info = auth_info();
+        let mut s = PublicCoverStream::new(&store, &info, app(), 0, None, 10);
+        assert!(s.next().await.is_err());
+    }
+}
+
 #[cfg(test)]
 mod direct_stream_tests {
     //! Mirror of owned_stream_tests for the direct-user and

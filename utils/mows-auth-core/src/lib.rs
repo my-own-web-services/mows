@@ -52,7 +52,8 @@ pub mod list;
 pub use crate::check::check_access;
 pub use crate::list::{
     list_visible_resource_ids, merge_streams, DirectUserGroupStream, DirectUserStream,
-    ListingCursor, ListingPage, OwnedStream, SortedStream, StreamItem, StreamSource,
+    LargeUserGroupCoverStream, ListingCursor, ListingPage, OwnedStream, PublicCoverStream,
+    ServerMemberCoverStream, SortedStream, StreamItem, StreamSource,
 };
 pub use crate::evaluation::{AuthEvaluation, AuthReason, AuthResult};
 pub use crate::idp::{

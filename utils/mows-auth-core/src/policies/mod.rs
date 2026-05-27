@@ -417,6 +417,81 @@ pub trait PolicyStore: Send + Sync {
              explicit Ok(vec![]). phase3-review A1.".to_string(),
         ))
     }
+
+    /// Phase 3 P3-4 — cover-backed stream for Public shares
+    /// (LISTING.md §5 table row 4 / §6). Reads directly from
+    /// `public_resources` — the cover row carries
+    /// `(resource_id, sort_created)`, no JOIN to the resource
+    /// table needed.
+    ///
+    /// Filters on `resource_type = $T`, `app_ids && ARRAY[$app,
+    /// nil_uuid]`, `actions @> ARRAY[$action]`,
+    /// `(sort_created, resource_id) < $cursor`. Uses
+    /// `public_resources_by_created (resource_type, sort_created
+    /// DESC, resource_id DESC)` — pure indexed scan.
+    ///
+    /// Stores that don't support Public sharing override with
+    /// Ok(vec![]). Default fails loud per phase3-review A1.
+    async fn stream_public_cover_resources(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _app: AppView,
+        _action: u32,
+        _cursor: Option<crate::list::ListingCursor>,
+        _batch_size: usize,
+    ) -> Result<Vec<crate::list::StreamItem>, AuthError> {
+        Err(AuthError::Evaluation(
+            "PolicyStore::stream_public_cover_resources not implemented for this \
+             store. Override with Ok(vec![]) if Public sharing is unsupported. \
+             phase3-review A1.".to_string(),
+        ))
+    }
+
+    /// Phase 3 P3-4 — cover-backed stream for ServerMember
+    /// shares (LISTING.md §5 table row 5 / §6). Same shape as
+    /// `stream_public_cover_resources`; reads from
+    /// `server_member_resources`. The engine MUST only include
+    /// this stream when the caller is authenticated (anonymous
+    /// callers are not ServerMembers).
+    async fn stream_server_member_cover_resources(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _app: AppView,
+        _action: u32,
+        _cursor: Option<crate::list::ListingCursor>,
+        _batch_size: usize,
+    ) -> Result<Vec<crate::list::StreamItem>, AuthError> {
+        Err(AuthError::Evaluation(
+            "PolicyStore::stream_server_member_cover_resources not implemented \
+             for this store. Override with Ok(vec![]) if ServerMember sharing \
+             is unsupported. phase3-review A1.".to_string(),
+        ))
+    }
+
+    /// Phase 3 P3-4 — cover-backed stream for one large user-group
+    /// (LISTING.md §6.2). Reads from
+    /// `user_group_accessible_resources` filtered by
+    /// `user_group_id = $group`. The engine ONLY uses this stream
+    /// for groups whose `materialize_uga` flag is true (the daily
+    /// recompute job per P5-3 maintains the flag); small groups
+    /// take the live-join `stream_direct_user_group_resources`
+    /// path. The Phase-3 P3-8 planner makes that choice; this
+    /// method ships now so the surface is complete.
+    async fn stream_large_user_group_cover_resources(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _user_group_id: &Uuid,
+        _app: AppView,
+        _action: u32,
+        _cursor: Option<crate::list::ListingCursor>,
+        _batch_size: usize,
+    ) -> Result<Vec<crate::list::StreamItem>, AuthError> {
+        Err(AuthError::Evaluation(
+            "PolicyStore::stream_large_user_group_cover_resources not \
+             implemented for this store. Override with Ok(vec![]) if cover \
+             tables aren't used. phase3-review A1.".to_string(),
+        ))
+    }
 }
 
 #[cfg(test)]

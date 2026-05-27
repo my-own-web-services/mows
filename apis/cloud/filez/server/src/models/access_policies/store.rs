@@ -839,6 +839,179 @@ impl<'a> PolicyStore for FilezPolicyStore<'a> {
             })
             .collect())
     }
+
+    /// Phase 3 P3-4 — Public cover-backed stream. Pure indexed
+    /// scan of `public_resources` using
+    /// `public_resources_by_created (resource_type,
+    /// sort_created DESC, resource_id DESC)`. No JOIN — the cover
+    /// row already carries `(resource_id, sort_created)` so the
+    /// stream yields directly from the cover table.
+    ///
+    /// GIN filters on `app_ids` (any-app `&&`) and `actions`
+    /// (`@>`) ride the `public_resources_apps_gin` /
+    /// `public_resources_actions_gin` indexes.
+    async fn stream_public_cover_resources(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        app: AppView,
+        action: u32,
+        cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Result<Vec<StreamItem>, AuthError> {
+        cover_table_stream(
+            self.database,
+            "public_resources",
+            auth_info,
+            None,
+            app,
+            action,
+            cursor,
+            batch_size,
+        )
+        .await
+    }
+
+    /// Phase 3 P3-4 — ServerMember cover-backed stream. Mirror of
+    /// the Public variant; reads from `server_member_resources`.
+    async fn stream_server_member_cover_resources(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        app: AppView,
+        action: u32,
+        cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Result<Vec<StreamItem>, AuthError> {
+        cover_table_stream(
+            self.database,
+            "server_member_resources",
+            auth_info,
+            None,
+            app,
+            action,
+            cursor,
+            batch_size,
+        )
+        .await
+    }
+
+    /// Phase 3 P3-4 — large-user-group cover-backed stream. Reads
+    /// from `user_group_accessible_resources` filtered by
+    /// `user_group_id = $group` using `uga_resources_by_created
+    /// (user_group_id, resource_type, sort_created DESC,
+    /// resource_id DESC)`.
+    async fn stream_large_user_group_cover_resources(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        user_group_id: &Uuid,
+        app: AppView,
+        action: u32,
+        cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Result<Vec<StreamItem>, AuthError> {
+        cover_table_stream(
+            self.database,
+            "user_group_accessible_resources",
+            auth_info,
+            Some(*user_group_id),
+            app,
+            action,
+            cursor,
+            batch_size,
+        )
+        .await
+    }
+}
+
+/// Shared body for the three cover-table stream queries. Identical
+/// shape — only the table name + the optional `user_group_id`
+/// filter (for the LargeUserGroup variant) differ.
+///
+/// Table names are compile-time literals, NOT user-supplied —
+/// `format!` is safe by construction. The cover-row sort key is
+/// `sort_created` (TIMESTAMP), matching the Phase-3 default.
+async fn cover_table_stream(
+    database: &Database,
+    cover_table: &'static str,
+    auth_info: &ResourceAuthInfo,
+    user_group_id: Option<Uuid>,
+    app: AppView,
+    action: u32,
+    cursor: Option<ListingCursor>,
+    batch_size: usize,
+) -> Result<Vec<StreamItem>, AuthError> {
+    let resource_type = AccessPolicyResourceType::from_u32(auth_info.resource_type)
+        .expect("resource_type registered");
+    let action_enum =
+        action_from_u32(action).expect("AccessPolicyAction value out of range");
+
+    let pool = database
+        .pool
+        .as_ref()
+        .ok_or_else(|| AuthError::Evaluation("database pool not initialized".to_string()))?;
+    let mut connection = pool.get().await?;
+
+    let group_predicate = if user_group_id.is_some() {
+        " AND user_group_id = $7"
+    } else {
+        ""
+    };
+    let cursor_predicate = if cursor.is_some() {
+        " AND (sort_created, resource_id) < ($5, $6)"
+    } else {
+        ""
+    };
+
+    let sql = format!(
+        "SELECT resource_id, sort_created AS sort_key \
+         FROM   {cover_table} \
+         WHERE  resource_type   = $1 \
+           AND  app_ids && ARRAY[$2, '00000000-0000-0000-0000-000000000000']::UUID[] \
+           AND  actions @> ARRAY[$3]::SMALLINT[] \
+           {cursor_predicate} \
+           {group_predicate} \
+         ORDER BY sort_created DESC, resource_id DESC \
+         LIMIT $4"
+    );
+
+    #[derive(QueryableByName, Debug)]
+    struct Row {
+        #[diesel(sql_type = sql_types::Uuid)]
+        resource_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Timestamp)]
+        sort_key: chrono::NaiveDateTime,
+    }
+
+    let batch_size_i64 = i64::try_from(batch_size)
+        .map_err(|e| AuthError::Evaluation(format!("batch_size overflow: {e}")))?;
+    let resource_type_i16 = resource_type as i16;
+    let action_i16 = action_enum as i16;
+
+    // Bind parameters: $1 resource_type, $2 app_id, $3 action,
+    // $4 batch_size, [optional $5 cursor.sort_key, $6 cursor.id,
+    // $7 user_group_id]. Bound in that fixed order.
+    let mut q = diesel::sql_query(sql)
+        .bind::<diesel::sql_types::SmallInt, _>(resource_type_i16)
+        .bind::<sql_types::Uuid, _>(app.id)
+        .bind::<diesel::sql_types::SmallInt, _>(action_i16)
+        .bind::<diesel::sql_types::BigInt, _>(batch_size_i64)
+        .into_boxed::<diesel::pg::Pg>();
+    if let Some(c) = cursor {
+        q = q
+            .bind::<diesel::sql_types::Timestamp, _>(c.sort_key)
+            .bind::<sql_types::Uuid, _>(c.resource_id);
+    }
+    if let Some(g) = user_group_id {
+        q = q.bind::<sql_types::Uuid, _>(g);
+    }
+    let rows: Vec<Row> = q.load(&mut connection).await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| StreamItem {
+            sort_key: r.sort_key,
+            resource_id: r.resource_id,
+        })
+        .collect())
 }
 
 /// SQL-fragment helper for the lifecycle filter every policy lookup
