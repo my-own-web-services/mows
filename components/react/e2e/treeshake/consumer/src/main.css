@@ -1,0 +1,8 @@
+/* Each scenario imports @mows/react-components/main.css for the actual
+   theme; this file exists only so Vite always has a CSS asset to emit
+   even for the empty scenario, keeping the comparison apples-to-apples. */
+html,
+body {
+    margin: 0;
+    padding: 0;
+}

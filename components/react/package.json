@@ -54,11 +54,13 @@
         "preview:site": "TARGET=site vite preview --port 5175 --strictPort",
         "lint": "eslint src lib",
         "lint:fix": "eslint src lib --fix",
+        "typecheck": "tsc -p tsconfig.lib.json --noEmit",
         "prepublishOnly": "pnpm run test && pnpm run build",
         "test": "vitest run --passWithNoTests",
         "test:watch": "vitest",
         "test:e2e": "playwright test",
-        "test:e2e:install": "playwright install --with-deps chromium"
+        "test:e2e:install": "playwright install --with-deps chromium",
+        "test:treeshake": "bash e2e/treeshake/run.sh"
     },
     "peerDependencies": {
         "react": "^19.1.1",
