@@ -1,5 +1,7 @@
 use super::{
-    access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+    access_policies::{
+        AccessPolicy, AccessPolicyAction, AccessPolicyResourceType, AccessPolicySubjectId,
+    },
     user_user_group_members::UserUserGroupMember,
     users::FilezUser,
 };
@@ -112,20 +114,112 @@ impl UserGroup {
         Ok(user_group)
     }
 
+    /// USER_GROUPS.md §6 + Phase 4 P4-10: create the group AND
+    /// seed the default-policy set in one transaction so the
+    /// non-owner flows the spec promises are unblocked from the
+    /// moment the group exists.
+    ///
+    /// Seeded per-group policies:
+    ///
+    ///   * Members can list this group + see the member roster:
+    ///     subject = UserGroup({this group}),
+    ///     actions = [UserGroupsList, UserGroupsListUsers],
+    ///     resource = this group.
+    ///   * If join_policy != InviteOnly, any ServerMember can
+    ///     request to join: subject = ServerMember,
+    ///     action = UserGroupsRequestJoin, resource = this group.
+    ///   * Owner is covered by the implicit owner-grant
+    ///     (POLICY_SEMANTICS.md §3 step 4) — no explicit policy
+    ///     needed for the owner.
+    ///   * UserGroupsRespondToInvite / UserGroupsLeave are
+    ///     row-based per phase4 P4-9 (invitation / membership row
+    ///     IS the consent); no policy seeding required.
+    ///   * Server-wide UserGroupsList grant lives in migration
+    ///     00000000000016_seed_user_groups_list_policy (so it
+    ///     covers existing groups too, not just freshly created).
+    ///
+    /// All inserts run inside a diesel-async transaction; a
+    /// failure rolls back the group row too, so a partially
+    /// bootstrapped group never lands in the table.
     #[tracing::instrument(level = "trace", skip(database))]
     pub async fn create_one(
         database: &Database,
         owner: &FilezUser,
         name: &str,
     ) -> Result<UserGroup, FilezError> {
+        use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
+        use mows_auth_core::types::{Effect, GroupJoinPolicy, SubjectType};
+
         let mut connection = database.get_connection().await?;
         let new_user_group = UserGroup::new(owner, name);
-        let created_user_group = diesel::insert_into(schema::user_groups::table)
-            .values(new_user_group)
-            .returning(UserGroup::as_select())
-            .get_result::<UserGroup>(&mut connection)
-            .await?;
-        Ok(created_user_group)
+        let owner_id = owner.id.clone();
+        connection
+            .transaction::<UserGroup, FilezError, _>(|conn| {
+                async move {
+                    let created_user_group =
+                        diesel::insert_into(schema::user_groups::table)
+                            .values(new_user_group)
+                            .returning(UserGroup::as_select())
+                            .get_result::<UserGroup>(conn)
+                            .await?;
+
+                    let group_id_uuid: uuid::Uuid = created_user_group.id.into();
+                    // Wildcard-app context: every app a user
+                    // authenticates against gets the grant. Same
+                    // sentinel the engine uses for the
+                    // "any app" check (DATA_MODEL.md).
+                    let any_app =
+                        vec![crate::models::apps::MowsAppId::nil()];
+
+                    // Members can list this group + list its
+                    // members. subject = UserGroup({this group}).
+                    let member_view_policy = AccessPolicy::new(
+                        "default: members can list this group + its members",
+                        owner_id.clone(),
+                        SubjectType::UserGroup,
+                        AccessPolicySubjectId::from(group_id_uuid),
+                        any_app.clone(),
+                        AccessPolicyResourceType::UserGroup,
+                        Some(group_id_uuid),
+                        vec![
+                            AccessPolicyAction::UserGroupsList,
+                            AccessPolicyAction::UserGroupsListUsers,
+                        ],
+                        Effect::Allow,
+                    );
+                    diesel::insert_into(schema::access_policies::table)
+                        .values(&member_view_policy)
+                        .execute(conn)
+                        .await?;
+
+                    // RequestToJoin / OpenJoin → any ServerMember
+                    // can submit a join request. (The handler
+                    // short-circuits OpenJoin into a direct join,
+                    // but the policy gate is the same: the user
+                    // needs permission to *attempt* the request.)
+                    if created_user_group.join_policy != GroupJoinPolicy::InviteOnly {
+                        let request_join_policy = AccessPolicy::new(
+                            "default: ServerMember can request to join this group",
+                            owner_id.clone(),
+                            SubjectType::ServerMember,
+                            AccessPolicySubjectId::from(uuid::Uuid::nil()),
+                            any_app.clone(),
+                            AccessPolicyResourceType::UserGroup,
+                            Some(group_id_uuid),
+                            vec![AccessPolicyAction::UserGroupsRequestJoin],
+                            Effect::Allow,
+                        );
+                        diesel::insert_into(schema::access_policies::table)
+                            .values(&request_join_policy)
+                            .execute(conn)
+                            .await?;
+                    }
+
+                    Ok(created_user_group)
+                }
+                .scope_boxed()
+            })
+            .await
     }
 
     #[tracing::instrument(level = "trace", skip(database))]

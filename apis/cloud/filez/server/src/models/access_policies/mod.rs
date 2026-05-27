@@ -322,8 +322,12 @@ pub struct UpdateAccessPolicyChangeset {
 }
 
 impl AccessPolicy {
+    /// Crate-internal constructor for callers that need to insert
+    /// the row inside an existing diesel-async transaction
+    /// (e.g. `UserGroup::create_one`'s default-policy bootstrap).
+    /// Most call sites should go through `create_one` instead.
     #[tracing::instrument(level = "trace")]
-    fn new(
+    pub(crate) fn new(
         name: &str,
         owner_id: FilezUserId,
         subject_type: SubjectType,

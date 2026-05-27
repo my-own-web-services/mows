@@ -1,0 +1,1 @@
+DELETE FROM access_policies WHERE id = '5eed0001-0000-0000-0000-000000000001';
