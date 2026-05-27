@@ -345,6 +345,78 @@ pub trait PolicyStore: Send + Sync {
              phase3-review A1 / TECH-3 / ARCH-1.".to_string(),
         ))
     }
+
+    /// Phase 3 P3-3 — keyset-paginated stream for the
+    /// `DirectUserStream`: resources directly shared with a single
+    /// user via `subject_type = User, subject_id = $user_id`
+    /// policies (LISTING.md §5 table row 1).
+    ///
+    /// Returns up to `batch_size` items past the cursor, joining
+    /// `access_policies` to the resource table on
+    /// `resource_id` and sorting by the resource's `created_time
+    /// DESC, id DESC`. Filters on:
+    ///   - subject_type = User AND subject_id = $user_id
+    ///   - effect = Allow
+    ///   - actions @> ARRAY[$action]
+    ///   - context_app_ids && ARRAY[$app_id, nil_uuid] (any-app
+    ///     match)
+    ///   - lifecycle: NOT revoked AND expires_at semantics
+    ///
+    /// `auth_info.resource_table_owner_column` is consulted only
+    /// for the resource-side sort key (`created_time`); resources
+    /// without that column return empty.
+    ///
+    /// Default fails loud — same rationale as
+    /// `stream_owned_resources`.
+    async fn stream_direct_user_resources(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _user_id: &Uuid,
+        _app: AppView,
+        _action: u32,
+        _cursor: Option<crate::list::ListingCursor>,
+        _batch_size: usize,
+    ) -> Result<Vec<crate::list::StreamItem>, AuthError> {
+        Err(AuthError::Evaluation(
+            "PolicyStore::stream_direct_user_resources not implemented for this \
+             store. Stores participating in the Phase-3 listing engine MUST \
+             override this method; opt-out stores must override with an \
+             explicit Ok(vec![]). phase3-review A1.".to_string(),
+        ))
+    }
+
+    /// Phase 3 P3-3 — keyset-paginated stream for the
+    /// `DirectUserGroupStream`: resources shared with ANY of the
+    /// caller's user-groups via `subject_type = UserGroup,
+    /// subject_id IN ($group_ids)` policies (LISTING.md §5 table
+    /// row 2).
+    ///
+    /// `group_ids` is the closed set of user-groups the caller
+    /// belongs to (resolved by the engine before this call). Empty
+    /// `group_ids` returns empty without hitting the DB.
+    ///
+    /// Same WHERE shape + sort + cursor + lifecycle filter as
+    /// `stream_direct_user_resources`; the only difference is the
+    /// subject filter.
+    ///
+    /// Default fails loud — same rationale as the other stream
+    /// methods.
+    async fn stream_direct_user_group_resources(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _group_ids: &[Uuid],
+        _app: AppView,
+        _action: u32,
+        _cursor: Option<crate::list::ListingCursor>,
+        _batch_size: usize,
+    ) -> Result<Vec<crate::list::StreamItem>, AuthError> {
+        Err(AuthError::Evaluation(
+            "PolicyStore::stream_direct_user_group_resources not implemented for \
+             this store. Stores participating in the Phase-3 listing engine MUST \
+             override this method; opt-out stores must override with an \
+             explicit Ok(vec![]). phase3-review A1.".to_string(),
+        ))
+    }
 }
 
 #[cfg(test)]

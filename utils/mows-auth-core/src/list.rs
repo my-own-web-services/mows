@@ -582,6 +582,475 @@ impl<'a, S: PolicyStore + ?Sized> SortedStream for OwnedStream<'a, S> {
     }
 }
 
+/// PolicyStore-backed stream for resources shared with a single
+/// user via `subject_type=User, subject_id=$user_id` policies
+/// (LISTING.md §5 table row 1, `direct_user`).
+///
+/// Same lazy-refill shape as [`OwnedStream`]; the difference is
+/// which store method backs the batch fetch
+/// (`PolicyStore::stream_direct_user_resources`) and which
+/// `StreamSource` tag the merge sees ([`StreamSource::DirectUser`]).
+pub struct DirectUserStream<'a, S: PolicyStore + ?Sized> {
+    store: &'a S,
+    auth_info: &'a ResourceAuthInfo,
+    user_id: Uuid,
+    app: AppView,
+    action: u32,
+    buffer: std::collections::VecDeque<StreamItem>,
+    cursor: Option<ListingCursor>,
+    batch_size: usize,
+    exhausted: bool,
+}
+
+impl<'a, S: PolicyStore + ?Sized> DirectUserStream<'a, S> {
+    pub fn new(
+        store: &'a S,
+        auth_info: &'a ResourceAuthInfo,
+        user_id: Uuid,
+        app: AppView,
+        action: u32,
+        initial_cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Self {
+        debug_assert!(batch_size > 0, "batch_size must be > 0");
+        Self {
+            store,
+            auth_info,
+            user_id,
+            app,
+            action,
+            buffer: std::collections::VecDeque::with_capacity(batch_size),
+            cursor: initial_cursor,
+            batch_size,
+            exhausted: false,
+        }
+    }
+}
+
+#[async_trait]
+impl<'a, S: PolicyStore + ?Sized> SortedStream for DirectUserStream<'a, S> {
+    fn source(&self) -> StreamSource {
+        StreamSource::DirectUser
+    }
+
+    async fn next(&mut self) -> Result<Option<StreamItem>, AuthError> {
+        if self.buffer.is_empty() && !self.exhausted {
+            let batch = self
+                .store
+                .stream_direct_user_resources(
+                    self.auth_info,
+                    &self.user_id,
+                    self.app,
+                    self.action,
+                    self.cursor,
+                    self.batch_size,
+                )
+                .await?;
+            if batch.len() < self.batch_size {
+                self.exhausted = true;
+            }
+            if let Some(last) = batch.last() {
+                self.cursor = Some(ListingCursor {
+                    sort_key: last.sort_key,
+                    resource_id: last.resource_id,
+                });
+            }
+            self.buffer.extend(batch);
+        }
+        Ok(self.buffer.pop_front())
+    }
+}
+
+/// PolicyStore-backed stream for resources shared with ANY of the
+/// caller's user-groups (LISTING.md §5 table row 2,
+/// `direct_user_group_k`). The caller passes the closed set of
+/// `group_ids` once; the stream issues a single
+/// `subject_id IN ($group_ids)` query per batch.
+///
+/// Empty `group_ids` short-circuits to an exhausted stream without
+/// touching the DB — the engine still pushes this stream into the
+/// heap so the merge sees a consistent shape across all subjects.
+pub struct DirectUserGroupStream<'a, S: PolicyStore + ?Sized> {
+    store: &'a S,
+    auth_info: &'a ResourceAuthInfo,
+    group_ids: &'a [Uuid],
+    app: AppView,
+    action: u32,
+    buffer: std::collections::VecDeque<StreamItem>,
+    cursor: Option<ListingCursor>,
+    batch_size: usize,
+    exhausted: bool,
+}
+
+impl<'a, S: PolicyStore + ?Sized> DirectUserGroupStream<'a, S> {
+    pub fn new(
+        store: &'a S,
+        auth_info: &'a ResourceAuthInfo,
+        group_ids: &'a [Uuid],
+        app: AppView,
+        action: u32,
+        initial_cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Self {
+        debug_assert!(batch_size > 0, "batch_size must be > 0");
+        Self {
+            store,
+            auth_info,
+            group_ids,
+            app,
+            action,
+            buffer: std::collections::VecDeque::with_capacity(batch_size),
+            cursor: initial_cursor,
+            batch_size,
+            // Caller passed no groups → there are no shares to find.
+            // Set exhausted up front; subsequent next() calls return None
+            // without a store round trip.
+            exhausted: group_ids.is_empty(),
+        }
+    }
+}
+
+#[async_trait]
+impl<'a, S: PolicyStore + ?Sized> SortedStream for DirectUserGroupStream<'a, S> {
+    fn source(&self) -> StreamSource {
+        StreamSource::DirectUserGroup
+    }
+
+    async fn next(&mut self) -> Result<Option<StreamItem>, AuthError> {
+        if self.buffer.is_empty() && !self.exhausted {
+            let batch = self
+                .store
+                .stream_direct_user_group_resources(
+                    self.auth_info,
+                    self.group_ids,
+                    self.app,
+                    self.action,
+                    self.cursor,
+                    self.batch_size,
+                )
+                .await?;
+            if batch.len() < self.batch_size {
+                self.exhausted = true;
+            }
+            if let Some(last) = batch.last() {
+                self.cursor = Some(ListingCursor {
+                    sort_key: last.sort_key,
+                    resource_id: last.resource_id,
+                });
+            }
+            self.buffer.extend(batch);
+        }
+        Ok(self.buffer.pop_front())
+    }
+}
+
+#[cfg(test)]
+mod direct_stream_tests {
+    //! Mirror of owned_stream_tests for the direct-user and
+    //! direct-user-group sources. Same mock-store pattern; the
+    //! cursor + refill + propagation contracts are identical.
+    use super::*;
+    use crate::registry::ResourceAuthInfo;
+    use async_trait::async_trait;
+
+    #[derive(Default, Debug)]
+    struct MockDirectStore {
+        user_items: std::collections::HashMap<Uuid, Vec<StreamItem>>,
+        group_items: std::collections::HashMap<Uuid, Vec<StreamItem>>,
+    }
+
+    #[async_trait]
+    impl PolicyStore for MockDirectStore {
+        async fn fetch_owners(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Uuid>, AuthError> {
+            Ok(Default::default())
+        }
+        async fn fetch_direct_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+            _: &[Uuid],
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn fetch_resource_group_memberships(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>, AuthError> {
+            Ok(Default::default())
+        }
+        async fn fetch_resource_group_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+            _: &[Uuid],
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn fetch_type_level_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn stream_direct_user_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            user_id: &Uuid,
+            _: AppView,
+            _: u32,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            let all = self.user_items.get(user_id).cloned().unwrap_or_default();
+            Ok(filter_paginate(all, cursor, batch_size))
+        }
+        async fn stream_direct_user_group_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            group_ids: &[Uuid],
+            _: AppView,
+            _: u32,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            // Union over every group the caller belongs to.
+            let mut all: Vec<StreamItem> = group_ids
+                .iter()
+                .flat_map(|g| self.group_items.get(g).cloned().unwrap_or_default())
+                .collect();
+            // Dedup by resource_id (a single resource may be shared
+            // with multiple of the caller's groups).
+            all.sort_by(|a, b| {
+                b.sort_key
+                    .cmp(&a.sort_key)
+                    .then_with(|| b.resource_id.cmp(&a.resource_id))
+            });
+            all.dedup_by_key(|i| i.resource_id);
+            Ok(filter_paginate(all, cursor, batch_size))
+        }
+    }
+
+    fn filter_paginate(
+        mut items: Vec<StreamItem>,
+        cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Vec<StreamItem> {
+        items.sort_by(|a, b| {
+            b.sort_key
+                .cmp(&a.sort_key)
+                .then_with(|| b.resource_id.cmp(&a.resource_id))
+        });
+        let mut out: Vec<StreamItem> = items
+            .into_iter()
+            .filter(|it| match cursor {
+                Some(c) => {
+                    let cmp = it
+                        .sort_key
+                        .cmp(&c.sort_key)
+                        .then_with(|| it.resource_id.cmp(&c.resource_id));
+                    cmp == std::cmp::Ordering::Less
+                }
+                None => true,
+            })
+            .collect();
+        out.truncate(batch_size);
+        out
+    }
+
+    fn ts(s: i64) -> chrono::NaiveDateTime {
+        chrono::DateTime::from_timestamp(s, 0).unwrap().naive_utc()
+    }
+    fn uuid(n: u128) -> Uuid {
+        Uuid::from_u128(n)
+    }
+    fn auth_info() -> ResourceAuthInfo {
+        ResourceAuthInfo {
+            resource_table: "files",
+            resource_table_id_column: "id",
+            resource_table_owner_column: Some("owner_id"),
+            resource_type: 0,
+            group_membership_table: Some("file_file_group_members"),
+            group_membership_resource_id_column: Some("file_id"),
+            group_membership_group_id_column: Some("file_group_id"),
+            resource_group_type: Some(1),
+        }
+    }
+    fn app() -> AppView {
+        AppView { id: uuid(99), trusted: false }
+    }
+    async fn drain<S: SortedStream + ?Sized>(stream: &mut S) -> Vec<Uuid> {
+        let mut out = Vec::new();
+        while let Some(it) = stream.next().await.unwrap() {
+            out.push(it.resource_id);
+        }
+        out
+    }
+
+    #[tokio::test]
+    async fn direct_user_stream_walks_items_in_desc_order() {
+        let bob = uuid(1);
+        let mut store = MockDirectStore::default();
+        store.user_items.insert(
+            bob,
+            vec![
+                StreamItem { sort_key: ts(100), resource_id: uuid(10) },
+                StreamItem { sort_key: ts(90),  resource_id: uuid(20) },
+                StreamItem { sort_key: ts(80),  resource_id: uuid(30) },
+            ],
+        );
+        let info = auth_info();
+        let mut stream =
+            DirectUserStream::new(&store, &info, bob, app(), 0, None, 2);
+        let ids = drain(&mut stream).await;
+        assert_eq!(ids, vec![uuid(10), uuid(20), uuid(30)]);
+        assert_eq!(stream.source(), StreamSource::DirectUser);
+    }
+
+    #[tokio::test]
+    async fn direct_user_stream_propagates_store_errors() {
+        struct E;
+        #[async_trait]
+        impl PolicyStore for E {
+            async fn fetch_owners(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &[Uuid],
+            ) -> Result<std::collections::HashMap<Uuid, Uuid>, AuthError> {
+                Ok(Default::default())
+            }
+            async fn fetch_direct_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+                _: &[Uuid],
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn fetch_resource_group_memberships(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &[Uuid],
+            ) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>, AuthError>
+            {
+                Ok(Default::default())
+            }
+            async fn fetch_resource_group_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+                _: &[Uuid],
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn fetch_type_level_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn stream_direct_user_resources(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Uuid,
+                _: AppView,
+                _: u32,
+                _: Option<ListingCursor>,
+                _: usize,
+            ) -> Result<Vec<StreamItem>, AuthError> {
+                Err(AuthError::Evaluation("boom".into()))
+            }
+        }
+        let store = E;
+        let info = auth_info();
+        let mut stream = DirectUserStream::new(&store, &info, uuid(1), app(), 0, None, 10);
+        assert!(stream.next().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn direct_user_group_stream_unions_groups_in_desc_order() {
+        let g1 = uuid(11);
+        let g2 = uuid(12);
+        let mut store = MockDirectStore::default();
+        store.group_items.insert(
+            g1,
+            vec![
+                StreamItem { sort_key: ts(100), resource_id: uuid(1) },
+                StreamItem { sort_key: ts(80),  resource_id: uuid(3) },
+            ],
+        );
+        store.group_items.insert(
+            g2,
+            vec![
+                StreamItem { sort_key: ts(90),  resource_id: uuid(2) },
+                StreamItem { sort_key: ts(70),  resource_id: uuid(4) },
+            ],
+        );
+        let info = auth_info();
+        let groups = [g1, g2];
+        let mut stream = DirectUserGroupStream::new(
+            &store, &info, &groups, app(), 0, None, 100,
+        );
+        let ids = drain(&mut stream).await;
+        assert_eq!(ids, vec![uuid(1), uuid(2), uuid(3), uuid(4)]);
+        assert_eq!(stream.source(), StreamSource::DirectUserGroup);
+    }
+
+    #[tokio::test]
+    async fn direct_user_group_stream_empty_group_list_short_circuits() {
+        // No groups → exhausted from the start; no store round trip.
+        let store = MockDirectStore::default();
+        let info = auth_info();
+        let groups: [Uuid; 0] = [];
+        let mut stream = DirectUserGroupStream::new(
+            &store, &info, &groups, app(), 0, None, 100,
+        );
+        assert!(stream.next().await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn direct_user_group_stream_dedups_shared_resource_across_groups() {
+        // Resource 1 is shared with BOTH groups the caller belongs
+        // to. The store dedups; the stream surfaces it once.
+        let g1 = uuid(11);
+        let g2 = uuid(12);
+        let mut store = MockDirectStore::default();
+        store.group_items.insert(
+            g1,
+            vec![StreamItem { sort_key: ts(100), resource_id: uuid(1) }],
+        );
+        store.group_items.insert(
+            g2,
+            vec![StreamItem { sort_key: ts(100), resource_id: uuid(1) }],
+        );
+        let info = auth_info();
+        let groups = [g1, g2];
+        let mut stream = DirectUserGroupStream::new(
+            &store, &info, &groups, app(), 0, None, 100,
+        );
+        let ids = drain(&mut stream).await;
+        assert_eq!(ids, vec![uuid(1)]);
+    }
+}
+
 #[cfg(test)]
 mod owned_stream_tests {
     //! Validate the OwnedStream refill loop + cursor advancement

@@ -51,8 +51,8 @@ pub mod list;
 // LISTING.md §3 + §8 — the public signature stays put.
 pub use crate::check::check_access;
 pub use crate::list::{
-    list_visible_resource_ids, merge_streams, ListingCursor, ListingPage, OwnedStream,
-    SortedStream, StreamItem, StreamSource,
+    list_visible_resource_ids, merge_streams, DirectUserGroupStream, DirectUserStream,
+    ListingCursor, ListingPage, OwnedStream, SortedStream, StreamItem, StreamSource,
 };
 pub use crate::evaluation::{AuthEvaluation, AuthReason, AuthResult};
 pub use crate::idp::{

@@ -583,6 +583,262 @@ impl<'a> PolicyStore for FilezPolicyStore<'a> {
             })
             .collect())
     }
+
+    /// Phase 3 P3-3 — keyset-paginated batched read for the
+    /// `DirectUserStream`. JOIN access_policies → resource table
+    /// (`auth_info.resource_table`) on `resource_id`, filter on
+    /// the policy's subject + lifecycle + action + context_app,
+    /// sort by the RESOURCE's `created_time DESC, id DESC` per
+    /// LISTING.md §5.
+    ///
+    /// Uses the same identifier-validated format! pattern as
+    /// `stream_owned_resources`; the policy-side filters bind as
+    /// typed parameters. The any-app context filter is
+    /// `context_app_ids && ARRAY[app_id, nil_uuid]` (any-app
+    /// shorthand per DATA_MODEL.md).
+    async fn stream_direct_user_resources(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        user_id: &Uuid,
+        app: AppView,
+        action: u32,
+        cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Result<Vec<StreamItem>, AuthError> {
+        let table = auth_info.resource_table;
+        let id_col = auth_info.resource_table_id_column;
+        let resource_type = AccessPolicyResourceType::from_u32(auth_info.resource_type)
+            .expect("resource_type registered");
+        let action_enum =
+            action_from_u32(action).expect("AccessPolicyAction value out of range");
+
+        let pool = self
+            .database
+            .pool
+            .as_ref()
+            .ok_or_else(|| AuthError::Evaluation("database pool not initialized".to_string()))?;
+        let mut connection = pool.get().await?;
+
+        // Two SQL shapes — with-cursor and no-cursor — kept stable
+        // per shape for the planner. resource_type / actions /
+        // effect / lifecycle filters apply to ap; cursor applies
+        // to the joined resource row.
+        let (sql, has_cursor) = if cursor.is_some() {
+            (
+                format!(
+                    "SELECT r.{id_col} AS resource_id, \
+                            r.created_time AS sort_key \
+                     FROM   access_policies ap \
+                     JOIN   {table} r ON r.{id_col} = ap.resource_id \
+                     WHERE  ap.subject_type   = $1 \
+                       AND  ap.subject_id     = $2 \
+                       AND  ap.resource_type  = $3 \
+                       AND  ap.actions       @> ARRAY[$4]::SMALLINT[] \
+                       AND  ap.context_app_ids && ARRAY[$5, '00000000-0000-0000-0000-000000000000']::UUID[] \
+                       AND  ap.effect         = 1 \
+                       AND  NOT ap.revoked \
+                       AND  (ap.expires_at IS NULL OR ap.expires_at > now()) \
+                       AND  (r.created_time, r.{id_col}) < ($6, $7) \
+                     ORDER BY r.created_time DESC, r.{id_col} DESC \
+                     LIMIT  $8"
+                ),
+                true,
+            )
+        } else {
+            (
+                format!(
+                    "SELECT r.{id_col} AS resource_id, \
+                            r.created_time AS sort_key \
+                     FROM   access_policies ap \
+                     JOIN   {table} r ON r.{id_col} = ap.resource_id \
+                     WHERE  ap.subject_type   = $1 \
+                       AND  ap.subject_id     = $2 \
+                       AND  ap.resource_type  = $3 \
+                       AND  ap.actions       @> ARRAY[$4]::SMALLINT[] \
+                       AND  ap.context_app_ids && ARRAY[$5, '00000000-0000-0000-0000-000000000000']::UUID[] \
+                       AND  ap.effect         = 1 \
+                       AND  NOT ap.revoked \
+                       AND  (ap.expires_at IS NULL OR ap.expires_at > now()) \
+                     ORDER BY r.created_time DESC, r.{id_col} DESC \
+                     LIMIT  $6"
+                ),
+                false,
+            )
+        };
+
+        #[derive(QueryableByName, Debug)]
+        struct Row {
+            #[diesel(sql_type = sql_types::Uuid)]
+            resource_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Timestamp)]
+            sort_key: chrono::NaiveDateTime,
+        }
+
+        let batch_size_i64 = i64::try_from(batch_size)
+            .map_err(|e| AuthError::Evaluation(format!("batch_size overflow: {e}")))?;
+        // SubjectType::User is wire-stable at 0; bind as SMALLINT
+        // rather than re-import the enum here.
+        let subject_type_user: i16 = SubjectType::User as i16;
+        let resource_type_i16: i16 = resource_type as i16;
+        let action_i16: i16 = action_enum as i16;
+
+        let rows: Vec<Row> = if has_cursor {
+            let c = cursor.expect("cursor present");
+            diesel::sql_query(sql)
+                .bind::<diesel::sql_types::SmallInt, _>(subject_type_user)
+                .bind::<sql_types::Uuid, _>(user_id)
+                .bind::<diesel::sql_types::SmallInt, _>(resource_type_i16)
+                .bind::<diesel::sql_types::SmallInt, _>(action_i16)
+                .bind::<sql_types::Uuid, _>(app.id)
+                .bind::<diesel::sql_types::Timestamp, _>(c.sort_key)
+                .bind::<sql_types::Uuid, _>(c.resource_id)
+                .bind::<diesel::sql_types::BigInt, _>(batch_size_i64)
+                .load(&mut connection)
+                .await?
+        } else {
+            diesel::sql_query(sql)
+                .bind::<diesel::sql_types::SmallInt, _>(subject_type_user)
+                .bind::<sql_types::Uuid, _>(user_id)
+                .bind::<diesel::sql_types::SmallInt, _>(resource_type_i16)
+                .bind::<diesel::sql_types::SmallInt, _>(action_i16)
+                .bind::<sql_types::Uuid, _>(app.id)
+                .bind::<diesel::sql_types::BigInt, _>(batch_size_i64)
+                .load(&mut connection)
+                .await?
+        };
+
+        Ok(rows
+            .into_iter()
+            .map(|r| StreamItem {
+                sort_key: r.sort_key,
+                resource_id: r.resource_id,
+            })
+            .collect())
+    }
+
+    /// Phase 3 P3-3 — same shape as
+    /// `stream_direct_user_resources` but with
+    /// `subject_type = UserGroup, subject_id = ANY($group_ids)`.
+    /// Empty `group_ids` is the engine's responsibility to
+    /// short-circuit; we defensively early-return as well.
+    async fn stream_direct_user_group_resources(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        group_ids: &[Uuid],
+        app: AppView,
+        action: u32,
+        cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Result<Vec<StreamItem>, AuthError> {
+        if group_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let table = auth_info.resource_table;
+        let id_col = auth_info.resource_table_id_column;
+        let resource_type = AccessPolicyResourceType::from_u32(auth_info.resource_type)
+            .expect("resource_type registered");
+        let action_enum =
+            action_from_u32(action).expect("AccessPolicyAction value out of range");
+
+        let pool = self
+            .database
+            .pool
+            .as_ref()
+            .ok_or_else(|| AuthError::Evaluation("database pool not initialized".to_string()))?;
+        let mut connection = pool.get().await?;
+
+        let (sql, has_cursor) = if cursor.is_some() {
+            (
+                format!(
+                    "SELECT r.{id_col} AS resource_id, \
+                            r.created_time AS sort_key \
+                     FROM   access_policies ap \
+                     JOIN   {table} r ON r.{id_col} = ap.resource_id \
+                     WHERE  ap.subject_type   = $1 \
+                       AND  ap.subject_id     = ANY($2) \
+                       AND  ap.resource_type  = $3 \
+                       AND  ap.actions       @> ARRAY[$4]::SMALLINT[] \
+                       AND  ap.context_app_ids && ARRAY[$5, '00000000-0000-0000-0000-000000000000']::UUID[] \
+                       AND  ap.effect         = 1 \
+                       AND  NOT ap.revoked \
+                       AND  (ap.expires_at IS NULL OR ap.expires_at > now()) \
+                       AND  (r.created_time, r.{id_col}) < ($6, $7) \
+                     ORDER BY r.created_time DESC, r.{id_col} DESC \
+                     LIMIT  $8"
+                ),
+                true,
+            )
+        } else {
+            (
+                format!(
+                    "SELECT r.{id_col} AS resource_id, \
+                            r.created_time AS sort_key \
+                     FROM   access_policies ap \
+                     JOIN   {table} r ON r.{id_col} = ap.resource_id \
+                     WHERE  ap.subject_type   = $1 \
+                       AND  ap.subject_id     = ANY($2) \
+                       AND  ap.resource_type  = $3 \
+                       AND  ap.actions       @> ARRAY[$4]::SMALLINT[] \
+                       AND  ap.context_app_ids && ARRAY[$5, '00000000-0000-0000-0000-000000000000']::UUID[] \
+                       AND  ap.effect         = 1 \
+                       AND  NOT ap.revoked \
+                       AND  (ap.expires_at IS NULL OR ap.expires_at > now()) \
+                     ORDER BY r.created_time DESC, r.{id_col} DESC \
+                     LIMIT  $6"
+                ),
+                false,
+            )
+        };
+
+        #[derive(QueryableByName, Debug)]
+        struct Row {
+            #[diesel(sql_type = sql_types::Uuid)]
+            resource_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Timestamp)]
+            sort_key: chrono::NaiveDateTime,
+        }
+
+        let batch_size_i64 = i64::try_from(batch_size)
+            .map_err(|e| AuthError::Evaluation(format!("batch_size overflow: {e}")))?;
+        let subject_type_group: i16 = SubjectType::UserGroup as i16;
+        let resource_type_i16: i16 = resource_type as i16;
+        let action_i16: i16 = action_enum as i16;
+        let group_ids_owned: Vec<Uuid> = group_ids.to_vec();
+
+        let rows: Vec<Row> = if has_cursor {
+            let c = cursor.expect("cursor present");
+            diesel::sql_query(sql)
+                .bind::<diesel::sql_types::SmallInt, _>(subject_type_group)
+                .bind::<sql_types::Array<sql_types::Uuid>, _>(group_ids_owned)
+                .bind::<diesel::sql_types::SmallInt, _>(resource_type_i16)
+                .bind::<diesel::sql_types::SmallInt, _>(action_i16)
+                .bind::<sql_types::Uuid, _>(app.id)
+                .bind::<diesel::sql_types::Timestamp, _>(c.sort_key)
+                .bind::<sql_types::Uuid, _>(c.resource_id)
+                .bind::<diesel::sql_types::BigInt, _>(batch_size_i64)
+                .load(&mut connection)
+                .await?
+        } else {
+            diesel::sql_query(sql)
+                .bind::<diesel::sql_types::SmallInt, _>(subject_type_group)
+                .bind::<sql_types::Array<sql_types::Uuid>, _>(group_ids_owned)
+                .bind::<diesel::sql_types::SmallInt, _>(resource_type_i16)
+                .bind::<diesel::sql_types::SmallInt, _>(action_i16)
+                .bind::<sql_types::Uuid, _>(app.id)
+                .bind::<diesel::sql_types::BigInt, _>(batch_size_i64)
+                .load(&mut connection)
+                .await?
+        };
+
+        Ok(rows
+            .into_iter()
+            .map(|r| StreamItem {
+                sort_key: r.sort_key,
+                resource_id: r.resource_id,
+            })
+            .collect())
+    }
 }
 
 /// SQL-fragment helper for the lifecycle filter every policy lookup
