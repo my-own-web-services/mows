@@ -96,6 +96,14 @@ pub enum AuditEvent {
     CoverTablesReconciled {
         rows_processed: usize,
     },
+    /// Phase 5 P5-3 — the materialisation-threshold recompute job
+    /// ran. `flags_flipped` is the count of `user_groups` rows
+    /// whose `materialize_uga` flag actually changed in this
+    /// sweep. A sudden spike means the threshold is mis-tuned for
+    /// the current group-size distribution (LISTING.md §6.2).
+    UserGroupMaterializeFlagsRecomputed {
+        flags_flipped: usize,
+    },
 }
 
 impl AuditEvent {
@@ -108,6 +116,9 @@ impl AuditEvent {
                 "user_group_owner_transferred_to_nobody"
             }
             AuditEvent::CoverTablesReconciled { .. } => "cover_tables_reconciled",
+            AuditEvent::UserGroupMaterializeFlagsRecomputed { .. } => {
+                "user_group_materialize_flags_recomputed"
+            }
         }
     }
 }
@@ -216,6 +227,19 @@ mod event_wire_stability_guard {
     }
 
     #[test]
+    fn user_group_materialize_flags_recomputed_event_type_is_stable() {
+        let e = AuditEvent::UserGroupMaterializeFlagsRecomputed {
+            flags_flipped: 0,
+        };
+        assert_eq!(e.event_type(), "user_group_materialize_flags_recomputed");
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(
+            json["event_type"],
+            "user_group_materialize_flags_recomputed"
+        );
+    }
+
+    #[test]
     fn event_type_method_matches_serde_tag() {
         // The `event_type()` helper exists so handlers can read the
         // discriminator without round-tripping through serde. It
@@ -230,6 +254,9 @@ mod event_wire_stability_guard {
             },
             AuditEvent::CoverTablesReconciled {
                 rows_processed: 1,
+            },
+            AuditEvent::UserGroupMaterializeFlagsRecomputed {
+                flags_flipped: 1,
             },
         ] {
             let serialised = serde_json::to_value(&event).unwrap();
@@ -275,6 +302,15 @@ mod metadata_field_stability_guard {
         };
         let json = serde_json::to_value(&e).unwrap();
         assert_eq!(json["rows_processed"], 12345);
+    }
+
+    #[test]
+    fn user_group_materialize_flags_recomputed_metadata_shape() {
+        let e = AuditEvent::UserGroupMaterializeFlagsRecomputed {
+            flags_flipped: 42,
+        };
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["flags_flipped"], 42);
     }
 }
 

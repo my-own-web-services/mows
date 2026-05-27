@@ -45,6 +45,15 @@ pub struct UserGroup {
     /// USER_GROUPS.md §1 — who can become a member.
     /// Wire-stable per mows_auth_core::types::GroupJoinPolicy.
     pub join_policy: mows_auth_core::types::GroupJoinPolicy,
+    /// LISTING.md §6.2 / Phase 5 P5-3 — set to true once the
+    /// member count crosses
+    /// `user_group_materialize_threshold()` (1000). Maintained
+    /// by `recompute_user_group_materialize_flags()` on a daily
+    /// schedule; consumed by the Phase 3 listing engine to choose
+    /// between cover-table and live-join paths. Defaults to false
+    /// for fresh groups (most groups never grow past the
+    /// threshold).
+    pub materialize_uga: bool,
 }
 
 /// Result of `UserGroup::update_one`. Carries the updated row plus
@@ -97,6 +106,10 @@ impl UserGroup {
             // can flip them via update_user_group later.
             visibility: mows_auth_core::types::GroupVisibility::Private,
             join_policy: mows_auth_core::types::GroupJoinPolicy::InviteOnly,
+            // Fresh group has zero members; the recompute job
+            // flips this to true on the first sweep after the
+            // group crosses 1000 members.
+            materialize_uga: false,
         }
     }
 

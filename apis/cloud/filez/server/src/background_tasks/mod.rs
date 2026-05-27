@@ -20,6 +20,15 @@ const JOB_TIMEOUT_SECONDS: u64 = 60 * 60;
 /// O(distinct subject × resource pairs)).
 const COVER_RECONCILER_INTERVAL_SECONDS: u64 = 60 * 60;
 
+/// Materialisation-threshold recompute tick (LISTING.md §6.2 /
+/// Phase 5 P5-3). Daily because group sizes drift slowly — a
+/// group rarely crosses the 1000-member threshold more than once
+/// in a day, and getting the flip an hour late on day 1 vs day 2
+/// of crossing makes no observable difference to listing
+/// behaviour. Hourly would just burn cycles re-COUNTing 100k
+/// groups for zero benefit.
+const MATERIALIZE_FLAGS_INTERVAL_SECONDS: u64 = 24 * 60 * 60;
+
 #[tracing::instrument(level = "trace", skip(server_state))]
 pub fn run_background_tasks(server_state: &ServerState) {
     // Job release task
@@ -47,6 +56,27 @@ pub fn run_background_tasks(server_state: &ServerState) {
             match cover_tables::reconcile_listing_cover_tables(&database).await {
                 Ok(n) => info!(rows_processed = n, "Cover-table reconciler tick complete"),
                 Err(e) => error!("Cover-table reconciler failed: {e}"),
+            }
+        }
+    });
+
+    // Materialisation-threshold recompute. Counts members per
+    // user-group + flips the `materialize_uga` flag for groups
+    // that cross the threshold. Daily; emits one audit row per
+    // sweep with the flip count (LISTING.md §6.2 / P5-3).
+    let database = server_state.database.clone();
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(
+                MATERIALIZE_FLAGS_INTERVAL_SECONDS,
+            ))
+            .await;
+            match cover_tables::recompute_user_group_materialize_flags(&database).await {
+                Ok(n) => info!(
+                    flags_flipped = n,
+                    "user_groups materialize_uga recompute tick complete"
+                ),
+                Err(e) => error!("materialize_uga recompute failed: {e}"),
             }
         }
     });

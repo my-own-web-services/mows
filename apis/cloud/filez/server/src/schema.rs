@@ -135,6 +135,12 @@ diesel::table! {
         // mows_auth_core::types::GroupVisibility / GroupJoinPolicy.
         visibility -> SmallInt,
         join_policy -> SmallInt,
+        // Migration 00000000000017 (Phase 5 P5-3). Flag set by
+        // recompute_user_group_materialize_flags() when member
+        // count crosses the threshold; consumed by the Phase 3
+        // listing engine to choose between cover-table and
+        // live-join paths.
+        materialize_uga -> Bool,
     }
 }
 

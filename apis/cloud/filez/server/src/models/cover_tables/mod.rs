@@ -68,3 +68,45 @@ pub async fn reconcile_listing_cover_tables(
 
     Ok(rows_processed)
 }
+
+/// LISTING.md §6.2 / Phase 5 P5-3: walk every `user_groups` row,
+/// count its members, flip `materialize_uga` when it crosses the
+/// threshold defined by `user_group_materialize_threshold()` (1000
+/// today). Returns the count of groups whose flag actually changed
+/// in this sweep — emitted as an audit row so a sudden spike
+/// surfaces in admin dashboards.
+///
+/// The flag is the metadata the Phase-3 listing engine reads to
+/// pick between cover-table and live-join paths for UserGroup-
+/// subjected listings. Today it's pure metadata; the read-path
+/// consumer ships with Phase 3.
+#[tracing::instrument(level = "trace", skip(database))]
+pub async fn recompute_user_group_materialize_flags(
+    database: &Database,
+) -> Result<usize, FilezError> {
+    #[derive(QueryableByName, Debug)]
+    struct RecomputeRow {
+        #[diesel(sql_type = Integer)]
+        recompute_user_group_materialize_flags: i32,
+    }
+
+    let mut connection = database.get_connection().await?;
+    let result: RecomputeRow =
+        diesel::sql_query("SELECT recompute_user_group_materialize_flags()")
+            .get_result(&mut connection)
+            .await?;
+    let flags_flipped =
+        usize::try_from(result.recompute_user_group_materialize_flags)
+            .map_err(FilezError::TryFromIntError)?;
+
+    AuditLog::insert(
+        database,
+        AuditEvent::UserGroupMaterializeFlagsRecomputed { flags_flipped },
+        None,
+        AccessPolicyResourceType::UserGroup,
+        None,
+    )
+    .await?;
+
+    Ok(flags_flipped)
+}
