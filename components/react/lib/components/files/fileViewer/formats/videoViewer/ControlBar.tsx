@@ -1,7 +1,6 @@
 import {
     Captions,
     CaptionsOff,
-    Gauge,
     Maximize,
     Minimize,
     Pause,
@@ -35,9 +34,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "../../../../ui/dropdown-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "../../../../ui/popover";
 import { Slider } from "../../../../ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../../ui/tooltip";
+import PlaybackRateControl from "../../../playbackRateControl/PlaybackRateControl";
 import { formatTimestamp } from "./keyboard";
 import {
     DEFAULT_STRINGS,
@@ -56,26 +55,6 @@ const AUTO_VARIANT_ID = -1;
 const NO_TEXT_TRACK_ID = -1;
 const ABR_LABEL = `abr`;
 const SLIDER_MAX = 1000;
-
-// Playback rate continuous range. Lower bound matches the slowest Chrome will
-// honour without muting audio (0.0625 in practice, but 0.25 is the lowest
-// people actually use). Upper bound matches the upper end of YouTube's range.
-const RATE_MIN = 0.25;
-const RATE_MAX = 3;
-const RATE_STEP = 0.05;
-
-const clampRate = (rate: number): number => {
-    if (!Number.isFinite(rate)) return 1;
-    return Math.min(RATE_MAX, Math.max(RATE_MIN, Math.round(rate / RATE_STEP) * RATE_STEP));
-};
-
-const formatRate = (rate: number): string => {
-    // Use up to two decimals but drop trailing zeros so "1.00" → "1", "1.25"
-    // stays "1.25". The trim matters for the tiny corner badge that
-    // overlays the gauge icon.
-    const fixed = rate.toFixed(2);
-    return fixed.replace(/\.?0+$/, ``);
-};
 
 const formatBandwidth = (bandwidth: number): string => {
     if (bandwidth >= 1_000_000) return `${(bandwidth / 1_000_000).toFixed(1)} Mbps`;
@@ -695,74 +674,14 @@ export const ControlBar = ({
                             </DropdownMenu>
                         )}
 
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={`ghost`}
-                                    size={`icon-sm`}
-                                    aria-label={t.playbackRate}
-                                    className={`relative text-white hover:bg-white/15 hover:text-white`}
-                                >
-                                    <Gauge />
-                                    {status.playbackRate !== 1 && (
-                                        <span
-                                            className={`absolute right-0 bottom-0 rounded bg-primary px-1 text-[9px] leading-none font-semibold text-primary-foreground`}
-                                        >
-                                            {formatRate(status.playbackRate)}×
-                                        </span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                                align={`end`}
-                                // Wider than the default 18 rem so all 7
-                                // preset chips fit on a single row without
-                                // wrapping into a second line.
-                                className={`w-[22rem]`}
-                                onPointerDown={(e) => e.stopPropagation()}
-                            >
-                                <div className={`flex items-center justify-between`}>
-                                    <span className={`text-sm font-medium`}>
-                                        {t.playbackRate}
-                                    </span>
-                                    <span className={`text-sm tabular-nums text-muted-foreground`}>
-                                        {formatRate(status.playbackRate)}×
-                                    </span>
-                                </div>
-                                <Slider
-                                    aria-label={t.playbackRate}
-                                    value={[status.playbackRate]}
-                                    min={RATE_MIN}
-                                    max={RATE_MAX}
-                                    step={RATE_STEP}
-                                    onValueChange={(v) => onSetPlaybackRate(clampRate(v[0]))}
-                                    // Double-click anywhere on the slider
-                                    // resets to the natural 1× rate. The
-                                    // hint below the slider documents this
-                                    // affordance.
-                                    onDoubleClick={() => onSetPlaybackRate(1)}
-                                    className={`mt-3`}
-                                />
-                                <div className={`mt-3 flex flex-nowrap items-center gap-1`}>
-                                    {PLAYBACK_RATES.map((rate) => (
-                                        <Button
-                                            key={rate}
-                                            type={`button`}
-                                            size={`sm`}
-                                            variant={
-                                                Math.abs(status.playbackRate - rate) < 0.001
-                                                    ? `default`
-                                                    : `outline`
-                                            }
-                                            className={`h-7 flex-1 px-2 text-xs`}
-                                            onClick={() => onSetPlaybackRate(rate)}
-                                        >
-                                            {rate}×
-                                        </Button>
-                                    ))}
-                                </div>
-                            </PopoverContent>
-                        </Popover>
+                        <PlaybackRateControl
+                            rate={status.playbackRate}
+                            onChange={onSetPlaybackRate}
+                            presets={PLAYBACK_RATES}
+                            strings={{ label: t.playbackRate }}
+                            tone={`light`}
+                            onPopoverPointerDown={(e) => e.stopPropagation()}
+                        />
 
                         <Tooltip>
                             <TooltipTrigger asChild>

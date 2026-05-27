@@ -123,11 +123,12 @@ pub fn builtin_claude() -> AgentKind {
     // created lazily on first agent spawn (idempotent) so the cached image
     // doesn't have to know about it.
     //
-    // `--permission-mode acceptEdits` ("auto mode" in the TUI) auto-approves
-    // file edits but still prompts for shell commands, which is the right
-    // default inside a per-VM sandbox: edits are scoped to the ephemeral
-    // qcow2 overlay, but operators still want a confirmation before random
-    // `rm -rf` style commands run unattended.
+    // `--dangerously-skip-permissions` is the right default inside a
+    // per-VM sandbox: anything the agent does is contained to the
+    // ephemeral qcow2 overlay, so the cost of a wrong `rm -rf` is
+    // bounded to one VM. The user has pre-accepted the bypass mode in
+    // `.claude.json` (`bypassPermissionsModeAccepted`) so claude
+    // launches without a confirmation prompt.
     //
     // `DISABLE_AUTOUPDATER=1` stops claude from trying to npm-i a new
     // version in-place (the binary lives under `/usr/local`, the agent
@@ -156,7 +157,12 @@ pub fn builtin_claude() -> AgentKind {
     // What claude actually needs to start cleanly inside the VM:
     //   - `.claude.json`           — the active OAuth config
     //   - `backups/`               — fallback if `.claude.json` is empty
-    //   - `settings.json` / `settings.local.json` — user prefs
+    //   - `settings.json` / `settings.local.json` — user prefs (incl.
+    //     `enabledPlugins`, which references the plugin dirs below)
+    //   - `plugins/`               — installed plugins (autoresearch,
+    //     code-review, …). Without this, slash commands like
+    //     `/autoresearch` are unknown inside the VM even though
+    //     `enabledPlugins` lists them.
     //
     // Everything else is regenerated per-VM. `[ ! -s file ]` covers both
     // "missing" and "zero-byte" states (the latter is what claude leaves

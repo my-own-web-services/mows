@@ -14,6 +14,7 @@ import {
     Star,
     TerminalSquare,
     User,
+    Workflow,
     type LucideIcon
 } from "lucide-react";
 import { createRef, type CSSProperties, PureComponent } from "react";
@@ -113,6 +114,7 @@ const GROUP_ICONS: Record<DemoGroupKey, LucideIcon> = {
     code: Code,
     console: TerminalSquare,
     dateTime: CalendarClock,
+    editor: Workflow,
     files: FileImage,
     identity: User,
     input: SquarePen,
@@ -273,6 +275,7 @@ export default class App extends PureComponent<AppProps, AppState> {
             `code`,
             `console`,
             `dateTime`,
+            `editor`,
             `files`,
             `identity`,
             `input`,

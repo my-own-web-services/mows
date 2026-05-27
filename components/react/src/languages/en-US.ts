@@ -42,6 +42,7 @@ const translation: Translation = {
                 code: `Code`,
                 console: `Console`,
                 dateTime: `Date & time`,
+                editor: `Editors`,
                 files: `Files`,
                 identity: `Identity`,
                 input: `Input`,
@@ -350,6 +351,177 @@ const translation: Translation = {
                     apiReference: {
                         title: `API Reference`,
                         intro: `Props accepted by <PageIndex>.`
+                    }
+                }
+            },
+            audioPlayer: {
+                bar: {
+                    title: `Bar variant`,
+                    description: `A compact single-row pill that fits inside lists, comments, and table cells. The procedural waveform fills the available width.`
+                },
+                card: {
+                    title: `Card variant`,
+                    description: `A hero layout with artwork, title, and subtitle stacked above a taller waveform. Use as a dedicated playback surface in articles or detail pages.`
+                },
+                minimal: {
+                    title: `Minimal variant`,
+                    description: `A bar-style layout that swaps the waveform for a plain shadcn Slider — useful when the surrounding chrome is already dense or the waveform would feel decorative.`
+                },
+                peaks: {
+                    title: `Provided peaks`,
+                    description: `Pass an array of values in [0, 1] to the peaks prop when you already have analysed waveform data from the server.`
+                },
+                rtl: {
+                    title: `Right-to-left`,
+                    description: `Wrapped in dir="rtl", labels mirror but the play-head still moves left-to-right with the audio timeline.`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Command`,
+                        manualTab: `Manual`,
+                        manualStep1: `Install the following dependencies:`,
+                        manualStep2: `Copy and paste the following code into your project.`,
+                        manualStep3: `Update the import paths to match your project setup.`
+                    },
+                    usage: {
+                        title: `Usage`,
+                        body: `Pass a resolved \`src\` URL — the player wires up a hidden \`<audio>\` element and renders a custom control surface on top.`
+                    },
+                    composition: {
+                        title: `Composition`,
+                        body: `The bar variant is the default. Opt into the card with \`variant="card"\` and pass \`title\`, \`subtitle\`, and \`artwork\`. Supply \`peaks\` to override the procedural waveform with pre-computed analysis.`
+                    },
+                    examples: {
+                        title: `Examples`,
+                        bar: {
+                            title: `Bar variant`,
+                            description: `Compact player sized for inline use. The procedural waveform is derived deterministically from the source URL when no \`peaks\` prop is supplied.`
+                        },
+                        card: {
+                            title: `Card variant`,
+                            description: `Hero layout with artwork on the left and a taller waveform on the right.`
+                        },
+                        minimal: {
+                            title: `Minimal variant`,
+                            description: `Same pill chrome as the bar variant, but with a regular slider instead of the waveform — opt in when the surrounding context is already busy.`
+                        },
+                        peaks: {
+                            title: `Provided peaks`,
+                            description: `Override the procedural waveform with an explicit \`peaks\` array — useful when you've already analysed the source on the server.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Defined behaviour`,
+                        intro: `Statements about how \`<AudioPlayer>\` should behave, each referencing the test that enforces it.`,
+                        verifiedBy: `Verified by`,
+                        statements: {
+                            defaultBar: `Renders the \`bar\` variant when no \`variant\` prop is supplied.`,
+                            cardVariant: `Renders the hero layout with title and subtitle when \`variant="card"\`.`,
+                            playPauseToggle: `The play button shows the inverse label after the audio element fires play/pause.`,
+                            muteToggle: `Clicking the mute button toggles the underlying \`audio.muted\` flag.`,
+                            durationLoad: `Displays the total duration once \`loadedmetadata\` fires.`,
+                            keyboardSpace: `Space on the player root toggles playback.`,
+                            keyboardSkip: `ArrowRight skips forward by 5 seconds; ArrowLeft skips backward by the same.`,
+                            errorAlert: `Surfaces an inline error row with a Retry button when the media element emits \`error\`.`,
+                            peaksOverride: `Renders one bar per entry in the \`peaks\` prop instead of the procedural waveform.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Under \`dir="rtl"\` the surrounding flex chrome mirrors. The waveform itself still flows in time order — the play-head moves with the audio timeline, not the page direction.`
+                    },
+                    apiReference: {
+                        title: `API Reference`,
+                        intro: `Props accepted by \`<AudioPlayer>\`.`
+                    }
+                }
+            },
+            lyrics: {
+                basic: {
+                    title: `Basic LRC`,
+                    description: `Time-synced lyrics parsed from a classic LRC string. The active line is highlighted and kept centred; inactive lines fade with distance.`
+                },
+                compact: {
+                    title: `Compact variant`,
+                    description: `Same parser, no auto-scroll, no fade — useful inside dense surfaces like a sidebar or card footer where the full lyric list is meant to be scanned at a glance.`
+                },
+                karaoke: {
+                    title: `Word-level (enhanced LRC)`,
+                    description: `Enhanced LRC sources sprinkle \`<mm:ss.xx>\` markers between words. The component highlights the active word as the timeline advances.`
+                },
+                synced: {
+                    title: `Synced with audio`,
+                    description: `Wired to an HTML \`<audio>\` element — press play to watch the active line follow the playhead. Clicking a line seeks the audio back.`
+                },
+                rtl: {
+                    title: `Right-to-left`,
+                    description: `Wrapped in \`dir="rtl"\`. Lines remain centred and time-ordered, but the surrounding text direction flips.`
+                },
+                syncedDemo: {
+                    instructions: `Press play and watch the active line follow the playhead. Click any line to seek the audio back.`,
+                    toggleAriaLabel: `Toggle playback`
+                },
+                doc: {
+                    installation: {
+                        title: `Installation`,
+                        commandTab: `Command`,
+                        manualTab: `Manual`,
+                        manualStep1: `Install the following dependencies:`,
+                        manualStep2: `Copy and paste the following code into your project.`,
+                        manualStep3: `Update the import paths to match your project setup.`
+                    },
+                    usage: {
+                        title: `Usage`,
+                        body: `Feed the component a raw LRC string (or a pre-parsed \`ParsedLyrics\` value) plus the current playback time in seconds. The component finds the active line, optionally scrolls it into view, and exposes a seek callback so clicks on a line can drive your audio element.`
+                    },
+                    composition: {
+                        title: `Composition`,
+                        body: `The \`scrolling\` variant is the default and auto-scrolls the active line to the centre. Switch to \`variant="compact"\` when you want a static list. Pair with any audio source by piping \`audio.currentTime\` into \`currentTime\` and pointing \`onSeek\` back at \`audio.currentTime\` — no special hook required.`
+                    },
+                    examples: {
+                        title: `Examples`,
+                        basic: {
+                            title: `Basic LRC`,
+                            description: `Drive the active line with a slider that stands in for an audio element. The procedural scroll behaviour keeps the active line in view.`
+                        },
+                        compact: {
+                            title: `Compact variant`,
+                            description: `Same source rendered without auto-scroll or fade — sized for tight surfaces.`
+                        },
+                        karaoke: {
+                            title: `Word-level highlighting`,
+                            description: `Enhanced LRC with per-word \`<mm:ss.xx>\` markers. The active word picks up the primary colour as time advances.`
+                        },
+                        synced: {
+                            title: `Wired to <audio>`,
+                            description: `Press play to drive the lyrics from a real HTML audio element. Clicking a line seeks the audio back.`
+                        }
+                    },
+                    definedBehaviour: {
+                        title: `Defined behaviour`,
+                        intro: `Statements about how \`<Lyrics>\` should behave, each referencing the test that enforces it.`,
+                        verifiedBy: `Verified by`,
+                        statements: {
+                            parsesMetadata: `Reads \`[ti:]\`, \`[ar:]\`, and \`[al:]\` tags out of the source string into the parsed metadata.`,
+                            expandsRepeats: `Expands repeated \`[mm:ss.xx][mm:ss.xx]\` prefixes into separate lines so choruses appear once per timestamp.`,
+                            karaokeWords: `Recognises enhanced LRC \`<mm:ss.xx>\` markers and exposes per-word timings on the parsed line.`,
+                            appliesOffset: `Applies the \`[offset:ms]\` correction by shifting every timestamp.`,
+                            activeIndex: `Selects the line whose start is the greatest value \`<= currentTime\`.`,
+                            seekOnClick: `Fires \`onSeek\` with the clicked line's start time when interactive.`,
+                            seekOnEnter: `Fires \`onSeek\` when Enter is pressed on a focused line.`,
+                            emptySource: `Renders the empty state with \`data-state="empty"\` when the source has no usable lines.`,
+                            noClickWithoutSeek: `Skips the interactive role entirely when no \`onSeek\` callback is wired up.`,
+                            preparsed: `Accepts a pre-parsed \`ParsedLyrics\` value without re-running the parser.`
+                        }
+                    },
+                    rtl: {
+                        title: `RTL`,
+                        body: `Wrap the component in \`dir="rtl"\` to flip the surrounding text direction. Lines stay centred and time-ordered — only the inline content and prose around them mirror.`
+                    },
+                    apiReference: {
+                        title: `API Reference`,
+                        intro: `Props accepted by \`<Lyrics>\`.`
                     }
                 }
             },
@@ -3213,6 +3385,71 @@ const translation: Translation = {
                     apiReference: { title: `API Reference`, intro: `Props accepted by <NumberInput>.` }
                 }
             },
+            colorCurves: {
+                photo: {
+                    title: `Photo curves`,
+                    description: `Lightroom-style tonal curves applied to a real photo. The histogram backdrop is computed from the source pixels; drag the points to recolour, drag any non-endpoint off the surface to delete it.`
+                },
+                standalone: {
+                    title: `Standalone editor`,
+                    description: `The editor without a connected canvas — useful when the curves are saved as a preset or sent to a server-side image pipeline.`
+                },
+                photoLabels: {
+                    channelHint: `Tabs above switch the active channel: composite RGB, then R / G / B.`,
+                    addPointHint: `Click on the surface to add a control point.`,
+                    deletePointHint: `Drag a non-endpoint point off the surface, or focus it and press Delete, to remove.`,
+                    keyboardHint: `Focus a point and use arrow keys (Shift = coarse) for keyboard control.`,
+                    loading: `Loading photo…`,
+                    photoLabel: `Photo:`,
+                    byLabel: `by`
+                },
+                componentStrings: {
+                    channelRgb: `RGB`,
+                    channelRed: `R`,
+                    channelGreen: `G`,
+                    channelBlue: `B`,
+                    resetChannel: `Reset channel`,
+                    resetAll: `Reset all`,
+                    editorAriaLabel: `Color curves editor`
+                },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
+                    usage: { title: `Usage`, body: `<ColorCurves> is a controlled, channel-aware tonal-curve editor. It emits a per-channel array of control points; feed the result through applyColorCurvesToImageData() against a canvas to actually transform pixels.` },
+                    composition: { title: `Composition`, body: `Pair <ColorCurves> with a <canvas> for live grading: compute a histogram from the source ImageData with computeColorCurvesHistogram(), then re-apply the curves on every change. The math (buildCurveLUT, sampleCurve) is exported for server-side or offline use.` },
+                    examples: { title: `Examples`, photo: { title: `Photo curves`, description: `Real photo + live histogram + 4 channels.` }, standalone: { title: `Standalone editor`, description: `Editor only, no canvas wiring.` } },
+                    definedBehaviour: {
+                        title: `Defined behaviour`, intro: `Statements describing how <ColorCurves> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
+                        statements: {
+                            rendersSurface: `Renders the SVG curve editing surface.`,
+                            rendersChannelButtons: `Renders one channel tab per RGB/R/G/B channel.`,
+                            channelClickSwitches: `Clicking a channel tab switches the active channel.`,
+                            resetChannelRestoresIdentity: `Reset channel button restores the active channel to the identity curve.`,
+                            resetAllRestoresIdentity: `Reset all button restores every channel to the identity curve.`,
+                            clickAddsPoint: `Clicking empty space on the surface adds a control point.`,
+                            deleteRemovesPoint: `Pressing Delete on a focused non-endpoint point removes it.`,
+                            disabledPreventsInput: `disabled prop hides pointer interaction and disables the action buttons.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `The editor is direction-agnostic — the x-axis is always input-low → input-high regardless of writing direction. Surrounding text in the controls flips under dir="rtl".` },
+                    apiReference: {
+                        title: `API Reference`,
+                        intro: `Props accepted by <ColorCurves>.`,
+                        props: {
+                            value: `Required. One curve per channel — each curve is an ordered list of { x, y } control points with coordinates in [0, 1].`,
+                            onChange: `Required. Fires with the next value after every edit, add, delete, or reset.`,
+                            channel: `Externally-controlled active channel. Omit to let the component own the selection internally.`,
+                            onChannelChange: `Fires when the user picks a channel tab.`,
+                            histogram: `Optional 256-bin histogram drawn behind the curve. Build one from a canvas via computeColorCurvesHistogram(imageData).`,
+                            showHistogram: `Toggle the histogram backdrop. Has no effect if no histogram is supplied.`,
+                            size: `Edge length of the square graphing surface, in SVG viewBox units.`,
+                            disabled: `Disable pointer interaction, focus, and the action buttons.`,
+                            hideResetAll: `Hide the "Reset all" button if only per-channel resets are wanted.`,
+                            strings: `Translated labels for the channel tabs, reset buttons, and ARIA strings. Falls back to English defaults for any key you omit.`,
+                            ariaLabel: `Accessible label for the editor container.`
+                        }
+                    }
+                }
+            },
             optionPicker: {
                 default: { title: `Multi-select`, description: `Three options inside a popover. Toggling an option keeps the menu open; the trigger shows "(enabled/total)" by default.` },
                 doc: {
@@ -3697,6 +3934,66 @@ const translation: Translation = {
                     apiReference: { title: `API Reference`, intro: `Props accepted by <ConsoleManager>.` }
                 }
             },
+            timeline: {
+                default: { title: `Default`, description: `A 10-hour deployment history with point and range events across the success / warning / error / info statuses. Drag the bottom scrubber's edges to zoom into a slice of the day; drag the middle to pan.` },
+                videoScrubbing: { title: `Video scrubbing`, description: `90-second clip with chapter markers and a controlled playhead. Click anywhere on the track to seek, or grab the playhead handle and drag — this is the same scrubbing model as a video editor.` },
+                rtl: { title: `RTL`, description: `Timeline under dir="rtl". The track itself stays left-to-right (time always flows forward), labels and titles mirror.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
+                    usage: { title: `Usage`, body: `<Timeline> renders a continuous time axis with events plotted at their real timestamps. A resizable scrubber underneath always controls the visible range — drag the thumb to pan, drag its edges to zoom.` },
+                    composition: { title: `Composition`, body: `Wire currentTime + onCurrentTimeChange to turn the main track into an interactive video-editor-style scrubber. Wire viewRange + onViewRangeChange to take control of pan/zoom. Lower minViewRangeMs for frame-level precision.` },
+                    examples: {
+                        title: `Examples`,
+                        default: { title: `Default`, description: `A 10-hour deployment history with point and range events across the success / warning / error / info statuses. Drag the bottom scrubber's edges to zoom into a slice of the day; drag the middle to pan.` },
+                        videoScrubbing: { title: `Video scrubbing`, description: `90-second clip with chapter markers and a controlled playhead. Click anywhere on the track to seek, or grab the playhead handle and drag — this is the same scrubbing model as a video editor.` }
+                    },
+                    definedBehaviour: {
+                        title: `Defined behaviour`, intro: `Statements describing how <Timeline> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
+                        statements: {
+                            plotsPoints: `Plots a point event at the correct x position based on its timestamp and the active view range.`,
+                            plotsRanges: `Plots a range event (with endTimestamp) as a bar whose width matches the span.`,
+                            hidesOutsideView: `Hides events whose timestamp falls outside the current view range.`,
+                            rendersPlayhead: `Renders the playhead at the currentTime position within the view range.`,
+                            scrubsOnClick: `Clicking the track moves the playhead to that timestamp when onCurrentTimeChange is wired.`,
+                            scrubsOnDrag: `Dragging across the track updates the playhead continuously as the pointer moves.`,
+                            readOnlyWhenNoHandler: `Without onCurrentTimeChange the playhead is read-only and track pointer-downs are ignored.`,
+                            pansOnThumb: `Dragging the scrubber thumb shifts the view range while preserving its width.`,
+                            zoomsOnHandle: `Dragging either scrubber edge resizes the view range without moving the opposite edge.`,
+                            clampsZoom: `Zoom is clamped so the view range can never become smaller than minViewRangeMs.`,
+                            controlled: `In controlled mode the component reports gestures via onViewRangeChange and never mutates internal state.`,
+                            resetZoom: `A reset-zoom button appears whenever the view is zoomed in, and restores the full window when clicked.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `The track keeps a left-to-right time axis under dir="rtl" — time always flows forward — while surrounding labels mirror.` },
+                    apiReference: { title: `API Reference`, intro: `Props accepted by <Timeline>.` }
+                }
+            },
+            nodeEditor: {
+                default: { title: `Typed graph`, description: `Four nodes wired through typed ports. The Slider node outputs a number; drag from its right handle to the Doubler's input to see 2× appear live. The Text node outputs a string — dragging it to a number input is rejected by the typed validator. Each node body embeds an arbitrary React component (Slider, Input, live values) to show intermediary results.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
+                    usage: { title: `Usage`, body: `<NodeEditor> wraps @xyflow/react (React Flow) with built-in port-type validation, a default node renderer (TypedNode) that embeds arbitrary React content, and a lazy-loaded implementation chunk so consumers only pay the bundle cost when a node editor actually mounts.` },
+                    composition: { title: `Composition`, body: `Use <TypedHandle portType="..."> inside custom nodes to declare strict-equality port types. The editor's isValidConnection rejects any connection whose source/target portTypes differ — or where one side is typed and the other isn't. Pass your own renderers via nodeTypes; the built-in "typed" renderer (TypedNode) is always registered and reads inputs/outputs/body off node.data.` },
+                    examples: {
+                        title: `Examples`,
+                        default: { title: `Typed graph`, description: `Four nodes wired through typed ports. The Slider node outputs a number; drag from its right handle to the Doubler's input to see 2× appear live. The Text node outputs a string — dragging it to a number input is rejected by the typed validator. Each node body embeds an arbitrary React component (Slider, Input, live values) to show intermediary results.` }
+                    },
+                    definedBehaviour: {
+                        title: `Defined behaviour`, intro: `Statements describing how <NodeEditor> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
+                        statements: {
+                            acceptsMatchingTypes: `Connection between two TypedHandles is accepted when both portType strings are equal.`,
+                            rejectsMismatchedTypes: `Connection between two TypedHandles is rejected when portTypes differ.`,
+                            rejectsMixedTypedUntyped: `Connection where one side is a TypedHandle and the other is a bare Handle is rejected.`,
+                            allowsTwoUntyped: `Connection between two untyped Handles is allowed.`,
+                            rejectsIncompleteDrag: `An incomplete drag (any of source / sourceHandle / target / targetHandle is null) is rejected.`,
+                            extraAfterTyped: `A caller-provided isValidConnection is consulted only after the typed check passes.`,
+                            lazyChunk: `The implementation chunk is loaded lazily via React.lazy so the @xyflow/react bundle ships only when a NodeEditor mounts.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `The graph canvas itself is direction-agnostic — coordinates are absolute. Custom node renderers should respect direction in their text content if needed.` },
+                    apiReference: { title: `API Reference`, intro: `Props accepted by <NodeEditor>, <TypedHandle>, and the data shape consumed by the built-in TypedNode renderer.` }
+                }
+            },
             dateTimeDisplay: {
                 default: { title: `Default`, description: `Formats timestamps and naive datetime strings through Intl.DateTimeFormat using the active language.` },
                 doc: {
@@ -3774,6 +4071,48 @@ const translation: Translation = {
                     },
                     rtl: { title: `RTL`, body: `Layout flips under dir="rtl"; combos are direction-agnostic.` },
                     apiReference: { title: `API Reference`, intro: `Props accepted by <KeyComboRecorder>.` }
+                }
+            },
+            chart: {
+                bar: { title: `Bar`, description: `Grouped bars with a shared XAxis. Series colours come from <ChartConfig>; the tooltip and legend pull labels from the same map.` },
+                line: { title: `Line`, description: `Smooth monotone line. The tooltip uses an inline "line" indicator that matches the stroke colour of the series.` },
+                area: { title: `Area`, description: `Stacked area with per-series gradients. <defs> hosts the gradients; series reference them via fill="url(#…)".` },
+                pie: { title: `Pie`, description: `Donut pie. The legend wraps to two rows on narrow widths so the chart never overflows its container.` },
+                radar: { title: `Radar`, description: `Polar radar with two overlaid series. The dashed series is rendered without fill so the solid layer reads as the primary signal.` },
+                radial: { title: `Radial`, description: `Radial bar with a muted background ring. Each ring is a slice from the same dataset, coloured via the <ChartConfig> palette.` },
+                themed: { title: `Themed colours`, description: `Uses the <ChartConfig> "theme" shape to pick a different colour in light vs. dark mode — flip the app theme and the same series re-paints with no JS work.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the package (recharts ships as a transitive dependency):`, manualStep2: `Copy a chart from the examples below and adjust the <ChartConfig> to match your series.`, manualStep3: `Update the import paths to match your project setup.` },
+                    usage: { title: `Usage`, body: `<ChartContainer> wraps any recharts chart, injects per-series CSS colour variables, and provides the context that <ChartTooltipContent> and <ChartLegendContent> read to resolve labels. The config map is the single source of truth for series colours and display names.` },
+                    composition: { title: `Composition`, body: `Colours flow as CSS custom properties so the same chart can re-skin under light vs. dark themes without re-rendering. Use the "theme" shape on a config entry to provide per-theme values; use "color" when one shared value is enough.` },
+                    examples: {
+                        title: `Examples`,
+                        bar: { title: `Bar`, description: `Grouped bars driven by two series in the <ChartConfig>.` },
+                        line: { title: `Line`, description: `Single-series line with a custom tooltip indicator.` },
+                        area: { title: `Area`, description: `Stacked area with per-series gradients defined in <defs>.` },
+                        pie: { title: `Pie`, description: `Donut pie with a legend that wraps across narrow widths.` },
+                        radar: { title: `Radar`, description: `Polar radar overlaying current vs. target.` },
+                        radial: { title: `Radial`, description: `Radial bar showing each datum as a coloured ring.` },
+                        themed: { title: `Themed colours`, description: `Per-theme colour values that flip with the app theme.` }
+                    },
+                    definedBehaviour: {
+                        title: `Defined behaviour`, intro: `Statements describing how the chart primitive is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
+                        statements: {
+                            rendersWrapper: `Renders a <div data-slot="chart"> wrapper that owns the chart's CSS scope.`,
+                            stableDataChartId: `Tags the wrapper with a stable data-chart="chart-…" id derived from the id prop or React useId.`,
+                            forwardsClassName: `Merges the consumer's className onto the wrapper without dropping the base classes.`,
+                            emitsStyleVars: `Emits a <style> block that defines "--color-<key>" custom properties for every config entry that has a color or theme.`,
+                            mountsRecharts: `Mounts a recharts subtree (BarChart + Tooltip + Bar) inside the container without throwing.`,
+                            styleNothingWithoutColor: `<ChartStyle> renders nothing when no config entry declares a color or theme.`,
+                            styleThemeScopes: `<ChartStyle> emits one rule for the light theme and one ".dark"-scoped rule for the dark theme.`,
+                            tooltipInactive: `<ChartTooltipContent> renders nothing when not active.`,
+                            tooltipRendersLabel: `<ChartTooltipContent> renders the configured label and the formatted (toLocaleString) value for each payload entry.`,
+                            legendEmptyPayload: `<ChartLegendContent> renders nothing when its payload is empty.`,
+                            legendRendersRows: `<ChartLegendContent> renders one row per payload entry and reads the display label from the config.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Recharts lays out left-to-right; the wrapper and tooltip flip under dir="rtl" but the axes themselves are direction-agnostic.` },
+                    apiReference: { title: `API Reference`, intro: `Props accepted by the chart primitives.` }
                 }
             }
         },

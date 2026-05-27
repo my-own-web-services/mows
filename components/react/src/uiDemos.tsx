@@ -110,6 +110,7 @@ import SonnerDocPage from "./examples/sonner/SonnerDocPage";
 import InputGroupDocPage from "./examples/inputGroup/InputGroupDocPage";
 import ResizableDocPage from "./examples/resizable/ResizableDocPage";
 import CalendarDocPage from "./examples/calendar/CalendarDocPage";
+import ChartDocPage from "./examples/chart/ChartDocPage";
 import CollapsibleDocPage from "./examples/collapsible/CollapsibleDocPage";
 
 // ARCH-18/19: previous declarations (`useUi`, `Frame`, `Row`, `UiT`) were
@@ -161,6 +162,7 @@ export const uiDemos: UiDemoEntry[] = [
     { id: `sonner`, name: `Sonner`, render: () => <SonnerDocPage /> },
     { id: `inputGroup`, name: `InputGroup`, render: () => <InputGroupDocPage /> },
     { id: `calendar`, name: `Calendar`, render: () => <CalendarDocPage /> },
+    { id: `chart`, name: `Chart`, render: () => <ChartDocPage />, searchTags: [`recharts`, `bar`, `line`, `area`, `pie`, `radar`, `radial`, `graph`, `diagram`, `data viz`, `visualization`] },
     { id: `collapsible`, name: `Collapsible`, render: () => <CollapsibleDocPage />, searchTags: [`accordion`, `disclosure`, `expand`] },
     { id: `steps`, name: `Steps`, render: () => <StepsDemo /> }
 ];

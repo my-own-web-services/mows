@@ -32,6 +32,7 @@ declare module "../lib/lib/languages" {
                     code: string;
                     console: string;
                     dateTime: string;
+                    editor: string;
                     files: string;
                     identity: string;
                     input: string;
@@ -217,6 +218,97 @@ declare module "../lib/lib/languages" {
                                 emptyRendersNothing: string;
                                 missingIdSkipsHash: string;
                                 translationFallback: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+                audioPlayer: {
+                    bar: { title: string; description: string };
+                    card: { title: string; description: string };
+                    peaks: { title: string; description: string };
+                    rtl: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            bar: { title: string; description: string };
+                            card: { title: string; description: string };
+                            peaks: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                defaultBar: string;
+                                cardVariant: string;
+                                playPauseToggle: string;
+                                muteToggle: string;
+                                durationLoad: string;
+                                keyboardSpace: string;
+                                keyboardSkip: string;
+                                errorAlert: string;
+                                peaksOverride: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+                lyrics: {
+                    basic: { title: string; description: string };
+                    compact: { title: string; description: string };
+                    karaoke: { title: string; description: string };
+                    synced: { title: string; description: string };
+                    rtl: { title: string; description: string };
+                    syncedDemo: {
+                        instructions: string;
+                        toggleAriaLabel: string;
+                    };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            basic: { title: string; description: string };
+                            compact: { title: string; description: string };
+                            karaoke: { title: string; description: string };
+                            synced: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                parsesMetadata: string;
+                                expandsRepeats: string;
+                                karaokeWords: string;
+                                appliesOffset: string;
+                                activeIndex: string;
+                                seekOnClick: string;
+                                seekOnEnter: string;
+                                emptySource: string;
+                                noClickWithoutSeek: string;
+                                preparsed: string;
                             };
                         };
                         rtl: { title: string; body: string };
@@ -1932,6 +2024,78 @@ declare module "../lib/lib/languages" {
                         apiReference: { title: string; intro: string };
                     };
                 };
+                colorCurves: {
+                    photo: { title: string; description: string };
+                    standalone: { title: string; description: string };
+                    photoLabels: {
+                        channelHint: string;
+                        addPointHint: string;
+                        deletePointHint: string;
+                        keyboardHint: string;
+                        loading: string;
+                        photoLabel: string;
+                        byLabel: string;
+                    };
+                    componentStrings: {
+                        channelRgb: string;
+                        channelRed: string;
+                        channelGreen: string;
+                        channelBlue: string;
+                        resetChannel: string;
+                        resetAll: string;
+                        editorAriaLabel: string;
+                    };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            photo: { title: string; description: string };
+                            standalone: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                rendersSurface: string;
+                                rendersChannelButtons: string;
+                                channelClickSwitches: string;
+                                resetChannelRestoresIdentity: string;
+                                resetAllRestoresIdentity: string;
+                                clickAddsPoint: string;
+                                deleteRemovesPoint: string;
+                                disabledPreventsInput: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: {
+                            title: string;
+                            intro: string;
+                            props: {
+                                value: string;
+                                onChange: string;
+                                channel: string;
+                                onChannelChange: string;
+                                histogram: string;
+                                showHistogram: string;
+                                size: string;
+                                disabled: string;
+                                hideResetAll: string;
+                                strings: string;
+                                ariaLabel: string;
+                            };
+                        };
+                    };
+                };
                 optionPicker: {
                     default: { title: string; description: string };
                     doc: {
@@ -2310,6 +2474,84 @@ declare module "../lib/lib/languages" {
                         apiReference: { title: string; intro: string };
                     };
                 };
+                timeline: {
+                    default: { title: string; description: string };
+                    videoScrubbing: { title: string; description: string };
+                    rtl: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            default: { title: string; description: string };
+                            videoScrubbing: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                plotsPoints: string;
+                                plotsRanges: string;
+                                hidesOutsideView: string;
+                                rendersPlayhead: string;
+                                scrubsOnClick: string;
+                                scrubsOnDrag: string;
+                                readOnlyWhenNoHandler: string;
+                                pansOnThumb: string;
+                                zoomsOnHandle: string;
+                                clampsZoom: string;
+                                controlled: string;
+                                resetZoom: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+                nodeEditor: {
+                    default: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            default: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                acceptsMatchingTypes: string;
+                                rejectsMismatchedTypes: string;
+                                rejectsMixedTypedUntyped: string;
+                                allowsTwoUntyped: string;
+                                rejectsIncompleteDrag: string;
+                                extraAfterTyped: string;
+                                lazyChunk: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
                 loggingConfig: {
                     default: { title: string; description: string };
                     doc: {
@@ -2419,6 +2661,7 @@ declare module "../lib/lib/languages" {
                 };
                 modalHandler: {
                     default: { title: string; description: string };
+                    imperative: { title: string; description: string };
                     doc: {
                         installation: {
                             title: string;
@@ -2433,6 +2676,13 @@ declare module "../lib/lib/languages" {
                         examples: {
                             title: string;
                             default: { title: string; description: string };
+                            imperative: { title: string; description: string };
+                        };
+                        imperativeApi: {
+                            title: string;
+                            intro: string;
+                            whenToUse: string;
+                            bannedNote: string;
                         };
                         definedBehaviour: {
                             title: string;
@@ -2444,6 +2694,10 @@ declare module "../lib/lib/languages" {
                                 languageSelector: string;
                                 keyboardShortcutEditor: string;
                                 customModal: string;
+                                imperativeConfirm: string;
+                                imperativeAlert: string;
+                                imperativePrompt: string;
+                                imperativeQueue: string;
                             };
                         };
                         rtl: { title: string; body: string };
@@ -2669,6 +2923,57 @@ declare module "../lib/lib/languages" {
                                 capturesCombo: string;
                                 capturesModifier: string;
                                 clearResets: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+                chart: {
+                    bar: { title: string; description: string };
+                    line: { title: string; description: string };
+                    area: { title: string; description: string };
+                    pie: { title: string; description: string };
+                    radar: { title: string; description: string };
+                    radial: { title: string; description: string };
+                    themed: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            bar: { title: string; description: string };
+                            line: { title: string; description: string };
+                            area: { title: string; description: string };
+                            pie: { title: string; description: string };
+                            radar: { title: string; description: string };
+                            radial: { title: string; description: string };
+                            themed: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                rendersWrapper: string;
+                                stableDataChartId: string;
+                                forwardsClassName: string;
+                                emitsStyleVars: string;
+                                mountsRecharts: string;
+                                styleNothingWithoutColor: string;
+                                styleThemeScopes: string;
+                                tooltipInactive: string;
+                                tooltipRendersLabel: string;
+                                legendEmptyPayload: string;
+                                legendRendersRows: string;
                             };
                         };
                         rtl: { title: string; body: string };

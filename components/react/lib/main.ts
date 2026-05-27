@@ -88,8 +88,75 @@ export {
     type UseDateTimeRangePickerOptions,
     type UseDateTimeRangePickerReturn
 } from "./components/dateTime/dateTimeRangePicker/useDateTimeRangePicker";
+export {
+    Timeline,
+    type TimelineEvent,
+    type TimelineLabels,
+    type TimelineProps,
+    type TimelineRange,
+    type TimelineStatus
+} from "./components/input/timeline/Timeline";
+
+export {
+    default as NodeEditor
+} from "./components/editor/nodeEditor/NodeEditor";
+export { default as TypedHandle, type TypedHandleProps } from "./components/editor/nodeEditor/TypedHandle";
+export { default as TypedNode } from "./components/editor/nodeEditor/TypedNode";
+export type {
+    NodeEditorProps,
+    PortDefinition,
+    PortType,
+    TypedNodeData,
+    TypedNode as TypedNodeType
+} from "./components/editor/nodeEditor/types";
+
+export {
+    default as AudioPlayer,
+    type AudioPlayerProps
+} from "./components/files/audioPlayer/AudioPlayer";
+export {
+    default as AudioWaveform,
+    type WaveformProps as AudioWaveformProps
+} from "./components/files/audioPlayer/Waveform";
+export {
+    AUDIO_PLAYBACK_RATES,
+    DEFAULT_AUDIO_PLAYER_STRINGS,
+    formatAudioTimestamp,
+    type AudioPlayerStrings,
+    type AudioPlayerVariant
+} from "./components/files/audioPlayer/types";
+
+export {
+    default as PlaybackRateControl,
+    DEFAULT_PLAYBACK_RATES,
+    DEFAULT_PLAYBACK_RATE_CONTROL_STRINGS,
+    DEFAULT_RATE_MAX,
+    DEFAULT_RATE_MIN,
+    DEFAULT_RATE_STEP,
+    clampPlaybackRate,
+    formatPlaybackRate,
+    type PlaybackRateControlProps,
+    type PlaybackRateControlStrings
+} from "./components/files/playbackRateControl/PlaybackRateControl";
 
 export { default as FileIcon } from "./components/files/fileIcon/FileIcon";
+
+export {
+    default as Lyrics,
+    type LyricsProps
+} from "./components/files/lyrics/Lyrics";
+export {
+    DEFAULT_LYRICS_STRINGS,
+    findActiveLineIndex,
+    findActiveWordIndex,
+    parseLrc,
+    type LyricsLine,
+    type LyricsMetadata,
+    type LyricsStrings,
+    type LyricsVariant,
+    type LyricsWord,
+    type ParsedLyrics
+} from "./components/files/lyrics/types";
 
 export {
     default as FileViewer,
@@ -112,6 +179,30 @@ export {
 export { default as Avatar } from "./components/identity/avatar/Avatar";
 
 export { default as ButtonSelect } from "./components/input/buttonSelect/ButtonSelect";
+export {
+    default as ColorCurves,
+    DEFAULT_COLOR_CURVES_STRINGS,
+    type ColorCurvesProps,
+    type ColorCurvesStrings
+} from "./components/input/colorCurves/ColorCurves";
+export {
+    applyColorCurvesToImageData,
+    computeColorCurvesHistogram,
+    COLOR_CURVES_CHANNELS,
+    DEFAULT_COLOR_CURVES_VALUE,
+    type ColorCurvesChannel,
+    type ColorCurvesHistogram,
+    type ColorCurvesValue
+} from "./components/input/colorCurves/applyCurves";
+export {
+    buildCurveLUT,
+    IDENTITY_CURVE,
+    isIdentityCurve,
+    LUT_SIZE,
+    normaliseCurvePoints,
+    sampleCurve,
+    type ColorCurvePoint
+} from "./components/input/colorCurves/curveMath";
 export { default as CopyValueButton } from "./components/input/copyValueButton/CopyValueButton";
 export {
     default as InlineEdit,
@@ -184,6 +275,7 @@ export * from "./components/ui/badge";
 export * from "./components/ui/button";
 export * from "./components/ui/calendar";
 export * from "./components/ui/card";
+export * from "./components/ui/chart";
 export * from "./components/ui/checkbox";
 export * from "./components/ui/collapsible";
 export * from "./components/ui/command";

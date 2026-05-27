@@ -4,6 +4,8 @@ import CodeSnippetDocPage from "./examples/codeSnippet/CodeSnippetDocPage";
 import InlineEditDocPage from "./examples/inlineEdit/InlineEditDocPage";
 import FileIconDocPage from "./examples/fileIcon/FileIconDocPage";
 import VideoViewerDocPage from "./examples/videoViewer/VideoViewerDocPage";
+import AudioPlayerDocPage from "./examples/audioPlayer/AudioPlayerDocPage";
+import LyricsDocPage from "./examples/lyrics/LyricsDocPage";
 import PageIndexDocPage from "./examples/pageIndex/PageIndexDocPage";
 import CodeThemePickerDocPage from "./examples/codeThemePicker/CodeThemePickerDocPage";
 import CodeViewerDocPage from "./examples/codeViewer/CodeViewerDocPage";
@@ -12,6 +14,7 @@ import PrimaryMenuDocPage from "./examples/primaryMenu/PrimaryMenuDocPage";
 import GlobalContextMenuDocPage from "./examples/globalContextMenu/GlobalContextMenuDocPage";
 import CopyValueButtonDocPage from "./examples/copyValueButton/CopyValueButtonDocPage";
 import ButtonSelectDocPage from "./examples/buttonSelect/ButtonSelectDocPage";
+import ColorCurvesDocPage from "./examples/colorCurves/ColorCurvesDocPage";
 import SettingsPanelDocPage from "./examples/settingsPanel/SettingsPanelDocPage";
 import TerminalDocPage from "./examples/terminal/TerminalDocPage";
 import LogViewDocPage from "./examples/logView/LogViewDocPage";
@@ -37,6 +40,7 @@ import DateTimePickerDocPage from "./examples/dateTimePicker/DateTimePickerDocPa
 import TimePickerDocPage from "./examples/timePicker/TimePickerDocPage";
 import TimezoneSelectorDocPage from "./examples/timezoneSelector/TimezoneSelectorDocPage";
 import DateTimeRangePickerDocPage from "./examples/dateTimeRangePicker/DateTimeRangePickerDocPage";
+import TimelineDocPage from "./examples/timeline/TimelineDocPage";
 import LoggingConfigDocPage from "./examples/loggingConfig/LoggingConfigDocPage";
 import CommandPaletteDocPage from "./examples/commandPalette/CommandPaletteDocPage";
 import ModalHandlerDocPage from "./examples/modalHandler/ModalHandlerDocPage";
@@ -46,6 +50,7 @@ import ResourceListDocPage from "./examples/resourceList/ResourceListDocPage";
 import ConsoleManagerDocPage from "./examples/consoleManager/ConsoleManagerDocPage";
 import DateTimeDisplayDocPage from "./examples/dateTimeDisplay/DateTimeDisplayDocPage";
 import KeyComboRecorderDocPage from "./examples/keyComboRecorder/KeyComboRecorderDocPage";
+import NodeEditorDocPage from "./examples/nodeEditor/NodeEditorDocPage";
 import type { Translation } from "./languages";
 import { uiDemos } from "./uiDemos";
 import { registerDemoLinks } from "./componentLinkRegistry";
@@ -103,6 +108,22 @@ export const demos: DemoEntry[] = [
     { id: `timePicker`, name: `TimePicker`, groupKey: `dateTime`, render: () => <TimePickerDocPage /> },
     { id: `timezoneSelector`, name: `TimezoneSelector`, groupKey: `dateTime`, render: () => <TimezoneSelectorDocPage /> },
     { id: `dateTimeRangePicker`, name: `DateTimeRangePicker`, groupKey: `dateTime`, render: () => <DateTimeRangePickerDocPage /> },
+    { id: `timeline`, name: `Timeline`, groupKey: `input`, render: () => <TimelineDocPage />, searchTags: [`scrubber`, `playhead`, `video`, `axis`, `zoom`, `time`] },
+    { id: `nodeEditor`, name: `NodeEditor`, groupKey: `editor`, render: () => <NodeEditorDocPage />, searchTags: [`graph`, `flow`, `dag`, `node`, `pipeline`, `react-flow`, `xyflow`, `dataflow`, `visual`] },
+    {
+        id: `audioPlayer`,
+        name: `AudioPlayer`,
+        groupKey: `files`,
+        render: () => <AudioPlayerDocPage />,
+        searchTags: [`audio`, `player`, `waveform`, `media`, `podcast`, `mp3`]
+    },
+    {
+        id: `lyrics`,
+        name: `Lyrics`,
+        groupKey: `files`,
+        render: () => <LyricsDocPage />,
+        searchTags: [`lyrics`, `lrc`, `karaoke`, `transcript`, `timecode`, `subtitle`, `audio`]
+    },
     {
         id: `fileIcon`,
         name: `FileIcon`,
@@ -121,6 +142,7 @@ export const demos: DemoEntry[] = [
     { id: `avatar`, name: `Avatar`, groupKey: `identity`, render: () => <AvatarDocPage /> },
     { id: `searchInput`, name: `SearchInput`, groupKey: `input`, render: () => <SearchInputDocPage /> },
     { id: `buttonSelect`, name: `ButtonSelect`, groupKey: `input`, render: () => <ButtonSelectDocPage /> },
+    { id: `colorCurves`, name: `ColorCurves`, groupKey: `input`, render: () => <ColorCurvesDocPage />, searchTags: [`curves`, `tonal`, `lightroom`, `photoshop`, `color`, `colour`, `histogram`, `photo`, `grading`] },
     { id: `optionPicker`, name: `OptionPicker`, groupKey: `input`, render: () => <OptionPickerDocPage /> },
     { id: `copyValueButton`, name: `CopyValueButton`, groupKey: `input`, render: () => <CopyValueButtonDocPage /> },
     { id: `inlineEdit`, name: `InlineEdit`, groupKey: `input`, render: () => <InlineEditDocPage />, searchTags: [`edit`, `rename`, `contenteditable`, `inplace`] },

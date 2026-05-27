@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { cleanExampleSource } from "./cleanExampleSource";
 import { actionDisplayExamples } from "../actionDisplay";
+import { audioPlayerExamples } from "../audioPlayer";
 import { avatarExamples } from "../avatar";
 import { badgeExamples } from "../badge";
 import { buttonExamples } from "../button";
 import { buttonSelectExamples } from "../buttonSelect";
 import { calendarExamples } from "../calendar";
 import { cardExamples } from "../card";
+import { chartExamples } from "../chart";
 import { checkboxExamples } from "../checkbox";
 import { codeSnippetExamples } from "../codeSnippet";
 import { codeThemePickerExamples } from "../codeThemePicker";
@@ -37,8 +39,10 @@ import { labelExamples } from "../label";
 import { languagePickerExamples } from "../languagePicker";
 import { logViewExamples } from "../logView";
 import { loggingConfigExamples } from "../loggingConfig";
+import { lyricsExamples } from "../lyrics";
 import { machineMonitorExamples } from "../machineMonitor";
 import { modalHandlerExamples } from "../modalHandler";
+import { nodeEditorExamples } from "../nodeEditor";
 import { numberInputExamples } from "../numberInput";
 import { optionPickerExamples } from "../optionPicker";
 import { pageIndexExamples } from "../pageIndex";
@@ -66,6 +70,7 @@ import { switchExamples } from "../switch";
 import { tabsExamples } from "../tabs";
 import { terminalExamples } from "../terminal";
 import { textareaExamples } from "../textarea";
+import { timelineExamples } from "../timeline";
 import { videoViewerExamples } from "../videoViewer";
 import type { RegisteredExample } from "./types";
 
@@ -101,6 +106,7 @@ const ALL_REGISTRIES: ReadonlyArray<{
     { name: `badge`, examples: badgeExamples },
     { name: `button`, examples: buttonExamples },
     { name: `card`, examples: cardExamples },
+    { name: `chart`, examples: chartExamples },
     { name: `checkbox`, examples: checkboxExamples },
     { name: `switch`, examples: switchExamples },
     { name: `input`, examples: inputExamples },
@@ -126,6 +132,8 @@ const ALL_REGISTRIES: ReadonlyArray<{
     { name: `compass`, examples: compassExamples },
     { name: `avatar`, examples: avatarExamples },
     { name: `actionDisplay`, examples: actionDisplayExamples },
+    { name: `audioPlayer`, examples: audioPlayerExamples },
+    { name: `lyrics`, examples: lyricsExamples },
     { name: `keyComboDisplay`, examples: keyComboDisplayExamples },
     { name: `keyComboRecorder`, examples: keyComboRecorderExamples },
     { name: `keyboardShortcutEditor`, examples: keyboardShortcutEditorExamples },
@@ -147,7 +155,9 @@ const ALL_REGISTRIES: ReadonlyArray<{
     { name: `image360Viewer`, examples: image360ViewerExamples },
     { name: `resourceList`, examples: resourceListExamples },
     { name: `consoleManager`, examples: consoleManagerExamples },
-    { name: `dateTimeDisplay`, examples: dateTimeDisplayExamples }
+    { name: `dateTimeDisplay`, examples: dateTimeDisplayExamples },
+    { name: `timeline`, examples: timelineExamples },
+    { name: `nodeEditor`, examples: nodeEditorExamples }
 ];
 
 describe(`registry integrity — code shown == code that runs`, () => {
