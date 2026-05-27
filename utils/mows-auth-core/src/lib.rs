@@ -50,7 +50,10 @@ pub mod list;
 // body for a k-way sorted-stream merge with keyset pagination per
 // LISTING.md §3 + §8 — the public signature stays put.
 pub use crate::check::check_access;
-pub use crate::list::list_visible_resource_ids;
+pub use crate::list::{
+    list_visible_resource_ids, merge_streams, ListingCursor, ListingPage, SortedStream,
+    StreamItem, StreamSource,
+};
 pub use crate::evaluation::{AuthEvaluation, AuthReason, AuthResult};
 pub use crate::idp::{
     IntrospectedUser, IntrospectionError, IntrospectionResult, TokenIntrospector,
