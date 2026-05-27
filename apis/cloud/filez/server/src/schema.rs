@@ -131,8 +131,37 @@ diesel::table! {
         created_time -> Timestamp,
         modified_time -> Timestamp,
         description -> Nullable<Text>,
+        // Migration 00000000000008. Wire-stable per
+        // mows_auth_core::types::GroupVisibility / GroupJoinPolicy.
+        visibility -> SmallInt,
+        join_policy -> SmallInt,
     }
 }
+
+// Pending lifecycle rows for InviteOnly / RequestToJoin groups
+// (migration 00000000000008, USER_GROUPS.md §2). Acceptance moves
+// a row into user_user_group_members in a single transaction.
+diesel::table! {
+    user_user_group_join_requests (user_id, user_group_id) {
+        user_id -> Uuid,
+        user_group_id -> Uuid,
+        requested_time -> Timestamp,
+        message -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
+    user_user_group_invitations (user_id, user_group_id) {
+        user_id -> Uuid,
+        user_group_id -> Uuid,
+        invited_time -> Timestamp,
+        invited_by -> Uuid,
+        message -> Nullable<Text>,
+    }
+}
+diesel::joinable!(user_user_group_join_requests -> users (user_id));
+diesel::joinable!(user_user_group_join_requests -> user_groups (user_group_id));
+diesel::joinable!(user_user_group_invitations -> user_groups (user_group_id));
 // ON_DELETE: CASCADE
 // ON_UPDATE: CASCADE
 diesel::joinable!(user_groups -> users (owner_id));
@@ -480,4 +509,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     public_resources,
     server_member_resources,
     user_group_accessible_resources,
+    user_user_group_join_requests,
+    user_user_group_invitations,
 );
