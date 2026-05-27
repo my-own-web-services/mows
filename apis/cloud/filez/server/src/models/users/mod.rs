@@ -195,20 +195,67 @@ impl FilezUser {
         todo!()
     }
 
+    /// Soft-delete a user. USER_GROUPS.md §7.5 cascade:
+    ///   1. Every `user_groups` row owned by this user is transferred
+    ///      to the sentinel `NOBODY_USER_ID`. The group is preserved
+    ///      (members, shares, history) so admins can re-assign
+    ///      ownership rather than silently losing the group.
+    ///   2. `users.deleted = TRUE`.
+    /// Both steps run in one transaction so a concurrent reader
+    /// never sees a partially-deleted user.
+    ///
+    /// Refuses to act on `NOBODY_USER_ID` itself — soft-deleting
+    /// the sentinel would re-orphan everything it owns.
+    ///
+    /// Returns the count of transferred groups so the caller can
+    /// emit it in the audit log entry the spec asks for ("a
+    /// notification is emitted to server admins; they can transfer
+    /// the group manually").
     #[tracing::instrument(level = "trace", skip(database))]
     pub async fn soft_delete_one(
         database: &Database,
         user_id: &FilezUserId,
-    ) -> Result<(), FilezError> {
+    ) -> Result<usize, FilezError> {
+        use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
+
+        if user_id.0 == mows_auth_core::NOBODY_USER_ID {
+            return Err(FilezError::InvalidRequest(
+                "The system `nobody` sentinel user cannot be deleted \
+                 (USER_GROUPS.md §7.5)"
+                    .to_string(),
+            ));
+        }
+
+        let nobody = FilezUserId(mows_auth_core::NOBODY_USER_ID);
         let mut connection = database.get_connection().await?;
-        diesel::update(crate::schema::users::table.find(user_id))
-            .set((
-                crate::schema::users::deleted.eq(true),
-                crate::schema::users::modified_time.eq(get_current_timestamp()),
-            ))
-            .execute(&mut connection)
-            .await?;
-        Ok(())
+        connection
+            .transaction::<usize, FilezError, _>(|conn| {
+                async move {
+                    // 1. Transfer ownership of every owned group to
+                    //    the sentinel. UPDATE returns the row count
+                    //    via execute().
+                    let transferred = diesel::update(
+                        crate::schema::user_groups::table
+                            .filter(crate::schema::user_groups::owner_id.eq(user_id)),
+                    )
+                    .set(crate::schema::user_groups::owner_id.eq(&nobody))
+                    .execute(conn)
+                    .await?;
+
+                    // 2. Flag the user as deleted.
+                    diesel::update(crate::schema::users::table.find(user_id))
+                        .set((
+                            crate::schema::users::deleted.eq(true),
+                            crate::schema::users::modified_time.eq(get_current_timestamp()),
+                        ))
+                        .execute(conn)
+                        .await?;
+
+                    Ok(transferred)
+                }
+                .scope_boxed()
+            })
+            .await
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
@@ -602,6 +649,58 @@ mod multi_idp_lookup {
         assert!(
             sql.contains("external_user_id"),
             "apply_one lookup MUST filter on external_user_id: {sql}"
+        );
+    }
+}
+
+#[cfg(test)]
+mod nobody_sentinel_guard {
+    //! USER_GROUPS.md §7.5 invariants: the `nobody` sentinel id is
+    //! wire-stable, and soft_delete_one MUST refuse to act on it +
+    //! transfer owned groups BEFORE flagging the user deleted.
+    //! Without these guards an attacker who somehow triggered a
+    //! delete on the sentinel would orphan every group it currently
+    //! holds; reverse-order would leak a dangling-owner window
+    //! between the two writes.
+
+    const MOD_RS_SOURCE: &str = include_str!("mod.rs");
+
+    #[test]
+    fn nobody_user_id_constant_is_stable() {
+        // Hex matches migration 00000000000010 + the docstring on
+        // mows_auth_core::NOBODY_USER_ID.
+        assert_eq!(
+            mows_auth_core::NOBODY_USER_ID,
+            uuid::Uuid::from_u128(0x0000bad1_0000_0000_0000_000000000001)
+        );
+    }
+
+    #[test]
+    fn soft_delete_refuses_the_sentinel() {
+        let needle = format!("user_id.0 == mows_auth_core::{}", "NOBODY_USER_ID");
+        assert!(
+            MOD_RS_SOURCE.contains(&needle),
+            "soft_delete_one must guard against deleting the nobody \
+             sentinel — missing `{needle}` early-return"
+        );
+    }
+
+    #[test]
+    fn soft_delete_transfers_groups_before_flagging_deleted() {
+        // Reverse-order would create a window where the user is
+        // gone but the groups still reference them (no FK on
+        // owner_id, so silent dangling).
+        let transfer_idx = MOD_RS_SOURCE
+            .find("schema::user_groups::table")
+            .expect("soft_delete_one must reference user_groups::table");
+        let delete_flag_idx = MOD_RS_SOURCE
+            .find("crate::schema::users::deleted.eq(true)")
+            .expect("soft_delete_one must flag users.deleted = true");
+        assert!(
+            transfer_idx < delete_flag_idx,
+            "USER_GROUPS.md §7.5: transfer ownership MUST run before \
+             flagging deleted = true (transfer at byte {transfer_idx}, \
+             flag at byte {delete_flag_idx})"
         );
     }
 }

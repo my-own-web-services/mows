@@ -54,7 +54,7 @@ pub use crate::list::list_visible_resource_ids;
 pub use crate::evaluation::{AuthEvaluation, AuthReason, AuthResult};
 pub use crate::idp::{
     IntrospectedUser, IntrospectionError, IntrospectionResult, TokenIntrospector,
-    ZitadelIntrospector, ZITADEL_IDP_ID,
+    ZitadelIntrospector, NOBODY_USER_ID, ZITADEL_IDP_ID,
 };
 pub use crate::policies::{AppView, PolicyStore, PolicyView, Subject};
 pub use crate::registry::{

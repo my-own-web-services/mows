@@ -35,6 +35,20 @@ use uuid::Uuid;
 /// AUTHENTICATION.md §2 "Pluggable IdP".
 pub const ZITADEL_IDP_ID: Uuid = Uuid::from_u128(0x7a17ade1_0000_0000_0000_000000000001);
 
+/// System sentinel user that owns resources whose original owner was
+/// deleted (USER_GROUPS.md §7.5: "The owner deletes their own account
+/// — group ownership moves to a system-defined `nobody` user").
+///
+/// Wire-stable; the prefix `0000bad1` (no-body) is a mnemonic so the
+/// row is recognizable in raw output. Has no IdP mapping —
+/// `external_user_id IS NULL`. Cannot log in. Cannot be deleted
+/// (a soft-delete would orphan everything it owns again).
+///
+/// Inserted by migration 00000000000010 with `idp_id = ZITADEL_IDP_ID`
+/// only to satisfy the NOT NULL FK on `users.idp_id`; no Zitadel
+/// subject ever resolves to this row.
+pub const NOBODY_USER_ID: Uuid = Uuid::from_u128(0x0000bad1_0000_0000_0000_000000000001);
+
 /// Maximum size in bytes of a single introspection response body the
 /// engine will deserialise. Caps the attack surface of a compromised
 /// or malicious IdP returning a giant payload (SEC-2). `TokenIntrospector`

@@ -75,14 +75,33 @@ pub async fn delete_user(
         "Database operation to check access control",
         timing
     );
-    with_timing!(
+    let transferred_groups = with_timing!(
         FilezUser::soft_delete_one(&database, &user_id).await?,
-        "Database operation to delete user",
+        "Database operation to delete user (with §7.5 ownership transfer)",
         timing
     );
+
+    if transferred_groups > 0 {
+        tracing::info!(
+            user_id = %user_id,
+            transferred_groups,
+            "USER_GROUPS.md §7.5: transferred owner_id of {} group(s) \
+             to the system `nobody` sentinel — admin should re-assign",
+            transferred_groups,
+        );
+    }
+
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
-        message: "User deleted successfully".to_string(),
+        message: if transferred_groups > 0 {
+            format!(
+                "User deleted successfully ({} group(s) transferred to system `nobody`; \
+                 admin should re-assign)",
+                transferred_groups
+            )
+        } else {
+            "User deleted successfully".to_string()
+        },
         data: None,
     }))
 }
