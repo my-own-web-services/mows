@@ -9,6 +9,7 @@ import {
     List,
     ListTree,
     Map as MapIcon,
+    MessageSquare,
     Settings,
     SquarePen,
     Star,
@@ -111,6 +112,7 @@ const saveFavorites = (favorites: ReadonlySet<string>): void => {
 const GROUP_ICONS: Record<DemoGroupKey, LucideIcon> = {
     actions: Keyboard,
     appShell: AppWindow,
+    chat: MessageSquare,
     code: Code,
     console: TerminalSquare,
     dateTime: CalendarClock,
@@ -272,6 +274,7 @@ export default class App extends PureComponent<AppProps, AppState> {
         const groupOrder: DemoGroupKey[] = [
             `actions`,
             `appShell`,
+            `chat`,
             `code`,
             `console`,
             `dateTime`,
@@ -451,6 +454,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                                             const isActive =
                                                 isGuide &&
                                                 this.state.selected.id === guide.id;
+                                            const Icon = guide.icon;
                                             return (
                                                 <SidebarMenuItem key={guide.id}>
                                                     <SidebarMenuButton
@@ -473,7 +477,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                                                                 this.select(sel);
                                                             }}
                                                         >
-                                                            <BookOpen
+                                                            <Icon
                                                                 className={`h-3.5 w-3.5`}
                                                                 aria-hidden
                                                             />
@@ -608,6 +612,8 @@ export default class App extends PureComponent<AppProps, AppState> {
                                                                     aria-label={label}
                                                                     title={label}
                                                                     className={cn(
+                                                                        // Click target sized to match the 36 px heading line.
+                                                                        `h-10 w-10`,
                                                                         isFav
                                                                             ? `text-primary hover:text-primary/80`
                                                                             : `text-muted-foreground hover:text-foreground`
@@ -615,7 +621,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                                                                 >
                                                                     <Star
                                                                         className={cn(
-                                                                            `h-6 w-6`,
+                                                                            `size-7`,
                                                                             isFav && `fill-current`
                                                                         )}
                                                                         aria-hidden

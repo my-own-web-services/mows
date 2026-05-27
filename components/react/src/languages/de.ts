@@ -1,4 +1,5 @@
 import baseDe from "../../lib/lib/languages/de/default";
+import { stepsDe } from "../examples/steps/translations";
 import type { Translation } from "../languages";
 import { ExampleActionIds } from "../exampleActions";
 
@@ -39,6 +40,7 @@ const translation: Translation = {
             groups: {
                 actions: `Aktionen & Tastenkürzel`,
                 appShell: `App-Struktur`,
+                chat: `Chat`,
                 code: `Code`,
                 console: `Konsole`,
                 dateTime: `Datum & Uhrzeit`,
@@ -60,7 +62,8 @@ const translation: Translation = {
             addToFavoritesAriaLabel: `Zu Favoriten hinzufügen`,
             removeFromFavoritesAriaLabel: `Aus Favoriten entfernen`,
             guidesLabel: `Anleitungen`,
-            creatingAppsLabel: `Apps erstellen`
+            creatingAppsLabel: `Apps erstellen`,
+            translationsLabel: `Übersetzungen`
         },
         guides: {
             creatingApps: {
@@ -106,6 +109,133 @@ const translation: Translation = {
                         body: `Eine Aktion kann ihr Label, Icon und ihren Handler unter einer Modifier-Tasten-Kombination via \`variants\` morphen. Der Klassiker: eine Zeile „In den Papierkorb verschieben“ wird zu „Endgültig löschen“, während Shift gehalten wird — das Menü rendert live neu, sobald der Nutzer den Modifier hält oder loslässt. Varianten werden in Reihenfolge gegen die Live-Modifier-Maske aufgelöst; das erste passende Prädikat gewinnt, also packe die spezifischsten Varianten zuerst. Der Auflösungs- und Dispatch-Pfad wird mit dem Rechtsklick-Menü und der Command Palette geteilt, sodass das Verhalten über alle Oberflächen hinweg konsistent bleibt.`
                     }
                 }
+            },
+            translations: {
+                title: `Übersetzungen`,
+                overview: {
+                    title: `Überblick`,
+                    intro: `Jeder übersetzbare String in der Bibliothek und in deiner eigenen App fließt durch ein typisiertes Objekt: \`t\`. Die Bibliothek besitzt ihren Anteil (\`BaseTranslation\`), deine App erweitert die Form über TypeScript Declaration Merging, und \`<MowsProvider>\` führt den aufgelösten Baum der aktiven Sprache unter \`useMows().t\`.`,
+                    baseTranslation: {
+                        title: `BaseTranslation`,
+                        body: `Definiert in \`lib/lib/languages.ts\`. Listet jeden String auf, den die Bibliothek selbst rendert — \`<PrimaryMenu>\`, \`<CommandPalette>\`, \`<SettingsPanel>\`, \`<VideoViewer>\`, Tastenlabels und so weiter. Apps bearbeiten dieses Interface nicht; es ist der Vertrag, den jede aus der Bibliothek ausgelieferte Locale erfüllen muss.`
+                    },
+                    translationInterface: {
+                        title: `Translation`,
+                        body: `Ebenfalls in \`lib/lib/languages.ts\`. Beginnt als reine Erweiterung von \`BaseTranslation\` und ist der Typ, auf den jeder Konsument zugreift. Deine App ergänzt ihn via \`declare module ".../languages" { interface Translation { … } }\`, um eigene Schlüssel hinzuzufügen — so liefert dasselbe \`t\`-Objekt sowohl Bibliotheks- als auch App-Strings.`
+                    },
+                    language: {
+                        title: `Language`,
+                        body: `Ein kleiner Record mit Sprachcode (\`en-US\`, \`de\`), Anzeigename, Emoji und einem \`import()\`-Thunk, der die aufgelöste \`Translation\` für diese Locale zurückgibt. Die vollständigen Daten jeder Locale leben in einem eigenen Modul, sodass der Sprachumschalter dynamisch nur die vom Nutzer gewählte Locale lädt.`
+                    },
+                    provider: {
+                        title: `Verdrahtung im MowsProvider`,
+                        body: `\`<MowsProvider>\` nimmt \`languages\` (die verfügbaren \`Language[]\`) und \`initialTranslation\` (den eager gebundelten Baum für das erste Rendering). Er nimmt die gespeicherte Wahl des Nutzers via \`storagePrefix\` + Browsersprache auf, ruft beim Mount das passende \`Language.import()\` und rendert die Konsumenten beim Wechsel über \`setLanguage()\` mit dem neuen Baum neu. Der aktive Baum ist über Context stets als \`t\` erreichbar.`
+                    }
+                },
+                setup: {
+                    title: `Einrichtung`,
+                    intro: `Übersetzungen werden einmal am Root verdrahtet. Alles weitere — Sprachumschaltung, Persistenz, automatische Browserspracherkennung — übernimmt der Provider.`,
+                    mountProvider: {
+                        title: `Mit languages + initialem Baum mounten`,
+                        body: `Übergib \`languages\` und \`initialTranslation\` an \`<MowsProvider>\`. Der initiale Baum ist mit dem Entry-Chunk gebundelt, damit das erste Rendering nicht kurz auf Englisch aufflackert, während ein Locale-Chunk lädt. Wähle ihn zuerst über \`localStorage\`, dann \`navigator.language\`, dann ein hartcodiertes englisches Fallback — die \`main.tsx\` der Beispiel-App zeigt das exakte Muster.`
+                    },
+                    defaultLanguages: {
+                        title: `Ohne languages-Prop reichen Englisch + Deutsch`,
+                        body: `Lässt du \`languages\` weg, fällt \`<MowsProvider>\` auf \`baseLanguages\` zurück (von der Bibliothek ausgeliefertes Englisch + Deutsch). Das genügt Apps, die keine eigenen Übersetzungsschlüssel anlegen. Sobald deine App \`Translation\` erweitert, liefere ein eigenes \`Language[]\` mit, damit das \`import()\` jedes Eintrags den erweiterten Baum zurückgibt — nicht den Basisbaum.`
+                    }
+                },
+                reading: {
+                    title: `Übersetzungen auslesen`,
+                    intro: `\`t\` aus dem Context holen und den typisierten Pfad dereferenzieren. Keine String-Schlüssel, keine Lookup-Fehler — wenn der Punkt-Pfad nicht typisiert, ist der Wert nicht vorhanden.`,
+                    hooks: {
+                        title: `Funktionskomponenten — useMows()`,
+                        body: `Rufe \`useMows()\` für den vollen Context auf und lies \`t.<pfad>\`. Derselbe Hook liefert alles andere mit (Theme, Action Manager, Modal-State, …), sodass die meisten Komponenten nur einen Context-Call brauchen.`
+                    },
+                    classComponents: {
+                        title: `Klassenkomponenten — contextType`,
+                        body: `Die meisten Komponenten dieser Bibliothek sind Klassenkomponenten. Setze \`static contextType = MowsContext\` und deklariere \`context: ContextType<typeof MowsContext>\`, dann lies \`this.context!.t.<pfad>\` in \`render()\`. \`this.context\` ist gegen \`MowsContextType\` typisiert, sodass dieselbe Punkt-Pfad-Vervollständigung greift.`
+                    },
+                    actions: {
+                        title: `Action-Labels — der einzige dynamische Schlüssel`,
+                        body: `Action-Labels leben unter \`t.actions[ActionId]\`. Das ist die einzige Stelle, an der der Schlüssel dynamisch statt statisch typisiert ist — Action-IDs sind namensbereinigte Strings (\`myapp.document.create\`), die der Aufrufer wählt, der Typ ist \`Record<string, string>\`. Schlage via \`t.actions[CoreActionIds.OpenCommandPalette]\` (oder dein eigenes Enum) nach und der Action Manager rendert das aufgelöste Label in der Command Palette, im Tastenkürzel-Editor und im Kontextmenü.`
+                    }
+                },
+                extending: {
+                    title: `Eigene Übersetzungsschlüssel ergänzen`,
+                    intro: `Wenn deine App Strings über das hinaus braucht, was die Bibliothek mitbringt, erweitere das \`Translation\`-Interface via TypeScript Declaration Merging und stelle pro Locale eine Datei bereit. Die Erweiterung ist rein typischer Natur — zur Laufzeit werden die Strings einfach zu zusätzlichen Feldern desselben \`t\`-Objekts.`,
+                    declareMerge: {
+                        title: `Translation-Interface erweitern`,
+                        body: `Schreibe in deiner App einen \`declare module ".../languages" { interface Translation { … } }\`-Block, der deinen Namespace hinzufügt. Verwende einen Top-Level-Schlüssel pro Feature-Bereich (\`dashboard\`, \`settings\`, \`onboarding\`), damit mehrere Teams ihre Anteile ohne Kollisionen wachsen lassen können. Die Schlüssel der Bibliothek bleiben unberührt; deine Ergänzungen erscheinen daneben auf \`t\`.`
+                    },
+                    perLocaleFile: {
+                        title: `Eine Datei pro Locale, mit Spread der Basis`,
+                        body: `Baue für jede Locale ein Modul, das die Basislokale der Bibliothek (\`baseEn\`, \`baseDe\`) importiert, spreaded und deine eigenen Schlüssel auffüllt. \`const translation: Translation = { ...baseEn, … }\` typisiert gegen das erweiterte Interface — jeder Bibliotheksschlüssel behält seinen Standardwert, und jeder App-Schlüssel, den du angelegt hast, wird zur Compile-Zeit eingefordert.`
+                    },
+                    consumeOwnKeys: {
+                        title: `Konsumenten lesen eigene Schlüssel genauso`,
+                        body: `Innerhalb der App ist \`useMows().t.dashboard.greeting\` ebenso typisiert wie \`useMows().t.primaryMenu.login\` — es gibt keinen zweiten \`useAppT()\`-Hook zu merken und keinerlei Gefahr, dass eine Bibliotheksübersetzung gegen eine App-Übersetzung divergiert, weil es nur einen Baum gibt.`
+                    }
+                },
+                slicing: {
+                    title: `Locale-Dateien in Feature-Slices aufteilen`,
+                    intro: `Sobald \`Translation\` mehr als eine Handvoll Features umfasst, passt die Locale-Datei nicht mehr in den Kopf eines Reviewers. Eine Slice-Datei zieht alle Strings einer Komponente — Typ und beide Locale-Werte — in ein einziges Modul direkt neben der Komponente. Die obersten Locale-Dateien werden zur kurzen Liste von \`...\`-Spread-Referenzen, und das Hinzufügen eines Schlüssels lässt den Compile in jeder Locale weiterhin scheitern, weil der Slice-Typ das ist, worauf die oberste Schnittstelle verweist.`,
+                    sliceFile: {
+                        title: `Eine Datei pro Komponente, Typ + beide Locale-Werte`,
+                        body: `Lege \`translations.ts\` direkt neben die Komponente (z. B. \`src/examples/steps/translations.ts\`) und exportiere drei Dinge: \`StepsTranslation\` (die Form), \`stepsEn\` typisiert als \`StepsTranslation\` und \`stepsDe\` typisiert als \`StepsTranslation\`. Wer die Komponente anfasst, bearbeitet eine Datei statt drei.`
+                    },
+                    wiring: {
+                        title: `Eine Slice in den Baum einhängen`,
+                        body: `Ersetze im obersten Typ das Inline-Literal des Features durch den Slice-Typ: \`steps: StepsTranslation\`. Ersetze in jeder Locale-Datei das Inline-Literal durch die Slice-Konstante: \`steps: stepsEn\` / \`steps: stepsDe\`. Die Annotation \`const translation: Translation = { … }\` zwingt nach wie vor zur Befüllung jedes Pflichtschlüssels — die Slice schiebt die Strings nur in eine andere Datei.`
+                    },
+                    bundle: {
+                        title: `Was Slicing am Bundle ändert (und was nicht)`,
+                        body: `Slice-Auslagerung ist Wartbarkeit, kein Code-Splitting — die Strings landen unabhängig vom Quellort im selben Chunk. Das Bundle-Layout entscheidet dein Einstiegspunkt: importierst du beide Locales statisch, faltet der Bundler sie in den Haupt-Chunk; lädst du die initiale Locale per dynamischem \`import()\`, gibt der Bundler pro Locale einen eigenen Chunk aus. Eager für sofortigen First Paint, dynamisch für einen schlankeren Haupt-Chunk.`
+                    }
+                },
+                switching: {
+                    title: `Sprache zur Laufzeit wechseln`,
+                    intro: `\`setLanguage(language)\` tauscht die aktive Locale. Der Provider ruft \`language.import()\` auf, wartet auf den Chunk, persistiert die Auswahl unter \`storagePrefix_language\` und rendert mit dem neuen \`t\` neu.`,
+                    runtime: {
+                        title: `Wechsel auslösen`,
+                        body: `Rufe \`setLanguage\` aus \`useMows()\` mit dem Ziel-\`Language\`-Record auf. Der mitgelieferte \`<LanguagePicker>\` macht genau das — derselbe Aufruf funktioniert aus deiner eigenen UI, wenn du einen eigenen Einstiegspunkt brauchst. Die persistierte Wahl überlebt Reloads; Löschen des Storage-Eintrags fällt auf die Browsersprache zurück.`
+                    },
+                    chunks: {
+                        title: `Code-Chunks pro Locale`,
+                        body: `Jedes \`Language.import\` ist ein dynamisches \`import()\`. Vite gibt pro Locale einen eigenen Chunk aus, sodass Nutzer nur die Locales herunterladen, zu denen sie tatsächlich wechseln. Das erste Rendering nutzt \`initialTranslation\` (eager gebundelt), spätere Wechsel kommen aus dem Netz oder dem HTTP-Cache.`
+                    }
+                },
+                safety: {
+                    title: `Compile-Zeit-Garantien`,
+                    intro: `Der Sinn der Typisierung des Übersetzungsbaums ist, dass der Compiler keiner Locale erlaubt, auseinanderzulaufen. Füg einen Schlüssel hinzu, ohne ihn überall einzutragen, und \`tsc\` schlägt Alarm; der Testsuite hält die Eigenschaft fest.`,
+                    compileCheck: {
+                        title: `Jede Locale-Datei ist ein Translation`,
+                        body: `Jedes Per-Locale-Modul deklariert \`const translation: Translation = { … }\`. Füg einen neuen Schlüssel zu \`Translation\` hinzu (in der Bibliothek oder via App-seitiger Erweiterung), und jede Locale-Datei scheitert bei der Compilierung, bis der Schlüssel ausgefüllt ist. Keine stillen Fallbacks, kein unübersetzter String, der durchrutscht.`
+                    },
+                    complianceTest: {
+                        title: `localesAreCompliant.test.ts`,
+                        body: `\`lib/lib/languages/localesAreCompliant.test.ts\` importiert jede ausgelieferte Locale und prüft ihren Typ erneut gegen \`BaseTranslation\`. \`pnpm test\` (oder \`pnpm build\`) deckt einen fehlenden Locale-Slot genauso auf wie ein CI-Lauf — es gibt keinen Pfad, auf dem eine Übersetzungslücke unbemerkt in Produktion gerät.`
+                    }
+                },
+                conventions: {
+                    title: `Konventionen & Stolperfallen`,
+                    intro: `Muster, die den Baum mit Wachstum wartbar halten.`,
+                    namespacing: {
+                        title: `Nach Feature, nicht nach Komponente benennen`,
+                        body: `Gruppiere Strings nach nutzerseitigem Konzept (\`onboarding.welcome\`, \`settings.appearance\`) statt nach Komponentenname. Die Bibliothek macht das Gegenteil — sie ordnet nach Komponente (\`primaryMenu\`, \`commandPalette\`), weil ihre Oberflächen ihre Komponenten SIND. App-Schlüssel überleben Komponentenumbenennungen; ein Feature-Namespace ist die stabilere Grundlage.`
+                    },
+                    flatKeys: {
+                        title: `Den Baum nicht flach klopfen`,
+                        body: `Widerstehe der Versuchung, \`t["settings.theme.title"]\` zu schreiben. Verschachtelte Objekte sind durchgehend typisiert und refaktorierbar; klammerindizierte flache Schlüssel zerstören Autovervollständigung, brechen Refactoring-Werkzeuge und machen Missing-Key-Bugs zu Laufzeitfehlern. Die einzige unvermeidliche Stelle sind Action-Labels (siehe „Übersetzungen auslesen“) — und selbst dort kommen die Schlüssel aus einem Enum.`
+                    },
+                    actionIds: {
+                        title: `Action-Labels sind der einzige dynamische Slot`,
+                        body: `\`t.actions[id]\` ist ein \`Record<string, string>\`, weil Action-IDs offen sind. Bezieh die ID immer aus einem Enum oder einer Konstanten, damit ein Tippfehler an der Aufrufstelle ein Tippfehler an der Lookup-Stelle bleibt. Die Übersetzungsdatei ist der Ort, an dem das Label gerendert wird — halte beide Hälften nah beieinander, wenn du eine neue Action hinzufügst.`
+                    },
+                    spreadBase: {
+                        title: `Immer die Basis-Locale spreaden`,
+                        body: `Per-Locale-App-Dateien starten mit \`...baseEn\` (oder \`...baseDe\`), damit die Strings der Bibliothek ihre Werte behalten, ohne dupliziert zu werden. Vergisst du den Spread, typisieren deine App-seitigen Schlüssel zwar einzeln, aber die zusammengeführte \`Translation\` fehlt jeder Bibliotheksschlüssel — und der Compile-Fehler taucht erst an der Zuweisungsstelle auf, weit weg vom fehlenden Feld.`
+                    }
+                }
             }
         },
         examples: {
@@ -114,120 +244,7 @@ const translation: Translation = {
                 stateTab: `State`,
                 noStateReported: `Dieses Beispiel meldet keinen Zustand.`
             },
-            steps: {
-                horizontal: {
-                    title: `Horizontale Schrittanzeige`,
-                    description: `Standardmäßige horizontale Anordnung. Der Status wird aus dem kontrollierten „current“-Index abgeleitet.`
-                },
-                endAlignment: {
-                    title: `End-Ausrichtung`,
-                    description: `endAlignment steuert, wie sich der erste und letzte Schritt entlang der Reihe verankern. „side“ (Standard) drückt sie an die Reihenränder mit links-/rechtsbündigem Label; „center“ zentriert jedes Label unter seinem Indikator. In beiden Modi bleiben die Indikatoren gleichmäßig verteilt.`
-                },
-                vertical: {
-                    title: `Vertikale Schrittanzeige`,
-                    description: `Schritte vertikal stapeln, mit der Verbindungslinie zwischen den Indikatoren.`
-                },
-                statusOverride: {
-                    title: `Status pro Schritt überschreiben`,
-                    description: `Übergib „status“ an einen einzelnen <Step>, um seine Darstellung unabhängig vom abgeleiteten Zustand zu erzwingen.`
-                },
-                wizard: {
-                    title: `Assistent (Vorschau + Inhalt)`,
-                    description: `<Steps> mit Inhaltsbereich und Zurück/Weiter-Schaltflächen für einen realen Ablauf kombinieren.`
-                },
-                selection: {
-                    title: `Auswahlmodus`,
-                    description: `mode="selection" macht aus der Schrittanzeige eine Schrittauswahl: jeder Kreis zeigt seine Nummer, der aktive Schritt ist mit der Primärfarbe gefüllt, und es gibt kein Konzept von „abgeschlossen“.`
-                },
-                loading: {
-                    title: `Ladezustand`,
-                    description: `Ladezustand pro Schritt. loading={true} ergibt einen unbestimmten Spinner um den Indikator; loading={n} (0–100) ergibt einen Fortschrittsring, den du aus eigenem State speist.`
-                },
-                disabled: {
-                    title: `Deaktiviert`,
-                    description: `Die gesamte Schrittanzeige im deaktivierten Zustand — gedämpft und nicht interaktiv — mittels eines Containers mit aria-disabled und pointer-events-none.`
-                },
-                icons: {
-                    title: `Icons`,
-                    description: `Step-Titel akzeptieren beliebige ReactNode-Werte, sodass jedem Label ein Icon vorangestellt werden kann, ohne das <Steps>-Primitiv anzupassen.`
-                },
-                rtl: {
-                    title: `RTL`,
-                    description: `<Steps> in dir="rtl" einzuschließen dreht das Layout für rechtsläufige Schriften. Horizontale und vertikale Ausrichtung folgen beide.`
-                },
-                doc: {
-                    installation: {
-                        title: `Installation`,
-                        commandTab: `Befehl`,
-                        manualTab: `Manuell`,
-                        manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-                        manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-                        manualStep3: `Passe die Importpfade an dein Projekt an.`
-                    },
-                    usage: {
-                        title: `Verwendung`,
-                        body: `Importiere <Steps> und <Step> aus dem Paket und rendere sie mit einer kontrollierten „current“-Prop. <Step> liest Ausrichtung und current über Context aus dem umgebenden <Steps>; die Kinder müssen daher direkte <Step>-Elemente sein.`
-                    },
-                    composition: {
-                        title: `Komposition`,
-                        body: `<Steps> ist ein schlankes Layout, das Context an seine Kinder weiterleitet. Jeder <Step> rendert einen Indikatorkreis und ein Label. Der Status pro Schritt (completed / current / upcoming) wird aus dem Index relativ zu „current“ abgeleitet, lässt sich aber per „status“-Prop überschreiben, etwa für Fehler- oder Übersprungszustände.`
-                    },
-                    examples: {
-                        title: `Beispiele`,
-                        line: {
-                            title: `Linie`,
-                            description: `Das voreingestellte horizontale Layout: ein nummerierter Indikator pro Schritt, verbunden durch eine Linie.`
-                        },
-                        endAlignment: {
-                            title: `End-Ausrichtung`,
-                            description: `Direkter Vergleich von endAlignment="side" (erstes/letztes Label an den Reihenrändern) und endAlignment="center" (jedes Label zentriert). In beiden bleiben die Indikatoren gleichmäßig verteilt.`
-                        },
-                        vertical: {
-                            title: `Vertikal`,
-                            description: `Schritte vertikal stapeln, mit der Verbindungslinie zwischen den Indikatoren.`
-                        },
-                        loading: {
-                            title: `Ladezustand`,
-                            description: `Direkter Vergleich von loading={true} (unbestimmter Spinner) und loading={n} (bestimmter Fortschrittsring, gespeist aus Komponentenstate).`
-                        },
-                        disabled: {
-                            title: `Deaktiviert`,
-                            description: `Die Schrittanzeige vollständig deaktiviert dargestellt — gedämpft und nicht interaktiv.`
-                        },
-                        icons: {
-                            title: `Icons`,
-                            description: `Ein ReactNode-Titel ermöglicht es, jedem Step-Label ein Icon voranzustellen.`
-                        }
-                    },
-                    definedBehaviour: {
-                        title: `Festgelegtes Verhalten`,
-                        intro: `Aussagen darüber, wie sich <Steps> verhalten soll, jeweils mit Verweis auf den Test, der das Verhalten absichert. Die Pfade verweisen auf lib/components/ui/steps.test.tsx in diesem Paket.`,
-                        verifiedBy: `geprüft durch`,
-                        statements: {
-                            derivesStatuses: `Index < current ergibt completed, == current ergibt current, > current ergibt upcoming.`,
-                            ariaCurrent: `Der Schritt bei „current“ trägt aria-current="step".`,
-                            rendersTitleDescription: `<Step> rendert Titel und optionale Beschreibung wie angegeben.`,
-                            orientationAttr: `Die <ol> spiegelt die Ausrichtung über das Attribut aria-orientation wider.`,
-                            statusOverride: `Ein „status“-Prop auf einem <Step> überschreibt den aus dem Index abgeleiteten Status.`,
-                            selectionNoCompleted: `Im mode="selection" werden Indizes vor „current“ niemals als completed markiert.`,
-                            selectionShowsNumbers: `Im mode="selection" zeigt jeder Indikator seine Schrittnummer; keine Check-Icons.`,
-                            throwsOutsideSteps: `<Step> außerhalb von <Steps> zu rendern wirft einen aussagekräftigen Fehler.`,
-                            endAlignmentSide: `Mit endAlignment="side" ist das Label des ersten Schritts linksbündig und das des letzten rechtsbündig; mittlere Labels bleiben zentriert.`,
-                            endAlignmentCenter: `Mit endAlignment="center" ist das Label jedes Schritts unter seinem Indikator zentriert — auch das erste und das letzte.`,
-                            loadingIndeterminate: `loading auf einem <Step> umrahmt den Indikator mit einem unbestimmten Spinner-Ring.`,
-                            loadingDeterminate: `loading={n} (0–100, geklemmt) umrahmt den Indikator mit einem Fortschrittsring, der als role="progressbar" mit aria-valuenow exponiert wird.`
-                        }
-                    },
-                    rtl: {
-                        title: `RTL`,
-                        body: `Die Schrittanzeige erbt die Richtung von ihrem DOM-Vorfahren: ein umgebendes dir="rtl" kehrt Indikatorreihenfolge, Label-Ausrichtung und Verbindungslinien um — ohne Prop-Änderungen.`
-                    },
-                    apiReference: {
-                        title: `API-Referenz`,
-                        intro: `Props, die <Steps> und <Step> akzeptieren.`
-                    }
-                }
-            },
+            steps: stepsDe,
             sectionHeading: {
                 default: {
                     title: `Standard`,
@@ -451,16 +468,12 @@ const translation: Translation = {
                     description: `Enhanced-LRC-Quellen verteilen \`<mm:ss.xx>\`-Marker zwischen den Wörtern. Die Komponente hebt das aktive Wort hervor, sobald die Zeitachse weiterläuft.`
                 },
                 synced: {
-                    title: `Synchron mit Audio`,
-                    description: `Verbunden mit einem HTML-\`<audio>\`-Element — drücke Play und beobachte, wie die aktive Zeile dem Abspielkopf folgt. Ein Klick auf eine Zeile springt im Audio zurück.`
+                    title: `Synchron mit AudioPlayer`,
+                    description: `Verbunden mit dem \`<AudioPlayer>\` der Library über dessen imperative Ref — drücke Play, und die aktive Zeile folgt dem Abspielkopf. Ein Klick auf eine Liedzeile springt im Player zurück. Audio: Brad Sucks — "Bad Sign" (CC-BY-SA 3.0, archive.org). LRC: Community-erstellter, zeitsynchroner Liedtext aus LRCLIB, exakt auf diese 232 s lange Aufnahme abgestimmt.`
                 },
                 rtl: {
                     title: `Rechts-nach-links`,
                     description: `Mit \`dir="rtl"\` umschlossen. Die Zeilen bleiben mittig und in zeitlicher Reihenfolge, aber die umgebende Schreibrichtung kehrt sich um.`
-                },
-                syncedDemo: {
-                    instructions: `Drücke Play und beobachte, wie die aktive Zeile dem Abspielkopf folgt. Klick auf eine Zeile springt im Audio zurück.`,
-                    toggleAriaLabel: `Wiedergabe umschalten`
                 },
                 doc: {
                     installation: {
@@ -494,8 +507,8 @@ const translation: Translation = {
                             description: `Enhanced LRC mit \`<mm:ss.xx>\`-Markern pro Wort. Das aktive Wort übernimmt im Verlauf die Primärfarbe.`
                         },
                         synced: {
-                            title: `Verbunden mit <audio>`,
-                            description: `Drücke Play, um den Liedtext aus einem echten HTML-Audio-Element zu treiben. Klick auf eine Zeile springt im Audio zurück.`
+                            title: `Verbunden mit AudioPlayer`,
+                            description: `Drücke Play am \`<AudioPlayer>\`, um den Liedtext zu treiben. Ein Klick auf eine Zeile springt über die imperative Ref im Player zurück. Audio: Brad Sucks — "Bad Sign" (CC-BY-SA 3.0). LRC: Community-Sync aus LRCLIB.`
                         }
                     },
                     definedBehaviour: {
@@ -4044,6 +4057,43 @@ const translation: Translation = {
                     },
                     rtl: { title: `RTL`, body: `Header-Buttons und Spaltenanordnung werden unter dir="rtl" gespiegelt.` },
                     apiReference: { title: `API-Referenz`, intro: `Props, die <ResourceList> akzeptiert.` }
+                }
+            },
+            chat: {
+                default: { title: `Standard`, description: `Threaded-Konversation mit Reaktionen, Antworten, Bearbeiten/Löschen, optimistischem Senden und Tippanzeige. Nachrichten sind virtualisiert; der Composer ist am unteren Rand fixiert.` },
+                endless: { title: `Endloses Scrollen`, description: `Viertausend synthetische Nachrichten, beim Scrollen nach oben per loadOlder nachgeladen. Der Virtualizer hält den Render-Aufwand unabhängig von der Backlog-Größe flach.` },
+                readOnly: { title: `Nur-Lese-Transkript`, description: `Incident-Retrospektive — kein Composer, keine Zeilen-Aktionen. Reaktionen und Lesebestätigungen werden weiterhin angezeigt.` },
+                rtl: { title: `Rechts-nach-links`, description: `Eingepackt in dir="rtl". Avatare, Zeitstempel, Antwortvorschauen und Composer spiegeln ihr Layout.` },
+                doc: {
+                    installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
+                    usage: { title: `Verwendung`, body: `<Chat> rendert eine virtualisierte Nachrichtenliste auf Basis von react-window. Übergib ein geordnetes messages-Array sowie ein User-Lookup und verbinde onSend, onReact, onEdit, onDelete und loadOlder mit deiner Datenschicht. Reaktionen, Antworten, Bearbeitungen, Tippanzeige und Lesebestätigungen gehören zum festen Funktionsumfang.` },
+                    composition: { title: `Komposition`, body: `Solange der Nutzer am Ende der Konversation ist, bleibt die Ansicht am unteren Rand „angeklebt“; neue Nachrichten außerhalb des Sichtbereichs lösen eine „Zum Neuesten springen“-Pille aus. Ältere Nachrichten werden über loadOlder eingelagert, sobald der Nutzer nahe an den Anfang scrollt; das messages-Array gehört dem Consumer.` },
+                    examples: {
+                        title: `Beispiele`,
+                        default: { title: `Standard`, description: `Live-Konversation mit Reaktionen, Antworten, Bearbeiten/Löschen und Tippanzeige.` },
+                        endless: { title: `Endloses Scrollen`, description: `Synthetischer Backlog mit 4 000 Nachrichten, on demand per loadOlder geladen.` },
+                        readOnly: { title: `Nur-Lese-Transkript`, description: `Composer per readOnly ausgeblendet; Nachrichten, Reaktionen und Bestätigungen bleiben sichtbar.` },
+                        rtl: { title: `Rechts-nach-links`, description: `Layout via dir="rtl" gespiegelt.` }
+                    },
+                    definedBehaviour: {
+                        title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <Chat> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
+                        statements: {
+                            rendersMessages: `Rendert eine Zeile pro Nachricht mit Autor-ID, Inhalt und Zeitstempel.`,
+                            emptyState: `Zeigt den Leerzustand, wenn das messages-Array leer ist.`,
+                            sendOnEnter: `Enter im Composer löst onSend aus und leert das Eingabefeld.`,
+                            noSendOnShiftEnter: `Shift+Enter fügt eine neue Zeile ein, ohne zu senden.`,
+                            groupsConsecutive: `Markiert aufeinanderfolgende Nachrichten desselben Autors innerhalb des Gruppierungsfensters mit data-grouped="true".`,
+                            insertsDateDividers: `Fügt zwischen Nachrichten unterschiedlicher Kalendertage einen Datums-Trenner ein.`,
+                            toggleReactions: `Klicks auf Reaktionschips werden je nach Mitgliedschaft des aktuellen Nutzers durch onReact bzw. onUnreact geroutet.`,
+                            replyPreview: `Das Auslösen von Reply zeigt eine Antwortvorschau im Composer und sendet mit gesetztem replyToId.`,
+                            typingIndicator: `Zeigt den Tippindikator mit dem Anzeigenamen des Nutzers; der aktuelle Nutzer wird ausgeschlossen.`,
+                            retryOnFailure: `Zeigt bei fehlgeschlagenen Nachrichten eine Retry-Schaltfläche und ruft onRetry mit der Message-ID auf.`,
+                            loadsOlder: `Ruft loadOlder auf, sobald das sichtbare Fenster nahe am Listenanfang liegt und hasMore aktiv ist.`,
+                            readOnlyHidesComposer: `Lässt den Composer vollständig weg, wenn readOnly gesetzt ist.`
+                        }
+                    },
+                    rtl: { title: `RTL`, body: `Liste, Composer, Antwortvorschau und Avatare spiegeln unter dir="rtl". Zeitstempel bleiben in der Locale-Standardreihenfolge.` },
+                    apiReference: { title: `API-Referenz`, intro: `Props, die <Chat> akzeptiert.` }
                 }
             },
             keyComboRecorder: {

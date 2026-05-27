@@ -2,6 +2,7 @@ import {
     type Language as MowsLanguage,
     type Translation as MowsTranslation
 } from "../lib/lib/languages";
+import type { StepsTranslation } from "./examples/steps/translations";
 
 // eslint-disable-next-line quotes
 declare module "../lib/lib/languages" {
@@ -29,6 +30,7 @@ declare module "../lib/lib/languages" {
                 groups: {
                     actions: string;
                     appShell: string;
+                    chat: string;
                     code: string;
                     console: string;
                     dateTime: string;
@@ -51,6 +53,7 @@ declare module "../lib/lib/languages" {
                 removeFromFavoritesAriaLabel: string;
                 guidesLabel: string;
                 creatingAppsLabel: string;
+                translationsLabel: string;
             };
             guides: {
                 creatingApps: {
@@ -85,6 +88,64 @@ declare module "../lib/lib/languages" {
                         variants: { title: string; body: string };
                     };
                 };
+                translations: {
+                    title: string;
+                    overview: {
+                        title: string;
+                        intro: string;
+                        baseTranslation: { title: string; body: string };
+                        translationInterface: { title: string; body: string };
+                        language: { title: string; body: string };
+                        provider: { title: string; body: string };
+                    };
+                    setup: {
+                        title: string;
+                        intro: string;
+                        mountProvider: { title: string; body: string };
+                        defaultLanguages: { title: string; body: string };
+                    };
+                    reading: {
+                        title: string;
+                        intro: string;
+                        hooks: { title: string; body: string };
+                        classComponents: { title: string; body: string };
+                        actions: { title: string; body: string };
+                    };
+                    extending: {
+                        title: string;
+                        intro: string;
+                        declareMerge: { title: string; body: string };
+                        perLocaleFile: { title: string; body: string };
+                        consumeOwnKeys: { title: string; body: string };
+                    };
+                    slicing: {
+                        title: string;
+                        intro: string;
+                        sliceFile: { title: string; body: string };
+                        wiring: { title: string; body: string };
+                        bundle: { title: string; body: string };
+                    };
+                    switching: {
+                        title: string;
+                        intro: string;
+                        runtime: { title: string; body: string };
+                        chunks: { title: string; body: string };
+                    };
+                    safety: {
+                        title: string;
+                        intro: string;
+                        compileCheck: { title: string; body: string };
+                        complianceTest: { title: string; body: string };
+                    };
+                    conventions: {
+                        title: string;
+                        intro: string;
+                        namespacing: { title: string; body: string };
+                        flatKeys: { title: string; body: string };
+                        actionIds: { title: string; body: string };
+                        spreadBase: { title: string; body: string };
+                    };
+                };
             };
             examples: {
                 _harness: {
@@ -92,60 +153,7 @@ declare module "../lib/lib/languages" {
                     stateTab: string;
                     noStateReported: string;
                 };
-                steps: {
-                    horizontal: { title: string; description: string };
-                    endAlignment: { title: string; description: string };
-                    vertical: { title: string; description: string };
-                    statusOverride: { title: string; description: string };
-                    wizard: { title: string; description: string };
-                    loading: { title: string; description: string };
-                    disabled: { title: string; description: string };
-                    icons: { title: string; description: string };
-                    rtl: { title: string; description: string };
-                    selection: { title: string; description: string };
-                    doc: {
-                        installation: {
-                            title: string;
-                            commandTab: string;
-                            manualTab: string;
-                            manualStep1: string;
-                            manualStep2: string;
-                            manualStep3: string;
-                        };
-                        usage: { title: string; body: string };
-                        composition: { title: string; body: string };
-                        examples: {
-                            title: string;
-                            line: { title: string; description: string };
-                            endAlignment: { title: string; description: string };
-                            vertical: { title: string; description: string };
-                            loading: { title: string; description: string };
-                            disabled: { title: string; description: string };
-                            icons: { title: string; description: string };
-                        };
-                        definedBehaviour: {
-                            title: string;
-                            intro: string;
-                            verifiedBy: string;
-                            statements: {
-                                derivesStatuses: string;
-                                ariaCurrent: string;
-                                rendersTitleDescription: string;
-                                orientationAttr: string;
-                                statusOverride: string;
-                                selectionNoCompleted: string;
-                                selectionShowsNumbers: string;
-                                throwsOutsideSteps: string;
-                                endAlignmentSide: string;
-                                endAlignmentCenter: string;
-                                loadingIndeterminate: string;
-                                loadingDeterminate: string;
-                            };
-                        };
-                        rtl: { title: string; body: string };
-                        apiReference: { title: string; intro: string };
-                    };
-                };
+                steps: StepsTranslation;
                 sectionHeading: {
                     default: { title: string; description: string };
                     levels: { title: string; description: string };
@@ -272,10 +280,6 @@ declare module "../lib/lib/languages" {
                     karaoke: { title: string; description: string };
                     synced: { title: string; description: string };
                     rtl: { title: string; description: string };
-                    syncedDemo: {
-                        instructions: string;
-                        toggleAriaLabel: string;
-                    };
                     doc: {
                         installation: {
                             title: string;
@@ -2822,6 +2826,52 @@ declare module "../lib/lib/languages" {
                                 forwardsSort: string;
                                 reorderFires: string;
                                 crossListAccept: string;
+                            };
+                        };
+                        rtl: { title: string; body: string };
+                        apiReference: { title: string; intro: string };
+                    };
+                };
+                chat: {
+                    default: { title: string; description: string };
+                    endless: { title: string; description: string };
+                    readOnly: { title: string; description: string };
+                    rtl: { title: string; description: string };
+                    doc: {
+                        installation: {
+                            title: string;
+                            commandTab: string;
+                            manualTab: string;
+                            manualStep1: string;
+                            manualStep2: string;
+                            manualStep3: string;
+                        };
+                        usage: { title: string; body: string };
+                        composition: { title: string; body: string };
+                        examples: {
+                            title: string;
+                            default: { title: string; description: string };
+                            endless: { title: string; description: string };
+                            readOnly: { title: string; description: string };
+                            rtl: { title: string; description: string };
+                        };
+                        definedBehaviour: {
+                            title: string;
+                            intro: string;
+                            verifiedBy: string;
+                            statements: {
+                                rendersMessages: string;
+                                emptyState: string;
+                                sendOnEnter: string;
+                                noSendOnShiftEnter: string;
+                                groupsConsecutive: string;
+                                insertsDateDividers: string;
+                                toggleReactions: string;
+                                replyPreview: string;
+                                typingIndicator: string;
+                                retryOnFailure: string;
+                                loadsOlder: string;
+                                readOnlyHidesComposer: string;
                             };
                         };
                         rtl: { title: string; body: string };
