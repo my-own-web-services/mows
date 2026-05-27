@@ -1,6 +1,7 @@
 pub mod access_policies;
 pub mod apps;
 pub mod audit_log;
+pub mod cover_tables;
 pub mod events;
 pub mod file_file_group_members;
 pub mod file_groups;

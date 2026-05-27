@@ -85,6 +85,17 @@ pub enum AuditEvent {
         /// silently delete owner-less groups").
         transferred_groups: usize,
     },
+    /// Phase 5 P5-2 — the listing-cover reconciler ran. Drift
+    /// between `access_policies` and the cover tables (caused by
+    /// bulk-loader paths that bypass the per-row triggers, or by
+    /// trigger function bugs in a future migration) is self-healed
+    /// each time this fires. The count is per (subject, resource)
+    /// pair processed; a sudden change in cadence (e.g. half the
+    /// expected count) is the admin signal that something dropped
+    /// active policies out from under the system.
+    CoverTablesReconciled {
+        rows_processed: usize,
+    },
 }
 
 impl AuditEvent {
@@ -96,6 +107,7 @@ impl AuditEvent {
             AuditEvent::UserGroupOwnerTransferredToNobody { .. } => {
                 "user_group_owner_transferred_to_nobody"
             }
+            AuditEvent::CoverTablesReconciled { .. } => "cover_tables_reconciled",
         }
     }
 }
@@ -194,6 +206,16 @@ mod event_wire_stability_guard {
     }
 
     #[test]
+    fn cover_tables_reconciled_event_type_is_stable() {
+        let e = AuditEvent::CoverTablesReconciled {
+            rows_processed: 0,
+        };
+        assert_eq!(e.event_type(), "cover_tables_reconciled");
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["event_type"], "cover_tables_reconciled");
+    }
+
+    #[test]
     fn event_type_method_matches_serde_tag() {
         // The `event_type()` helper exists so handlers can read the
         // discriminator without round-tripping through serde. It
@@ -205,6 +227,9 @@ mod event_wire_stability_guard {
             },
             AuditEvent::UserGroupOwnerTransferredToNobody {
                 transferred_groups: 1,
+            },
+            AuditEvent::CoverTablesReconciled {
+                rows_processed: 1,
             },
         ] {
             let serialised = serde_json::to_value(&event).unwrap();
@@ -241,6 +266,15 @@ mod metadata_field_stability_guard {
         };
         let json = serde_json::to_value(&e).unwrap();
         assert_eq!(json["transferred_groups"], 7);
+    }
+
+    #[test]
+    fn cover_tables_reconciled_metadata_shape() {
+        let e = AuditEvent::CoverTablesReconciled {
+            rows_processed: 12345,
+        };
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["rows_processed"], 12345);
     }
 }
 
