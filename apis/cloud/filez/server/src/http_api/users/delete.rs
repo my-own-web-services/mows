@@ -98,6 +98,12 @@ pub async fn delete_user(
         // static so log aggregators can group on it and
         // `transferred_groups` doesn't appear twice in the
         // rendered line (phase4-review CRIT-1).
+        //
+        // TODO(audit-log): the spec (USER_GROUPS.md §7.5) calls for
+        // "a notification … emitted to server admins; they can
+        // transfer the group manually". Phase 5 should replace this
+        // tracing event with a durable audit_log row + a feed an
+        // admin UI can subscribe to. phase4-review MAJ-7.
         tracing::info!(
             user_id = %user_id,
             transferred_groups,

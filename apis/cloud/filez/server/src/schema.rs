@@ -155,7 +155,7 @@ diesel::table! {
         user_id -> Uuid,
         user_group_id -> Uuid,
         invited_time -> Timestamp,
-        invited_by -> Uuid,
+        invited_by -> Nullable<Uuid>,
         message -> Nullable<Text>,
     }
 }

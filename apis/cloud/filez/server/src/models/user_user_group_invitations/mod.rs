@@ -33,12 +33,20 @@ pub struct UserUserGroupInvitation {
     pub user_id: FilezUserId,
     pub user_group_id: UserGroupId,
     pub invited_time: chrono::NaiveDateTime,
-    pub invited_by: FilezUserId,
+    /// `None` after the inviter's account is deleted
+    /// (USER_GROUPS.md §7.4 — "the invitation is irrelevant but
+    /// harmless. Leave it"). FK is `ON DELETE SET NULL` per
+    /// migration 00000000000013.
+    pub invited_by: Option<FilezUserId>,
     pub message: Option<String>,
 }
 
 impl UserUserGroupInvitation {
-    pub fn new(
+    // Crate-internal — external callers must go through
+    // `create_one` so the row is persisted under the
+    // ON CONFLICT DO NOTHING idempotency contract
+    // (phase4-review MIN-4 / TECH-12).
+    pub(crate) fn new(
         user_id: &FilezUserId,
         user_group_id: &UserGroupId,
         invited_by: &FilezUserId,
@@ -48,7 +56,7 @@ impl UserUserGroupInvitation {
             user_id: user_id.clone(),
             user_group_id: user_group_id.clone(),
             invited_time: get_current_timestamp(),
-            invited_by: invited_by.clone(),
+            invited_by: Some(invited_by.clone()),
             message,
         }
     }

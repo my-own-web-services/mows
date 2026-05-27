@@ -40,7 +40,11 @@ pub struct UserUserGroupJoinRequest {
 }
 
 impl UserUserGroupJoinRequest {
-    pub fn new(
+    // Crate-internal — external callers must go through
+    // `create_one` so the row is actually persisted and the
+    // ON CONFLICT DO NOTHING idempotency contract holds
+    // (phase4-review MIN-4 / TECH-12).
+    pub(crate) fn new(
         user_id: &FilezUserId,
         user_group_id: &UserGroupId,
         message: Option<String>,

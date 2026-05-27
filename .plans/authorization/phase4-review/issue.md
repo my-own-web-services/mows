@@ -33,9 +33,21 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
 
 ---
 
+## Progress
+
+| Fixed | Items |
+| ----- | ----- |
+| CRIT  | CRIT-1, CRIT-2, CRIT-3 (commit `d954a9eb`) |
+| MAJ   | MAJ-1, MAJ-2, MAJ-5 (commit `d954a9eb`); MAJ-3, MAJ-6 (commit `1304d20a`); MAJ-4, FUTURE-1 (commit `a43213c8`) |
+| MIN   | MIN-6, MIN-7 (commit `1304d20a`); MIN-8 (commit `d954a9eb`) |
+
+Remaining: MAJ-7 (audit-log markers), MAJ-8 (Members vs Users action
+rename), MIN-1 / MIN-2 / MIN-4 / MIN-5 / MIN-9 + the documentation
+findings.
+
 ## Critical
 
-- **CRIT-1** ❌ — `tracing::info!` in `users/delete.rs:91-99` passes
+- **CRIT-1** ✅ — `tracing::info!` in `users/delete.rs:91-99` passes
   `transferred_groups` twice: once as a structured field and once as
   a format-string arg. This is a real bug — the macro will format
   the message with the value but log aggregators will see a
@@ -43,7 +55,7 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
   - **Fix:** drop the trailing positional `transferred_groups`; keep
     only the structured field + a static message.
 
-- **CRIT-2** ❌ — `user_groups/delete.rs:75` constructs
+- **CRIT-2** ✅ — `user_groups/delete.rs:75` constructs
   `ApiResponseStatus::Success` (unit form) but the rest of the
   codebase uses `ApiResponseStatus::Success {}` (struct form). This
   was likely an oversight when extending the handler — the change
@@ -51,7 +63,7 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
   the codebase has been treating as load-bearing. (TASTE-2)
   - **Fix:** `ApiResponseStatus::Success {}`.
 
-- **CRIT-3** ❌ — `user_groups/delete.rs` calls
+- **CRIT-3** ✅ — `user_groups/delete.rs` calls
   `AccessPolicy::delete_all_by_subject` and `UserGroup::delete_one`
   in sequence WITHOUT wrapping them in a transaction. If the second
   call fails (FK cascade race, conn drop), the group lives on with
@@ -65,7 +77,7 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
 
 ## Major
 
-- **MAJ-1** ❌ — `candidate_ids_for_filter` `_ => Vec::new()`
+- **MAJ-1** ✅ — `candidate_ids_for_filter` `_ => Vec::new()`
   fallback (`user_groups/mod.rs:~250`) silently returns an empty
   set for non-`Public` filters with no user. Fails closed — but
   silently. If the handler's "non-Public ⇒ authenticated" guard is
@@ -75,21 +87,21 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
     loud so a future refactor of the handler guard surfaces in
     monitoring instead of in the UI.
 
-- **MAJ-2** ❌ — `list.rs` filter dispatch `match` uses a wildcard
+- **MAJ-2** ✅ — `list.rs` filter dispatch `match` uses a wildcard
   `other =>` arm. A new `ListUserGroupsFilter` variant added later
   will compile and silently route to the generic `list_with_filter`
   path. (TECH-13, SLOP-10, TECH-13)
   - **Fix:** enumerate every variant explicitly so the compiler
     enforces coverage when a new variant lands.
 
-- **MAJ-3** ❌ — `accept.rs` + `approve.rs` `*_in_transaction`
+- **MAJ-3** ✅ — `accept.rs` + `approve.rs` `*_in_transaction`
   helpers are 90% identical (DELETE pending row → check affected →
   INSERT member row). Both will need to be updated in lockstep for
   any audit / notification hook. (REPO-1, TASTE-3, TECH-5)
   - **Fix:** extract a private `promote_pending_to_member` helper
     parameterised over the source table; both handlers call it.
 
-- **MAJ-4** ❌ — `list_with_filter` for `Public` loads the full
+- **MAJ-4** ✅ — `list_with_filter` for `Public` loads the full
   candidate id set into memory (`Vec<UserGroupId>`) BEFORE applying
   `from_index/limit`. At 1M Public groups this is ~16MB per request
   plus the COUNT(*) round-trip. (FUTURE-2, TECH-11, QA-11)
@@ -97,7 +109,7 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
     when the filter is `Public` (or just always — small filters are
     naturally tiny) so postgres returns only the paginated window.
 
-- **MAJ-5** ❌ — `users/mod.rs::soft_delete_one` UPDATEs every
+- **MAJ-5** ✅ — `users/mod.rs::soft_delete_one` UPDATEs every
   `user_groups` row whose `owner_id` matches the deleted user.
   There is no index on `user_groups.owner_id` — full table scan
   + row-by-row exclusive locks. (DEVOPS-3)
@@ -105,7 +117,7 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
     adding `CREATE INDEX user_groups_by_owner ON user_groups
     (owner_id)`.
 
-- **MAJ-6** ❌ — `update_one` auto-promote uses SELECT-then-loop-
+- **MAJ-6** ✅ — `update_one` auto-promote uses SELECT-then-loop-
   then-INSERT instead of a single `INSERT … SELECT`. At 10k pending
   requests this doubles the transaction time and holds locks
   longer. (TECH-2, DEVOPS-8)
@@ -175,7 +187,7 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
     on the model. Captures "invited by a now-deleted user" without
     losing the invitation.
 
-- **MIN-6** ❌ — `accept`/`approve` handlers do a pre-transaction
+- **MIN-6** ✅ — `accept`/`approve` handlers do a pre-transaction
   `get_one` check before entering the transaction. The transaction
   re-checks via affected-row count. Race window between the two —
   outer returns "No pending …", inner would return "already
@@ -184,7 +196,7 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
     affected-row count for the 404. Single round trip + uniform
     error message.
 
-- **MIN-7** ❌ — `accept`/`approve` insert uses
+- **MIN-7** ✅ — `accept`/`approve` insert uses
   `on_conflict_do_nothing()` on the member insert. If a concurrent
   path already added the member, the operation silently succeeds
   with the request/invitation deleted but no new member created.
@@ -192,7 +204,7 @@ After deduplication: **3 critical**, **~10 major**, **~15 minor** distinct issue
   - **Fix:** check the insert's affected count. If 0, the row was
     already a member — log it (this is a real signal) and proceed.
 
-- **MIN-8** ❌ — Reviewer noted (ARCH-6) that the `nobody` sentinel
+- **MIN-8** ✅ — Reviewer noted (ARCH-6) that the `nobody` sentinel
   check in `users/delete.rs` runs AFTER the access-control check.
   An attacker who somehow obtained `UsersDelete` permission could
   attempt to soft-delete the sentinel and at least learn it exists

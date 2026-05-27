@@ -71,6 +71,12 @@ pub async fn delete_user_group(
         "Database transaction: drop subject-targeted policies + delete user group",
         timing
     );
+    // TODO(audit-log): replace this tracing event with a durable
+    // audit_log row when Phase 5 lands the table. Tracing is
+    // ephemeral / sampled in prod; for spec §7.2 ("the deletion is
+    // logged in the audit table with the affected policy ids") we
+    // need (event_type, actor_id, resource_id, ts, metadata jsonb).
+    // phase4-review MAJ-7.
     tracing::info!(
         user_group_id = %user_group_id,
         dropped_policies,
