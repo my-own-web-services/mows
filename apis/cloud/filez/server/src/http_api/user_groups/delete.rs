@@ -62,36 +62,23 @@ pub async fn delete_user_group(
         timing
     );
 
-    // USER_GROUPS.md §7.2: drop every access_policies row whose
-    // subject was this group BEFORE removing the group row itself.
-    // Order matters for the audit log entry — the dropped count is
-    // captured here while the group still exists, so a future audit
-    // hook can attribute "N policies revoked due to deletion of group
-    // <id>".
+    // USER_GROUPS.md §7.2 atomic cascade: drop subject-targeted
+    // policies + remove the group row in ONE transaction. The
+    // earlier shape ran the two writes via separate connections
+    // and could partially succeed — see phase4-review CRIT-3.
     let dropped_policies = with_timing!(
-        AccessPolicy::delete_all_by_subject(
-            &database,
-            mows_auth_core::types::SubjectType::UserGroup,
-            &user_group_id.into(),
-        )
-        .await?,
-        "Database operation to drop subject-targeted policies",
+        UserGroup::delete_one_with_subject_policy_cleanup(&database, &user_group_id).await?,
+        "Database transaction: drop subject-targeted policies + delete user group",
         timing
     );
     tracing::info!(
         user_group_id = %user_group_id,
         dropped_policies,
-        "USER_GROUPS.md §7.2: dropped group-subject access policies prior to group delete"
-    );
-
-    with_timing!(
-        UserGroup::delete_one(&database, &user_group_id).await?,
-        "Database operation to delete user group",
-        timing
+        "USER_GROUPS.md §7.2: deleted group + dropped subject-targeted policies"
     );
 
     Ok(Json(ApiResponse {
-        status: ApiResponseStatus::Success,
+        status: ApiResponseStatus::Success {},
         message: format!(
             "User group deleted ({} subject-targeted policies dropped)",
             dropped_policies

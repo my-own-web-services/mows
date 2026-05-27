@@ -55,6 +55,10 @@ pub async fn list_user_groups(
         )));
     }
 
+    // Exhaustive match: every ListUserGroupsFilter variant gets a
+    // named arm. A new variant added to the enum triggers a compile
+    // error here rather than silently routing through a wildcard
+    // (phase4-review MAJ-2 / SLOP-10 / TECH-13).
     let (user_groups, total_count) = match filter {
         ListUserGroupsFilter::AccessGranted => with_timing!(
             UserGroup::list_with_user_access(
@@ -70,11 +74,16 @@ pub async fn list_user_groups(
             "Database operation to list user groups",
             timing
         ),
-        other => with_timing!(
+        ListUserGroupsFilter::Owned
+        | ListUserGroupsFilter::Member
+        | ListUserGroupsFilter::Invited
+        | ListUserGroupsFilter::Requested
+        | ListUserGroupsFilter::Public
+        | ListUserGroupsFilter::ServerListed => with_timing!(
             UserGroup::list_with_filter(
                 &database,
                 authentication_information.requesting_user.as_ref(),
-                other,
+                filter,
                 request_body.from_index,
                 request_body.limit,
                 request_body.sort_by,

@@ -209,11 +209,30 @@ impl UserGroup {
                     .load::<UserGroupId>(&mut connection)
                     .await?
             }
+            // `AccessGranted` goes through the policy-checked
+            // `list_with_user_access` path; the handler must never
+            // dispatch it here. If it does, the caller has bypassed
+            // the policy check — fail loud, not closed.
+            (ListUserGroupsFilter::AccessGranted, _) => {
+                return Err(FilezError::InvalidRequest(
+                    "candidate_ids_for_filter: AccessGranted dispatches via \
+                     `list_with_user_access` (policy-checked path); calling \
+                     this function with that filter is a handler-routing bug"
+                        .to_string(),
+                ));
+            }
             // Filters other than Public reaching here with no user
-            // are a handler bug — the handler must reject them with
-            // 401 before dispatching. Return empty rather than
-            // panic to fail closed.
-            _ => Vec::new(),
+            // are a handler-contract violation — the handler MUST
+            // reject them with 401 before dispatch. Fail loud so a
+            // future refactor that weakens the handler guard
+            // surfaces in monitoring instead of returning an empty
+            // list silently (phase4-review MAJ-1 / SLOP-5).
+            (other, None) => {
+                return Err(FilezError::InvalidRequest(format!(
+                    "candidate_ids_for_filter: filter `{other:?}` requires an \
+                     authenticated user (handler must enforce auth before dispatch)"
+                )));
+            }
         };
         Ok(ids)
     }
@@ -399,6 +418,57 @@ impl UserGroup {
         .execute(&mut connection)
         .await?;
         Ok(())
+    }
+
+    /// USER_GROUPS.md §7.2 atomic cascade. Both writes run inside
+    /// one diesel-async transaction so a mid-flight failure can't
+    /// leave the group alive with zero subject-targeted policies
+    /// (the previous shape had each call acquire its own connection
+    /// and could partially succeed — multi-review phase4 CRIT-3).
+    ///
+    /// Returns the count of dropped policy rows so the caller can
+    /// emit it on the audit trail.
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn delete_one_with_subject_policy_cleanup(
+        database: &Database,
+        user_group_id: &UserGroupId,
+    ) -> Result<usize, FilezError> {
+        use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
+
+        let mut connection = database.get_connection().await?;
+        connection
+            .transaction::<usize, FilezError, _>(|conn| {
+                async move {
+                    // Drop policies FIRST so the count is captured
+                    // while the group row still exists (for the
+                    // audit log entry the spec asks for); the
+                    // group DELETE then runs in the same tx.
+                    let dropped = diesel::delete(
+                        crate::schema::access_policies::table
+                            .filter(
+                                crate::schema::access_policies::subject_type
+                                    .eq(mows_auth_core::types::SubjectType::UserGroup),
+                            )
+                            .filter(
+                                crate::schema::access_policies::subject_id
+                                    .eq::<uuid::Uuid>((*user_group_id).into()),
+                            ),
+                    )
+                    .execute(conn)
+                    .await?;
+
+                    diesel::delete(
+                        schema::user_groups::table
+                            .filter(schema::user_groups::id.eq(user_group_id)),
+                    )
+                    .execute(conn)
+                    .await?;
+
+                    Ok(dropped)
+                }
+                .scope_boxed()
+            })
+            .await
     }
 
     #[tracing::instrument(level = "trace", skip(database))]

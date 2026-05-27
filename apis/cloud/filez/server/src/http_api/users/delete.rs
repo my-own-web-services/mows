@@ -62,6 +62,18 @@ pub async fn delete_user(
         }
     };
 
+    // USER_GROUPS.md §7.5 + phase4-review MIN-8: reject the
+    // sentinel user BEFORE the auth check. Even an admin with
+    // UsersDelete cannot soft-delete `nobody` — doing so would
+    // re-orphan every group it currently holds.
+    if user_id.0 == mows_auth_core::NOBODY_USER_ID {
+        return Err(FilezError::InvalidRequest(
+            "The system `nobody` sentinel user cannot be deleted \
+             (USER_GROUPS.md §7.5)"
+                .to_string(),
+        ));
+    }
+
     with_timing!(
         AccessPolicy::check(
             &database,
@@ -82,12 +94,14 @@ pub async fn delete_user(
     );
 
     if transferred_groups > 0 {
+        // Structured field carries the count — the message is
+        // static so log aggregators can group on it and
+        // `transferred_groups` doesn't appear twice in the
+        // rendered line (phase4-review CRIT-1).
         tracing::info!(
             user_id = %user_id,
             transferred_groups,
-            "USER_GROUPS.md §7.5: transferred owner_id of {} group(s) \
-             to the system `nobody` sentinel — admin should re-assign",
-            transferred_groups,
+            "USER_GROUPS.md §7.5: transferred group ownership to system `nobody` sentinel — admin should re-assign",
         );
     }
 

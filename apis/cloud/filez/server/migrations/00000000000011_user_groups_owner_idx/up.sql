@@ -1,0 +1,14 @@
+-- Phase 4 multi-review MAJ-5 fix.
+--
+-- `FilezUser::soft_delete_one` (USER_GROUPS.md §7.5) and the
+-- existing `filter=Owned` directory query (USER_GROUPS.md §6) both
+-- scan `user_groups WHERE owner_id = $1`. Without an index this is
+-- a seq scan of every group in the cluster, holding exclusive
+-- locks during the §7.5 cascade UPDATE. At the 100k-group target
+-- (USER_GROUPS.md §1) the worst-case delete-user takes seconds
+-- and blocks every concurrent group write.
+--
+-- BTREE on owner_id alone is enough — owner_id has high
+-- cardinality (most users own < 10 groups, distribution is long-
+-- tailed).
+CREATE INDEX user_groups_by_owner ON user_groups (owner_id);
