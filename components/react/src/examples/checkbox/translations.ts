@@ -12,181 +12,181 @@
  */
 
 export interface CheckboxTranslation {
-    default: { title: string; description: string };
-    indeterminate: { title: string; description: string };
-    disabled: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            indeterminate: { title: string; description: string };
-            disabled: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                defaultUnchecked: string;
-                indicatorWhenChecked: string;
-                defaultCheckedOnMount: string;
-                firesOnCheckedChange: string;
-                fullyControllable: string;
-                noToggleWhenDisabled: string;
-                indeterminateDataState: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  indeterminate: { title: string; description: string };
+  disabled: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      indeterminate: { title: string; description: string };
+      disabled: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        defaultUnchecked: string;
+        indicatorWhenChecked: string;
+        defaultCheckedOnMount: string;
+        firesOnCheckedChange: string;
+        fullyControllable: string;
+        noToggleWhenDisabled: string;
+        indeterminateDataState: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const checkboxEn: CheckboxTranslation = {
-    default: {
+  default: {
+    title: `Default`,
+    description: `Wrap inside <Label> so clicks on the label toggle the checkbox.`,
+  },
+  indeterminate: {
+    title: `Indeterminate`,
+    description: `Pass checked="indeterminate" to render the dash glyph — useful for "select-all" headers when a partial selection exists.`,
+  },
+  disabled: {
+    title: `Disabled`,
+    description: `disabled disables both states (unchecked and checked).`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Checkbox> is tri-state — pass true / false / "indeterminate" via checked. onCheckedChange fires with the new value.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<Checkbox> wraps the Radix Checkbox primitive and renders the Lucide Check icon for the indicator. Wrap inside <Label> for a clickable label.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Default`,
-        description: `Wrap inside <Label> so clicks on the label toggle the checkbox.`
-    },
-    indeterminate: {
+        description: `Controlled checkbox inside a <Label>.`,
+      },
+      indeterminate: {
         title: `Indeterminate`,
-        description: `Pass checked="indeterminate" to render the dash glyph — useful for "select-all" headers when a partial selection exists.`
-    },
-    disabled: {
+        description: `Tri-state mode.`,
+      },
+      disabled: {
         title: `Disabled`,
-        description: `disabled disables both states (unchecked and checked).`
+        description: `Both unchecked and checked variants disabled.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Checkbox> is tri-state — pass true / false / "indeterminate" via checked. onCheckedChange fires with the new value.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<Checkbox> wraps the Radix Checkbox primitive and renders the Lucide Check icon for the indicator. Wrap inside <Label> for a clickable label.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Default`,
-                description: `Controlled checkbox inside a <Label>.`
-            },
-            indeterminate: {
-                title: `Indeterminate`,
-                description: `Tri-state mode.`
-            },
-            disabled: {
-                title: `Disabled`,
-                description: `Both unchecked and checked variants disabled.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Checkbox> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                defaultUnchecked: `Renders an unchecked checkbox by default (data-state="unchecked").`,
-                indicatorWhenChecked: `Renders the check indicator only when checked.`,
-                defaultCheckedOnMount: `Reflects defaultChecked on first mount.`,
-                firesOnCheckedChange: `Fires onCheckedChange on click in uncontrolled mode.`,
-                fullyControllable: `Is fully controllable via checked + onCheckedChange.`,
-                noToggleWhenDisabled: `Does not toggle when disabled.`,
-                indeterminateDataState: `Exposes the indeterminate state via data-state="indeterminate".`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `The checkbox is a square — direction-agnostic. Label + checkbox order follows the surrounding text direction.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Checkbox>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Checkbox> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        defaultUnchecked: `Renders an unchecked checkbox by default (data-state="unchecked").`,
+        indicatorWhenChecked: `Renders the check indicator only when checked.`,
+        defaultCheckedOnMount: `Reflects defaultChecked on first mount.`,
+        firesOnCheckedChange: `Fires onCheckedChange on click in uncontrolled mode.`,
+        fullyControllable: `Is fully controllable via checked + onCheckedChange.`,
+        noToggleWhenDisabled: `Does not toggle when disabled.`,
+        indeterminateDataState: `Exposes the indeterminate state via data-state="indeterminate".`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `The checkbox is a square — direction-agnostic. Label + checkbox order follows the surrounding text direction.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Checkbox>.`,
+    },
+  },
 };
 
 export const checkboxDe: CheckboxTranslation = {
-    default: {
+  default: {
+    title: `Standard`,
+    description: `In <Label> einwickeln, damit Klicks auf das Label die Checkbox umschalten.`,
+  },
+  indeterminate: {
+    title: `Unbestimmt`,
+    description: `Übergib checked="indeterminate" für die Tri-State-Glyphe — nützlich für „Alle auswählen"-Header bei partieller Auswahl.`,
+  },
+  disabled: {
+    title: `Deaktiviert`,
+    description: `disabled deaktiviert beide Zustände (unchecked und checked).`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Checkbox> ist tri-state — übergib true / false / "indeterminate" via checked. onCheckedChange feuert mit dem neuen Wert.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<Checkbox> kapselt die Radix-Checkbox und rendert das Lucide-Check-Icon als Indikator. In <Label> einwickeln für ein klickbares Label.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Standard`,
-        description: `In <Label> einwickeln, damit Klicks auf das Label die Checkbox umschalten.`
-    },
-    indeterminate: {
+        description: `Kontrollierte Checkbox in einem <Label>.`,
+      },
+      indeterminate: {
         title: `Unbestimmt`,
-        description: `Übergib checked="indeterminate" für die Tri-State-Glyphe — nützlich für „Alle auswählen"-Header bei partieller Auswahl.`
-    },
-    disabled: {
+        description: `Tri-State-Modus.`,
+      },
+      disabled: {
         title: `Deaktiviert`,
-        description: `disabled deaktiviert beide Zustände (unchecked und checked).`
+        description: `Beide Varianten (unchecked und checked) deaktiviert.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Checkbox> ist tri-state — übergib true / false / "indeterminate" via checked. onCheckedChange feuert mit dem neuen Wert.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<Checkbox> kapselt die Radix-Checkbox und rendert das Lucide-Check-Icon als Indikator. In <Label> einwickeln für ein klickbares Label.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Standard`,
-                description: `Kontrollierte Checkbox in einem <Label>.`
-            },
-            indeterminate: {
-                title: `Unbestimmt`,
-                description: `Tri-State-Modus.`
-            },
-            disabled: {
-                title: `Deaktiviert`,
-                description: `Beide Varianten (unchecked und checked) deaktiviert.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Checkbox> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                defaultUnchecked: `Rendert standardmäßig unchecked (data-state="unchecked").`,
-                indicatorWhenChecked: `Rendert den Check-Indikator nur, wenn checked.`,
-                defaultCheckedOnMount: `Übernimmt defaultChecked beim ersten Mount.`,
-                firesOnCheckedChange: `Feuert onCheckedChange beim Klick im unkontrollierten Modus.`,
-                fullyControllable: `Ist vollständig steuerbar via checked + onCheckedChange.`,
-                noToggleWhenDisabled: `Schaltet nicht um, wenn disabled gesetzt ist.`,
-                indeterminateDataState: `Exponiert den unbestimmten Zustand via data-state="indeterminate".`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Die Checkbox ist quadratisch — richtungsneutral. Label-/Checkbox-Reihenfolge folgt der Schreibrichtung.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Checkbox> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Checkbox> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        defaultUnchecked: `Rendert standardmäßig unchecked (data-state="unchecked").`,
+        indicatorWhenChecked: `Rendert den Check-Indikator nur, wenn checked.`,
+        defaultCheckedOnMount: `Übernimmt defaultChecked beim ersten Mount.`,
+        firesOnCheckedChange: `Feuert onCheckedChange beim Klick im unkontrollierten Modus.`,
+        fullyControllable: `Ist vollständig steuerbar via checked + onCheckedChange.`,
+        noToggleWhenDisabled: `Schaltet nicht um, wenn disabled gesetzt ist.`,
+        indeterminateDataState: `Exponiert den unbestimmten Zustand via data-state="indeterminate".`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Die Checkbox ist quadratisch — richtungsneutral. Label-/Checkbox-Reihenfolge folgt der Schreibrichtung.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Checkbox> akzeptiert.`,
+    },
+  },
 };

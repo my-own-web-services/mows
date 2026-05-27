@@ -74,37 +74,41 @@ export interface Language {
 
 const PROVIDER_MOUNT_SNIPPET = `import { MowsProvider } from "@mows/react-components";
 import { languages, type Translation } from "./languages";
-import enTranslation from "./languages/en-US";
-import deTranslation from "./languages/de";
 
 const STORAGE_PREFIX = "my-app";
+const SELECTED_LANGUAGE_KEY = \`\${STORAGE_PREFIX}_language\`;
 
-// Bundle the picked initial locale eagerly so the first paint never
-// flashes English while the chunk loads.
-const eagerTranslations: Record<string, Translation> = {
-    "en-US": enTranslation,
-    de: deTranslation
-};
+type SupportedLocale = "en-US" | "de";
 
-const pickInitialTranslation = (): Translation => {
-    const stored = localStorage.getItem(\`\${STORAGE_PREFIX}_language\`);
-    if (stored && eagerTranslations[stored]) return eagerTranslations[stored];
+const pickInitialLocale = (): SupportedLocale => {
+    const stored = localStorage.getItem(SELECTED_LANGUAGE_KEY);
+    if (stored === "de" || stored === "en-US") return stored;
     const browser = navigator.language;
-    if (eagerTranslations[browser]) return eagerTranslations[browser];
-    const base = browser.split("-")[0];
-    if (eagerTranslations[base]) return eagerTranslations[base];
-    return enTranslation;
+    if (browser === "de" || browser.startsWith("de-")) return "de";
+    return "en-US";
 };
 
-createRoot(document.getElementById("root")!).render(
-    <MowsProvider
-        storagePrefix={STORAGE_PREFIX}
-        languages={languages}
-        initialTranslation={pickInitialTranslation()}
-    >
-        <App />
-    </MowsProvider>
-);`;
+// Dynamic \`import()\` for the initial locale — Vite emits one chunk
+// per locale. The user only downloads the locale they actually start
+// in; switching later loads the other on demand. See the "Bundle
+// implications" subsection further down.
+const loadInitialTranslation = async (): Promise<Translation> => {
+    const locale = pickInitialLocale();
+    if (locale === "de") return (await import("./languages/de")).default;
+    return (await import("./languages/en-US")).default;
+};
+
+loadInitialTranslation().then((initialTranslation) => {
+    createRoot(document.getElementById("root")!).render(
+        <MowsProvider
+            storagePrefix={STORAGE_PREFIX}
+            languages={languages}
+            initialTranslation={initialTranslation}
+        >
+            <App />
+        </MowsProvider>
+    );
+});`;
 
 const LANGUAGE_LIST_SNIPPET = `// src/languages.ts — the Language[] you pass to <MowsProvider>
 import type { Language } from "@mows/react-components";

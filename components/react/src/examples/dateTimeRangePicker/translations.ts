@@ -12,79 +12,139 @@
  */
 
 export interface DateTimeRangePickerTranslation {
-    default: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersBothInputs: string;
-                reflectsFrom: string;
-                reflectsTo: string;
-                fullyControllable: string;
-                disabledForwards: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersBothInputs: string;
+        reflectsFrom: string;
+        reflectsTo: string;
+        fullyControllable: string;
+        disabledForwards: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const dateTimeRangePickerEn: DateTimeRangePickerTranslation = {
-    default: { title: `Default`, description: `Two date+time inputs sharing one calendar popover. Click a day to set the start, click another to set the end. Drag either endpoint to adjust.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `<DateTimeRangePicker> exposes two text inputs (start / end) and a shared popover with the calendar + time pickers. range is { from, to }.` },
-        composition: { title: `Composition`, body: `Set showDuration to display the computed "5 days 6h 30m" inside the popover; showTimezone to add the timezone selector; timeLayout="beside" to put time pickers next to the calendar.` },
-        examples: { title: `Examples`, default: { title: `Default`, description: `Two text inputs sharing one popover calendar.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <DateTimeRangePicker> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                rendersBothInputs: `Renders two text inputs: start and end.`,
-                reflectsFrom: `Reflects defaultValue.from on the start input.`,
-                reflectsTo: `Reflects defaultValue.to on the end input.`,
-                fullyControllable: `Is fully controllable via value + onChange.`,
-                disabledForwards: `Disables both inputs when disabled is set.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Under dir="rtl" the inputs mirror order; the calendar inside the popover follows the surrounding text direction.` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <DateTimeRangePicker>.` }
-    }
+  default: {
+    title: `Default`,
+    description: `Two date+time inputs sharing one calendar popover. Click a day to set the start, click another to set the end. Drag either endpoint to adjust.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<DateTimeRangePicker> exposes two text inputs (start / end) and a shared popover with the calendar + time pickers. range is { from, to }.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Set showDuration to display the computed "5 days 6h 30m" inside the popover; showTimezone to add the timezone selector; timeLayout="beside" to put time pickers next to the calendar.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
+        title: `Default`,
+        description: `Two text inputs sharing one popover calendar.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <DateTimeRangePicker> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersBothInputs: `Renders two text inputs: start and end.`,
+        reflectsFrom: `Reflects defaultValue.from on the start input.`,
+        reflectsTo: `Reflects defaultValue.to on the end input.`,
+        fullyControllable: `Is fully controllable via value + onChange.`,
+        disabledForwards: `Disables both inputs when disabled is set.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the inputs mirror order; the calendar inside the popover follows the surrounding text direction.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <DateTimeRangePicker>.`,
+    },
+  },
 };
 
 export const dateTimeRangePickerDe: DateTimeRangePickerTranslation = {
-    default: { title: `Standard`, description: `Zwei Date+Time-Inputs teilen sich ein Kalender-Popover. Tag klicken setzt Start; weiterer Klick setzt Ende. Endpunkte sind drag-bar.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
-        usage: { title: `Verwendung`, body: `<DateTimeRangePicker> bietet zwei Textfelder (Start / Ende) und ein gemeinsames Popover (Kalender + Time-Picker). range ist { from, to }.` },
-        composition: { title: `Komposition`, body: `showDuration zeigt die berechnete Dauer („5 days 6h 30m") im Popover; showTimezone fügt den Timezone-Selektor hinzu; timeLayout="beside" setzt Time-Picker neben den Kalender.` },
-        examples: { title: `Beispiele`, default: { title: `Standard`, description: `Zwei Textfelder + gemeinsames Popover.` } },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <DateTimeRangePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
-            statements: {
-                rendersBothInputs: `Rendert zwei Textfelder: Start und Ende.`,
-                reflectsFrom: `Spiegelt defaultValue.from im Start-Input.`,
-                reflectsTo: `Spiegelt defaultValue.to im End-Input.`,
-                fullyControllable: `Ist vollständig steuerbar via value + onChange.`,
-                disabledForwards: `Deaktiviert beide Inputs, wenn disabled gesetzt ist.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Unter dir="rtl" spiegelt die Input-Reihenfolge; der Kalender folgt der Schreibrichtung.` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <DateTimeRangePicker> akzeptiert.` }
-    }
+  default: {
+    title: `Standard`,
+    description: `Zwei Date+Time-Inputs teilen sich ein Kalender-Popover. Tag klicken setzt Start; weiterer Klick setzt Ende. Endpunkte sind drag-bar.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<DateTimeRangePicker> bietet zwei Textfelder (Start / Ende) und ein gemeinsames Popover (Kalender + Time-Picker). range ist { from, to }.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `showDuration zeigt die berechnete Dauer („5 days 6h 30m") im Popover; showTimezone fügt den Timezone-Selektor hinzu; timeLayout="beside" setzt Time-Picker neben den Kalender.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
+        title: `Standard`,
+        description: `Zwei Textfelder + gemeinsames Popover.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <DateTimeRangePicker> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersBothInputs: `Rendert zwei Textfelder: Start und Ende.`,
+        reflectsFrom: `Spiegelt defaultValue.from im Start-Input.`,
+        reflectsTo: `Spiegelt defaultValue.to im End-Input.`,
+        fullyControllable: `Ist vollständig steuerbar via value + onChange.`,
+        disabledForwards: `Deaktiviert beide Inputs, wenn disabled gesetzt ist.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" spiegelt die Input-Reihenfolge; der Kalender folgt der Schreibrichtung.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <DateTimeRangePicker> akzeptiert.`,
+    },
+  },
 };

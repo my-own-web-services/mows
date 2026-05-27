@@ -12,83 +12,151 @@
  */
 
 export interface TimePickerTranslation {
-    default: { title: string; description: string };
-    twelveHour: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            twelveHour: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersColumns24h: string;
-                secondsColumn: string;
-                firesOnHourPick: string;
-                fullyControllable: string;
-                amPmColumn: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  twelveHour: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      twelveHour: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersColumns24h: string;
+        secondsColumn: string;
+        firesOnHourPick: string;
+        fullyControllable: string;
+        amPmColumn: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const timePickerEn: TimePickerTranslation = {
-    default: { title: `24h + seconds`, description: `Three scroller columns: hours, minutes, seconds.` },
-    twelveHour: { title: `12h with AM/PM`, description: `12-hour layout adds a fourth column for AM/PM.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `<TimePicker> is the inner column-based time selector used inside <DateTimePicker>. Drive it via a Date + onChange; columns are vertically-scrollable lists of fixed cells.` },
-        composition: { title: `Composition`, body: `12h mode renders 12 hour entries + an AM/PM column; 24h renders 24 entries. showSeconds toggles the seconds column.` },
-        examples: { title: `Examples`, default: { title: `24h + seconds`, description: `Three columns.` }, twelveHour: { title: `12h with AM/PM`, description: `Hour + minute + AM/PM column.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <TimePicker> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                rendersColumns24h: `Renders an hours column and a minutes column in 24h mode.`,
-                secondsColumn: `Renders a seconds column when showSeconds is set.`,
-                firesOnHourPick: `Fires onChange with a new Date when an hour cell is picked.`,
-                fullyControllable: `Is fully controllable via date + onChange.`,
-                amPmColumn: `Renders an AM/PM column in 12h mode.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Under dir="rtl" column order mirrors so hours sit on the right.` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <TimePicker>.` }
-    }
+  default: {
+    title: `24h + seconds`,
+    description: `Three scroller columns: hours, minutes, seconds.`,
+  },
+  twelveHour: {
+    title: `12h with AM/PM`,
+    description: `12-hour layout adds a fourth column for AM/PM.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<TimePicker> is the inner column-based time selector used inside <DateTimePicker>. Drive it via a Date + onChange; columns are vertically-scrollable lists of fixed cells.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `12h mode renders 12 hour entries + an AM/PM column; 24h renders 24 entries. showSeconds toggles the seconds column.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: { title: `24h + seconds`, description: `Three columns.` },
+      twelveHour: {
+        title: `12h with AM/PM`,
+        description: `Hour + minute + AM/PM column.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <TimePicker> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersColumns24h: `Renders an hours column and a minutes column in 24h mode.`,
+        secondsColumn: `Renders a seconds column when showSeconds is set.`,
+        firesOnHourPick: `Fires onChange with a new Date when an hour cell is picked.`,
+        fullyControllable: `Is fully controllable via date + onChange.`,
+        amPmColumn: `Renders an AM/PM column in 12h mode.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" column order mirrors so hours sit on the right.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <TimePicker>.`,
+    },
+  },
 };
 
 export const timePickerDe: TimePickerTranslation = {
-    default: { title: `24h + Sekunden`, description: `Drei Scroll-Spalten: Stunden, Minuten, Sekunden.` },
-    twelveHour: { title: `12h mit AM/PM`, description: `12h-Layout ergänzt eine AM/PM-Spalte.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
-        usage: { title: `Verwendung`, body: `<TimePicker> ist die innere Spalten-basierte Time-Auswahl in <DateTimePicker>. Über Date + onChange treiben; die Spalten sind vertikal scrollbare Listen.` },
-        composition: { title: `Komposition`, body: `12h: 12 Stunden-Einträge + AM/PM-Spalte; 24h: 24 Einträge. showSeconds togglet die Sekunden-Spalte.` },
-        examples: { title: `Beispiele`, default: { title: `24h + Sekunden`, description: `Drei Spalten.` }, twelveHour: { title: `12h mit AM/PM`, description: `Stunde + Minute + AM/PM-Spalte.` } },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <TimePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
-            statements: {
-                rendersColumns24h: `Rendert im 24h-Modus eine Stunden- und eine Minuten-Spalte.`,
-                secondsColumn: `Rendert eine Sekunden-Spalte, wenn showSeconds gesetzt ist.`,
-                firesOnHourPick: `Feuert onChange mit einem neuen Date beim Klick auf eine Stunden-Zelle.`,
-                fullyControllable: `Ist vollständig steuerbar via date + onChange.`,
-                amPmColumn: `Rendert im 12h-Modus eine AM/PM-Spalte.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Unter dir="rtl" dreht sich die Spaltenreihenfolge, sodass Stunden rechts liegen.` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <TimePicker> akzeptiert.` }
-    }
+  default: {
+    title: `24h + Sekunden`,
+    description: `Drei Scroll-Spalten: Stunden, Minuten, Sekunden.`,
+  },
+  twelveHour: {
+    title: `12h mit AM/PM`,
+    description: `12h-Layout ergänzt eine AM/PM-Spalte.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<TimePicker> ist die innere Spalten-basierte Time-Auswahl in <DateTimePicker>. Über Date + onChange treiben; die Spalten sind vertikal scrollbare Listen.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `12h: 12 Stunden-Einträge + AM/PM-Spalte; 24h: 24 Einträge. showSeconds togglet die Sekunden-Spalte.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: { title: `24h + Sekunden`, description: `Drei Spalten.` },
+      twelveHour: {
+        title: `12h mit AM/PM`,
+        description: `Stunde + Minute + AM/PM-Spalte.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <TimePicker> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersColumns24h: `Rendert im 24h-Modus eine Stunden- und eine Minuten-Spalte.`,
+        secondsColumn: `Rendert eine Sekunden-Spalte, wenn showSeconds gesetzt ist.`,
+        firesOnHourPick: `Feuert onChange mit einem neuen Date beim Klick auf eine Stunden-Zelle.`,
+        fullyControllable: `Ist vollständig steuerbar via date + onChange.`,
+        amPmColumn: `Rendert im 12h-Modus eine AM/PM-Spalte.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" dreht sich die Spaltenreihenfolge, sodass Stunden rechts liegen.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <TimePicker> akzeptiert.`,
+    },
+  },
 };

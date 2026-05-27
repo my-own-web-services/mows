@@ -12,166 +12,166 @@
  */
 
 export interface LogViewTranslation {
-    default: { title: string; description: string };
-    hideToolbar: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            hideToolbar: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersAllLines: string;
-                emptyPlaceholder: string;
-                filtersBySearch: string;
-                emptyWhenFilteredOut: string;
-                hidesClearWhenNoCallback: string;
-                invokesOnClear: string;
-                hideToolbar: string;
-                reflectsLineUpdates: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  hideToolbar: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      hideToolbar: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersAllLines: string;
+        emptyPlaceholder: string;
+        filtersBySearch: string;
+        emptyWhenFilteredOut: string;
+        hidesClearWhenNoCallback: string;
+        invokesOnClear: string;
+        hideToolbar: string;
+        reflectsLineUpdates: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const logViewEn: LogViewTranslation = {
-    default: {
+  default: {
+    title: `Push lines`,
+    description: `Each click appends one line and the view autoscrolls to the bottom. The search input filters by case-insensitive substring; the trash icon calls onClear.`,
+  },
+  hideToolbar: {
+    title: `Without toolbar`,
+    description: `hideToolbar removes search + clear — useful when the surrounding chrome already supplies them.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<LogView> is fully controlled — the consumer owns the lines array and the clear handler. The view autoscrolls to the bottom while the user is at the bottom; scrolling up pauses autoscroll until the user scrolls back down.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<LogView> wraps a <ScrollArea> with a toolbar (<SearchInput> + clear button). Localise via placeholders. Pass hideToolbar when the toolbar lives outside the view.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Push lines`,
-        description: `Each click appends one line and the view autoscrolls to the bottom. The search input filters by case-insensitive substring; the trash icon calls onClear.`
-    },
-    hideToolbar: {
+        description: `Click "Push line" to append a sample line; search filters in real time.`,
+      },
+      hideToolbar: {
         title: `Without toolbar`,
-        description: `hideToolbar removes search + clear — useful when the surrounding chrome already supplies them.`
+        description: `Just the scrolling viewport — for embeds where the toolbar lives elsewhere.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<LogView> is fully controlled — the consumer owns the lines array and the clear handler. The view autoscrolls to the bottom while the user is at the bottom; scrolling up pauses autoscroll until the user scrolls back down.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<LogView> wraps a <ScrollArea> with a toolbar (<SearchInput> + clear button). Localise via placeholders. Pass hideToolbar when the toolbar lives outside the view.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Push lines`,
-                description: `Click "Push line" to append a sample line; search filters in real time.`
-            },
-            hideToolbar: {
-                title: `Without toolbar`,
-                description: `Just the scrolling viewport — for embeds where the toolbar lives elsewhere.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <LogView> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersAllLines: `Renders every line from the lines prop.`,
-                emptyPlaceholder: `Shows the empty placeholder when there are no lines.`,
-                filtersBySearch: `Filters lines by case-insensitive substring match.`,
-                emptyWhenFilteredOut: `Shows the empty placeholder when the filter matches no lines.`,
-                hidesClearWhenNoCallback: `Hides the clear button when onClear is omitted.`,
-                invokesOnClear: `Invokes onClear when the clear button is clicked.`,
-                hideToolbar: `Hides the toolbar when hideToolbar is set.`,
-                reflectsLineUpdates: `Reflects updated lines when the prop changes.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Lines remain in source order; the toolbar mirrors under dir="rtl" so the clear button sits on the leading edge.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <LogView>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <LogView> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersAllLines: `Renders every line from the lines prop.`,
+        emptyPlaceholder: `Shows the empty placeholder when there are no lines.`,
+        filtersBySearch: `Filters lines by case-insensitive substring match.`,
+        emptyWhenFilteredOut: `Shows the empty placeholder when the filter matches no lines.`,
+        hidesClearWhenNoCallback: `Hides the clear button when onClear is omitted.`,
+        invokesOnClear: `Invokes onClear when the clear button is clicked.`,
+        hideToolbar: `Hides the toolbar when hideToolbar is set.`,
+        reflectsLineUpdates: `Reflects updated lines when the prop changes.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Lines remain in source order; the toolbar mirrors under dir="rtl" so the clear button sits on the leading edge.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <LogView>.`,
+    },
+  },
 };
 
 export const logViewDe: LogViewTranslation = {
-    default: {
+  default: {
+    title: `Zeilen anhängen`,
+    description: `Jeder Klick hängt eine Zeile an und der View scrollt automatisch ans Ende. Das Suchfeld filtert case-insensitiv per Substring; das Mülleimer-Icon ruft onClear auf.`,
+  },
+  hideToolbar: {
+    title: `Ohne Toolbar`,
+    description: `hideToolbar entfernt Suche + Clear — nützlich, wenn die umgebende Chrome diese Steuerung schon liefert.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<LogView> ist vollständig kontrolliert — der Konsument besitzt das lines-Array und den Clear-Handler. Solange der Nutzer unten steht, autoscrollt der View; sobald er nach oben scrollt, pausiert das Autoscroll bis er wieder ans Ende kommt.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<LogView> umschließt eine <ScrollArea> mit einer Toolbar (<SearchInput> + Clear-Button). Lokalisierbar via placeholders. Mit hideToolbar lebt die Toolbar außerhalb der View.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Zeilen anhängen`,
-        description: `Jeder Klick hängt eine Zeile an und der View scrollt automatisch ans Ende. Das Suchfeld filtert case-insensitiv per Substring; das Mülleimer-Icon ruft onClear auf.`
-    },
-    hideToolbar: {
+        description: `„Push line" hängt eine Beispielzeile an; die Suche filtert in Echtzeit.`,
+      },
+      hideToolbar: {
         title: `Ohne Toolbar`,
-        description: `hideToolbar entfernt Suche + Clear — nützlich, wenn die umgebende Chrome diese Steuerung schon liefert.`
+        description: `Nur die scrollbare Anzeige — für Embeds, die die Toolbar woanders zeigen.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<LogView> ist vollständig kontrolliert — der Konsument besitzt das lines-Array und den Clear-Handler. Solange der Nutzer unten steht, autoscrollt der View; sobald er nach oben scrollt, pausiert das Autoscroll bis er wieder ans Ende kommt.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<LogView> umschließt eine <ScrollArea> mit einer Toolbar (<SearchInput> + Clear-Button). Lokalisierbar via placeholders. Mit hideToolbar lebt die Toolbar außerhalb der View.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Zeilen anhängen`,
-                description: `„Push line" hängt eine Beispielzeile an; die Suche filtert in Echtzeit.`
-            },
-            hideToolbar: {
-                title: `Ohne Toolbar`,
-                description: `Nur die scrollbare Anzeige — für Embeds, die die Toolbar woanders zeigen.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <LogView> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                rendersAllLines: `Rendert jede Zeile aus dem lines-Prop.`,
-                emptyPlaceholder: `Zeigt den Leer-Platzhalter, wenn keine Zeilen vorliegen.`,
-                filtersBySearch: `Filtert Zeilen per case-insensitivem Substring.`,
-                emptyWhenFilteredOut: `Zeigt den Leer-Platzhalter, wenn der Filter nichts trifft.`,
-                hidesClearWhenNoCallback: `Blendet den Clear-Button aus, wenn onClear weggelassen wird.`,
-                invokesOnClear: `Ruft onClear beim Klick auf den Clear-Button auf.`,
-                hideToolbar: `Blendet die Toolbar aus, wenn hideToolbar gesetzt ist.`,
-                reflectsLineUpdates: `Übernimmt Änderungen am lines-Prop sofort.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Zeilen bleiben in Quellreihenfolge; die Toolbar spiegelt unter dir="rtl", sodass der Clear-Button am führenden Rand sitzt.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <LogView> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <LogView> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersAllLines: `Rendert jede Zeile aus dem lines-Prop.`,
+        emptyPlaceholder: `Zeigt den Leer-Platzhalter, wenn keine Zeilen vorliegen.`,
+        filtersBySearch: `Filtert Zeilen per case-insensitivem Substring.`,
+        emptyWhenFilteredOut: `Zeigt den Leer-Platzhalter, wenn der Filter nichts trifft.`,
+        hidesClearWhenNoCallback: `Blendet den Clear-Button aus, wenn onClear weggelassen wird.`,
+        invokesOnClear: `Ruft onClear beim Klick auf den Clear-Button auf.`,
+        hideToolbar: `Blendet die Toolbar aus, wenn hideToolbar gesetzt ist.`,
+        reflectsLineUpdates: `Übernimmt Änderungen am lines-Prop sofort.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Zeilen bleiben in Quellreihenfolge; die Toolbar spiegelt unter dir="rtl", sodass der Clear-Button am führenden Rand sitzt.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <LogView> akzeptiert.`,
+    },
+  },
 };

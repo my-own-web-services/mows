@@ -12,181 +12,181 @@
  */
 
 export interface CopyValueButtonTranslation {
-    label: { title: string; description: string };
-    iconOnly: { title: string; description: string };
-    withToast: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            label: { title: string; description: string };
-            iconOnly: { title: string; description: string };
-            withToast: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersLabelWhenProvided: string;
-                omitsLabelWhenAbsent: string;
-                writesClipboardOnClick: string;
-                showsCopiedTitleTransient: string;
-                firesToastWhenTrue: string;
-                usesProvidedToastMessage: string;
-                noToastWhenOmitted: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  label: { title: string; description: string };
+  iconOnly: { title: string; description: string };
+  withToast: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      label: { title: string; description: string };
+      iconOnly: { title: string; description: string };
+      withToast: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersLabelWhenProvided: string;
+        omitsLabelWhenAbsent: string;
+        writesClipboardOnClick: string;
+        showsCopiedTitleTransient: string;
+        firesToastWhenTrue: string;
+        usesProvidedToastMessage: string;
+        noToastWhenOmitted: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const copyValueButtonEn: CopyValueButtonTranslation = {
-    label: {
+  label: {
+    title: `With label`,
+    description: `Shows the label next to the copy icon. Use when the value isn't visible elsewhere.`,
+  },
+  iconOnly: {
+    title: `Icon only`,
+    description: `Omit the label for compact placements (e.g. inside a token row).`,
+  },
+  withToast: {
+    title: `With toast`,
+    description: `Set toastOnCopy to fire a Sonner toast on successful copy. Pass a string to override the default "Copied" message.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Pass a value. Clicks copy it to the clipboard and flip the icon to a checkmark for ~1.5s.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<CopyValueButton> wraps navigator.clipboard with a transient "copied" state and an optional Sonner toast. The visible label is optional — pass title to expose the full value via the native tooltip.`,
+    },
+    examples: {
+      title: `Examples`,
+      label: {
         title: `With label`,
-        description: `Shows the label next to the copy icon. Use when the value isn't visible elsewhere.`
-    },
-    iconOnly: {
+        description: `Label next to the icon.`,
+      },
+      iconOnly: {
         title: `Icon only`,
-        description: `Omit the label for compact placements (e.g. inside a token row).`
-    },
-    withToast: {
+        description: `No label — for inline placements.`,
+      },
+      withToast: {
         title: `With toast`,
-        description: `Set toastOnCopy to fire a Sonner toast on successful copy. Pass a string to override the default "Copied" message.`
+        description: `Fires a Sonner toast on copy.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Pass a value. Clicks copy it to the clipboard and flip the icon to a checkmark for ~1.5s.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<CopyValueButton> wraps navigator.clipboard with a transient "copied" state and an optional Sonner toast. The visible label is optional — pass title to expose the full value via the native tooltip.`
-        },
-        examples: {
-            title: `Examples`,
-            label: {
-                title: `With label`,
-                description: `Label next to the icon.`
-            },
-            iconOnly: {
-                title: `Icon only`,
-                description: `No label — for inline placements.`
-            },
-            withToast: {
-                title: `With toast`,
-                description: `Fires a Sonner toast on copy.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <CopyValueButton> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersLabelWhenProvided: `Renders the label when one is provided.`,
-                omitsLabelWhenAbsent: `Omits the label when none is provided.`,
-                writesClipboardOnClick: `Writes the value to the clipboard on click.`,
-                showsCopiedTitleTransient: `Shows the "Copied!" title for ~1.5s after a successful copy, then reverts.`,
-                firesToastWhenTrue: `Fires a toast when toastOnCopy is true (default message).`,
-                usesProvidedToastMessage: `Uses the provided string as the toast message when toastOnCopy is a string.`,
-                noToastWhenOmitted: `Does not fire a toast when toastOnCopy is omitted.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Wrapping in dir="rtl" swaps the label/icon order so the icon sits to the left of the label.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <CopyValueButton>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <CopyValueButton> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersLabelWhenProvided: `Renders the label when one is provided.`,
+        omitsLabelWhenAbsent: `Omits the label when none is provided.`,
+        writesClipboardOnClick: `Writes the value to the clipboard on click.`,
+        showsCopiedTitleTransient: `Shows the "Copied!" title for ~1.5s after a successful copy, then reverts.`,
+        firesToastWhenTrue: `Fires a toast when toastOnCopy is true (default message).`,
+        usesProvidedToastMessage: `Uses the provided string as the toast message when toastOnCopy is a string.`,
+        noToastWhenOmitted: `Does not fire a toast when toastOnCopy is omitted.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Wrapping in dir="rtl" swaps the label/icon order so the icon sits to the left of the label.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <CopyValueButton>.`,
+    },
+  },
 };
 
 export const copyValueButtonDe: CopyValueButtonTranslation = {
-    label: {
+  label: {
+    title: `Mit Label`,
+    description: `Zeigt das Label neben dem Kopier-Icon. Verwende es, wenn der Wert sonst nicht sichtbar ist.`,
+  },
+  iconOnly: {
+    title: `Nur Icon`,
+    description: `Lass das Label weg für kompakte Platzierungen (z. B. in einer Token-Zeile).`,
+  },
+  withToast: {
+    title: `Mit Toast`,
+    description: `Setze toastOnCopy, um beim erfolgreichen Kopieren einen Sonner-Toast zu feuern. Ein String überschreibt den Standardtext "Copied".`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `Übergib value. Klicks kopieren ihn in die Zwischenablage und schalten das Icon ca. 1,5 s lang auf ein Häkchen.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<CopyValueButton> kapselt navigator.clipboard mit einem transienten "kopiert"-Zustand und einem optionalen Sonner-Toast. Das sichtbare Label ist optional — über title lässt sich der vollständige Wert per nativem Tooltip anzeigen.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      label: {
         title: `Mit Label`,
-        description: `Zeigt das Label neben dem Kopier-Icon. Verwende es, wenn der Wert sonst nicht sichtbar ist.`
-    },
-    iconOnly: {
+        description: `Label neben dem Icon.`,
+      },
+      iconOnly: {
         title: `Nur Icon`,
-        description: `Lass das Label weg für kompakte Platzierungen (z. B. in einer Token-Zeile).`
-    },
-    withToast: {
+        description: `Kein Label — für Inline-Platzierungen.`,
+      },
+      withToast: {
         title: `Mit Toast`,
-        description: `Setze toastOnCopy, um beim erfolgreichen Kopieren einen Sonner-Toast zu feuern. Ein String überschreibt den Standardtext "Copied".`
+        description: `Feuert beim Kopieren einen Sonner-Toast.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Übergib value. Klicks kopieren ihn in die Zwischenablage und schalten das Icon ca. 1,5 s lang auf ein Häkchen.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<CopyValueButton> kapselt navigator.clipboard mit einem transienten "kopiert"-Zustand und einem optionalen Sonner-Toast. Das sichtbare Label ist optional — über title lässt sich der vollständige Wert per nativem Tooltip anzeigen.`
-        },
-        examples: {
-            title: `Beispiele`,
-            label: {
-                title: `Mit Label`,
-                description: `Label neben dem Icon.`
-            },
-            iconOnly: {
-                title: `Nur Icon`,
-                description: `Kein Label — für Inline-Platzierungen.`
-            },
-            withToast: {
-                title: `Mit Toast`,
-                description: `Feuert beim Kopieren einen Sonner-Toast.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <CopyValueButton> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                rendersLabelWhenProvided: `Rendert das Label, wenn eines übergeben wird.`,
-                omitsLabelWhenAbsent: `Lässt das Label weg, wenn keines übergeben wurde.`,
-                writesClipboardOnClick: `Schreibt den Wert beim Klick in die Zwischenablage.`,
-                showsCopiedTitleTransient: `Zeigt nach erfolgreichem Kopieren ca. 1,5 s lang den "Copied!"-Titel und setzt ihn dann zurück.`,
-                firesToastWhenTrue: `Feuert einen Toast, wenn toastOnCopy true ist (Standardtext).`,
-                usesProvidedToastMessage: `Verwendet den übergebenen String als Toast-Nachricht, wenn toastOnCopy ein String ist.`,
-                noToastWhenOmitted: `Feuert keinen Toast, wenn toastOnCopy weggelassen wird.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" tauschen Label und Icon die Reihenfolge — das Icon sitzt links vom Label.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <CopyValueButton> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <CopyValueButton> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersLabelWhenProvided: `Rendert das Label, wenn eines übergeben wird.`,
+        omitsLabelWhenAbsent: `Lässt das Label weg, wenn keines übergeben wurde.`,
+        writesClipboardOnClick: `Schreibt den Wert beim Klick in die Zwischenablage.`,
+        showsCopiedTitleTransient: `Zeigt nach erfolgreichem Kopieren ca. 1,5 s lang den "Copied!"-Titel und setzt ihn dann zurück.`,
+        firesToastWhenTrue: `Feuert einen Toast, wenn toastOnCopy true ist (Standardtext).`,
+        usesProvidedToastMessage: `Verwendet den übergebenen String als Toast-Nachricht, wenn toastOnCopy ein String ist.`,
+        noToastWhenOmitted: `Feuert keinen Toast, wenn toastOnCopy weggelassen wird.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" tauschen Label und Icon die Reihenfolge — das Icon sitzt links vom Label.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <CopyValueButton> akzeptiert.`,
+    },
+  },
 };

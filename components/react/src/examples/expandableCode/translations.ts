@@ -12,160 +12,160 @@
  */
 
 export interface ExpandableCodeTranslation {
-    default: { title: string; description: string };
-    short: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            short: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersChildren: string;
-                noButtonWhenFits: string;
-                buttonWhenOverflow: string;
-                togglesLabels: string;
-                defaultExpanded: string;
-                labelOverrides: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  short: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      short: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersChildren: string;
+        noButtonWhenFits: string;
+        buttonWhenOverflow: string;
+        togglesLabels: string;
+        defaultExpanded: string;
+        labelOverrides: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const expandableCodeEn: ExpandableCodeTranslation = {
-    default: {
+  default: {
+    title: `Long snippet`,
+    description: `A snippet taller than 280px renders behind a gradient fade with an Expand button below.`,
+  },
+  short: {
+    title: `Short snippet`,
+    description: `Content shorter than collapsedHeight renders as-is — no affordance.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<ExpandableCode> wraps any content (typically a <CodeViewer fitContent />) in a collapsible container. Below collapsedHeight no affordance renders.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Pair with <CodeViewer fitContent /> so the inner editor reports its natural height. ExpandableCode then sizes the wrapper accordingly.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Long snippet`,
-        description: `A snippet taller than 280px renders behind a gradient fade with an Expand button below.`
-    },
-    short: {
+        description: `40 lines clipped behind the gradient.`,
+      },
+      short: {
         title: `Short snippet`,
-        description: `Content shorter than collapsedHeight renders as-is — no affordance.`
+        description: `No Expand button — content fits.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<ExpandableCode> wraps any content (typically a <CodeViewer fitContent />) in a collapsible container. Below collapsedHeight no affordance renders.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Pair with <CodeViewer fitContent /> so the inner editor reports its natural height. ExpandableCode then sizes the wrapper accordingly.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Long snippet`,
-                description: `40 lines clipped behind the gradient.`
-            },
-            short: {
-                title: `Short snippet`,
-                description: `No Expand button — content fits.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <ExpandableCode> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersChildren: `Renders the children verbatim.`,
-                noButtonWhenFits: `Hides the Expand button when content fits within collapsedHeight.`,
-                buttonWhenOverflow: `Shows the Expand button when content exceeds collapsedHeight.`,
-                togglesLabels: `Toggles between Expand and Collapse labels.`,
-                defaultExpanded: `Honours defaultExpanded.`,
-                labelOverrides: `Honours expandLabel / collapseLabel overrides.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Direction-agnostic — the affordance row remains centred under dir="rtl".`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <ExpandableCode>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <ExpandableCode> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersChildren: `Renders the children verbatim.`,
+        noButtonWhenFits: `Hides the Expand button when content fits within collapsedHeight.`,
+        buttonWhenOverflow: `Shows the Expand button when content exceeds collapsedHeight.`,
+        togglesLabels: `Toggles between Expand and Collapse labels.`,
+        defaultExpanded: `Honours defaultExpanded.`,
+        labelOverrides: `Honours expandLabel / collapseLabel overrides.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Direction-agnostic — the affordance row remains centred under dir="rtl".`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <ExpandableCode>.`,
+    },
+  },
 };
 
 export const expandableCodeDe: ExpandableCodeTranslation = {
-    default: {
+  default: {
+    title: `Langer Snippet`,
+    description: `Ein Snippet höher als 280px rendert hinter einem Gradient-Fade mit einem Expand-Button darunter.`,
+  },
+  short: {
+    title: `Kurzer Snippet`,
+    description: `Inhalt kürzer als collapsedHeight rendert wie er ist — kein Knopf.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<ExpandableCode> umschließt beliebigen Inhalt (typisch <CodeViewer fitContent />) mit einem einklappbaren Container. Unterhalb von collapsedHeight rendert kein Knopf.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Mit <CodeViewer fitContent /> kombinieren, damit der innere Editor seine natürliche Höhe meldet. ExpandableCode dimensioniert den Wrapper entsprechend.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Langer Snippet`,
-        description: `Ein Snippet höher als 280px rendert hinter einem Gradient-Fade mit einem Expand-Button darunter.`
-    },
-    short: {
+        description: `40 Zeilen hinter dem Gradient geclippt.`,
+      },
+      short: {
         title: `Kurzer Snippet`,
-        description: `Inhalt kürzer als collapsedHeight rendert wie er ist — kein Knopf.`
+        description: `Kein Expand-Button — Inhalt passt.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<ExpandableCode> umschließt beliebigen Inhalt (typisch <CodeViewer fitContent />) mit einem einklappbaren Container. Unterhalb von collapsedHeight rendert kein Knopf.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `Mit <CodeViewer fitContent /> kombinieren, damit der innere Editor seine natürliche Höhe meldet. ExpandableCode dimensioniert den Wrapper entsprechend.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Langer Snippet`,
-                description: `40 Zeilen hinter dem Gradient geclippt.`
-            },
-            short: {
-                title: `Kurzer Snippet`,
-                description: `Kein Expand-Button — Inhalt passt.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <ExpandableCode> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                rendersChildren: `Rendert die children unverändert.`,
-                noButtonWhenFits: `Blendet den Expand-Button aus, wenn der Inhalt in collapsedHeight passt.`,
-                buttonWhenOverflow: `Zeigt den Expand-Button, wenn der Inhalt collapsedHeight überschreitet.`,
-                togglesLabels: `Wechselt zwischen Expand- und Collapse-Label.`,
-                defaultExpanded: `Respektiert defaultExpanded.`,
-                labelOverrides: `Respektiert expandLabel- und collapseLabel-Overrides.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Richtungsneutral — die Affordanz-Reihe bleibt unter dir="rtl" zentriert.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <ExpandableCode> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <ExpandableCode> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersChildren: `Rendert die children unverändert.`,
+        noButtonWhenFits: `Blendet den Expand-Button aus, wenn der Inhalt in collapsedHeight passt.`,
+        buttonWhenOverflow: `Zeigt den Expand-Button, wenn der Inhalt collapsedHeight überschreitet.`,
+        togglesLabels: `Wechselt zwischen Expand- und Collapse-Label.`,
+        defaultExpanded: `Respektiert defaultExpanded.`,
+        labelOverrides: `Respektiert expandLabel- und collapseLabel-Overrides.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Richtungsneutral — die Affordanz-Reihe bleibt unter dir="rtl" zentriert.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <ExpandableCode> akzeptiert.`,
+    },
+  },
 };

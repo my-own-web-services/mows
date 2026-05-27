@@ -2,6 +2,46 @@
 
 Status: ✅ All verifications green. Ready to ship.
 
+## Multi-perspective review (four parallel agents)
+
+After the initial verification, four review agents ran in parallel against
+this work. Each wrote a focused report:
+
+| Report                                                    | Verdict                                                                                                |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| [`review-fidelity.md`](./review-fidelity.md)              | ✅ byte-for-byte clean across all 79 slices (extracted, not just spot-checked)                          |
+| [`review-guide.md`](./review-guide.md)                    | ⚠️ one substantive: setup snippet/prose described eager mount; the implementation is dynamic (fixed)   |
+| [`review-tests.md`](./review-tests.md)                    | ℹ️ 5 coverage gaps identified; top recommendations captured under "Follow-ups" below                   |
+| [`review-style.md`](./review-style.md)                    | ⚠️ two slice files (dateTimePicker, resourceList) shipped collapsed-onto-one-line objects (fixed)      |
+
+### What was actioned in response
+
+1. **Guide snippet + prose now matches `main.tsx`.**
+   `PROVIDER_MOUNT_SNIPPET` in `TranslationsGuide.tsx` now shows the dynamic
+   `await import()` pattern that the example app actually uses; the body
+   copy in both `en-US.ts` and `de.ts` (under
+   `example.guides.translations.setup.mountProvider.body`) was rewritten to
+   describe per-locale chunks instead of an eager bundled tree.
+
+2. **Slice files reformatted via `prettier --write`.**
+   `dateTimePicker` and `resourceList` had 300-460 char single-line objects;
+   the script emitted them faithfully but Vite/the extractor didn't add line
+   breaks inside short objects. After `npx prettier --write
+   'src/examples/*/translations.ts'` every slice has uniform formatting.
+   Remaining long lines (lyrics, videoViewer, dateTimePicker prose) are
+   single translated-copy template-literal contents — not splittable.
+
+3. **Non-issue: `emojiPicker` was flagged as new content.**
+   The fidelity reviewer correctly noticed that the parent commit of the
+   slice extraction (`abd21df1^`) had no `emojiPicker` block in any of the
+   three source files. Cause: the user has uncommitted `emojiPicker/` work
+   (under `lib/components/input/emojiPicker/` and
+   `src/examples/emojiPicker/*.tsx`) including translation entries in
+   `languages.ts` / `en-US.ts` / `de.ts`. The script extracted those
+   entries from the working-tree state, not from anything that was in git
+   yet. The slice is faithful to the working tree; the apparent
+   discrepancy is the unrelated in-flight work, not a script bug.
+
 ## What landed
 
 Three commits on `feat/mows-auth-core`:
@@ -96,9 +136,34 @@ finding is tracked separately (see "Outstanding follow-ups").
 
 ## Outstanding follow-ups
 
-These were uncovered during the work but are out of scope for this
-refactor. Each is captured in a comment in the relevant source file
-where applicable.
+These were uncovered during the work or surfaced by the multi-agent
+review pass; each is out of scope for this refactor.
+
+**From the test-coverage review** (top 3, per `review-tests.md`):
+
+A. **Slice wiring parity test** (high) — a single vitest that walks
+   `src/examples/*/translations.ts`, imports each `<name>En` /
+   `<name>De`, and asserts they appear under
+   `enTranslation.example.examples.<name>` / `deTranslation...` with
+   the same reference identity. Catches a new slice file landing
+   unwired AND the type-only annotation getting silently stripped.
+
+B. **App-side compliance test** mirroring
+   `lib/lib/languages/localesAreCompliant.test.ts` — currently only
+   the base library locales (`BaseTranslation`) are compliance-tested.
+   Add `const enUs: Translation = enTranslation` / same for `de` so a
+   missing app-side key fails the test (compile-time + suite-level).
+
+C. **Shared `DocPageSlice` helper type + structural assertion** — 78
+   of 79 slices inline an identical `doc:` shape
+   (installation/usage/composition/examples/definedBehaviour/rtl/
+   apiReference). Extract to `src/examples/translations/shared.ts`
+   and add a tsd-style assertion that every slice's `doc` field
+   satisfies it. Closes both the cross-slice consistency gap and the
+   bigger of the style findings (the 78 duplicate helper-interface
+   declarations).
+
+**Other**:
 
 1. **Monaco worker asset bloat in consumer `node_modules`** —
    ~9 MB of `dist/assets/*.worker-*.js` files end up in every

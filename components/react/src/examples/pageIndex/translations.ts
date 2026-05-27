@@ -12,172 +12,172 @@
  */
 
 export interface PageIndexTranslation {
-    default: { title: string; description: string };
-    nested: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            nested: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                pushesHashOnClick: string;
-                smoothOnClick: string;
-                instantOnLoad: string;
-                immediateActiveOnClick: string;
-                holdsActiveDuringScroll: string;
-                nestedRenders: string;
-                nestedScrollsToChild: string;
-                emptyRendersNothing: string;
-                missingIdSkipsHash: string;
-                translationFallback: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  nested: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      nested: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        pushesHashOnClick: string;
+        smoothOnClick: string;
+        instantOnLoad: string;
+        immediateActiveOnClick: string;
+        holdsActiveDuringScroll: string;
+        nestedRenders: string;
+        nestedScrollsToChild: string;
+        emptyRendersNothing: string;
+        missingIdSkipsHash: string;
+        translationFallback: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const pageIndexEn: PageIndexTranslation = {
-    default: {
+  default: {
+    title: `Default`,
+    description: `An on-this-page rail next to a stack of anchored sections. Click an entry to smoothly scroll the matching section into view and update the URL hash.`,
+  },
+  nested: {
+    title: `Nested`,
+    description: `Pass <PageIndexItem>.children to render a tree of anchored sections. The active-line indicator stays at the leftmost edge regardless of depth.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Import <PageIndex> from the package and feed it an array of { id, label } items. Each id must match a DOM element's id on the same page.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<PageIndex> is a navigation primitive — it expects the consumer to render the matching anchored elements. Items may carry children to render a nested sub-list; nesting is presentation only, the scrollspy treats every id the same.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Default`,
-        description: `An on-this-page rail next to a stack of anchored sections. Click an entry to smoothly scroll the matching section into view and update the URL hash.`
-    },
-    nested: {
+        description: `Flat list of anchored sections with the rail on the right.`,
+      },
+      nested: {
         title: `Nested`,
-        description: `Pass <PageIndexItem>.children to render a tree of anchored sections. The active-line indicator stays at the leftmost edge regardless of depth.`
+        description: `Items with children render as an indented sub-list under their parent.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Import <PageIndex> from the package and feed it an array of { id, label } items. Each id must match a DOM element's id on the same page.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<PageIndex> is a navigation primitive — it expects the consumer to render the matching anchored elements. Items may carry children to render a nested sub-list; nesting is presentation only, the scrollspy treats every id the same.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Default`,
-                description: `Flat list of anchored sections with the rail on the right.`
-            },
-            nested: {
-                title: `Nested`,
-                description: `Items with children render as an indented sub-list under their parent.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <PageIndex> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                pushesHashOnClick: `Clicking an entry writes #<id> to the URL via history.replaceState.`,
-                smoothOnClick: `Click-triggered scroll uses behavior: "smooth".`,
-                instantOnLoad: `Initial hash-driven scroll uses behavior: "auto" — the page lands at the target without animation.`,
-                immediateActiveOnClick: `The clicked entry becomes active immediately, even if the page is already at that section.`,
-                holdsActiveDuringScroll: `The clicked entry stays active during the smooth-scroll animation — intermediate scroll events do not flip the highlight.`,
-                nestedRenders: `Items with children render a link for every leaf AND parent.`,
-                nestedScrollsToChild: `Clicking a nested child scrolls and writes its hash, not the parent's.`,
-                emptyRendersNothing: `Renders nothing when items is empty.`,
-                missingIdSkipsHash: `If the target id is missing from the DOM the hash is NOT updated.`,
-                translationFallback: `Heading and aria-label fall back to English when no <MowsProvider> is mounted.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `The rail layout is direction-agnostic — wrap it in dir="rtl" and the indentation reverses for the nested sub-lists.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <PageIndex>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <PageIndex> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        pushesHashOnClick: `Clicking an entry writes #<id> to the URL via history.replaceState.`,
+        smoothOnClick: `Click-triggered scroll uses behavior: "smooth".`,
+        instantOnLoad: `Initial hash-driven scroll uses behavior: "auto" — the page lands at the target without animation.`,
+        immediateActiveOnClick: `The clicked entry becomes active immediately, even if the page is already at that section.`,
+        holdsActiveDuringScroll: `The clicked entry stays active during the smooth-scroll animation — intermediate scroll events do not flip the highlight.`,
+        nestedRenders: `Items with children render a link for every leaf AND parent.`,
+        nestedScrollsToChild: `Clicking a nested child scrolls and writes its hash, not the parent's.`,
+        emptyRendersNothing: `Renders nothing when items is empty.`,
+        missingIdSkipsHash: `If the target id is missing from the DOM the hash is NOT updated.`,
+        translationFallback: `Heading and aria-label fall back to English when no <MowsProvider> is mounted.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `The rail layout is direction-agnostic — wrap it in dir="rtl" and the indentation reverses for the nested sub-lists.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <PageIndex>.`,
+    },
+  },
 };
 
 export const pageIndexDe: PageIndexTranslation = {
-    default: {
+  default: {
+    title: `Standard`,
+    description: `Eine „Auf dieser Seite“-Leiste neben einer Liste verankerter Abschnitte. Ein Klick scrollt sanft zum passenden Abschnitt und aktualisiert den URL-Hash.`,
+  },
+  nested: {
+    title: `Verschachtelt`,
+    description: `Übergib <PageIndexItem>.children, um eine Baumstruktur verankerter Abschnitte zu rendern. Die Aktiv-Linie bleibt unabhängig von der Tiefe ganz links.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `Importiere <PageIndex> aus dem Paket und übergib ein Array von { id, label }-Einträgen. Jede id muss zu einer DOM-Element-id auf derselben Seite passen.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<PageIndex> ist ein Navigations-Primitiv — die verankerten Elemente werden vom Konsumenten gerendert. Einträge können children tragen, um eine eingerückte Unterliste zu rendern; die Verschachtelung ist nur Darstellung, der Scrollspy behandelt jede id gleich.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Standard`,
-        description: `Eine „Auf dieser Seite“-Leiste neben einer Liste verankerter Abschnitte. Ein Klick scrollt sanft zum passenden Abschnitt und aktualisiert den URL-Hash.`
-    },
-    nested: {
+        description: `Flache Liste verankerter Abschnitte mit der Leiste rechts.`,
+      },
+      nested: {
         title: `Verschachtelt`,
-        description: `Übergib <PageIndexItem>.children, um eine Baumstruktur verankerter Abschnitte zu rendern. Die Aktiv-Linie bleibt unabhängig von der Tiefe ganz links.`
+        description: `Einträge mit children werden als eingerückte Unterliste unter ihrem Elternteil gerendert.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Importiere <PageIndex> aus dem Paket und übergib ein Array von { id, label }-Einträgen. Jede id muss zu einer DOM-Element-id auf derselben Seite passen.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<PageIndex> ist ein Navigations-Primitiv — die verankerten Elemente werden vom Konsumenten gerendert. Einträge können children tragen, um eine eingerückte Unterliste zu rendern; die Verschachtelung ist nur Darstellung, der Scrollspy behandelt jede id gleich.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Standard`,
-                description: `Flache Liste verankerter Abschnitte mit der Leiste rechts.`
-            },
-            nested: {
-                title: `Verschachtelt`,
-                description: `Einträge mit children werden als eingerückte Unterliste unter ihrem Elternteil gerendert.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <PageIndex> verhalten soll, jeweils mit Verweis auf den Test, der das Verhalten absichert.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                pushesHashOnClick: `Ein Klick auf einen Eintrag schreibt #<id> per history.replaceState in die URL.`,
-                smoothOnClick: `Klick-getriggertes Scrollen verwendet behavior: "smooth".`,
-                instantOnLoad: `Anfängliches Hash-Scrollen verwendet behavior: "auto" — die Seite springt ohne Animation zum Ziel.`,
-                immediateActiveOnClick: `Der angeklickte Eintrag wird sofort aktiv, auch wenn die Seite bereits dort ist.`,
-                holdsActiveDuringScroll: `Der angeklickte Eintrag bleibt während der Animation aktiv — Zwischen-Scroll-Ereignisse kippen die Markierung nicht.`,
-                nestedRenders: `Einträge mit children rendern einen Link für jedes Blatt UND den Elternteil.`,
-                nestedScrollsToChild: `Ein Klick auf ein verschachteltes Kind scrollt und schreibt seine Hash — nicht die des Elternteils.`,
-                emptyRendersNothing: `Rendert nichts, wenn items leer ist.`,
-                missingIdSkipsHash: `Fehlt die Ziel-id im DOM, wird die Hash NICHT aktualisiert.`,
-                translationFallback: `Überschrift und aria-label fallen auf Englisch zurück, wenn kein <MowsProvider> eingehängt ist.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Das Leistenlayout ist richtungsneutral — wickle es in dir="rtl" und die Einrückung kehrt sich für die verschachtelten Unterlisten um.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <PageIndex> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <PageIndex> verhalten soll, jeweils mit Verweis auf den Test, der das Verhalten absichert.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        pushesHashOnClick: `Ein Klick auf einen Eintrag schreibt #<id> per history.replaceState in die URL.`,
+        smoothOnClick: `Klick-getriggertes Scrollen verwendet behavior: "smooth".`,
+        instantOnLoad: `Anfängliches Hash-Scrollen verwendet behavior: "auto" — die Seite springt ohne Animation zum Ziel.`,
+        immediateActiveOnClick: `Der angeklickte Eintrag wird sofort aktiv, auch wenn die Seite bereits dort ist.`,
+        holdsActiveDuringScroll: `Der angeklickte Eintrag bleibt während der Animation aktiv — Zwischen-Scroll-Ereignisse kippen die Markierung nicht.`,
+        nestedRenders: `Einträge mit children rendern einen Link für jedes Blatt UND den Elternteil.`,
+        nestedScrollsToChild: `Ein Klick auf ein verschachteltes Kind scrollt und schreibt seine Hash — nicht die des Elternteils.`,
+        emptyRendersNothing: `Rendert nichts, wenn items leer ist.`,
+        missingIdSkipsHash: `Fehlt die Ziel-id im DOM, wird die Hash NICHT aktualisiert.`,
+        translationFallback: `Überschrift und aria-label fallen auf Englisch zurück, wenn kein <MowsProvider> eingehängt ist.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Das Leistenlayout ist richtungsneutral — wickle es in dir="rtl" und die Einrückung kehrt sich für die verschachtelten Unterlisten um.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <PageIndex> akzeptiert.`,
+    },
+  },
 };

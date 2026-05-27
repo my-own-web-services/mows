@@ -12,77 +12,148 @@
  */
 
 export interface LanguagePickerTranslation {
-    popover: { title: string; description: string };
-    standalone: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            popover: { title: string; description: string };
-            standalone: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                listsLanguages: string;
-                firesSetLanguage: string;
-                popoverShowsCurrent: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  popover: { title: string; description: string };
+  standalone: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      popover: { title: string; description: string };
+      standalone: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        listsLanguages: string;
+        firesSetLanguage: string;
+        popoverShowsCurrent: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const languagePickerEn: LanguagePickerTranslation = {
-    popover: { title: `Popover trigger`, description: `Default form — the picker lives behind a popover.` },
-    standalone: { title: `Standalone`, description: `Searchable list inline, no popover.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `Mount <LanguagePicker> inside <MowsProvider>. It reads the available languages and the current language from context and calls setLanguage on selection.` },
-        composition: { title: `Composition`, body: `<LanguagePicker> is a thin wrapper around <SearchSelectPicker> with renderItemContent / renderTriggerContent specialised for { code, name, emoji } language entries.` },
-        examples: { title: `Examples`, popover: { title: `Popover trigger`, description: `Trigger + popover list.` }, standalone: { title: `Standalone`, description: `Inline searchable list.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <LanguagePicker> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                listsLanguages: `Lists every language in standalone mode.`,
-                firesSetLanguage: `Calls setLanguage on the surrounding context when a language is picked.`,
-                popoverShowsCurrent: `Renders the popover trigger with the current language by default.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Wrap inside dir="rtl" and the trigger + search field flip to right-to-left.` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <LanguagePicker>.` }
-    }
+  popover: {
+    title: `Popover trigger`,
+    description: `Default form — the picker lives behind a popover.`,
+  },
+  standalone: {
+    title: `Standalone`,
+    description: `Searchable list inline, no popover.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Mount <LanguagePicker> inside <MowsProvider>. It reads the available languages and the current language from context and calls setLanguage on selection.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<LanguagePicker> is a thin wrapper around <SearchSelectPicker> with renderItemContent / renderTriggerContent specialised for { code, name, emoji } language entries.`,
+    },
+    examples: {
+      title: `Examples`,
+      popover: {
+        title: `Popover trigger`,
+        description: `Trigger + popover list.`,
+      },
+      standalone: {
+        title: `Standalone`,
+        description: `Inline searchable list.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <LanguagePicker> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        listsLanguages: `Lists every language in standalone mode.`,
+        firesSetLanguage: `Calls setLanguage on the surrounding context when a language is picked.`,
+        popoverShowsCurrent: `Renders the popover trigger with the current language by default.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Wrap inside dir="rtl" and the trigger + search field flip to right-to-left.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <LanguagePicker>.`,
+    },
+  },
 };
 
 export const languagePickerDe: LanguagePickerTranslation = {
-    popover: { title: `Popover-Trigger`, description: `Standardform — der Picker lebt hinter einem Popover.` },
-    standalone: { title: `Eigenständig`, description: `Suchliste inline, ohne Popover.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
-        usage: { title: `Verwendung`, body: `<LanguagePicker> innerhalb von <MowsProvider> mounten. Er liest die verfügbaren Sprachen und die aktuelle Sprache aus dem Context und ruft setLanguage bei der Auswahl auf.` },
-        composition: { title: `Komposition`, body: `<LanguagePicker> ist ein dünner Wrapper um <SearchSelectPicker> mit auf { code, name, emoji } spezialisierten renderItemContent / renderTriggerContent.` },
-        examples: { title: `Beispiele`, popover: { title: `Popover-Trigger`, description: `Trigger + Popover-Liste.` }, standalone: { title: `Eigenständig`, description: `Inline-Suchliste.` } },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <LanguagePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
-            statements: {
-                listsLanguages: `Listet jede Sprache im Standalone-Modus.`,
-                firesSetLanguage: `Ruft setLanguage im umgebenden Context auf, wenn eine Sprache gewählt wird.`,
-                popoverShowsCurrent: `Rendert den Popover-Trigger standardmäßig mit der aktuellen Sprache.`
-            }
-        },
-        rtl: { title: `RTL`, body: `In dir="rtl" eingewickelt drehen sich Trigger + Suchfeld nach rechts-nach-links.` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <LanguagePicker> akzeptiert.` }
-    }
+  popover: {
+    title: `Popover-Trigger`,
+    description: `Standardform — der Picker lebt hinter einem Popover.`,
+  },
+  standalone: {
+    title: `Eigenständig`,
+    description: `Suchliste inline, ohne Popover.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<LanguagePicker> innerhalb von <MowsProvider> mounten. Er liest die verfügbaren Sprachen und die aktuelle Sprache aus dem Context und ruft setLanguage bei der Auswahl auf.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<LanguagePicker> ist ein dünner Wrapper um <SearchSelectPicker> mit auf { code, name, emoji } spezialisierten renderItemContent / renderTriggerContent.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      popover: {
+        title: `Popover-Trigger`,
+        description: `Trigger + Popover-Liste.`,
+      },
+      standalone: { title: `Eigenständig`, description: `Inline-Suchliste.` },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <LanguagePicker> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        listsLanguages: `Listet jede Sprache im Standalone-Modus.`,
+        firesSetLanguage: `Ruft setLanguage im umgebenden Context auf, wenn eine Sprache gewählt wird.`,
+        popoverShowsCurrent: `Rendert den Popover-Trigger standardmäßig mit der aktuellen Sprache.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `In dir="rtl" eingewickelt drehen sich Trigger + Suchfeld nach rechts-nach-links.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <LanguagePicker> akzeptiert.`,
+    },
+  },
 };

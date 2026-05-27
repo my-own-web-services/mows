@@ -12,70 +12,130 @@
  */
 
 export interface DateTimeDisplayTranslation {
-    default: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                formatsTimestamp: string;
-                utcNaive: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        formatsTimestamp: string;
+        utcNaive: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const dateTimeDisplayEn: DateTimeDisplayTranslation = {
-    default: { title: `Default`, description: `Formats timestamps and naive datetime strings through Intl.DateTimeFormat using the active language.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `<DateTimeDisplay> renders a UTC timestamp or a naive datetime string, formatted through Intl.DateTimeFormat with the active language code.` },
-        composition: { title: `Composition`, body: `Pass timestampMilliseconds (UTC) for absolute times, or dateTimeNaive for "YYYY-MM-DD HH:mm:ss" strings — set utcTime to declare the naive string as UTC instead of local.` },
-        examples: { title: `Examples`, default: { title: `Default`, description: `Now, a fixed timestamp, and the same naive string rendered as local vs UTC.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <DateTimeDisplay> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                formatsTimestamp: `Renders a formatted timestamp without throwing.`,
-                utcNaive: `Renders a naive UTC datetime when utcTime is set.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Output respects the locale's BIDI rules; the wrapper is layout-neutral.` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <DateTimeDisplay>.` }
-    }
+  default: {
+    title: `Default`,
+    description: `Formats timestamps and naive datetime strings through Intl.DateTimeFormat using the active language.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<DateTimeDisplay> renders a UTC timestamp or a naive datetime string, formatted through Intl.DateTimeFormat with the active language code.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Pass timestampMilliseconds (UTC) for absolute times, or dateTimeNaive for "YYYY-MM-DD HH:mm:ss" strings — set utcTime to declare the naive string as UTC instead of local.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
+        title: `Default`,
+        description: `Now, a fixed timestamp, and the same naive string rendered as local vs UTC.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <DateTimeDisplay> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        formatsTimestamp: `Renders a formatted timestamp without throwing.`,
+        utcNaive: `Renders a naive UTC datetime when utcTime is set.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Output respects the locale's BIDI rules; the wrapper is layout-neutral.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <DateTimeDisplay>.`,
+    },
+  },
 };
 
 export const dateTimeDisplayDe: DateTimeDisplayTranslation = {
-    default: { title: `Standard`, description: `Formatiert Timestamps und naive Datumsstrings über Intl.DateTimeFormat unter Nutzung der aktiven Sprache.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
-        usage: { title: `Verwendung`, body: `<DateTimeDisplay> rendert einen UTC-Timestamp oder einen naiven Datumsstring, formatiert über Intl.DateTimeFormat mit dem aktiven Sprachcode.` },
-        composition: { title: `Komposition`, body: `Übergib timestampMilliseconds (UTC) für absolute Zeiten oder dateTimeNaive für "YYYY-MM-DD HH:mm:ss"-Strings — utcTime erklärt den naiven String als UTC statt lokal.` },
-        examples: { title: `Beispiele`, default: { title: `Standard`, description: `Jetzt, ein fester Timestamp sowie derselbe naive String als lokal und als UTC interpretiert.` } },
-        definedBehaviour: {
-            title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <DateTimeDisplay> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
-            statements: {
-                formatsTimestamp: `Rendert einen formatierten Timestamp, ohne zu werfen.`,
-                utcNaive: `Rendert ein naives UTC-Datum, wenn utcTime gesetzt ist.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Die Ausgabe folgt den BIDI-Regeln des Locales; der Wrapper ist layout-neutral.` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <DateTimeDisplay> akzeptiert.` }
-    }
+  default: {
+    title: `Standard`,
+    description: `Formatiert Timestamps und naive Datumsstrings über Intl.DateTimeFormat unter Nutzung der aktiven Sprache.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<DateTimeDisplay> rendert einen UTC-Timestamp oder einen naiven Datumsstring, formatiert über Intl.DateTimeFormat mit dem aktiven Sprachcode.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Übergib timestampMilliseconds (UTC) für absolute Zeiten oder dateTimeNaive für "YYYY-MM-DD HH:mm:ss"-Strings — utcTime erklärt den naiven String als UTC statt lokal.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
+        title: `Standard`,
+        description: `Jetzt, ein fester Timestamp sowie derselbe naive String als lokal und als UTC interpretiert.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Definiertes Verhalten`,
+      intro: `Aussagen darüber, wie sich <DateTimeDisplay> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`,
+      verifiedBy: `verifiziert durch`,
+      statements: {
+        formatsTimestamp: `Rendert einen formatierten Timestamp, ohne zu werfen.`,
+        utcNaive: `Rendert ein naives UTC-Datum, wenn utcTime gesetzt ist.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Die Ausgabe folgt den BIDI-Regeln des Locales; der Wrapper ist layout-neutral.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <DateTimeDisplay> akzeptiert.`,
+    },
+  },
 };

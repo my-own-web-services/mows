@@ -12,151 +12,151 @@
  */
 
 export interface SkeletonTranslation {
-    default: { title: string; description: string };
-    card: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            card: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                baseClasses: string;
-                forwardsClassName: string;
-                forwardsAttributes: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  card: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      card: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        baseClasses: string;
+        forwardsClassName: string;
+        forwardsAttributes: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const skeletonEn: SkeletonTranslation = {
-    default: {
+  default: {
+    title: `Avatar + lines`,
+    description: `A common loading shape: circular avatar plus two text lines.`,
+  },
+  card: {
+    title: `Card placeholder`,
+    description: `Block + heading + body lines — used while a real Card is loading.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Skeleton> is a pulse-animated div. Size it via tailwind utility classes (h-*, w-*, rounded-*) to mimic the shape of the content you're loading.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Compose multiple Skeletons together in the same shape and DOM order as the real content. Swap to the real content when data resolves.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Avatar + lines`,
-        description: `A common loading shape: circular avatar plus two text lines.`
-    },
-    card: {
+        description: `Common placeholder shape.`,
+      },
+      card: {
         title: `Card placeholder`,
-        description: `Block + heading + body lines — used while a real Card is loading.`
+        description: `Image block + heading + body lines.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Skeleton> is a pulse-animated div. Size it via tailwind utility classes (h-*, w-*, rounded-*) to mimic the shape of the content you're loading.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Compose multiple Skeletons together in the same shape and DOM order as the real content. Swap to the real content when data resolves.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Avatar + lines`,
-                description: `Common placeholder shape.`
-            },
-            card: {
-                title: `Card placeholder`,
-                description: `Image block + heading + body lines.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Skeleton> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                baseClasses: `Renders a div with the animate-pulse + rounded base classes.`,
-                forwardsClassName: `Forwards an extra className for sizing / shape overrides.`,
-                forwardsAttributes: `Forwards arbitrary HTML attributes (e.g. id, data-*).`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Skeletons are purely visual rectangles — direction-agnostic.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Skeleton>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Skeleton> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        baseClasses: `Renders a div with the animate-pulse + rounded base classes.`,
+        forwardsClassName: `Forwards an extra className for sizing / shape overrides.`,
+        forwardsAttributes: `Forwards arbitrary HTML attributes (e.g. id, data-*).`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Skeletons are purely visual rectangles — direction-agnostic.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Skeleton>.`,
+    },
+  },
 };
 
 export const skeletonDe: SkeletonTranslation = {
-    default: {
+  default: {
+    title: `Avatar + Zeilen`,
+    description: `Eine gängige Lade-Form: runder Avatar plus zwei Textzeilen.`,
+  },
+  card: {
+    title: `Card-Platzhalter`,
+    description: `Block + Heading + Body-Zeilen — verwendet, während eine echte Card lädt.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Skeleton> ist ein pulsierend animiertes div. Mit Tailwind-Utility-Klassen (h-*, w-*, rounded-*) so dimensionieren, dass die ladende Inhalts-Form gespiegelt wird.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Mehrere Skeletons in derselben Form und DOM-Reihenfolge wie der echte Inhalt zusammenbauen. Beim Laden austauschen.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Avatar + Zeilen`,
-        description: `Eine gängige Lade-Form: runder Avatar plus zwei Textzeilen.`
-    },
-    card: {
+        description: `Gängige Platzhalter-Form.`,
+      },
+      card: {
         title: `Card-Platzhalter`,
-        description: `Block + Heading + Body-Zeilen — verwendet, während eine echte Card lädt.`
+        description: `Bildblock + Heading + Body-Zeilen.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Skeleton> ist ein pulsierend animiertes div. Mit Tailwind-Utility-Klassen (h-*, w-*, rounded-*) so dimensionieren, dass die ladende Inhalts-Form gespiegelt wird.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `Mehrere Skeletons in derselben Form und DOM-Reihenfolge wie der echte Inhalt zusammenbauen. Beim Laden austauschen.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Avatar + Zeilen`,
-                description: `Gängige Platzhalter-Form.`
-            },
-            card: {
-                title: `Card-Platzhalter`,
-                description: `Bildblock + Heading + Body-Zeilen.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Skeleton> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                baseClasses: `Rendert ein div mit den Basis-Klassen animate-pulse + rounded.`,
-                forwardsClassName: `Reicht ein zusätzliches className für Größen-/Form-Overrides durch.`,
-                forwardsAttributes: `Reicht beliebige HTML-Attribute (z. B. id, data-*) durch.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Skeletons sind rein visuelle Rechtecke — richtungsneutral.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Skeleton> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Skeleton> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        baseClasses: `Rendert ein div mit den Basis-Klassen animate-pulse + rounded.`,
+        forwardsClassName: `Reicht ein zusätzliches className für Größen-/Form-Overrides durch.`,
+        forwardsAttributes: `Reicht beliebige HTML-Attribute (z. B. id, data-*) durch.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Skeletons sind rein visuelle Rechtecke — richtungsneutral.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Skeleton> akzeptiert.`,
+    },
+  },
 };

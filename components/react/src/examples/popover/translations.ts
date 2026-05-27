@@ -12,157 +12,157 @@
  */
 
 export interface PopoverTranslation {
-    default: { title: string; description: string };
-    form: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            form: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                closedByDefault: string;
-                defaultOpen: string;
-                opensOnTrigger: string;
-                closesOnEscape: string;
-                portalsToBody: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  form: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      form: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        closedByDefault: string;
+        defaultOpen: string;
+        opensOnTrigger: string;
+        closesOnEscape: string;
+        portalsToBody: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const popoverEn: PopoverTranslation = {
-    default: {
+  default: {
+    title: `Trigger + body`,
+    description: `A minimal popover anchored to its trigger button.`,
+  },
+  form: {
+    title: `Inline form`,
+    description: `Popovers are non-modal — perfect for lightweight inline forms (rename, quick-edit).`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Popover> wraps the Radix Popover primitive. Compose with <PopoverTrigger> and <PopoverContent>.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Popovers are non-modal: clicks outside dismiss, focus is not trapped. For modal blocking interactions reach for <Dialog> instead.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Trigger + body`,
-        description: `A minimal popover anchored to its trigger button.`
-    },
-    form: {
+        description: `Minimal popover.`,
+      },
+      form: {
         title: `Inline form`,
-        description: `Popovers are non-modal — perfect for lightweight inline forms (rename, quick-edit).`
+        description: `Lightweight form inside the popover.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Popover> wraps the Radix Popover primitive. Compose with <PopoverTrigger> and <PopoverContent>.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Popovers are non-modal: clicks outside dismiss, focus is not trapped. For modal blocking interactions reach for <Dialog> instead.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Trigger + body`,
-                description: `Minimal popover.`
-            },
-            form: {
-                title: `Inline form`,
-                description: `Lightweight form inside the popover.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Popover> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                closedByDefault: `Is closed by default — the content is not rendered.`,
-                defaultOpen: `Renders the content when defaultOpen is set.`,
-                opensOnTrigger: `Opens when the trigger is clicked.`,
-                closesOnEscape: `Closes on Escape.`,
-                portalsToBody: `Portals the content to document.body — it is not nested in the trigger's parent div.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" the popover anchor and alignment mirror — Radix flips align="start"/"end" automatically.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Popover> and <PopoverContent>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Popover> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        closedByDefault: `Is closed by default — the content is not rendered.`,
+        defaultOpen: `Renders the content when defaultOpen is set.`,
+        opensOnTrigger: `Opens when the trigger is clicked.`,
+        closesOnEscape: `Closes on Escape.`,
+        portalsToBody: `Portals the content to document.body — it is not nested in the trigger's parent div.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the popover anchor and alignment mirror — Radix flips align="start"/"end" automatically.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Popover> and <PopoverContent>.`,
+    },
+  },
 };
 
 export const popoverDe: PopoverTranslation = {
-    default: {
+  default: {
+    title: `Trigger + Body`,
+    description: `Minimaler Popover, am Trigger-Button verankert.`,
+  },
+  form: {
+    title: `Inline-Formular`,
+    description: `Popovers sind nicht-modal — ideal für leichte Inline-Formulare (Umbenennen, Quick-Edit).`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Popover> kapselt die Radix-Popover-Primitive. Kombiniere mit <PopoverTrigger> und <PopoverContent>.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Popovers sind nicht-modal: Klicks außerhalb schließen, Fokus wird nicht eingefangen. Für modal blockierende Interaktionen <Dialog> verwenden.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Trigger + Body`,
-        description: `Minimaler Popover, am Trigger-Button verankert.`
-    },
-    form: {
+        description: `Minimaler Popover.`,
+      },
+      form: {
         title: `Inline-Formular`,
-        description: `Popovers sind nicht-modal — ideal für leichte Inline-Formulare (Umbenennen, Quick-Edit).`
+        description: `Leichtes Formular im Popover.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Popover> kapselt die Radix-Popover-Primitive. Kombiniere mit <PopoverTrigger> und <PopoverContent>.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `Popovers sind nicht-modal: Klicks außerhalb schließen, Fokus wird nicht eingefangen. Für modal blockierende Interaktionen <Dialog> verwenden.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Trigger + Body`,
-                description: `Minimaler Popover.`
-            },
-            form: {
-                title: `Inline-Formular`,
-                description: `Leichtes Formular im Popover.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Popover> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                closedByDefault: `Ist standardmäßig geschlossen — der Inhalt wird nicht gerendert.`,
-                defaultOpen: `Rendert den Inhalt, wenn defaultOpen gesetzt ist.`,
-                opensOnTrigger: `Öffnet sich beim Klick auf den Trigger.`,
-                closesOnEscape: `Schließt sich bei Escape.`,
-                portalsToBody: `Portaliert den Inhalt zum document.body — nicht ins Eltern-div des Triggers.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" spiegeln Anker und Alignment des Popovers — Radix dreht align="start"/"end" automatisch.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Popover> und <PopoverContent> akzeptieren.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Popover> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        closedByDefault: `Ist standardmäßig geschlossen — der Inhalt wird nicht gerendert.`,
+        defaultOpen: `Rendert den Inhalt, wenn defaultOpen gesetzt ist.`,
+        opensOnTrigger: `Öffnet sich beim Klick auf den Trigger.`,
+        closesOnEscape: `Schließt sich bei Escape.`,
+        portalsToBody: `Portaliert den Inhalt zum document.body — nicht ins Eltern-div des Triggers.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" spiegeln Anker und Alignment des Popovers — Radix dreht align="start"/"end" automatisch.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Popover> und <PopoverContent> akzeptieren.`,
+    },
+  },
 };

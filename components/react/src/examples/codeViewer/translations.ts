@@ -12,166 +12,166 @@
  */
 
 export interface CodeViewerTranslation {
-    default: { title: string; description: string };
-    editable: { title: string; description: string };
-    fitContent: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            editable: { title: string; description: string };
-            fitContent: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersLazyEditor: string;
-                forwardsClassName: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  editable: { title: string; description: string };
+  fitContent: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      editable: { title: string; description: string };
+      fitContent: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersLazyEditor: string;
+        forwardsClassName: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const codeViewerEn: CodeViewerTranslation = {
-    default: {
+  default: {
+    title: `Default`,
+    description: `A read-only Monaco-backed code view with line numbers, syntax highlighting, and word-wrap.`,
+  },
+  editable: {
+    title: `Editable`,
+    description: `Set editable to let the user type. Bind onCodeChange to receive the new value as the user edits.`,
+  },
+  fitContent: {
+    title: `Fit to content`,
+    description: `fitContent sizes the wrapper to Monaco's content height — no internal scrollbar. Pair with <ExpandableCode> to collapse long snippets.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Import <CodeViewer> and pass it code + language. The Monaco bundle is loaded lazily via React.lazy, so apps that don't render the viewer don't pay the bundle cost.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<CodeViewer> wraps Monaco's standalone editor with sensible defaults (line numbers / wrap / whitespace markers / syntax highlighting). It honours the active code theme from <MowsProvider>; consumers can override individual display options per-instance.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Default`,
-        description: `A read-only Monaco-backed code view with line numbers, syntax highlighting, and word-wrap.`
-    },
-    editable: {
+        description: `Read-only view with line numbers and syntax highlighting.`,
+      },
+      editable: {
         title: `Editable`,
-        description: `Set editable to let the user type. Bind onCodeChange to receive the new value as the user edits.`
-    },
-    fitContent: {
+        description: `editable + onCodeChange turns the viewer into a small editor.`,
+      },
+      fitContent: {
         title: `Fit to content`,
-        description: `fitContent sizes the wrapper to Monaco's content height — no internal scrollbar. Pair with <ExpandableCode> to collapse long snippets.`
+        description: `Wrapper grows to fit Monaco's full content height.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Import <CodeViewer> and pass it code + language. The Monaco bundle is loaded lazily via React.lazy, so apps that don't render the viewer don't pay the bundle cost.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<CodeViewer> wraps Monaco's standalone editor with sensible defaults (line numbers / wrap / whitespace markers / syntax highlighting). It honours the active code theme from <MowsProvider>; consumers can override individual display options per-instance.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Default`,
-                description: `Read-only view with line numbers and syntax highlighting.`
-            },
-            editable: {
-                title: `Editable`,
-                description: `editable + onCodeChange turns the viewer into a small editor.`
-            },
-            fitContent: {
-                title: `Fit to content`,
-                description: `Wrapper grows to fit Monaco's full content height.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <CodeViewer> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersLazyEditor: `Renders the lazy-loaded Monaco editor with the supplied code.`,
-                forwardsClassName: `Forwards className to the editor wrapper.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Source code is direction-agnostic. Wrapping in dir="rtl" keeps token order intact; only surrounding prose flow flips.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <CodeViewer>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <CodeViewer> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersLazyEditor: `Renders the lazy-loaded Monaco editor with the supplied code.`,
+        forwardsClassName: `Forwards className to the editor wrapper.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Source code is direction-agnostic. Wrapping in dir="rtl" keeps token order intact; only surrounding prose flow flips.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <CodeViewer>.`,
+    },
+  },
 };
 
 export const codeViewerDe: CodeViewerTranslation = {
-    default: {
+  default: {
+    title: `Standard`,
+    description: `Eine schreibgeschützte, Monaco-gestützte Code-Ansicht mit Zeilennummern, Syntax-Hervorhebung und Zeilenumbruch.`,
+  },
+  editable: {
+    title: `Bearbeitbar`,
+    description: `Setze editable, damit der Nutzer tippen kann. Binde onCodeChange, um den neuen Wert beim Editieren zu erhalten.`,
+  },
+  fitContent: {
+    title: `An Inhalt anpassen`,
+    description: `fitContent passt die Wrapper-Höhe an Monacos Inhaltshöhe an — keine interne Scrollleiste. Kombiniere es mit <ExpandableCode>, um lange Snippets einzuklappen.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `Importiere <CodeViewer> und übergib code + language. Das Monaco-Bundle wird per React.lazy nachgeladen — Apps, die keinen Viewer rendern, zahlen das Bundle nicht.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<CodeViewer> umschließt Monacos Standalone-Editor mit sinnvollen Defaults (Zeilennummern / Umbruch / Whitespace-Markierung / Syntax-Hervorhebung). Er respektiert das aktive Code-Theme aus <MowsProvider>; Konsumenten können Anzeigeoptionen je Instanz überschreiben.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Standard`,
-        description: `Eine schreibgeschützte, Monaco-gestützte Code-Ansicht mit Zeilennummern, Syntax-Hervorhebung und Zeilenumbruch.`
-    },
-    editable: {
+        description: `Schreibgeschützte Ansicht mit Zeilennummern und Syntax-Hervorhebung.`,
+      },
+      editable: {
         title: `Bearbeitbar`,
-        description: `Setze editable, damit der Nutzer tippen kann. Binde onCodeChange, um den neuen Wert beim Editieren zu erhalten.`
-    },
-    fitContent: {
+        description: `editable + onCodeChange machen aus dem Viewer einen kleinen Editor.`,
+      },
+      fitContent: {
         title: `An Inhalt anpassen`,
-        description: `fitContent passt die Wrapper-Höhe an Monacos Inhaltshöhe an — keine interne Scrollleiste. Kombiniere es mit <ExpandableCode>, um lange Snippets einzuklappen.`
+        description: `Der Wrapper wächst auf Monacos volle Inhaltshöhe.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Importiere <CodeViewer> und übergib code + language. Das Monaco-Bundle wird per React.lazy nachgeladen — Apps, die keinen Viewer rendern, zahlen das Bundle nicht.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<CodeViewer> umschließt Monacos Standalone-Editor mit sinnvollen Defaults (Zeilennummern / Umbruch / Whitespace-Markierung / Syntax-Hervorhebung). Er respektiert das aktive Code-Theme aus <MowsProvider>; Konsumenten können Anzeigeoptionen je Instanz überschreiben.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Standard`,
-                description: `Schreibgeschützte Ansicht mit Zeilennummern und Syntax-Hervorhebung.`
-            },
-            editable: {
-                title: `Bearbeitbar`,
-                description: `editable + onCodeChange machen aus dem Viewer einen kleinen Editor.`
-            },
-            fitContent: {
-                title: `An Inhalt anpassen`,
-                description: `Der Wrapper wächst auf Monacos volle Inhaltshöhe.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <CodeViewer> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                rendersLazyEditor: `Rendert den lazy-geladenen Monaco-Editor mit dem übergebenen Code.`,
-                forwardsClassName: `Reicht className an den Editor-Wrapper weiter.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Quellcode ist richtungsneutral. Ein umgebendes dir="rtl" lässt die Token-Reihenfolge unverändert; nur der Fließtext-Fluss kehrt sich um.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <CodeViewer> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <CodeViewer> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersLazyEditor: `Rendert den lazy-geladenen Monaco-Editor mit dem übergebenen Code.`,
+        forwardsClassName: `Reicht className an den Editor-Wrapper weiter.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Quellcode ist richtungsneutral. Ein umgebendes dir="rtl" lässt die Token-Reihenfolge unverändert; nur der Fließtext-Fluss kehrt sich um.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <CodeViewer> akzeptiert.`,
+    },
+  },
 };

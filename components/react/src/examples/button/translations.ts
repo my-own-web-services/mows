@@ -12,199 +12,199 @@
  */
 
 export interface ButtonTranslation {
-    default: { title: string; description: string };
-    variants: { title: string; description: string };
-    sizes: { title: string; description: string };
-    asChild: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            variants: { title: string; description: string };
-            sizes: { title: string; description: string };
-            asChild: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersNativeButton: string;
-                defaultVariantAndSize: string;
-                appliesVariants: string;
-                appliesSizes: string;
-                firesOnClick: string;
-                noClickWhenDisabled: string;
-                asChildRendersChild: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  variants: { title: string; description: string };
+  sizes: { title: string; description: string };
+  asChild: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      variants: { title: string; description: string };
+      sizes: { title: string; description: string };
+      asChild: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersNativeButton: string;
+        defaultVariantAndSize: string;
+        appliesVariants: string;
+        appliesSizes: string;
+        firesOnClick: string;
+        noClickWhenDisabled: string;
+        asChildRendersChild: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const buttonEn: ButtonTranslation = {
-    default: {
+  default: {
+    title: `Default`,
+    description: `The base button — primary background, default size.`,
+  },
+  variants: {
+    title: `Variants`,
+    description: `Six built-in visual treatments. The iconStandalone variant is a transparent-background variant used for icon-only buttons that should not have any container chrome.`,
+  },
+  sizes: {
+    title: `Sizes`,
+    description: `sm / default / lg + three icon-* sizes for square icon buttons.`,
+  },
+  asChild: {
+    title: `asChild`,
+    description: `Render the button styling onto its single child element via Radix Slot — typical use is rendering a link with button styling without nesting a <button> inside an <a>.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Button> renders a native <button> with the shadcn variant + size classes applied. Forward any native button attribute (onClick, type, disabled, …).`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Use asChild to render the styling onto a single child element instead of a native <button> — the typical case is wrapping a <Link> or <a>.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Default`,
-        description: `The base button — primary background, default size.`
-    },
-    variants: {
+        description: `The base button.`,
+      },
+      variants: {
         title: `Variants`,
-        description: `Six built-in visual treatments. The iconStandalone variant is a transparent-background variant used for icon-only buttons that should not have any container chrome.`
-    },
-    sizes: {
+        description: `default / secondary / destructive / outline / ghost / link.`,
+      },
+      sizes: {
         title: `Sizes`,
-        description: `sm / default / lg + three icon-* sizes for square icon buttons.`
-    },
-    asChild: {
+        description: `sm / default / lg + three icon-* sizes.`,
+      },
+      asChild: {
         title: `asChild`,
-        description: `Render the button styling onto its single child element via Radix Slot — typical use is rendering a link with button styling without nesting a <button> inside an <a>.`
+        description: `Forward the styling onto an <a>.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Button> renders a native <button> with the shadcn variant + size classes applied. Forward any native button attribute (onClick, type, disabled, …).`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Use asChild to render the styling onto a single child element instead of a native <button> — the typical case is wrapping a <Link> or <a>.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Default`,
-                description: `The base button.`
-            },
-            variants: {
-                title: `Variants`,
-                description: `default / secondary / destructive / outline / ghost / link.`
-            },
-            sizes: {
-                title: `Sizes`,
-                description: `sm / default / lg + three icon-* sizes.`
-            },
-            asChild: {
-                title: `asChild`,
-                description: `Forward the styling onto an <a>.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Button> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersNativeButton: `Renders a native <button> element when asChild is not set.`,
-                defaultVariantAndSize: `Applies the default variant + size when none is provided.`,
-                appliesVariants: `Each variant applies its expected tailwind classes (destructive / outline / secondary / ghost / link / iconStandalone).`,
-                appliesSizes: `Each size applies its expected height / padding tailwind classes (sm / lg / icon / icon-sm / icon-lg / icon-xs).`,
-                firesOnClick: `Fires onClick when clicked.`,
-                noClickWhenDisabled: `Does not fire onClick when disabled.`,
-                asChildRendersChild: `asChild renders the child element (e.g. <a>) instead of a native button, with the button styling applied.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Buttons inherit text direction from their ancestor; icon + label order flips under dir="rtl".`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Button>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Button> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersNativeButton: `Renders a native <button> element when asChild is not set.`,
+        defaultVariantAndSize: `Applies the default variant + size when none is provided.`,
+        appliesVariants: `Each variant applies its expected tailwind classes (destructive / outline / secondary / ghost / link / iconStandalone).`,
+        appliesSizes: `Each size applies its expected height / padding tailwind classes (sm / lg / icon / icon-sm / icon-lg / icon-xs).`,
+        firesOnClick: `Fires onClick when clicked.`,
+        noClickWhenDisabled: `Does not fire onClick when disabled.`,
+        asChildRendersChild: `asChild renders the child element (e.g. <a>) instead of a native button, with the button styling applied.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Buttons inherit text direction from their ancestor; icon + label order flips under dir="rtl".`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Button>.`,
+    },
+  },
 };
 
 export const buttonDe: ButtonTranslation = {
-    default: {
+  default: {
+    title: `Standard`,
+    description: `Der Basis-Button — Primärhintergrund, Standard-Größe.`,
+  },
+  variants: {
+    title: `Varianten`,
+    description: `Sechs eingebaute visuelle Behandlungen. iconStandalone ist eine transparente Variante für Icon-only-Buttons ohne Container-Chrome.`,
+  },
+  sizes: {
+    title: `Größen`,
+    description: `sm / default / lg + drei icon-* Größen für quadratische Icon-Buttons.`,
+  },
+  asChild: {
+    title: `asChild`,
+    description: `Rendert das Button-Styling per Radix Slot auf das einzige Kind-Element — typisch für Links mit Button-Look ohne <button> in einem <a> zu verschachteln.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Button> rendert ein natives <button> mit den shadcn-Variant- und Größenklassen. Alle nativen Button-Attribute (onClick, type, disabled …) werden durchgereicht.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Mit asChild wird das Styling stattdessen auf das einzige Kind-Element gelegt — der typische Fall ist das Umschließen eines <Link> / <a>.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Standard`,
-        description: `Der Basis-Button — Primärhintergrund, Standard-Größe.`
-    },
-    variants: {
+        description: `Der Basis-Button.`,
+      },
+      variants: {
         title: `Varianten`,
-        description: `Sechs eingebaute visuelle Behandlungen. iconStandalone ist eine transparente Variante für Icon-only-Buttons ohne Container-Chrome.`
-    },
-    sizes: {
+        description: `default / secondary / destructive / outline / ghost / link.`,
+      },
+      sizes: {
         title: `Größen`,
-        description: `sm / default / lg + drei icon-* Größen für quadratische Icon-Buttons.`
-    },
-    asChild: {
+        description: `sm / default / lg + drei icon-* Größen.`,
+      },
+      asChild: {
         title: `asChild`,
-        description: `Rendert das Button-Styling per Radix Slot auf das einzige Kind-Element — typisch für Links mit Button-Look ohne <button> in einem <a> zu verschachteln.`
+        description: `Styling auf ein <a> übertragen.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Button> rendert ein natives <button> mit den shadcn-Variant- und Größenklassen. Alle nativen Button-Attribute (onClick, type, disabled …) werden durchgereicht.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `Mit asChild wird das Styling stattdessen auf das einzige Kind-Element gelegt — der typische Fall ist das Umschließen eines <Link> / <a>.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Standard`,
-                description: `Der Basis-Button.`
-            },
-            variants: {
-                title: `Varianten`,
-                description: `default / secondary / destructive / outline / ghost / link.`
-            },
-            sizes: {
-                title: `Größen`,
-                description: `sm / default / lg + drei icon-* Größen.`
-            },
-            asChild: {
-                title: `asChild`,
-                description: `Styling auf ein <a> übertragen.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Button> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                rendersNativeButton: `Rendert ohne asChild ein natives <button>.`,
-                defaultVariantAndSize: `Wendet ohne explizite variant/size die Default-Werte an.`,
-                appliesVariants: `Jede Variante wendet ihre erwarteten Tailwind-Klassen an (destructive / outline / secondary / ghost / link / iconStandalone).`,
-                appliesSizes: `Jede Größe wendet ihre erwarteten Höhen-/Padding-Klassen an (sm / lg / icon / icon-sm / icon-lg / icon-xs).`,
-                firesOnClick: `Feuert onClick beim Klick.`,
-                noClickWhenDisabled: `Feuert onClick nicht, wenn disabled gesetzt ist.`,
-                asChildRendersChild: `asChild rendert das Kind-Element (z. B. <a>) statt eines nativen Buttons, mit dem Button-Styling.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Buttons erben die Schreibrichtung vom Vorfahren; Icon- und Label-Reihenfolge spiegelt unter dir="rtl".`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Button> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Button> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersNativeButton: `Rendert ohne asChild ein natives <button>.`,
+        defaultVariantAndSize: `Wendet ohne explizite variant/size die Default-Werte an.`,
+        appliesVariants: `Jede Variante wendet ihre erwarteten Tailwind-Klassen an (destructive / outline / secondary / ghost / link / iconStandalone).`,
+        appliesSizes: `Jede Größe wendet ihre erwarteten Höhen-/Padding-Klassen an (sm / lg / icon / icon-sm / icon-lg / icon-xs).`,
+        firesOnClick: `Feuert onClick beim Klick.`,
+        noClickWhenDisabled: `Feuert onClick nicht, wenn disabled gesetzt ist.`,
+        asChildRendersChild: `asChild rendert das Kind-Element (z. B. <a>) statt eines nativen Buttons, mit dem Button-Styling.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Buttons erben die Schreibrichtung vom Vorfahren; Icon- und Label-Reihenfolge spiegelt unter dir="rtl".`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Button> akzeptiert.`,
+    },
+  },
 };

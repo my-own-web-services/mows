@@ -12,142 +12,142 @@
  */
 
 export interface ContextMenuTranslation {
-    default: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                closedByDefault: string;
-                opensOnContextmenu: string;
-                firesOnSelect: string;
-                disabledIgnored: string;
-                closesOnSelect: string;
-                separator: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        closedByDefault: string;
+        opensOnContextmenu: string;
+        firesOnSelect: string;
+        disabledIgnored: string;
+        closesOnSelect: string;
+        separator: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const contextMenuEn: ContextMenuTranslation = {
-    default: {
-        title: `Right-click target`,
-        description: `Right-click anywhere in the dashed area to open a per-region context menu. Use Escape or click outside to close.`
+  default: {
+    title: `Right-click target`,
+    description: `Right-click anywhere in the dashed area to open a per-region context menu. Use Escape or click outside to close.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<ContextMenu> is the local Radix-driven context menu. Compose with <ContextMenuTrigger>, <ContextMenuContent>, <ContextMenuItem>, and <ContextMenuSeparator>.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Use ContextMenu for per-region menus that do not need to participate in the action manager. For global, action-scope-driven menus reach for <GlobalContextMenu> instead.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Right-click target`,
-                description: `Right-click the dashed area to open the menu.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <ContextMenu> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                closedByDefault: `Is closed by default — no menu items rendered.`,
-                opensOnContextmenu: `Opens on a contextmenu event on the trigger.`,
-                firesOnSelect: `Fires onSelect when an item is clicked.`,
-                disabledIgnored: `Disabled items are exposed via data-disabled and ignore selection.`,
-                closesOnSelect: `Closes when an enabled item is selected.`,
-                separator: `Renders a separator between item groups.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" menu items flip; the menu still anchors to the cursor.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <ContextMenu> and <ContextMenuItem>.`
-        }
-    }
+    usage: {
+      title: `Usage`,
+      body: `<ContextMenu> is the local Radix-driven context menu. Compose with <ContextMenuTrigger>, <ContextMenuContent>, <ContextMenuItem>, and <ContextMenuSeparator>.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Use ContextMenu for per-region menus that do not need to participate in the action manager. For global, action-scope-driven menus reach for <GlobalContextMenu> instead.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
+        title: `Right-click target`,
+        description: `Right-click the dashed area to open the menu.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <ContextMenu> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        closedByDefault: `Is closed by default — no menu items rendered.`,
+        opensOnContextmenu: `Opens on a contextmenu event on the trigger.`,
+        firesOnSelect: `Fires onSelect when an item is clicked.`,
+        disabledIgnored: `Disabled items are exposed via data-disabled and ignore selection.`,
+        closesOnSelect: `Closes when an enabled item is selected.`,
+        separator: `Renders a separator between item groups.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" menu items flip; the menu still anchors to the cursor.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <ContextMenu> and <ContextMenuItem>.`,
+    },
+  },
 };
 
 export const contextMenuDe: ContextMenuTranslation = {
-    default: {
-        title: `Rechtsklick-Ziel`,
-        description: `Rechtsklick irgendwo in der gestrichelten Fläche öffnet ein region-spezifisches Kontextmenü. Mit Escape oder Klick außerhalb schließen.`
+  default: {
+    title: `Rechtsklick-Ziel`,
+    description: `Rechtsklick irgendwo in der gestrichelten Fläche öffnet ein region-spezifisches Kontextmenü. Mit Escape oder Klick außerhalb schließen.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<ContextMenu> ist das lokale, Radix-getriebene Kontextmenü. Kombiniere mit <ContextMenuTrigger>, <ContextMenuContent>, <ContextMenuItem> und <ContextMenuSeparator>.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `ContextMenu für regionale Menüs ohne ActionManager-Beteiligung verwenden. Für globale, action-scope-getriebene Menüs <GlobalContextMenu> verwenden.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Rechtsklick-Ziel`,
-                description: `Rechtsklicke die gestrichelte Fläche, um das Menü zu öffnen.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <ContextMenu> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                closedByDefault: `Ist standardmäßig geschlossen — keine Menü-Items werden gerendert.`,
-                opensOnContextmenu: `Öffnet sich beim contextmenu-Event auf dem Trigger.`,
-                firesOnSelect: `Feuert onSelect beim Klick auf ein Item.`,
-                disabledIgnored: `Deaktivierte Items setzen data-disabled und ignorieren Auswahl.`,
-                closesOnSelect: `Schließt sich, wenn ein aktives Item ausgewählt wird.`,
-                separator: `Rendert einen Separator zwischen Item-Gruppen.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" spiegeln die Menü-Items; das Menü verankert weiterhin am Cursor.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <ContextMenu> und <ContextMenuItem> akzeptieren.`
-        }
-    }
+    usage: {
+      title: `Verwendung`,
+      body: `<ContextMenu> ist das lokale, Radix-getriebene Kontextmenü. Kombiniere mit <ContextMenuTrigger>, <ContextMenuContent>, <ContextMenuItem> und <ContextMenuSeparator>.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `ContextMenu für regionale Menüs ohne ActionManager-Beteiligung verwenden. Für globale, action-scope-getriebene Menüs <GlobalContextMenu> verwenden.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
+        title: `Rechtsklick-Ziel`,
+        description: `Rechtsklicke die gestrichelte Fläche, um das Menü zu öffnen.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <ContextMenu> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        closedByDefault: `Ist standardmäßig geschlossen — keine Menü-Items werden gerendert.`,
+        opensOnContextmenu: `Öffnet sich beim contextmenu-Event auf dem Trigger.`,
+        firesOnSelect: `Feuert onSelect beim Klick auf ein Item.`,
+        disabledIgnored: `Deaktivierte Items setzen data-disabled und ignorieren Auswahl.`,
+        closesOnSelect: `Schließt sich, wenn ein aktives Item ausgewählt wird.`,
+        separator: `Rendert einen Separator zwischen Item-Gruppen.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" spiegeln die Menü-Items; das Menü verankert weiterhin am Cursor.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <ContextMenu> und <ContextMenuItem> akzeptieren.`,
+    },
+  },
 };

@@ -12,85 +12,142 @@
  */
 
 export interface MapTranslation {
-    default: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                lazyLoadsMapbox: string;
-                usesContextStyle: string;
-                propOverridesContext: string;
-                appliesAccessToken: string;
-                reactsToContextChange: string;
-                firesOnLoad: string;
-                cleansUpOnUnmount: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        lazyLoadsMapbox: string;
+        usesContextStyle: string;
+        propOverridesContext: string;
+        appliesAccessToken: string;
+        reactsToContextChange: string;
+        firesOnLoad: string;
+        cleansUpOnUnmount: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const mapEn: MapTranslation = {
-    default: { title: `Default`, description: `Mapbox-gl viewport. The active style follows the user's settings-panel pick.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `<Map> renders a mapbox-gl viewport. Both mapbox-gl's JS and its CSS are lazy-loaded on first mount so consumers that never render a map pay zero bundle cost.` },
-        composition: { title: `Composition`, body: `By default <Map> follows currentMapStyle from MowsContext, so the SettingsPanel can switch styles across the whole app at once. Pin a mapStyle prop to opt out per instance.` },
-        examples: { title: `Examples`, default: { title: `Default`, description: `Live mapbox-gl viewport at world zoom.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <Map> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                lazyLoadsMapbox: `Shows a loading skeleton until the mapbox-gl chunk resolves.`,
-                usesContextStyle: `Instantiates mapbox-gl with the context's currentMapStyle by default.`,
-                propOverridesContext: `An explicit mapStyle prop overrides the context value.`,
-                appliesAccessToken: `Assigns the active style's accessToken before instantiation.`,
-                reactsToContextChange: `Calls setStyle when the context's current map style changes.`,
-                firesOnLoad: `Fires onLoad once the underlying map emits "load".`,
-                cleansUpOnUnmount: `Calls map.remove() on unmount.`
-            }
-        },
-        rtl: { title: `RTL`, body: `mapbox-gl renders its own canvas; <Map> adds no direction-sensitive chrome, so dir="rtl" leaves the viewport unchanged.` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <Map>.` }
-    }
+  default: {
+    title: `Default`,
+    description: `Mapbox-gl viewport. The active style follows the user's settings-panel pick.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Map> renders a mapbox-gl viewport. Both mapbox-gl's JS and its CSS are lazy-loaded on first mount so consumers that never render a map pay zero bundle cost.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `By default <Map> follows currentMapStyle from MowsContext, so the SettingsPanel can switch styles across the whole app at once. Pin a mapStyle prop to opt out per instance.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
+        title: `Default`,
+        description: `Live mapbox-gl viewport at world zoom.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Map> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        lazyLoadsMapbox: `Shows a loading skeleton until the mapbox-gl chunk resolves.`,
+        usesContextStyle: `Instantiates mapbox-gl with the context's currentMapStyle by default.`,
+        propOverridesContext: `An explicit mapStyle prop overrides the context value.`,
+        appliesAccessToken: `Assigns the active style's accessToken before instantiation.`,
+        reactsToContextChange: `Calls setStyle when the context's current map style changes.`,
+        firesOnLoad: `Fires onLoad once the underlying map emits "load".`,
+        cleansUpOnUnmount: `Calls map.remove() on unmount.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `mapbox-gl renders its own canvas; <Map> adds no direction-sensitive chrome, so dir="rtl" leaves the viewport unchanged.`,
+    },
+    apiReference: { title: `API Reference`, intro: `Props accepted by <Map>.` },
+  },
 };
 
 export const mapDe: MapTranslation = {
-    default: { title: `Standard`, description: `Mapbox-gl-Viewport. Der aktive Stil folgt der Wahl im Einstellungs-Panel.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
-        usage: { title: `Verwendung`, body: `<Map> rendert einen mapbox-gl-Viewport. Sowohl mapbox-gl-JS als auch das zugehörige CSS werden beim ersten Mount lazy geladen, damit Konsumenten ohne Karte keine Bundle-Kosten zahlen.` },
-        composition: { title: `Komposition`, body: `Standardmäßig folgt <Map> dem currentMapStyle aus dem MowsContext, sodass das SettingsPanel den Stil app-weit umschalten kann. Über die mapStyle-Prop lässt sich das pro Instanz fixieren.` },
-        examples: { title: `Beispiele`, default: { title: `Standard`, description: `Lebendiger mapbox-gl-Viewport im Welt-Zoom.` } },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <Map> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
-            statements: {
-                lazyLoadsMapbox: `Zeigt einen Lade-Skeleton, bis der mapbox-gl-Chunk geladen ist.`,
-                usesContextStyle: `Instanziiert mapbox-gl standardmäßig mit dem currentMapStyle aus dem Context.`,
-                propOverridesContext: `Eine explizite mapStyle-Prop überschreibt den Context-Wert.`,
-                appliesAccessToken: `Setzt das accessToken des aktiven Stils vor der Instanziierung.`,
-                reactsToContextChange: `Ruft setStyle, wenn sich der aktive Kartenstil im Context ändert.`,
-                firesOnLoad: `Feuert onLoad, sobald die Karte das "load"-Event sendet.`,
-                cleansUpOnUnmount: `Ruft beim Unmount map.remove() auf.`
-            }
-        },
-        rtl: { title: `RTL`, body: `mapbox-gl rendert sein eigenes Canvas; <Map> ergänzt keine richtungsabhängige UI, dir="rtl" lässt den Viewport unverändert.` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <Map> akzeptiert.` }
-    }
+  default: {
+    title: `Standard`,
+    description: `Mapbox-gl-Viewport. Der aktive Stil folgt der Wahl im Einstellungs-Panel.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Map> rendert einen mapbox-gl-Viewport. Sowohl mapbox-gl-JS als auch das zugehörige CSS werden beim ersten Mount lazy geladen, damit Konsumenten ohne Karte keine Bundle-Kosten zahlen.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Standardmäßig folgt <Map> dem currentMapStyle aus dem MowsContext, sodass das SettingsPanel den Stil app-weit umschalten kann. Über die mapStyle-Prop lässt sich das pro Instanz fixieren.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
+        title: `Standard`,
+        description: `Lebendiger mapbox-gl-Viewport im Welt-Zoom.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Map> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        lazyLoadsMapbox: `Zeigt einen Lade-Skeleton, bis der mapbox-gl-Chunk geladen ist.`,
+        usesContextStyle: `Instanziiert mapbox-gl standardmäßig mit dem currentMapStyle aus dem Context.`,
+        propOverridesContext: `Eine explizite mapStyle-Prop überschreibt den Context-Wert.`,
+        appliesAccessToken: `Setzt das accessToken des aktiven Stils vor der Instanziierung.`,
+        reactsToContextChange: `Ruft setStyle, wenn sich der aktive Kartenstil im Context ändert.`,
+        firesOnLoad: `Feuert onLoad, sobald die Karte das "load"-Event sendet.`,
+        cleansUpOnUnmount: `Ruft beim Unmount map.remove() auf.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `mapbox-gl rendert sein eigenes Canvas; <Map> ergänzt keine richtungsabhängige UI, dir="rtl" lässt den Viewport unverändert.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Map> akzeptiert.`,
+    },
+  },
 };

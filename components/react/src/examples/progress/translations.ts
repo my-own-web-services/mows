@@ -12,160 +12,160 @@
  */
 
 export interface ProgressTranslation {
-    default: { title: string; description: string };
-    animated: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            animated: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersTrack: string;
-                translateAtZero: string;
-                translateAtFifty: string;
-                translateAtHundred: string;
-                omittedAsZero: string;
-                classNameMerge: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  animated: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      animated: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersTrack: string;
+        translateAtZero: string;
+        translateAtFifty: string;
+        translateAtHundred: string;
+        omittedAsZero: string;
+        classNameMerge: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const progressEn: ProgressTranslation = {
-    default: {
+  default: {
+    title: `Static value`,
+    description: `value=60 — the indicator translates by -(100 - value)% to reveal the filled portion.`,
+  },
+  animated: {
+    title: `Animated`,
+    description: `Increment the value on a timer to drive an animated progress bar.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Progress> is the Radix Progress primitive — pass value (0-100). The indicator is GPU-accelerated via transform: translateX.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Drive value from external state for upload progress, long-running task feedback, etc. Pass undefined for an indeterminate state.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Static value`,
-        description: `value=60 — the indicator translates by -(100 - value)% to reveal the filled portion.`
-    },
-    animated: {
+        description: `Fixed value=60.`,
+      },
+      animated: {
         title: `Animated`,
-        description: `Increment the value on a timer to drive an animated progress bar.`
+        description: `Timer-driven progress.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Progress> is the Radix Progress primitive — pass value (0-100). The indicator is GPU-accelerated via transform: translateX.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Drive value from external state for upload progress, long-running task feedback, etc. Pass undefined for an indeterminate state.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Static value`,
-                description: `Fixed value=60.`
-            },
-            animated: {
-                title: `Animated`,
-                description: `Timer-driven progress.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Progress> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersTrack: `Renders the track with a relative-positioned, overflow-hidden, rounded-full shell.`,
-                translateAtZero: `Translates the indicator by -100% at value=0.`,
-                translateAtFifty: `Translates the indicator by -50% at value=50.`,
-                translateAtHundred: `Translates the indicator by 0 at value=100.`,
-                omittedAsZero: `Treats an omitted / undefined value as 0.`,
-                classNameMerge: `Merges a custom className with the base classes on the track.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" the indicator fills from the right edge towards the left — Radix mirrors the transform direction automatically.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Progress>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Progress> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersTrack: `Renders the track with a relative-positioned, overflow-hidden, rounded-full shell.`,
+        translateAtZero: `Translates the indicator by -100% at value=0.`,
+        translateAtFifty: `Translates the indicator by -50% at value=50.`,
+        translateAtHundred: `Translates the indicator by 0 at value=100.`,
+        omittedAsZero: `Treats an omitted / undefined value as 0.`,
+        classNameMerge: `Merges a custom className with the base classes on the track.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the indicator fills from the right edge towards the left — Radix mirrors the transform direction automatically.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Progress>.`,
+    },
+  },
 };
 
 export const progressDe: ProgressTranslation = {
-    default: {
+  default: {
+    title: `Statischer Wert`,
+    description: `value=60 — der Indikator verschiebt sich um -(100 - value)%, um den gefüllten Teil freizulegen.`,
+  },
+  animated: {
+    title: `Animiert`,
+    description: `Wert per Timer hochzählen, um eine animierte Fortschrittsanzeige zu treiben.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Progress> ist die Radix-Progress-Primitive — übergib value (0-100). Der Indikator ist GPU-beschleunigt via transform: translateX.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `value aus externem State treiben, etwa für Upload-Progress, lang laufende Tasks usw. undefined → unbestimmter Zustand.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Statischer Wert`,
-        description: `value=60 — der Indikator verschiebt sich um -(100 - value)%, um den gefüllten Teil freizulegen.`
-    },
-    animated: {
+        description: `Fester value=60.`,
+      },
+      animated: {
         title: `Animiert`,
-        description: `Wert per Timer hochzählen, um eine animierte Fortschrittsanzeige zu treiben.`
+        description: `Timer-getriebener Fortschritt.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Progress> ist die Radix-Progress-Primitive — übergib value (0-100). Der Indikator ist GPU-beschleunigt via transform: translateX.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `value aus externem State treiben, etwa für Upload-Progress, lang laufende Tasks usw. undefined → unbestimmter Zustand.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Statischer Wert`,
-                description: `Fester value=60.`
-            },
-            animated: {
-                title: `Animiert`,
-                description: `Timer-getriebener Fortschritt.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Progress> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                rendersTrack: `Rendert die Spur als relativ positioniertes, overflow-hidden, rounded-full-Gehäuse.`,
-                translateAtZero: `Verschiebt den Indikator bei value=0 um -100%.`,
-                translateAtFifty: `Verschiebt den Indikator bei value=50 um -50%.`,
-                translateAtHundred: `Verschiebt den Indikator bei value=100 um 0.`,
-                omittedAsZero: `Behandelt einen weggelassenen / undefined Wert als 0.`,
-                classNameMerge: `Merged ein eigenes className mit den Basis-Klassen auf der Spur.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" füllt sich der Indikator vom rechten zum linken Rand — Radix spiegelt die Transform-Richtung automatisch.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Progress> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Progress> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersTrack: `Rendert die Spur als relativ positioniertes, overflow-hidden, rounded-full-Gehäuse.`,
+        translateAtZero: `Verschiebt den Indikator bei value=0 um -100%.`,
+        translateAtFifty: `Verschiebt den Indikator bei value=50 um -50%.`,
+        translateAtHundred: `Verschiebt den Indikator bei value=100 um 0.`,
+        omittedAsZero: `Behandelt einen weggelassenen / undefined Wert als 0.`,
+        classNameMerge: `Merged ein eigenes className mit den Basis-Klassen auf der Spur.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" füllt sich der Indikator vom rechten zum linken Rand — Radix spiegelt die Transform-Richtung automatisch.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Progress> akzeptiert.`,
+    },
+  },
 };

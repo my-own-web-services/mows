@@ -12,211 +12,211 @@
  */
 
 export interface SidebarTranslation {
-    default: { title: string; description: string };
-    iconCollapsible: { title: string; description: string };
-    collapsibleGroups: { title: string; description: string };
-    resizable: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            iconCollapsible: { title: string; description: string };
-            collapsibleGroups: { title: string; description: string };
-            resizable: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                cssVarApplies: string;
-                seedsDefaultWidth: string;
-                rendersHandleWhenResizable: string;
-                noHandleWhenNotResizable: string;
-                dragPersists: string;
-                clampsToMax: string;
-                clampsToMin: string;
-                doubleClickReset: string;
-                restoresFromCookie: string;
-                reclampsPersisted: string;
-                dragsInwardOnRight: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  iconCollapsible: { title: string; description: string };
+  collapsibleGroups: { title: string; description: string };
+  resizable: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      iconCollapsible: { title: string; description: string };
+      collapsibleGroups: { title: string; description: string };
+      resizable: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        cssVarApplies: string;
+        seedsDefaultWidth: string;
+        rendersHandleWhenResizable: string;
+        noHandleWhenNotResizable: string;
+        dragPersists: string;
+        clampsToMax: string;
+        clampsToMin: string;
+        doubleClickReset: string;
+        restoresFromCookie: string;
+        reclampsPersisted: string;
+        dragsInwardOnRight: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const sidebarEn: SidebarTranslation = {
-    default: {
+  default: {
+    title: `Header / content / footer`,
+    description: `Composed from <SidebarHeader>, <SidebarContent> (with <SidebarGroup> + <SidebarMenu>) and <SidebarFooter>. collapsible="icon" keeps the icon strip visible when collapsed.`,
+  },
+  iconCollapsible: {
+    title: `Collapsible to icon strip`,
+    description: `<Sidebar collapsible="icon"> snaps between the full <SidebarProvider> width and a 3rem icon-only strip. The strip is driven by the open/collapsed state on <SidebarProvider>; <SidebarTrigger> toggles it, and ⌘B / Ctrl+B does the same globally.`,
+  },
+  collapsibleGroups: {
+    title: `Collapsible groups`,
+    description: `Wrap each <SidebarMenuItem> in a <Collapsible> and put the sub-items inside <SidebarMenuSub>. The chevron rotates from the group's data-state, and the sub-list renders the vertical accent line on its leading edge.`,
+  },
+  resizable: {
+    title: `Resizable`,
+    description: `Drag the right edge of the sidebar to resize. Width is clamped to [minWidthPx, maxWidthPx] and persisted to the sidebar_width cookie. Double-click the handle to reset to defaultWidthPx.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Wrap the surrounding chrome in <SidebarProvider> and place <Sidebar> wherever the rail should live. The provider owns the open / collapsed / width state; useSidebar() exposes it to descendants.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<Sidebar> composes Header / Content / Footer slots, with Group / GroupLabel / GroupContent / Menu / MenuItem / MenuButton for menu trees. <SidebarProvider> stores open + width in cookies so layout survives a reload.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Header / content / footer`,
-        description: `Composed from <SidebarHeader>, <SidebarContent> (with <SidebarGroup> + <SidebarMenu>) and <SidebarFooter>. collapsible="icon" keeps the icon strip visible when collapsed.`
-    },
-    iconCollapsible: {
+        description: `A static sidebar with three menu entries.`,
+      },
+      iconCollapsible: {
         title: `Collapsible to icon strip`,
-        description: `<Sidebar collapsible="icon"> snaps between the full <SidebarProvider> width and a 3rem icon-only strip. The strip is driven by the open/collapsed state on <SidebarProvider>; <SidebarTrigger> toggles it, and ⌘B / Ctrl+B does the same globally.`
-    },
-    collapsibleGroups: {
+        description: `Click the toggle in the header (or press ⌘B / Ctrl+B) to snap the sidebar between full width and the icon-only strip. Labels collapse behind tooltips when narrow.`,
+      },
+      collapsibleGroups: {
         title: `Collapsible groups`,
-        description: `Wrap each <SidebarMenuItem> in a <Collapsible> and put the sub-items inside <SidebarMenuSub>. The chevron rotates from the group's data-state, and the sub-list renders the vertical accent line on its leading edge.`
-    },
-    resizable: {
+        description: `Top-level groups with an icon and a chevron that rotates when expanded. Sub-items render under a vertical accent line.`,
+      },
+      resizable: {
         title: `Resizable`,
-        description: `Drag the right edge of the sidebar to resize. Width is clamped to [minWidthPx, maxWidthPx] and persisted to the sidebar_width cookie. Double-click the handle to reset to defaultWidthPx.`
+        description: `Drag the right edge to resize; double-click to reset.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Wrap the surrounding chrome in <SidebarProvider> and place <Sidebar> wherever the rail should live. The provider owns the open / collapsed / width state; useSidebar() exposes it to descendants.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<Sidebar> composes Header / Content / Footer slots, with Group / GroupLabel / GroupContent / Menu / MenuItem / MenuButton for menu trees. <SidebarProvider> stores open + width in cookies so layout survives a reload.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Header / content / footer`,
-                description: `A static sidebar with three menu entries.`
-            },
-            iconCollapsible: {
-                title: `Collapsible to icon strip`,
-                description: `Click the toggle in the header (or press ⌘B / Ctrl+B) to snap the sidebar between full width and the icon-only strip. Labels collapse behind tooltips when narrow.`
-            },
-            collapsibleGroups: {
-                title: `Collapsible groups`,
-                description: `Top-level groups with an icon and a chevron that rotates when expanded. Sub-items render under a vertical accent line.`
-            },
-            resizable: {
-                title: `Resizable`,
-                description: `Drag the right edge to resize; double-click to reset.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Sidebar> + <SidebarProvider> are expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                cssVarApplies: `Uses Tailwind v4 var() syntax so the width custom property actually applies.`,
-                seedsDefaultWidth: `Seeds the --sidebar-width custom property from defaultWidthPx on mount.`,
-                rendersHandleWhenResizable: `Renders the resize handle when resizable is set.`,
-                noHandleWhenNotResizable: `Does not render the resize handle when resizable is false.`,
-                dragPersists: `Updates the width on drag and persists the result to the sidebar_width cookie.`,
-                clampsToMax: `Clamps drag to maxWidthPx.`,
-                clampsToMin: `Clamps drag to minWidthPx.`,
-                doubleClickReset: `Double-clicking the handle resets the width to defaultWidthPx.`,
-                restoresFromCookie: `Restores a persisted width from the sidebar_width cookie on mount.`,
-                reclampsPersisted: `Re-clamps a persisted width that falls outside the current [min, max] bounds.`,
-                dragsInwardOnRight: `Drags inward when the sidebar is anchored to the right side.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" the sidebar still pins to its declared side; only inner content flips. side="right" + RTL effectively mirrors the LTR layout.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by the most common Sidebar surfaces. The full set (Header / Footer / Group / Menu …) is exported from @mows/react-components.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Sidebar> + <SidebarProvider> are expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        cssVarApplies: `Uses Tailwind v4 var() syntax so the width custom property actually applies.`,
+        seedsDefaultWidth: `Seeds the --sidebar-width custom property from defaultWidthPx on mount.`,
+        rendersHandleWhenResizable: `Renders the resize handle when resizable is set.`,
+        noHandleWhenNotResizable: `Does not render the resize handle when resizable is false.`,
+        dragPersists: `Updates the width on drag and persists the result to the sidebar_width cookie.`,
+        clampsToMax: `Clamps drag to maxWidthPx.`,
+        clampsToMin: `Clamps drag to minWidthPx.`,
+        doubleClickReset: `Double-clicking the handle resets the width to defaultWidthPx.`,
+        restoresFromCookie: `Restores a persisted width from the sidebar_width cookie on mount.`,
+        reclampsPersisted: `Re-clamps a persisted width that falls outside the current [min, max] bounds.`,
+        dragsInwardOnRight: `Drags inward when the sidebar is anchored to the right side.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the sidebar still pins to its declared side; only inner content flips. side="right" + RTL effectively mirrors the LTR layout.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by the most common Sidebar surfaces. The full set (Header / Footer / Group / Menu …) is exported from @mows/react-components.`,
+    },
+  },
 };
 
 export const sidebarDe: SidebarTranslation = {
-    default: {
+  default: {
+    title: `Header / Inhalt / Footer`,
+    description: `Zusammengesetzt aus <SidebarHeader>, <SidebarContent> (mit <SidebarGroup> + <SidebarMenu>) und <SidebarFooter>. collapsible="icon" hält den Icon-Streifen sichtbar.`,
+  },
+  iconCollapsible: {
+    title: `Auf Icon-Streifen einklappbar`,
+    description: `<Sidebar collapsible="icon"> wechselt zwischen voller <SidebarProvider>-Breite und einem 3rem schmalen Icon-Streifen. Der Zustand liegt am <SidebarProvider>; <SidebarTrigger> klappt um, ⌘B / Strg+B global ebenfalls.`,
+  },
+  collapsibleGroups: {
+    title: `Aufklappbare Gruppen`,
+    description: `Jedes <SidebarMenuItem> wird in <Collapsible> verpackt, die Unterpunkte liegen in <SidebarMenuSub>. Der Chevron rotiert anhand des data-state, und die Unterliste zeichnet die senkrechte Akzentlinie an der führenden Kante.`,
+  },
+  resizable: {
+    title: `Mit Größenänderung`,
+    description: `Ziehe den rechten Rand, um die Breite zu ändern. Die Breite wird auf [minWidthPx, maxWidthPx] geklemmt und im Cookie sidebar_width gespeichert. Doppelklick auf den Griff setzt auf defaultWidthPx zurück.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `Umschließe die umgebende Chrome mit <SidebarProvider> und platziere <Sidebar> dort, wo die Spalte leben soll. Der Provider besitzt open / collapsed / width; useSidebar() liefert das den Nachkommen.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<Sidebar> kombiniert Header- / Inhalt- / Footer-Slots, dazu Group / GroupLabel / GroupContent / Menu / MenuItem / MenuButton für Menübäume. <SidebarProvider> sichert open + width in Cookies, damit das Layout einen Reload überlebt.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Header / Inhalt / Footer`,
-        description: `Zusammengesetzt aus <SidebarHeader>, <SidebarContent> (mit <SidebarGroup> + <SidebarMenu>) und <SidebarFooter>. collapsible="icon" hält den Icon-Streifen sichtbar.`
-    },
-    iconCollapsible: {
+        description: `Eine statische Sidebar mit drei Menüeinträgen.`,
+      },
+      iconCollapsible: {
         title: `Auf Icon-Streifen einklappbar`,
-        description: `<Sidebar collapsible="icon"> wechselt zwischen voller <SidebarProvider>-Breite und einem 3rem schmalen Icon-Streifen. Der Zustand liegt am <SidebarProvider>; <SidebarTrigger> klappt um, ⌘B / Strg+B global ebenfalls.`
-    },
-    collapsibleGroups: {
+        description: `Über den Schalter im Header (oder ⌘B / Strg+B) lässt sich die Sidebar zwischen voller Breite und dem schmalen Icon-Streifen umschalten. Bei schmaler Sidebar verschwinden die Labels hinter Tooltips.`,
+      },
+      collapsibleGroups: {
         title: `Aufklappbare Gruppen`,
-        description: `Jedes <SidebarMenuItem> wird in <Collapsible> verpackt, die Unterpunkte liegen in <SidebarMenuSub>. Der Chevron rotiert anhand des data-state, und die Unterliste zeichnet die senkrechte Akzentlinie an der führenden Kante.`
-    },
-    resizable: {
+        description: `Top-Level-Gruppen mit Icon und Chevron, der sich beim Aufklappen dreht. Unterpunkte werden unter einer senkrechten Akzentlinie gerendert.`,
+      },
+      resizable: {
         title: `Mit Größenänderung`,
-        description: `Ziehe den rechten Rand, um die Breite zu ändern. Die Breite wird auf [minWidthPx, maxWidthPx] geklemmt und im Cookie sidebar_width gespeichert. Doppelklick auf den Griff setzt auf defaultWidthPx zurück.`
+        description: `Ziehe den rechten Rand; Doppelklick setzt zurück.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Umschließe die umgebende Chrome mit <SidebarProvider> und platziere <Sidebar> dort, wo die Spalte leben soll. Der Provider besitzt open / collapsed / width; useSidebar() liefert das den Nachkommen.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<Sidebar> kombiniert Header- / Inhalt- / Footer-Slots, dazu Group / GroupLabel / GroupContent / Menu / MenuItem / MenuButton für Menübäume. <SidebarProvider> sichert open + width in Cookies, damit das Layout einen Reload überlebt.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Header / Inhalt / Footer`,
-                description: `Eine statische Sidebar mit drei Menüeinträgen.`
-            },
-            iconCollapsible: {
-                title: `Auf Icon-Streifen einklappbar`,
-                description: `Über den Schalter im Header (oder ⌘B / Strg+B) lässt sich die Sidebar zwischen voller Breite und dem schmalen Icon-Streifen umschalten. Bei schmaler Sidebar verschwinden die Labels hinter Tooltips.`
-            },
-            collapsibleGroups: {
-                title: `Aufklappbare Gruppen`,
-                description: `Top-Level-Gruppen mit Icon und Chevron, der sich beim Aufklappen dreht. Unterpunkte werden unter einer senkrechten Akzentlinie gerendert.`
-            },
-            resizable: {
-                title: `Mit Größenänderung`,
-                description: `Ziehe den rechten Rand; Doppelklick setzt zurück.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Sidebar> + <SidebarProvider> verhalten sollen, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                cssVarApplies: `Verwendet Tailwind-v4-var()-Syntax, sodass die Breite tatsächlich greift.`,
-                seedsDefaultWidth: `Initialisiert --sidebar-width beim Mount aus defaultWidthPx.`,
-                rendersHandleWhenResizable: `Rendert den Resize-Griff, wenn resizable gesetzt ist.`,
-                noHandleWhenNotResizable: `Rendert keinen Resize-Griff, wenn resizable false ist.`,
-                dragPersists: `Aktualisiert die Breite beim Ziehen und persistiert sie im sidebar_width-Cookie.`,
-                clampsToMax: `Klemmt das Ziehen auf maxWidthPx.`,
-                clampsToMin: `Klemmt das Ziehen auf minWidthPx.`,
-                doubleClickReset: `Doppelklick auf den Griff setzt die Breite auf defaultWidthPx zurück.`,
-                restoresFromCookie: `Stellt eine gesicherte Breite beim Mount aus dem sidebar_width-Cookie wieder her.`,
-                reclampsPersisted: `Klemmt eine gesicherte Breite neu, wenn sie außerhalb der aktuellen [min, max]-Grenzen liegt.`,
-                dragsInwardOnRight: `Zieht nach innen, wenn die Sidebar rechts verankert ist.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" bleibt die Sidebar an ihrer deklarierten Seite verankert; nur der Innen-Inhalt spiegelt. side="right" + RTL spiegelt das LTR-Layout effektiv.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props der wichtigsten Sidebar-Oberflächen. Die volle Menge (Header / Footer / Group / Menu …) wird aus @mows/react-components exportiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Sidebar> + <SidebarProvider> verhalten sollen, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        cssVarApplies: `Verwendet Tailwind-v4-var()-Syntax, sodass die Breite tatsächlich greift.`,
+        seedsDefaultWidth: `Initialisiert --sidebar-width beim Mount aus defaultWidthPx.`,
+        rendersHandleWhenResizable: `Rendert den Resize-Griff, wenn resizable gesetzt ist.`,
+        noHandleWhenNotResizable: `Rendert keinen Resize-Griff, wenn resizable false ist.`,
+        dragPersists: `Aktualisiert die Breite beim Ziehen und persistiert sie im sidebar_width-Cookie.`,
+        clampsToMax: `Klemmt das Ziehen auf maxWidthPx.`,
+        clampsToMin: `Klemmt das Ziehen auf minWidthPx.`,
+        doubleClickReset: `Doppelklick auf den Griff setzt die Breite auf defaultWidthPx zurück.`,
+        restoresFromCookie: `Stellt eine gesicherte Breite beim Mount aus dem sidebar_width-Cookie wieder her.`,
+        reclampsPersisted: `Klemmt eine gesicherte Breite neu, wenn sie außerhalb der aktuellen [min, max]-Grenzen liegt.`,
+        dragsInwardOnRight: `Zieht nach innen, wenn die Sidebar rechts verankert ist.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" bleibt die Sidebar an ihrer deklarierten Seite verankert; nur der Innen-Inhalt spiegelt. side="right" + RTL spiegelt das LTR-Layout effektiv.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props der wichtigsten Sidebar-Oberflächen. Die volle Menge (Header / Footer / Group / Menu …) wird aus @mows/react-components exportiert.`,
+    },
+  },
 };

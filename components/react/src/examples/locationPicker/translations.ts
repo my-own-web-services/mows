@@ -12,79 +12,139 @@
  */
 
 export interface LocationPickerTranslation {
-    default: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersMap: string;
-                uncontrolledClickUpdates: string;
-                controlledFiresOnChange: string;
-                clearResets: string;
-                mountsMarker: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersMap: string;
+        uncontrolledClickUpdates: string;
+        controlledFiresOnChange: string;
+        clearResets: string;
+        mountsMarker: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const locationPickerEn: LocationPickerTranslation = {
-    default: { title: `Default`, description: `Click anywhere on the map to pick a coordinate; the picked value appears under the canvas.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `<LocationPicker> wraps <Map> and turns map clicks into a single picked point. Use value + onChange for controlled forms, or defaultValue for uncontrolled inputs.` },
-        composition: { title: `Composition`, body: `LocationPicker reuses currentMapStyle from MowsContext, so the SettingsPanel's MapStylePicker controls its tiles. Clear via the inline button or by setting value to null.` },
-        examples: { title: `Examples`, default: { title: `Default`, description: `Click-to-pin coordinate picker.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <LocationPicker> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                rendersMap: `Renders an embedded map with the empty-state hint until the user clicks.`,
-                uncontrolledClickUpdates: `In uncontrolled mode a map click updates the internal value and shows the readout.`,
-                controlledFiresOnChange: `In controlled mode a click fires onChange but leaves the visible value alone until the parent updates value.`,
-                clearResets: `The clear button resets the picked value to null.`,
-                mountsMarker: `Mounts a themed pin marker on the map once the first value is set.`
-            }
-        },
-        rtl: { title: `RTL`, body: `The map canvas is direction-agnostic; only the readout below mirrors when dir="rtl".` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <LocationPicker>.` }
-    }
+  default: {
+    title: `Default`,
+    description: `Click anywhere on the map to pick a coordinate; the picked value appears under the canvas.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<LocationPicker> wraps <Map> and turns map clicks into a single picked point. Use value + onChange for controlled forms, or defaultValue for uncontrolled inputs.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `LocationPicker reuses currentMapStyle from MowsContext, so the SettingsPanel's MapStylePicker controls its tiles. Clear via the inline button or by setting value to null.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
+        title: `Default`,
+        description: `Click-to-pin coordinate picker.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <LocationPicker> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersMap: `Renders an embedded map with the empty-state hint until the user clicks.`,
+        uncontrolledClickUpdates: `In uncontrolled mode a map click updates the internal value and shows the readout.`,
+        controlledFiresOnChange: `In controlled mode a click fires onChange but leaves the visible value alone until the parent updates value.`,
+        clearResets: `The clear button resets the picked value to null.`,
+        mountsMarker: `Mounts a themed pin marker on the map once the first value is set.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `The map canvas is direction-agnostic; only the readout below mirrors when dir="rtl".`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <LocationPicker>.`,
+    },
+  },
 };
 
 export const locationPickerDe: LocationPickerTranslation = {
-    default: { title: `Standard`, description: `Beliebige Stelle auf der Karte anklicken, um eine Koordinate zu wählen; der gewählte Wert erscheint unterhalb des Canvas.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
-        usage: { title: `Verwendung`, body: `<LocationPicker> wickelt <Map> ein und macht aus einem Klick einen einzelnen Punkt. value + onChange für kontrollierte Formulare, defaultValue für unkontrolliert.` },
-        composition: { title: `Komposition`, body: `LocationPicker übernimmt currentMapStyle aus dem MowsContext, sodass der SettingsPanel-MapStylePicker die Kacheln auch hier steuert. Löschen über den Inline-Button oder value=null.` },
-        examples: { title: `Beispiele`, default: { title: `Standard`, description: `Klick-to-Pin-Koordinatenwähler.` } },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <LocationPicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
-            statements: {
-                rendersMap: `Rendert eine eingebettete Karte mit Hinweistext, bis der Nutzer klickt.`,
-                uncontrolledClickUpdates: `Im unkontrollierten Modus aktualisiert ein Klick den internen Wert und zeigt das Ergebnis.`,
-                controlledFiresOnChange: `Im kontrollierten Modus feuert ein Klick onChange, lässt aber den sichtbaren Wert unverändert, bis der Parent value aktualisiert.`,
-                clearResets: `Der Lösch-Button setzt den gewählten Wert auf null zurück.`,
-                mountsMarker: `Setzt einen themengestylten Pin auf die Karte, sobald der erste Wert gesetzt ist.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Das Karten-Canvas ist richtungsneutral; nur die Anzeige darunter spiegelt in dir="rtl".` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <LocationPicker> akzeptiert.` }
-    }
+  default: {
+    title: `Standard`,
+    description: `Beliebige Stelle auf der Karte anklicken, um eine Koordinate zu wählen; der gewählte Wert erscheint unterhalb des Canvas.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<LocationPicker> wickelt <Map> ein und macht aus einem Klick einen einzelnen Punkt. value + onChange für kontrollierte Formulare, defaultValue für unkontrolliert.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `LocationPicker übernimmt currentMapStyle aus dem MowsContext, sodass der SettingsPanel-MapStylePicker die Kacheln auch hier steuert. Löschen über den Inline-Button oder value=null.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
+        title: `Standard`,
+        description: `Klick-to-Pin-Koordinatenwähler.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <LocationPicker> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersMap: `Rendert eine eingebettete Karte mit Hinweistext, bis der Nutzer klickt.`,
+        uncontrolledClickUpdates: `Im unkontrollierten Modus aktualisiert ein Klick den internen Wert und zeigt das Ergebnis.`,
+        controlledFiresOnChange: `Im kontrollierten Modus feuert ein Klick onChange, lässt aber den sichtbaren Wert unverändert, bis der Parent value aktualisiert.`,
+        clearResets: `Der Lösch-Button setzt den gewählten Wert auf null zurück.`,
+        mountsMarker: `Setzt einen themengestylten Pin auf die Karte, sobald der erste Wert gesetzt ist.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Das Karten-Canvas ist richtungsneutral; nur die Anzeige darunter spiegelt in dir="rtl".`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <LocationPicker> akzeptiert.`,
+    },
+  },
 };

@@ -12,157 +12,157 @@
  */
 
 export interface BadgeTranslation {
-    default: { title: string; description: string };
-    variants: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            variants: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersChildren: string;
-                defaultVariantClasses: string;
-                eachVariantClasses: string;
-                forwardsClassName: string;
-                forwardsAttributes: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  variants: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      variants: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersChildren: string;
+        defaultVariantClasses: string;
+        eachVariantClasses: string;
+        forwardsClassName: string;
+        forwardsAttributes: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const badgeEn: BadgeTranslation = {
-    default: {
+  default: {
+    title: `Default`,
+    description: `The default variant uses the primary colour and renders solid against the page background.`,
+  },
+  variants: {
+    title: `Variants`,
+    description: `Every available variant. The four semantic status variants (success / warning / info / muted) are app-wide conventions for resource state.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Badge> is a small inline element that surfaces status. Pass children for the label and optionally a variant for the colour treatment.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<Badge> wraps its children in a styled div. All standard HTML div attributes forward to the rendered element.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Default`,
-        description: `The default variant uses the primary colour and renders solid against the page background.`
-    },
-    variants: {
+        description: `The base variant.`,
+      },
+      variants: {
         title: `Variants`,
-        description: `Every available variant. The four semantic status variants (success / warning / info / muted) are app-wide conventions for resource state.`
+        description: `Eight visual treatments.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Badge> is a small inline element that surfaces status. Pass children for the label and optionally a variant for the colour treatment.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<Badge> wraps its children in a styled div. All standard HTML div attributes forward to the rendered element.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Default`,
-                description: `The base variant.`
-            },
-            variants: {
-                title: `Variants`,
-                description: `Eight visual treatments.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Badge> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersChildren: `Renders its children inside the badge surface.`,
-                defaultVariantClasses: `Applies the default variant classes (bg-primary / text-primary-foreground) when no variant is provided.`,
-                eachVariantClasses: `Each variant applies its expected background + foreground tailwind classes (secondary / destructive / outline / success / warning / info / muted).`,
-                forwardsClassName: `Forwards an extra className without dropping the variant classes.`,
-                forwardsAttributes: `Forwards arbitrary HTML attributes (e.g. data-*) onto the rendered element.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Badges are direction-agnostic — content order inside the badge follows the text direction of the surrounding container.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Badge>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Badge> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersChildren: `Renders its children inside the badge surface.`,
+        defaultVariantClasses: `Applies the default variant classes (bg-primary / text-primary-foreground) when no variant is provided.`,
+        eachVariantClasses: `Each variant applies its expected background + foreground tailwind classes (secondary / destructive / outline / success / warning / info / muted).`,
+        forwardsClassName: `Forwards an extra className without dropping the variant classes.`,
+        forwardsAttributes: `Forwards arbitrary HTML attributes (e.g. data-*) onto the rendered element.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Badges are direction-agnostic — content order inside the badge follows the text direction of the surrounding container.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Badge>.`,
+    },
+  },
 };
 
 export const badgeDe: BadgeTranslation = {
-    default: {
+  default: {
+    title: `Standard`,
+    description: `Die Standard-Variante nutzt die Primärfarbe und rendert solide auf dem Seitenhintergrund.`,
+  },
+  variants: {
+    title: `Varianten`,
+    description: `Alle verfügbaren Varianten. Die vier Status-Varianten (success / warning / info / muted) sind app-übergreifende Konventionen für Ressourcen-Status.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Badge> ist ein kleines Inline-Element für Status. Übergib children als Label und optional eine variant für das Farbschema.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<Badge> umschließt children mit einem gestylten div. Alle HTML-div-Attribute werden durchgereicht.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Standard`,
-        description: `Die Standard-Variante nutzt die Primärfarbe und rendert solide auf dem Seitenhintergrund.`
-    },
-    variants: {
+        description: `Die Basis-Variante.`,
+      },
+      variants: {
         title: `Varianten`,
-        description: `Alle verfügbaren Varianten. Die vier Status-Varianten (success / warning / info / muted) sind app-übergreifende Konventionen für Ressourcen-Status.`
+        description: `Acht visuelle Behandlungen.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Badge> ist ein kleines Inline-Element für Status. Übergib children als Label und optional eine variant für das Farbschema.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<Badge> umschließt children mit einem gestylten div. Alle HTML-div-Attribute werden durchgereicht.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Standard`,
-                description: `Die Basis-Variante.`
-            },
-            variants: {
-                title: `Varianten`,
-                description: `Acht visuelle Behandlungen.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Badge> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                rendersChildren: `Rendert children innerhalb der Badge-Fläche.`,
-                defaultVariantClasses: `Wendet ohne variant-Prop die Default-Klassen (bg-primary / text-primary-foreground) an.`,
-                eachVariantClasses: `Jede Variante wendet ihre erwarteten Tailwind-Klassen für Hintergrund + Vordergrund an (secondary / destructive / outline / success / warning / info / muted).`,
-                forwardsClassName: `Reicht ein zusätzliches className durch, ohne die Variant-Klassen zu verlieren.`,
-                forwardsAttributes: `Reicht beliebige HTML-Attribute (z. B. data-*) ans gerenderte Element durch.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Badges sind richtungsneutral — die Reihenfolge innerhalb folgt der Schreibrichtung des Containers.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Badge> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Badge> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersChildren: `Rendert children innerhalb der Badge-Fläche.`,
+        defaultVariantClasses: `Wendet ohne variant-Prop die Default-Klassen (bg-primary / text-primary-foreground) an.`,
+        eachVariantClasses: `Jede Variante wendet ihre erwarteten Tailwind-Klassen für Hintergrund + Vordergrund an (secondary / destructive / outline / success / warning / info / muted).`,
+        forwardsClassName: `Reicht ein zusätzliches className durch, ohne die Variant-Klassen zu verlieren.`,
+        forwardsAttributes: `Reicht beliebige HTML-Attribute (z. B. data-*) ans gerenderte Element durch.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Badges sind richtungsneutral — die Reihenfolge innerhalb folgt der Schreibrichtung des Containers.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Badge> akzeptiert.`,
+    },
+  },
 };

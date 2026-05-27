@@ -12,154 +12,154 @@
  */
 
 export interface CodeThemePickerTranslation {
-    popover: { title: string; description: string };
-    standalone: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            popover: { title: string; description: string };
-            standalone: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                showsCurrent: string;
-                listsAll: string;
-                callsSetCodeTheme: string;
-                filtersBySearch: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  popover: { title: string; description: string };
+  standalone: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      popover: { title: string; description: string };
+      standalone: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        showsCurrent: string;
+        listsAll: string;
+        callsSetCodeTheme: string;
+        filtersBySearch: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const codeThemePickerEn: CodeThemePickerTranslation = {
-    popover: {
+  popover: {
+    title: `Popover trigger`,
+    description: `Default form: a trigger button that opens a searchable theme list in a popover. Use when the picker needs to live inside a settings menu.`,
+  },
+  standalone: {
+    title: `Standalone`,
+    description: `Renders the search + list inline without the popover trigger. Use when the picker is the whole UI (e.g. a dedicated theme-switcher page).`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Import <CodeThemePicker> and render it. It reads the available code themes and the currently active one from <MowsProvider>, and calls setCodeTheme on selection.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<CodeThemePicker> wires Radix Popover + Command (with search) to the <MowsProvider> code-theme state. Set standalone to skip the popover and inline the searchable list.`,
+    },
+    examples: {
+      title: `Examples`,
+      popover: {
         title: `Popover trigger`,
-        description: `Default form: a trigger button that opens a searchable theme list in a popover. Use when the picker needs to live inside a settings menu.`
-    },
-    standalone: {
+        description: `Trigger button + popover list.`,
+      },
+      standalone: {
         title: `Standalone`,
-        description: `Renders the search + list inline without the popover trigger. Use when the picker is the whole UI (e.g. a dedicated theme-switcher page).`
+        description: `Inline searchable list, no popover.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Import <CodeThemePicker> and render it. It reads the available code themes and the currently active one from <MowsProvider>, and calls setCodeTheme on selection.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<CodeThemePicker> wires Radix Popover + Command (with search) to the <MowsProvider> code-theme state. Set standalone to skip the popover and inline the searchable list.`
-        },
-        examples: {
-            title: `Examples`,
-            popover: {
-                title: `Popover trigger`,
-                description: `Trigger button + popover list.`
-            },
-            standalone: {
-                title: `Standalone`,
-                description: `Inline searchable list, no popover.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <CodeThemePicker> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                showsCurrent: `Shows the current code theme name on the trigger.`,
-                listsAll: `Lists every registered theme when opened (standalone).`,
-                callsSetCodeTheme: `Calls setCodeTheme on the surrounding MowsContext when a theme is picked.`,
-                filtersBySearch: `Filters the theme list by the typed search query.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `The picker inherits direction from its DOM ancestor — wrap in dir="rtl" and the trigger + search field flip to right-to-left.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <CodeThemePicker>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <CodeThemePicker> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        showsCurrent: `Shows the current code theme name on the trigger.`,
+        listsAll: `Lists every registered theme when opened (standalone).`,
+        callsSetCodeTheme: `Calls setCodeTheme on the surrounding MowsContext when a theme is picked.`,
+        filtersBySearch: `Filters the theme list by the typed search query.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `The picker inherits direction from its DOM ancestor — wrap in dir="rtl" and the trigger + search field flip to right-to-left.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <CodeThemePicker>.`,
+    },
+  },
 };
 
 export const codeThemePickerDe: CodeThemePickerTranslation = {
-    popover: {
+  popover: {
+    title: `Popover-Trigger`,
+    description: `Standardform: eine Trigger-Schaltfläche, die eine durchsuchbare Theme-Liste in einem Popover öffnet. Verwende sie, wenn der Picker in einem Einstellungsmenü leben soll.`,
+  },
+  standalone: {
+    title: `Eigenständig`,
+    description: `Rendert Suche + Liste inline, ohne Popover-Trigger. Verwende es, wenn der Picker die gesamte UI ist (z. B. eine eigene Theme-Auswahl-Seite).`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `Importiere <CodeThemePicker> und rendere ihn. Er liest die verfügbaren Code-Themes und das aktuell aktive aus <MowsProvider> und ruft setCodeTheme bei einer Auswahl auf.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<CodeThemePicker> verdrahtet Radix Popover + Command (mit Suche) mit dem Code-Theme-Status aus <MowsProvider>. Setze standalone, um das Popover zu überspringen und die durchsuchbare Liste inline anzuzeigen.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      popover: {
         title: `Popover-Trigger`,
-        description: `Standardform: eine Trigger-Schaltfläche, die eine durchsuchbare Theme-Liste in einem Popover öffnet. Verwende sie, wenn der Picker in einem Einstellungsmenü leben soll.`
-    },
-    standalone: {
+        description: `Trigger-Schaltfläche + Popover-Liste.`,
+      },
+      standalone: {
         title: `Eigenständig`,
-        description: `Rendert Suche + Liste inline, ohne Popover-Trigger. Verwende es, wenn der Picker die gesamte UI ist (z. B. eine eigene Theme-Auswahl-Seite).`
+        description: `Inline-Suchliste, kein Popover.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Importiere <CodeThemePicker> und rendere ihn. Er liest die verfügbaren Code-Themes und das aktuell aktive aus <MowsProvider> und ruft setCodeTheme bei einer Auswahl auf.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<CodeThemePicker> verdrahtet Radix Popover + Command (mit Suche) mit dem Code-Theme-Status aus <MowsProvider>. Setze standalone, um das Popover zu überspringen und die durchsuchbare Liste inline anzuzeigen.`
-        },
-        examples: {
-            title: `Beispiele`,
-            popover: {
-                title: `Popover-Trigger`,
-                description: `Trigger-Schaltfläche + Popover-Liste.`
-            },
-            standalone: {
-                title: `Eigenständig`,
-                description: `Inline-Suchliste, kein Popover.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <CodeThemePicker> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                showsCurrent: `Zeigt den aktuellen Code-Theme-Namen auf dem Trigger.`,
-                listsAll: `Listet jedes registrierte Theme, wenn geöffnet (standalone).`,
-                callsSetCodeTheme: `Ruft setCodeTheme im umgebenden MowsContext auf, wenn ein Theme ausgewählt wird.`,
-                filtersBySearch: `Filtert die Theme-Liste anhand der getippten Suchanfrage.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Der Picker erbt die Richtung von seinem DOM-Vorfahren — ein umgebendes dir="rtl" dreht Trigger + Suchfeld nach rechts-nach-links.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <CodeThemePicker> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <CodeThemePicker> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        showsCurrent: `Zeigt den aktuellen Code-Theme-Namen auf dem Trigger.`,
+        listsAll: `Listet jedes registrierte Theme, wenn geöffnet (standalone).`,
+        callsSetCodeTheme: `Ruft setCodeTheme im umgebenden MowsContext auf, wenn ein Theme ausgewählt wird.`,
+        filtersBySearch: `Filtert die Theme-Liste anhand der getippten Suchanfrage.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Der Picker erbt die Richtung von seinem DOM-Vorfahren — ein umgebendes dir="rtl" dreht Trigger + Suchfeld nach rechts-nach-links.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <CodeThemePicker> akzeptiert.`,
+    },
+  },
 };

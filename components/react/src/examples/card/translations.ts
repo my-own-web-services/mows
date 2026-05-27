@@ -12,160 +12,160 @@
  */
 
 export interface CardTranslation {
-    default: { title: string; description: string };
-    headerOnly: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            headerOnly: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                shell: string;
-                slotOrder: string;
-                titleTypography: string;
-                descriptionColour: string;
-                refForwarding: string;
-                classNameMerge: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  headerOnly: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      headerOnly: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        shell: string;
+        slotOrder: string;
+        titleTypography: string;
+        descriptionColour: string;
+        refForwarding: string;
+        classNameMerge: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const cardEn: CardTranslation = {
-    default: {
+  default: {
+    title: `Header / content / footer`,
+    description: `A full card with title + description in the header, body content, and action buttons in the footer.`,
+  },
+  headerOnly: {
+    title: `Header only`,
+    description: `Cards work fine with just a header — every slot is optional.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Compose <Card> with the header / title / description / content / footer slots. Each slot is independent — omit any of them and the surrounding spacing still works.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Every Card slot is a plain forwardRef'd div with shadcn typography + padding classes. All standard HTML div attributes forward to the rendered element.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Header / content / footer`,
-        description: `A full card with title + description in the header, body content, and action buttons in the footer.`
-    },
-    headerOnly: {
+        description: `Full card with all slots populated.`,
+      },
+      headerOnly: {
         title: `Header only`,
-        description: `Cards work fine with just a header — every slot is optional.`
+        description: `Just <CardHeader> with title + description.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Compose <Card> with the header / title / description / content / footer slots. Each slot is independent — omit any of them and the surrounding spacing still works.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Every Card slot is a plain forwardRef'd div with shadcn typography + padding classes. All standard HTML div attributes forward to the rendered element.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Header / content / footer`,
-                description: `Full card with all slots populated.`
-            },
-            headerOnly: {
-                title: `Header only`,
-                description: `Just <CardHeader> with title + description.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how the Card surfaces are expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                shell: `Renders the card shell with rounded border + card background.`,
-                slotOrder: `Renders header / title / description / content / footer in DOM order.`,
-                titleTypography: `<CardTitle> carries the heading typography classes (font-semibold, text-2xl).`,
-                descriptionColour: `<CardDescription> uses the muted-foreground colour token.`,
-                refForwarding: `Every Card subcomponent forwards a ref to its rendered div.`,
-                classNameMerge: `Every Card subcomponent merges a forwarded className with its base classes.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Cards are direction-agnostic; inner flex containers (footer, header) mirror under dir="rtl" so action buttons stay on the leading edge.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `All Card subcomponents share the same props — they're each a forwardRef'd div.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how the Card surfaces are expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        shell: `Renders the card shell with rounded border + card background.`,
+        slotOrder: `Renders header / title / description / content / footer in DOM order.`,
+        titleTypography: `<CardTitle> carries the heading typography classes (font-semibold, text-2xl).`,
+        descriptionColour: `<CardDescription> uses the muted-foreground colour token.`,
+        refForwarding: `Every Card subcomponent forwards a ref to its rendered div.`,
+        classNameMerge: `Every Card subcomponent merges a forwarded className with its base classes.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Cards are direction-agnostic; inner flex containers (footer, header) mirror under dir="rtl" so action buttons stay on the leading edge.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `All Card subcomponents share the same props — they're each a forwardRef'd div.`,
+    },
+  },
 };
 
 export const cardDe: CardTranslation = {
-    default: {
+  default: {
+    title: `Header / Inhalt / Footer`,
+    description: `Eine vollständige Card mit Titel + Beschreibung im Header, Body und Aktions-Buttons im Footer.`,
+  },
+  headerOnly: {
+    title: `Nur Header`,
+    description: `Cards funktionieren auch nur mit Header — jeder Slot ist optional.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `Kombiniere <Card> mit den Slots Header / Title / Description / Content / Footer. Jeder Slot ist unabhängig — wenn du einen weglässt, bleibt das umgebende Spacing intakt.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Jeder Card-Slot ist ein einfacher forwardRef-div mit shadcn-Typo- und Padding-Klassen. Alle div-Attribute werden durchgereicht.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Header / Inhalt / Footer`,
-        description: `Eine vollständige Card mit Titel + Beschreibung im Header, Body und Aktions-Buttons im Footer.`
-    },
-    headerOnly: {
+        description: `Card mit allen Slots gefüllt.`,
+      },
+      headerOnly: {
         title: `Nur Header`,
-        description: `Cards funktionieren auch nur mit Header — jeder Slot ist optional.`
+        description: `Nur <CardHeader> mit Titel + Beschreibung.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Kombiniere <Card> mit den Slots Header / Title / Description / Content / Footer. Jeder Slot ist unabhängig — wenn du einen weglässt, bleibt das umgebende Spacing intakt.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `Jeder Card-Slot ist ein einfacher forwardRef-div mit shadcn-Typo- und Padding-Klassen. Alle div-Attribute werden durchgereicht.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Header / Inhalt / Footer`,
-                description: `Card mit allen Slots gefüllt.`
-            },
-            headerOnly: {
-                title: `Nur Header`,
-                description: `Nur <CardHeader> mit Titel + Beschreibung.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich die Card-Oberflächen verhalten sollen, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                shell: `Rendert das Card-Gehäuse mit abgerundetem Rand und Card-Hintergrund.`,
-                slotOrder: `Rendert Header / Title / Description / Content / Footer in DOM-Reihenfolge.`,
-                titleTypography: `<CardTitle> trägt die Heading-Typo-Klassen (font-semibold, text-2xl).`,
-                descriptionColour: `<CardDescription> nutzt das muted-foreground-Farbtoken.`,
-                refForwarding: `Jede Card-Unterkomponente reicht ein ref ans gerenderte div durch.`,
-                classNameMerge: `Jede Card-Unterkomponente merged ein übergebenes className mit ihren Basis-Klassen.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Cards sind richtungsneutral; innere Flex-Container (Footer, Header) spiegeln unter dir="rtl", sodass Aktions-Buttons am führenden Rand bleiben.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Alle Card-Unterkomponenten teilen sich dieselben Props — jede ist ein forwardRef-div.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich die Card-Oberflächen verhalten sollen, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        shell: `Rendert das Card-Gehäuse mit abgerundetem Rand und Card-Hintergrund.`,
+        slotOrder: `Rendert Header / Title / Description / Content / Footer in DOM-Reihenfolge.`,
+        titleTypography: `<CardTitle> trägt die Heading-Typo-Klassen (font-semibold, text-2xl).`,
+        descriptionColour: `<CardDescription> nutzt das muted-foreground-Farbtoken.`,
+        refForwarding: `Jede Card-Unterkomponente reicht ein ref ans gerenderte div durch.`,
+        classNameMerge: `Jede Card-Unterkomponente merged ein übergebenes className mit ihren Basis-Klassen.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Cards sind richtungsneutral; innere Flex-Container (Footer, Header) spiegeln unter dir="rtl", sodass Aktions-Buttons am führenden Rand bleiben.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Alle Card-Unterkomponenten teilen sich dieselben Props — jede ist ein forwardRef-div.`,
+    },
+  },
 };

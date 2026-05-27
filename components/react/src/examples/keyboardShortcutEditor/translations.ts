@@ -12,136 +12,136 @@
  */
 
 export interface KeyboardShortcutEditorTranslation {
-    default: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                listsActions: string;
-                rendersCurrentCombos: string;
-                filtersBySearch: string;
-                emptyStateOnNoMatches: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        listsActions: string;
+        rendersCurrentCombos: string;
+        filtersBySearch: string;
+        emptyStateOnNoMatches: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const keyboardShortcutEditorEn: KeyboardShortcutEditorTranslation = {
-    default: {
-        title: `Edit shortcuts`,
-        description: `Lists every action registered on the surrounding ActionManager along with its current key combos. Use the search box to filter.`
+  default: {
+    title: `Edit shortcuts`,
+    description: `Lists every action registered on the surrounding ActionManager along with its current key combos. Use the search box to filter.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Mount inside <MowsProvider>. The editor reads every registered action from actionManager and lets the user re-bind its hotkeys via a key-recording dialog.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Bindings are persisted via HotkeyManager to localStorage. Reset returns to the action's defaultHotkeys; the trash icon deletes a binding.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Edit shortcuts`,
-                description: `Live editor inside the example.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <KeyboardShortcutEditor> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                listsActions: `Lists every registered action.`,
-                rendersCurrentCombos: `Renders the currently-bound key combos for each action.`,
-                filtersBySearch: `Filters the action list by the typed search query.`,
-                emptyStateOnNoMatches: `Shows no entries when no actions match the search.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Action labels and key-combo columns mirror under dir="rtl".`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <KeyboardShortcutEditor>.`
-        }
-    }
+    usage: {
+      title: `Usage`,
+      body: `Mount inside <MowsProvider>. The editor reads every registered action from actionManager and lets the user re-bind its hotkeys via a key-recording dialog.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Bindings are persisted via HotkeyManager to localStorage. Reset returns to the action's defaultHotkeys; the trash icon deletes a binding.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
+        title: `Edit shortcuts`,
+        description: `Live editor inside the example.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <KeyboardShortcutEditor> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        listsActions: `Lists every registered action.`,
+        rendersCurrentCombos: `Renders the currently-bound key combos for each action.`,
+        filtersBySearch: `Filters the action list by the typed search query.`,
+        emptyStateOnNoMatches: `Shows no entries when no actions match the search.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Action labels and key-combo columns mirror under dir="rtl".`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <KeyboardShortcutEditor>.`,
+    },
+  },
 };
 
 export const keyboardShortcutEditorDe: KeyboardShortcutEditorTranslation = {
-    default: {
-        title: `Kürzel bearbeiten`,
-        description: `Listet jede beim ActionManager registrierte Action mit ihren aktuellen Tastenkombinationen. Über das Suchfeld filtern.`
+  default: {
+    title: `Kürzel bearbeiten`,
+    description: `Listet jede beim ActionManager registrierte Action mit ihren aktuellen Tastenkombinationen. Über das Suchfeld filtern.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Innerhalb von <MowsProvider> mounten. Der Editor liest jede registrierte Action vom actionManager und erlaubt das Neubelegen über einen Aufnahme-Dialog.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `Bindings werden via HotkeyManager im localStorage gesichert. Zurücksetzen stellt die defaultHotkeys wieder her; das Mülleimer-Icon löscht ein Binding.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Kürzel bearbeiten`,
-                description: `Live-Editor im Beispiel.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <KeyboardShortcutEditor> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                listsActions: `Listet jede registrierte Action.`,
-                rendersCurrentCombos: `Rendert die aktuell gebundenen Tastenkombinationen pro Action.`,
-                filtersBySearch: `Filtert die Action-Liste anhand der getippten Suchanfrage.`,
-                emptyStateOnNoMatches: `Zeigt keine Einträge, wenn keine Action zur Suche passt.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Action-Labels und Tastenkürzel-Spalten spiegeln unter dir="rtl".`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <KeyboardShortcutEditor> akzeptiert.`
-        }
-    }
+    usage: {
+      title: `Verwendung`,
+      body: `Innerhalb von <MowsProvider> mounten. Der Editor liest jede registrierte Action vom actionManager und erlaubt das Neubelegen über einen Aufnahme-Dialog.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Bindings werden via HotkeyManager im localStorage gesichert. Zurücksetzen stellt die defaultHotkeys wieder her; das Mülleimer-Icon löscht ein Binding.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
+        title: `Kürzel bearbeiten`,
+        description: `Live-Editor im Beispiel.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <KeyboardShortcutEditor> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        listsActions: `Listet jede registrierte Action.`,
+        rendersCurrentCombos: `Rendert die aktuell gebundenen Tastenkombinationen pro Action.`,
+        filtersBySearch: `Filtert die Action-Liste anhand der getippten Suchanfrage.`,
+        emptyStateOnNoMatches: `Zeigt keine Einträge, wenn keine Action zur Suche passt.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Action-Labels und Tastenkürzel-Spalten spiegeln unter dir="rtl".`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <KeyboardShortcutEditor> akzeptiert.`,
+    },
+  },
 };

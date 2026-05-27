@@ -12,89 +12,163 @@
  */
 
 export interface DateTimePickerTranslation {
-    default: { title: string; description: string };
-    withTimezone: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            withTimezone: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersTextInput: string;
-                seedsFromDefault: string;
-                reflectsControlled: string;
-                firesOnConfirm: string;
-                disabledForwards: string;
-                placeholderReflectsFormat: string;
-                showsTimezoneSelector: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  withTimezone: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      withTimezone: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersTextInput: string;
+        seedsFromDefault: string;
+        reflectsControlled: string;
+        firesOnConfirm: string;
+        disabledForwards: string;
+        placeholderReflectsFormat: string;
+        showsTimezoneSelector: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const dateTimePickerEn: DateTimePickerTranslation = {
-    default: { title: `Default`, description: `A text input + popover calendar + time picker.` },
-    withTimezone: { title: `With timezone`, description: `Set showTimezone to add an IANA timezone selector inside the popover.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `<DateTimePicker> wires a text input to a popover containing a calendar + time picker. Pass value + onChange for controlled use, or defaultValue for uncontrolled.` },
-        composition: { title: `Composition`, body: `Set showSeconds for a second column; showTimezone to surface a timezone selector; disableFuture to prevent picking dates after today (DOB-style pickers).` },
-        examples: { title: `Examples`, default: { title: `Default`, description: `Text input + calendar + time picker.` }, withTimezone: { title: `With timezone`, description: `Includes the timezone selector.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <DateTimePicker> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                rendersTextInput: `Renders a date+time text input.`,
-                seedsFromDefault: `Uses defaultValue to seed the displayed value.`,
-                reflectsControlled: `Reflects a controlled value prop.`,
-                firesOnConfirm: `Fires onChange when the user edits the text input and confirms.`,
-                disabledForwards: `Renders disabled when disabled is set.`,
-                placeholderReflectsFormat: `Exposes a placeholder reflecting the time format / seconds.`,
-                showsTimezoneSelector: `Shows the timezone selector when showTimezone is set.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Under dir="rtl" the calendar header / time pickers mirror direction.` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <DateTimePicker>.` }
-    }
+  default: {
+    title: `Default`,
+    description: `A text input + popover calendar + time picker.`,
+  },
+  withTimezone: {
+    title: `With timezone`,
+    description: `Set showTimezone to add an IANA timezone selector inside the popover.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<DateTimePicker> wires a text input to a popover containing a calendar + time picker. Pass value + onChange for controlled use, or defaultValue for uncontrolled.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Set showSeconds for a second column; showTimezone to surface a timezone selector; disableFuture to prevent picking dates after today (DOB-style pickers).`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
+        title: `Default`,
+        description: `Text input + calendar + time picker.`,
+      },
+      withTimezone: {
+        title: `With timezone`,
+        description: `Includes the timezone selector.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <DateTimePicker> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersTextInput: `Renders a date+time text input.`,
+        seedsFromDefault: `Uses defaultValue to seed the displayed value.`,
+        reflectsControlled: `Reflects a controlled value prop.`,
+        firesOnConfirm: `Fires onChange when the user edits the text input and confirms.`,
+        disabledForwards: `Renders disabled when disabled is set.`,
+        placeholderReflectsFormat: `Exposes a placeholder reflecting the time format / seconds.`,
+        showsTimezoneSelector: `Shows the timezone selector when showTimezone is set.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the calendar header / time pickers mirror direction.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <DateTimePicker>.`,
+    },
+  },
 };
 
 export const dateTimePickerDe: DateTimePickerTranslation = {
-    default: { title: `Standard`, description: `Ein Textfeld + Popover-Kalender + Time-Picker.` },
-    withTimezone: { title: `Mit Zeitzone`, description: `showTimezone fügt einen IANA-Timezone-Selektor im Popover hinzu.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
-        usage: { title: `Verwendung`, body: `<DateTimePicker> verdrahtet ein Textfeld mit einem Popover (Kalender + Time-Picker). value + onChange für kontrolliert, defaultValue für unkontrolliert.` },
-        composition: { title: `Komposition`, body: `showSeconds für eine Sekunden-Spalte; showTimezone für den Timezone-Selektor; disableFuture, um Daten nach heute zu blocken (DOB-Picker).` },
-        examples: { title: `Beispiele`, default: { title: `Standard`, description: `Textfeld + Kalender + Time-Picker.` }, withTimezone: { title: `Mit Zeitzone`, description: `Inklusive Timezone-Selektor.` } },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <DateTimePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
-            statements: {
-                rendersTextInput: `Rendert ein Date+Time-Textfeld.`,
-                seedsFromDefault: `Übernimmt defaultValue als Startwert.`,
-                reflectsControlled: `Spiegelt ein kontrolliertes value-Prop.`,
-                firesOnConfirm: `Feuert onChange beim Bearbeiten + Bestätigen des Textfelds.`,
-                disabledForwards: `Rendert disabled, wenn disabled gesetzt ist.`,
-                placeholderReflectsFormat: `Exponiert einen Placeholder, der timeFormat / showSeconds spiegelt.`,
-                showsTimezoneSelector: `Zeigt den Timezone-Selektor, wenn showTimezone gesetzt ist.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Unter dir="rtl" spiegelt der Kalender-Header / Time-Picker.` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <DateTimePicker> akzeptiert.` }
-    }
+  default: {
+    title: `Standard`,
+    description: `Ein Textfeld + Popover-Kalender + Time-Picker.`,
+  },
+  withTimezone: {
+    title: `Mit Zeitzone`,
+    description: `showTimezone fügt einen IANA-Timezone-Selektor im Popover hinzu.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<DateTimePicker> verdrahtet ein Textfeld mit einem Popover (Kalender + Time-Picker). value + onChange für kontrolliert, defaultValue für unkontrolliert.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `showSeconds für eine Sekunden-Spalte; showTimezone für den Timezone-Selektor; disableFuture, um Daten nach heute zu blocken (DOB-Picker).`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
+        title: `Standard`,
+        description: `Textfeld + Kalender + Time-Picker.`,
+      },
+      withTimezone: {
+        title: `Mit Zeitzone`,
+        description: `Inklusive Timezone-Selektor.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <DateTimePicker> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersTextInput: `Rendert ein Date+Time-Textfeld.`,
+        seedsFromDefault: `Übernimmt defaultValue als Startwert.`,
+        reflectsControlled: `Spiegelt ein kontrolliertes value-Prop.`,
+        firesOnConfirm: `Feuert onChange beim Bearbeiten + Bestätigen des Textfelds.`,
+        disabledForwards: `Rendert disabled, wenn disabled gesetzt ist.`,
+        placeholderReflectsFormat: `Exponiert einen Placeholder, der timeFormat / showSeconds spiegelt.`,
+        showsTimezoneSelector: `Zeigt den Timezone-Selektor, wenn showTimezone gesetzt ist.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" spiegelt der Kalender-Header / Time-Picker.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <DateTimePicker> akzeptiert.`,
+    },
+  },
 };

@@ -12,187 +12,187 @@
  */
 
 export interface ButtonSelectTranslation {
-    default: { title: string; description: string };
-    disabled: { title: string; description: string };
-    disabledOption: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            disabled: { title: string; description: string };
-            disabledOption: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersAllOptions: string;
-                selectedDefaultVariant: string;
-                nonSelectedOutline: string;
-                clickFiresChange: string;
-                disabledOptionNoChange: string;
-                groupDisabledNoChange: string;
-                forwardsClassName: string;
-                forwardsStyle: string;
-                accessibility: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  disabled: { title: string; description: string };
+  disabledOption: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      disabled: { title: string; description: string };
+      disabledOption: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersAllOptions: string;
+        selectedDefaultVariant: string;
+        nonSelectedOutline: string;
+        clickFiresChange: string;
+        disabledOptionNoChange: string;
+        groupDisabledNoChange: string;
+        forwardsClassName: string;
+        forwardsStyle: string;
+        accessibility: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const buttonSelectEn: ButtonSelectTranslation = {
-    default: {
+  default: {
+    title: `Default`,
+    description: `Three options grouped into one segmented control. The selected option uses the accent background; others use the outline variant.`,
+  },
+  disabled: {
+    title: `Disabled group`,
+    description: `disabled disables every option in the group. Use for a read-only segmented control.`,
+  },
+  disabledOption: {
+    title: `Disabled option`,
+    description: `Per-option disabled — only that option is inert; the rest still respond to clicks.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Pass options as { id, icon, label?, disabled? } and a controlled selectedId. onSelectionChange fires with the new id.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<ButtonSelect> stacks <Button> primitives into a segmented group, sharing borders so it reads as a single control. role="group" is set on the outer wrapper; aria-pressed reflects the selected option.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Default`,
-        description: `Three options grouped into one segmented control. The selected option uses the accent background; others use the outline variant.`
-    },
-    disabled: {
+        description: `Three options, one selected.`,
+      },
+      disabled: {
         title: `Disabled group`,
-        description: `disabled disables every option in the group. Use for a read-only segmented control.`
-    },
-    disabledOption: {
+        description: `All options disabled.`,
+      },
+      disabledOption: {
         title: `Disabled option`,
-        description: `Per-option disabled — only that option is inert; the rest still respond to clicks.`
+        description: `One option disabled.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Pass options as { id, icon, label?, disabled? } and a controlled selectedId. onSelectionChange fires with the new id.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<ButtonSelect> stacks <Button> primitives into a segmented group, sharing borders so it reads as a single control. role="group" is set on the outer wrapper; aria-pressed reflects the selected option.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Default`,
-                description: `Three options, one selected.`
-            },
-            disabled: {
-                title: `Disabled group`,
-                description: `All options disabled.`
-            },
-            disabledOption: {
-                title: `Disabled option`,
-                description: `One option disabled.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <ButtonSelect> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersAllOptions: `Renders every option as a button in the group.`,
-                selectedDefaultVariant: `Marks the selected option with the accent background.`,
-                nonSelectedOutline: `Renders non-selected options with the outline variant.`,
-                clickFiresChange: `Calls onSelectionChange when an option is clicked.`,
-                disabledOptionNoChange: `Does not call onSelectionChange when a disabled option is clicked.`,
-                groupDisabledNoChange: `Does not call onSelectionChange when the entire group is disabled.`,
-                forwardsClassName: `Forwards className onto the outer group wrapper.`,
-                forwardsStyle: `Forwards style onto the outer group wrapper.`,
-                accessibility: `Exposes role="group" and an aria-pressed attribute reflecting the selected option.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `The segmented control follows the surrounding text direction. Inside dir="rtl" the first option sits on the right and rounds the right edge.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <ButtonSelect>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <ButtonSelect> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersAllOptions: `Renders every option as a button in the group.`,
+        selectedDefaultVariant: `Marks the selected option with the accent background.`,
+        nonSelectedOutline: `Renders non-selected options with the outline variant.`,
+        clickFiresChange: `Calls onSelectionChange when an option is clicked.`,
+        disabledOptionNoChange: `Does not call onSelectionChange when a disabled option is clicked.`,
+        groupDisabledNoChange: `Does not call onSelectionChange when the entire group is disabled.`,
+        forwardsClassName: `Forwards className onto the outer group wrapper.`,
+        forwardsStyle: `Forwards style onto the outer group wrapper.`,
+        accessibility: `Exposes role="group" and an aria-pressed attribute reflecting the selected option.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `The segmented control follows the surrounding text direction. Inside dir="rtl" the first option sits on the right and rounds the right edge.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <ButtonSelect>.`,
+    },
+  },
 };
 
 export const buttonSelectDe: ButtonSelectTranslation = {
-    default: {
+  default: {
+    title: `Standard`,
+    description: `Drei Optionen, gruppiert zu einem Segmented Control. Die ausgewählte Option erhält den Accent-Hintergrund; die anderen die Outline-Variante.`,
+  },
+  disabled: {
+    title: `Gruppe deaktiviert`,
+    description: `disabled deaktiviert jede Option in der Gruppe. Für ein schreibgeschütztes Segmented Control.`,
+  },
+  disabledOption: {
+    title: `Option deaktiviert`,
+    description: `Pro-Option-Deaktivierung — nur diese Option ist inaktiv; die übrigen reagieren weiterhin auf Klicks.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `Übergib options als { id, icon, label?, disabled? } und einen kontrollierten selectedId. onSelectionChange feuert mit der neuen id.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<ButtonSelect> stapelt <Button>-Primitive zu einer Gruppe und teilt sich die Ränder — so liest sich das Ergebnis wie ein einziges Steuerelement. role="group" sitzt auf dem äußeren Wrapper; aria-pressed spiegelt die ausgewählte Option.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Standard`,
-        description: `Drei Optionen, gruppiert zu einem Segmented Control. Die ausgewählte Option erhält den Accent-Hintergrund; die anderen die Outline-Variante.`
-    },
-    disabled: {
+        description: `Drei Optionen, eine ausgewählt.`,
+      },
+      disabled: {
         title: `Gruppe deaktiviert`,
-        description: `disabled deaktiviert jede Option in der Gruppe. Für ein schreibgeschütztes Segmented Control.`
-    },
-    disabledOption: {
+        description: `Alle Optionen deaktiviert.`,
+      },
+      disabledOption: {
         title: `Option deaktiviert`,
-        description: `Pro-Option-Deaktivierung — nur diese Option ist inaktiv; die übrigen reagieren weiterhin auf Klicks.`
+        description: `Eine Option deaktiviert.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Übergib options als { id, icon, label?, disabled? } und einen kontrollierten selectedId. onSelectionChange feuert mit der neuen id.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<ButtonSelect> stapelt <Button>-Primitive zu einer Gruppe und teilt sich die Ränder — so liest sich das Ergebnis wie ein einziges Steuerelement. role="group" sitzt auf dem äußeren Wrapper; aria-pressed spiegelt die ausgewählte Option.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Standard`,
-                description: `Drei Optionen, eine ausgewählt.`
-            },
-            disabled: {
-                title: `Gruppe deaktiviert`,
-                description: `Alle Optionen deaktiviert.`
-            },
-            disabledOption: {
-                title: `Option deaktiviert`,
-                description: `Eine Option deaktiviert.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <ButtonSelect> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                rendersAllOptions: `Rendert jede Option als Button in der Gruppe.`,
-                selectedDefaultVariant: `Markiert die ausgewählte Option mit dem Accent-Hintergrund.`,
-                nonSelectedOutline: `Rendert nicht-ausgewählte Optionen mit der Outline-Variante.`,
-                clickFiresChange: `Ruft onSelectionChange auf, wenn eine Option geklickt wird.`,
-                disabledOptionNoChange: `Ruft onSelectionChange nicht auf, wenn eine deaktivierte Option geklickt wird.`,
-                groupDisabledNoChange: `Ruft onSelectionChange nicht auf, wenn die gesamte Gruppe deaktiviert ist.`,
-                forwardsClassName: `Reicht className an den äußeren Gruppen-Wrapper durch.`,
-                forwardsStyle: `Reicht style an den äußeren Gruppen-Wrapper durch.`,
-                accessibility: `Exponiert role="group" und ein aria-pressed-Attribut, das die ausgewählte Option widerspiegelt.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Das Segmented Control folgt der umgebenden Schreibrichtung. Unter dir="rtl" sitzt die erste Option rechts und rundet den rechten Rand.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <ButtonSelect> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <ButtonSelect> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersAllOptions: `Rendert jede Option als Button in der Gruppe.`,
+        selectedDefaultVariant: `Markiert die ausgewählte Option mit dem Accent-Hintergrund.`,
+        nonSelectedOutline: `Rendert nicht-ausgewählte Optionen mit der Outline-Variante.`,
+        clickFiresChange: `Ruft onSelectionChange auf, wenn eine Option geklickt wird.`,
+        disabledOptionNoChange: `Ruft onSelectionChange nicht auf, wenn eine deaktivierte Option geklickt wird.`,
+        groupDisabledNoChange: `Ruft onSelectionChange nicht auf, wenn die gesamte Gruppe deaktiviert ist.`,
+        forwardsClassName: `Reicht className an den äußeren Gruppen-Wrapper durch.`,
+        forwardsStyle: `Reicht style an den äußeren Gruppen-Wrapper durch.`,
+        accessibility: `Exponiert role="group" und ein aria-pressed-Attribut, das die ausgewählte Option widerspiegelt.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Das Segmented Control folgt der umgebenden Schreibrichtung. Unter dir="rtl" sitzt die erste Option rechts und rundet den rechten Rand.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <ButtonSelect> akzeptiert.`,
+    },
+  },
 };

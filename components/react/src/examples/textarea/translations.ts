@@ -12,160 +12,160 @@
  */
 
 export interface TextareaTranslation {
-    default: { title: string; description: string };
-    disabled: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            disabled: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersNativeTextarea: string;
-                firesOnChange: string;
-                fullyControllable: string;
-                forwardsRef: string;
-                disabledPreventsTyping: string;
-                baseStyling: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  disabled: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      disabled: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersNativeTextarea: string;
+        firesOnChange: string;
+        fullyControllable: string;
+        forwardsRef: string;
+        disabledPreventsTyping: string;
+        baseStyling: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const textareaEn: TextareaTranslation = {
-    default: {
+  default: {
+    title: `With label`,
+    description: `Multi-line text input. Minimum height is 60px; grow it via rows={n} or a className.`,
+  },
+  disabled: {
+    title: `Disabled`,
+    description: `disabled disables typing and dims the textarea.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Textarea> is a styled wrapper over the native <textarea>. All native attributes forward (rows, value, onChange, placeholder, disabled, …).`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Combine with rows={n} or h-{n} to set the size. Wire value + onChange for controlled mode.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `With label`,
-        description: `Multi-line text input. Minimum height is 60px; grow it via rows={n} or a className.`
-    },
-    disabled: {
+        description: `Labelled bio textarea.`,
+      },
+      disabled: {
         title: `Disabled`,
-        description: `disabled disables typing and dims the textarea.`
+        description: `Read-only textarea with default value.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Textarea> is a styled wrapper over the native <textarea>. All native attributes forward (rows, value, onChange, placeholder, disabled, …).`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Combine with rows={n} or h-{n} to set the size. Wire value + onChange for controlled mode.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `With label`,
-                description: `Labelled bio textarea.`
-            },
-            disabled: {
-                title: `Disabled`,
-                description: `Read-only textarea with default value.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Textarea> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersNativeTextarea: `Renders a native textarea element.`,
-                firesOnChange: `Fires onChange when the user types.`,
-                fullyControllable: `Is fully controllable via value + onChange.`,
-                forwardsRef: `Forwards a ref to the underlying textarea element.`,
-                disabledPreventsTyping: `Disabled prevents typing.`,
-                baseStyling: `Carries the min-height + rounded styling.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" the textarea flips so the caret starts on the right.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Textarea>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Textarea> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersNativeTextarea: `Renders a native textarea element.`,
+        firesOnChange: `Fires onChange when the user types.`,
+        fullyControllable: `Is fully controllable via value + onChange.`,
+        forwardsRef: `Forwards a ref to the underlying textarea element.`,
+        disabledPreventsTyping: `Disabled prevents typing.`,
+        baseStyling: `Carries the min-height + rounded styling.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the textarea flips so the caret starts on the right.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Textarea>.`,
+    },
+  },
 };
 
 export const textareaDe: TextareaTranslation = {
-    default: {
+  default: {
+    title: `Mit Label`,
+    description: `Mehrzeilige Eingabe. Mindesthöhe 60px; mit rows={n} oder einem className vergrößern.`,
+  },
+  disabled: {
+    title: `Deaktiviert`,
+    description: `disabled deaktiviert das Tippen und dimmt das Textarea ab.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Textarea> ist ein gestylter Wrapper um das native <textarea>. Alle nativen Attribute werden durchgereicht (rows, value, onChange, placeholder, disabled …).`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Mit rows={n} oder h-{n} die Größe setzen. value + onChange für kontrollierten Modus.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Mit Label`,
-        description: `Mehrzeilige Eingabe. Mindesthöhe 60px; mit rows={n} oder einem className vergrößern.`
-    },
-    disabled: {
+        description: `Beschriftetes Bio-Textarea.`,
+      },
+      disabled: {
         title: `Deaktiviert`,
-        description: `disabled deaktiviert das Tippen und dimmt das Textarea ab.`
+        description: `Nur-Lese-Textarea mit Default-Wert.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Textarea> ist ein gestylter Wrapper um das native <textarea>. Alle nativen Attribute werden durchgereicht (rows, value, onChange, placeholder, disabled …).`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `Mit rows={n} oder h-{n} die Größe setzen. value + onChange für kontrollierten Modus.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Mit Label`,
-                description: `Beschriftetes Bio-Textarea.`
-            },
-            disabled: {
-                title: `Deaktiviert`,
-                description: `Nur-Lese-Textarea mit Default-Wert.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Textarea> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                rendersNativeTextarea: `Rendert ein natives textarea-Element.`,
-                firesOnChange: `Feuert onChange beim Tippen.`,
-                fullyControllable: `Ist vollständig steuerbar via value + onChange.`,
-                forwardsRef: `Reicht ein ref ans zugrundeliegende textarea-Element durch.`,
-                disabledPreventsTyping: `Disabled verhindert Tippen.`,
-                baseStyling: `Trägt die Mindesthöhen- und Rundungs-Klassen.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" dreht sich das Textarea, sodass der Cursor rechts startet.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Textarea> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Textarea> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersNativeTextarea: `Rendert ein natives textarea-Element.`,
+        firesOnChange: `Feuert onChange beim Tippen.`,
+        fullyControllable: `Ist vollständig steuerbar via value + onChange.`,
+        forwardsRef: `Reicht ein ref ans zugrundeliegende textarea-Element durch.`,
+        disabledPreventsTyping: `Disabled verhindert Tippen.`,
+        baseStyling: `Trägt die Mindesthöhen- und Rundungs-Klassen.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" dreht sich das Textarea, sodass der Cursor rechts startet.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Textarea> akzeptiert.`,
+    },
+  },
 };

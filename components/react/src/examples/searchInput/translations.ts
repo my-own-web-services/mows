@@ -12,166 +12,166 @@
  */
 
 export interface SearchInputTranslation {
-    default: { title: string; description: string };
-    hideIcon: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            hideIcon: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                typeSearch: string;
-                leadingIcon: string;
-                hideIcon: string;
-                firesOnValueChange: string;
-                showsClearWhenNonEmpty: string;
-                clearResetsValue: string;
-                hideClearButton: string;
-                disabledForwards: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  hideIcon: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      hideIcon: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        typeSearch: string;
+        leadingIcon: string;
+        hideIcon: string;
+        firesOnValueChange: string;
+        showsClearWhenNonEmpty: string;
+        clearResetsValue: string;
+        hideClearButton: string;
+        disabledForwards: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const searchInputEn: SearchInputTranslation = {
-    default: {
+  default: {
+    title: `With clear button`,
+    description: `Type to see the clear button appear; hover or focus the input to reveal it.`,
+  },
+  hideIcon: {
+    title: `Without leading icon`,
+    description: `Set hideIcon to drop the leading Search icon — useful when the surrounding chrome already supplies one.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<SearchInput> is a thin wrapper over <InputGroup> that wires the leading search icon, the clear button, and the password-manager-friendly autocomplete dance.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Hide the leading icon with hideIcon; hide the clear button with hideClearButton.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `With clear button`,
-        description: `Type to see the clear button appear; hover or focus the input to reveal it.`
-    },
-    hideIcon: {
+        description: `Default styling — icon + input + clear.`,
+      },
+      hideIcon: {
         title: `Without leading icon`,
-        description: `Set hideIcon to drop the leading Search icon — useful when the surrounding chrome already supplies one.`
+        description: `Icon suppressed.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<SearchInput> is a thin wrapper over <InputGroup> that wires the leading search icon, the clear button, and the password-manager-friendly autocomplete dance.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Hide the leading icon with hideIcon; hide the clear button with hideClearButton.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `With clear button`,
-                description: `Default styling — icon + input + clear.`
-            },
-            hideIcon: {
-                title: `Without leading icon`,
-                description: `Icon suppressed.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <SearchInput> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                typeSearch: `Renders a type="search" input.`,
-                leadingIcon: `Renders the leading search icon by default.`,
-                hideIcon: `hideIcon removes the leading addon.`,
-                firesOnValueChange: `Fires onValueChange when the user types.`,
-                showsClearWhenNonEmpty: `Shows the clear button once the value is non-empty.`,
-                clearResetsValue: `Clicking the clear button resets the value to "".`,
-                hideClearButton: `hideClearButton suppresses the clear button even when non-empty.`,
-                disabledForwards: `disabled forwards onto both the input and the clear button.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" the leading icon flips to the right and the clear button to the left.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <SearchInput>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <SearchInput> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        typeSearch: `Renders a type="search" input.`,
+        leadingIcon: `Renders the leading search icon by default.`,
+        hideIcon: `hideIcon removes the leading addon.`,
+        firesOnValueChange: `Fires onValueChange when the user types.`,
+        showsClearWhenNonEmpty: `Shows the clear button once the value is non-empty.`,
+        clearResetsValue: `Clicking the clear button resets the value to "".`,
+        hideClearButton: `hideClearButton suppresses the clear button even when non-empty.`,
+        disabledForwards: `disabled forwards onto both the input and the clear button.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the leading icon flips to the right and the clear button to the left.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <SearchInput>.`,
+    },
+  },
 };
 
 export const searchInputDe: SearchInputTranslation = {
-    default: {
+  default: {
+    title: `Mit Clear-Button`,
+    description: `Tippen lässt den Clear-Button erscheinen; Hover oder Fokus zeigen ihn an.`,
+  },
+  hideIcon: {
+    title: `Ohne führendes Icon`,
+    description: `hideIcon entfernt das führende Such-Icon — sinnvoll, wenn die umgebende Chrome bereits eines anzeigt.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<SearchInput> ist ein dünner Wrapper über <InputGroup>, der führendes Such-Icon, Clear-Button und Password-Manager-freundliche Autocomplete-Hinweise verdrahtet.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `hideIcon entfernt das führende Icon; hideClearButton entfernt den Clear-Button.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Mit Clear-Button`,
-        description: `Tippen lässt den Clear-Button erscheinen; Hover oder Fokus zeigen ihn an.`
-    },
-    hideIcon: {
+        description: `Default-Styling — Icon + Input + Clear.`,
+      },
+      hideIcon: {
         title: `Ohne führendes Icon`,
-        description: `hideIcon entfernt das führende Such-Icon — sinnvoll, wenn die umgebende Chrome bereits eines anzeigt.`
+        description: `Icon unterdrückt.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<SearchInput> ist ein dünner Wrapper über <InputGroup>, der führendes Such-Icon, Clear-Button und Password-Manager-freundliche Autocomplete-Hinweise verdrahtet.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `hideIcon entfernt das führende Icon; hideClearButton entfernt den Clear-Button.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Mit Clear-Button`,
-                description: `Default-Styling — Icon + Input + Clear.`
-            },
-            hideIcon: {
-                title: `Ohne führendes Icon`,
-                description: `Icon unterdrückt.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <SearchInput> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                typeSearch: `Rendert ein type="search"-Input.`,
-                leadingIcon: `Rendert standardmäßig ein führendes Such-Icon.`,
-                hideIcon: `hideIcon entfernt das führende Addon.`,
-                firesOnValueChange: `Feuert onValueChange beim Tippen.`,
-                showsClearWhenNonEmpty: `Zeigt den Clear-Button, sobald der Wert nicht-leer ist.`,
-                clearResetsValue: `Klick auf den Clear-Button setzt den Wert auf "" zurück.`,
-                hideClearButton: `hideClearButton unterdrückt den Clear-Button selbst bei Wert.`,
-                disabledForwards: `disabled wird sowohl an das Input als auch an den Clear-Button durchgereicht.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" wechselt das führende Icon nach rechts und der Clear-Button nach links.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <SearchInput> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <SearchInput> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        typeSearch: `Rendert ein type="search"-Input.`,
+        leadingIcon: `Rendert standardmäßig ein führendes Such-Icon.`,
+        hideIcon: `hideIcon entfernt das führende Addon.`,
+        firesOnValueChange: `Feuert onValueChange beim Tippen.`,
+        showsClearWhenNonEmpty: `Zeigt den Clear-Button, sobald der Wert nicht-leer ist.`,
+        clearResetsValue: `Klick auf den Clear-Button setzt den Wert auf "" zurück.`,
+        hideClearButton: `hideClearButton unterdrückt den Clear-Button selbst bei Wert.`,
+        disabledForwards: `disabled wird sowohl an das Input als auch an den Clear-Button durchgereicht.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" wechselt das führende Icon nach rechts und der Clear-Button nach links.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <SearchInput> akzeptiert.`,
+    },
+  },
 };

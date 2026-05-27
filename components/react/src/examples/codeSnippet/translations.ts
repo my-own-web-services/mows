@@ -12,178 +12,178 @@
  */
 
 export interface CodeSnippetTranslation {
-    block: { title: string; description: string };
-    inline: { title: string; description: string };
-    languages: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            block: { title: string; description: string };
-            inline: { title: string; description: string };
-            languages: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                blockFallback: string;
-                inlineFallback: string;
-                defaultMode: string;
-                forwardsClassName: string;
-                preservesMultiline: string;
-                rendersWithoutProvider: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  block: { title: string; description: string };
+  inline: { title: string; description: string };
+  languages: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      block: { title: string; description: string };
+      inline: { title: string; description: string };
+      languages: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        blockFallback: string;
+        inlineFallback: string;
+        defaultMode: string;
+        forwardsClassName: string;
+        preservesMultiline: string;
+        rendersWithoutProvider: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const codeSnippetEn: CodeSnippetTranslation = {
-    block: {
+  block: {
+    title: `Multi-line block`,
+    description: `Tokenized via Monaco's colorize API and styled with the current code theme — no editor is mounted. Use for short illustrative snippets that need their own visual block.`,
+  },
+  inline: {
+    title: `Inline in prose`,
+    description: `Inline mode renders a styled <code>-style chip that sits in a sentence. Newlines are collapsed so the snippet always stays on one line.`,
+  },
+  languages: {
+    title: `Languages`,
+    description: `Same component, different Monaco language ids. plaintext falls back to monospaced text with no token coloring.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Import <CodeSnippet> from the package and pass it the code string plus an optional language id. Choose mode="block" for stand-alone snippets, mode="inline" for chips that sit in a sentence.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<CodeSnippet> is a self-contained primitive. Monaco's colorize API runs in a deferred React.lazy chunk, so consumers that never render a snippet don't pay the Monaco bundle cost.`,
+    },
+    examples: {
+      title: `Examples`,
+      block: {
         title: `Multi-line block`,
-        description: `Tokenized via Monaco's colorize API and styled with the current code theme — no editor is mounted. Use for short illustrative snippets that need their own visual block.`
-    },
-    inline: {
+        description: `Tokenized via Monaco with the current code theme.`,
+      },
+      inline: {
         title: `Inline in prose`,
-        description: `Inline mode renders a styled <code>-style chip that sits in a sentence. Newlines are collapsed so the snippet always stays on one line.`
-    },
-    languages: {
+        description: `Chip that lives inside a sentence — newlines are collapsed.`,
+      },
+      languages: {
         title: `Languages`,
-        description: `Same component, different Monaco language ids. plaintext falls back to monospaced text with no token coloring.`
+        description: `The same component with different Monaco language ids.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Import <CodeSnippet> from the package and pass it the code string plus an optional language id. Choose mode="block" for stand-alone snippets, mode="inline" for chips that sit in a sentence.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<CodeSnippet> is a self-contained primitive. Monaco's colorize API runs in a deferred React.lazy chunk, so consumers that never render a snippet don't pay the Monaco bundle cost.`
-        },
-        examples: {
-            title: `Examples`,
-            block: {
-                title: `Multi-line block`,
-                description: `Tokenized via Monaco with the current code theme.`
-            },
-            inline: {
-                title: `Inline in prose`,
-                description: `Chip that lives inside a sentence — newlines are collapsed.`
-            },
-            languages: {
-                title: `Languages`,
-                description: `The same component with different Monaco language ids.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <CodeSnippet> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                blockFallback: `Block mode renders a <pre> fallback containing the raw code while Monaco loads.`,
-                inlineFallback: `Inline mode renders a <code> fallback containing the raw code while Monaco loads.`,
-                defaultMode: `Omitting the mode prop yields block mode.`,
-                forwardsClassName: `className and style props are forwarded to the rendered wrapper.`,
-                preservesMultiline: `Block-mode fallback preserves multi-line code verbatim.`,
-                rendersWithoutProvider: `Snippets render without a <MowsProvider> — the default code theme applies.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Code is direction-agnostic. Wrapping in dir="rtl" leaves source order intact; only surrounding prose flow flips.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <CodeSnippet>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <CodeSnippet> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        blockFallback: `Block mode renders a <pre> fallback containing the raw code while Monaco loads.`,
+        inlineFallback: `Inline mode renders a <code> fallback containing the raw code while Monaco loads.`,
+        defaultMode: `Omitting the mode prop yields block mode.`,
+        forwardsClassName: `className and style props are forwarded to the rendered wrapper.`,
+        preservesMultiline: `Block-mode fallback preserves multi-line code verbatim.`,
+        rendersWithoutProvider: `Snippets render without a <MowsProvider> — the default code theme applies.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Code is direction-agnostic. Wrapping in dir="rtl" leaves source order intact; only surrounding prose flow flips.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <CodeSnippet>.`,
+    },
+  },
 };
 
 export const codeSnippetDe: CodeSnippetTranslation = {
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Importiere <CodeSnippet> aus dem Paket und übergib den Code-String plus eine optionale Sprache. Wähle mode="block" für eigenständige Snippets, mode="inline" für Chips innerhalb eines Satzes.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<CodeSnippet> ist ein in sich geschlossenes Primitiv. Monacos colorize-API läuft in einem verzögerten React.lazy-Chunk, sodass Konsumenten, die kein Snippet rendern, das Monaco-Bundle nicht laden müssen.`
-        },
-        examples: {
-            title: `Beispiele`,
-            block: {
-                title: `Mehrzeiliger Block`,
-                description: `Wird per Monaco mit dem aktuellen Code-Theme tokenisiert.`
-            },
-            inline: {
-                title: `Inline im Fließtext`,
-                description: `Ein Chip, der innerhalb eines Satzes steht — Zeilenumbrüche werden zusammengezogen.`
-            },
-            languages: {
-                title: `Sprachen`,
-                description: `Dieselbe Komponente mit unterschiedlichen Monaco-Sprach-IDs.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <CodeSnippet> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                blockFallback: `Im Block-Modus wird ein <pre>-Fallback mit dem rohen Code gerendert, während Monaco lädt.`,
-                inlineFallback: `Im Inline-Modus wird ein <code>-Fallback mit dem rohen Code gerendert, während Monaco lädt.`,
-                defaultMode: `Ohne mode-Prop wird der Block-Modus verwendet.`,
-                forwardsClassName: `className- und style-Props werden an das gerenderte Wrapper-Element weitergereicht.`,
-                preservesMultiline: `Der Block-Fallback bewahrt mehrzeiligen Code wortgetreu.`,
-                rendersWithoutProvider: `Snippets rendern ohne <MowsProvider> — das Standard-Code-Theme greift.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Code ist richtungsneutral. Ein umgebendes dir="rtl" lässt die Quellreihenfolge unverändert; nur der Fließtext-Fluss kehrt sich um.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <CodeSnippet> akzeptiert.`
-        }
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
     },
-    block: {
+    usage: {
+      title: `Verwendung`,
+      body: `Importiere <CodeSnippet> aus dem Paket und übergib den Code-String plus eine optionale Sprache. Wähle mode="block" für eigenständige Snippets, mode="inline" für Chips innerhalb eines Satzes.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<CodeSnippet> ist ein in sich geschlossenes Primitiv. Monacos colorize-API läuft in einem verzögerten React.lazy-Chunk, sodass Konsumenten, die kein Snippet rendern, das Monaco-Bundle nicht laden müssen.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      block: {
         title: `Mehrzeiliger Block`,
-        description: `Tokenisierung über Monacos colorize-API, gestylt mit dem aktuellen Code-Theme — ganz ohne Editor-Mount. Geeignet für kurze, illustrative Snippets, die einen eigenen visuellen Block bekommen sollen.`
-    },
-    inline: {
+        description: `Wird per Monaco mit dem aktuellen Code-Theme tokenisiert.`,
+      },
+      inline: {
         title: `Inline im Fließtext`,
-        description: `Der Inline-Modus rendert einen gestylten <code>-artigen Chip mitten im Satz. Zeilenumbrüche werden zusammengefasst, sodass das Snippet immer einzeilig bleibt.`
-    },
-    languages: {
+        description: `Ein Chip, der innerhalb eines Satzes steht — Zeilenumbrüche werden zusammengezogen.`,
+      },
+      languages: {
         title: `Sprachen`,
-        description: `Dieselbe Komponente, verschiedene Monaco-Sprach-IDs. plaintext liefert reinen Monospace-Text ohne Tokenfarben.`
-    }
+        description: `Dieselbe Komponente mit unterschiedlichen Monaco-Sprach-IDs.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <CodeSnippet> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        blockFallback: `Im Block-Modus wird ein <pre>-Fallback mit dem rohen Code gerendert, während Monaco lädt.`,
+        inlineFallback: `Im Inline-Modus wird ein <code>-Fallback mit dem rohen Code gerendert, während Monaco lädt.`,
+        defaultMode: `Ohne mode-Prop wird der Block-Modus verwendet.`,
+        forwardsClassName: `className- und style-Props werden an das gerenderte Wrapper-Element weitergereicht.`,
+        preservesMultiline: `Der Block-Fallback bewahrt mehrzeiligen Code wortgetreu.`,
+        rendersWithoutProvider: `Snippets rendern ohne <MowsProvider> — das Standard-Code-Theme greift.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Code ist richtungsneutral. Ein umgebendes dir="rtl" lässt die Quellreihenfolge unverändert; nur der Fließtext-Fluss kehrt sich um.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <CodeSnippet> akzeptiert.`,
+    },
+  },
+  block: {
+    title: `Mehrzeiliger Block`,
+    description: `Tokenisierung über Monacos colorize-API, gestylt mit dem aktuellen Code-Theme — ganz ohne Editor-Mount. Geeignet für kurze, illustrative Snippets, die einen eigenen visuellen Block bekommen sollen.`,
+  },
+  inline: {
+    title: `Inline im Fließtext`,
+    description: `Der Inline-Modus rendert einen gestylten <code>-artigen Chip mitten im Satz. Zeilenumbrüche werden zusammengefasst, sodass das Snippet immer einzeilig bleibt.`,
+  },
+  languages: {
+    title: `Sprachen`,
+    description: `Dieselbe Komponente, verschiedene Monaco-Sprach-IDs. plaintext liefert reinen Monospace-Text ohne Tokenfarben.`,
+  },
 };

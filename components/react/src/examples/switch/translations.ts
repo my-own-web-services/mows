@@ -12,160 +12,160 @@
  */
 
 export interface SwitchTranslation {
-    default: { title: string; description: string };
-    disabled: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            disabled: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                defaultUnchecked: string;
-                defaultCheckedOnMount: string;
-                firesOnCheckedChange: string;
-                fullyControllable: string;
-                noToggleWhenDisabled: string;
-                thumbTranslates: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  disabled: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      disabled: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        defaultUnchecked: string;
+        defaultCheckedOnMount: string;
+        firesOnCheckedChange: string;
+        fullyControllable: string;
+        noToggleWhenDisabled: string;
+        thumbTranslates: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const switchEn: SwitchTranslation = {
-    default: {
+  default: {
+    title: `Default`,
+    description: `Boolean on/off — no indeterminate state.`,
+  },
+  disabled: {
+    title: `Disabled`,
+    description: `disabled disables both off and on states.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Switch> is the Radix Switch primitive — a boolean on/off toggle. onCheckedChange fires with the new boolean.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<Switch> wraps the Radix Switch primitive. Wrap inside <Label> so clicking the label toggles it. Unlike <Checkbox>, there is no indeterminate state.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Default`,
-        description: `Boolean on/off — no indeterminate state.`
-    },
-    disabled: {
+        description: `Controlled switch inside a <Label>.`,
+      },
+      disabled: {
         title: `Disabled`,
-        description: `disabled disables both off and on states.`
+        description: `Disabled off / disabled on.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Switch> is the Radix Switch primitive — a boolean on/off toggle. onCheckedChange fires with the new boolean.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<Switch> wraps the Radix Switch primitive. Wrap inside <Label> so clicking the label toggles it. Unlike <Checkbox>, there is no indeterminate state.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Default`,
-                description: `Controlled switch inside a <Label>.`
-            },
-            disabled: {
-                title: `Disabled`,
-                description: `Disabled off / disabled on.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Switch> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                defaultUnchecked: `Renders unchecked by default (data-state="unchecked").`,
-                defaultCheckedOnMount: `Reflects defaultChecked on first mount.`,
-                firesOnCheckedChange: `Fires onCheckedChange on click in uncontrolled mode.`,
-                fullyControllable: `Is fully controllable via checked + onCheckedChange.`,
-                noToggleWhenDisabled: `Does not toggle when disabled.`,
-                thumbTranslates: `Thumb translates only when checked.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `The switch track is laid out horizontally. Under dir="rtl" the thumb still slides from the leading edge to the trailing edge — which visually mirrors LTR behaviour.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Switch>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Switch> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        defaultUnchecked: `Renders unchecked by default (data-state="unchecked").`,
+        defaultCheckedOnMount: `Reflects defaultChecked on first mount.`,
+        firesOnCheckedChange: `Fires onCheckedChange on click in uncontrolled mode.`,
+        fullyControllable: `Is fully controllable via checked + onCheckedChange.`,
+        noToggleWhenDisabled: `Does not toggle when disabled.`,
+        thumbTranslates: `Thumb translates only when checked.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `The switch track is laid out horizontally. Under dir="rtl" the thumb still slides from the leading edge to the trailing edge — which visually mirrors LTR behaviour.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Switch>.`,
+    },
+  },
 };
 
 export const switchDe: SwitchTranslation = {
-    default: {
+  default: {
+    title: `Standard`,
+    description: `Boolesches On/Off — kein unbestimmter Zustand.`,
+  },
+  disabled: {
+    title: `Deaktiviert`,
+    description: `disabled deaktiviert sowohl den Off- als auch den On-Zustand.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Switch> ist die Radix-Switch-Primitive — ein boolescher Ein/Aus-Toggle. onCheckedChange feuert mit dem neuen Boolean.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<Switch> kapselt die Radix-Switch-Primitive. In <Label> einwickeln, damit Klicks auf das Label umschalten. Im Gegensatz zu <Checkbox> gibt es keinen unbestimmten Zustand.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Standard`,
-        description: `Boolesches On/Off — kein unbestimmter Zustand.`
-    },
-    disabled: {
+        description: `Kontrollierter Switch in einem <Label>.`,
+      },
+      disabled: {
         title: `Deaktiviert`,
-        description: `disabled deaktiviert sowohl den Off- als auch den On-Zustand.`
+        description: `Deaktiviert Off / Deaktiviert On.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Switch> ist die Radix-Switch-Primitive — ein boolescher Ein/Aus-Toggle. onCheckedChange feuert mit dem neuen Boolean.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<Switch> kapselt die Radix-Switch-Primitive. In <Label> einwickeln, damit Klicks auf das Label umschalten. Im Gegensatz zu <Checkbox> gibt es keinen unbestimmten Zustand.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Standard`,
-                description: `Kontrollierter Switch in einem <Label>.`
-            },
-            disabled: {
-                title: `Deaktiviert`,
-                description: `Deaktiviert Off / Deaktiviert On.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Switch> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                defaultUnchecked: `Rendert standardmäßig unchecked (data-state="unchecked").`,
-                defaultCheckedOnMount: `Übernimmt defaultChecked beim ersten Mount.`,
-                firesOnCheckedChange: `Feuert onCheckedChange beim Klick im unkontrollierten Modus.`,
-                fullyControllable: `Ist vollständig steuerbar via checked + onCheckedChange.`,
-                noToggleWhenDisabled: `Schaltet nicht um, wenn disabled gesetzt ist.`,
-                thumbTranslates: `Der Thumb verschiebt sich nur, wenn checked.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Der Switch-Track liegt horizontal. Unter dir="rtl" gleitet der Thumb weiterhin von der führenden zur nachfolgenden Kante — visuell spiegelt das das LTR-Verhalten.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Switch> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Switch> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        defaultUnchecked: `Rendert standardmäßig unchecked (data-state="unchecked").`,
+        defaultCheckedOnMount: `Übernimmt defaultChecked beim ersten Mount.`,
+        firesOnCheckedChange: `Feuert onCheckedChange beim Klick im unkontrollierten Modus.`,
+        fullyControllable: `Ist vollständig steuerbar via checked + onCheckedChange.`,
+        noToggleWhenDisabled: `Schaltet nicht um, wenn disabled gesetzt ist.`,
+        thumbTranslates: `Der Thumb verschiebt sich nur, wenn checked.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Der Switch-Track liegt horizontal. Unter dir="rtl" gleitet der Thumb weiterhin von der führenden zur nachfolgenden Kante — visuell spiegelt das das LTR-Verhalten.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Switch> akzeptiert.`,
+    },
+  },
 };

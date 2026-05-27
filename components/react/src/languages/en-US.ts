@@ -215,7 +215,7 @@ const translation: Translation = {
                     intro: `Wire translations once at the root. Everything else — language switching, persistence, automatic browser-language detection — is handled by the provider.`,
                     mountProvider: {
                         title: `Mount with languages + initial tree`,
-                        body: `Pass \`languages\` and \`initialTranslation\` to \`<MowsProvider>\`. The initial tree is bundled with the entry chunk so the first paint never flashes English while a locale chunk loads. Pick it via \`localStorage\` first, then \`navigator.language\`, then a hardcoded English fallback — the example app's \`main.tsx\` shows the exact pattern.`
+                        body: `Pass \`languages\` and \`initialTranslation\` to \`<MowsProvider>\`. Pick the initial locale via \`localStorage\` first, then \`navigator.language\`, then a hardcoded English fallback. Load the chosen locale via a dynamic \`import()\` before mounting React — Vite emits one chunk per locale so the user only downloads the one they start in. The example app's \`main.tsx\` shows the exact pattern.`
                     },
                     defaultLanguages: {
                         title: `Skip the languages prop for English + German`,

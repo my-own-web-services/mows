@@ -12,73 +12,127 @@
  */
 
 export interface LoggingConfigTranslation {
-    default: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersDefaultLevel: string;
-                exposesFilterInput: string;
-                addsFilter: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersDefaultLevel: string;
+        exposesFilterInput: string;
+        addsFilter: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const loggingConfigEn: LoggingConfigTranslation = {
-    default: { title: `Default`, description: `Default log level + per-file filters. Changes update Logger.defaultLevel / Logger.fileFilter immediately.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `<LoggingConfig> exposes the global Logger configuration UI. Changes call Logger.saveConfig() which persists to localStorage.` },
-        composition: { title: `Composition`, body: `Drop into the settings page or modal. No props besides className.` },
-        examples: { title: `Examples`, default: { title: `Default`, description: `Full logging settings panel.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <LoggingConfig> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                rendersDefaultLevel: `Renders the default-level section.`,
-                exposesFilterInput: `Exposes an input for adding a per-file filter.`,
-                addsFilter: `Adds a file filter when the add button is clicked.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Section layout mirrors under dir="rtl".` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <LoggingConfig>.` }
-    }
+  default: {
+    title: `Default`,
+    description: `Default log level + per-file filters. Changes update Logger.defaultLevel / Logger.fileFilter immediately.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<LoggingConfig> exposes the global Logger configuration UI. Changes call Logger.saveConfig() which persists to localStorage.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Drop into the settings page or modal. No props besides className.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
+        title: `Default`,
+        description: `Full logging settings panel.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <LoggingConfig> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersDefaultLevel: `Renders the default-level section.`,
+        exposesFilterInput: `Exposes an input for adding a per-file filter.`,
+        addsFilter: `Adds a file filter when the add button is clicked.`,
+      },
+    },
+    rtl: { title: `RTL`, body: `Section layout mirrors under dir="rtl".` },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <LoggingConfig>.`,
+    },
+  },
 };
 
 export const loggingConfigDe: LoggingConfigTranslation = {
-    default: { title: `Standard`, description: `Standard-Log-Level + Pro-Datei-Filter. Änderungen aktualisieren Logger.defaultLevel / Logger.fileFilter sofort.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
-        usage: { title: `Verwendung`, body: `<LoggingConfig> exponiert die globale Logger-Konfigurations-UI. Änderungen rufen Logger.saveConfig() auf, was in localStorage persistiert.` },
-        composition: { title: `Komposition`, body: `In die Settings-Seite oder ein Modal ablegen. Keine Props außer className.` },
-        examples: { title: `Beispiele`, default: { title: `Standard`, description: `Vollständiges Logging-Settings-Panel.` } },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <LoggingConfig> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
-            statements: {
-                rendersDefaultLevel: `Rendert den Standard-Level-Abschnitt.`,
-                exposesFilterInput: `Bietet ein Input zum Anlegen eines Pro-Datei-Filters.`,
-                addsFilter: `Fügt einen Datei-Filter hinzu, wenn der Add-Button geklickt wird.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Das Sektionslayout spiegelt unter dir="rtl".` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <LoggingConfig> akzeptiert.` }
-    }
+  default: {
+    title: `Standard`,
+    description: `Standard-Log-Level + Pro-Datei-Filter. Änderungen aktualisieren Logger.defaultLevel / Logger.fileFilter sofort.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<LoggingConfig> exponiert die globale Logger-Konfigurations-UI. Änderungen rufen Logger.saveConfig() auf, was in localStorage persistiert.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `In die Settings-Seite oder ein Modal ablegen. Keine Props außer className.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
+        title: `Standard`,
+        description: `Vollständiges Logging-Settings-Panel.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <LoggingConfig> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersDefaultLevel: `Rendert den Standard-Level-Abschnitt.`,
+        exposesFilterInput: `Bietet ein Input zum Anlegen eines Pro-Datei-Filters.`,
+        addsFilter: `Fügt einen Datei-Filter hinzu, wenn der Add-Button geklickt wird.`,
+      },
+    },
+    rtl: { title: `RTL`, body: `Das Sektionslayout spiegelt unter dir="rtl".` },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <LoggingConfig> akzeptiert.`,
+    },
+  },
 };

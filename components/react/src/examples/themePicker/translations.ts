@@ -12,77 +12,148 @@
  */
 
 export interface ThemePickerTranslation {
-    popover: { title: string; description: string };
-    standalone: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            popover: { title: string; description: string };
-            standalone: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                listsThemes: string;
-                firesSetTheme: string;
-                popoverShowsCurrent: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  popover: { title: string; description: string };
+  standalone: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      popover: { title: string; description: string };
+      standalone: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        listsThemes: string;
+        firesSetTheme: string;
+        popoverShowsCurrent: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const themePickerEn: ThemePickerTranslation = {
-    popover: { title: `Popover trigger`, description: `Default form — the picker lives behind a popover.` },
-    standalone: { title: `Standalone`, description: `Searchable list inline, no popover.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `Mount <ThemePicker> inside <MowsProvider>. It reads the available themes and current theme from context and calls setTheme on selection.` },
-        composition: { title: `Composition`, body: `<ThemePicker> is a thin wrapper around <SearchSelectPicker>. The "system" entry shows the OS-resolved variant ("(dark)" / "(light)") in the popover row.` },
-        examples: { title: `Examples`, popover: { title: `Popover trigger`, description: `Trigger + popover list.` }, standalone: { title: `Standalone`, description: `Inline searchable list.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <ThemePicker> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                listsThemes: `Lists every theme in standalone mode.`,
-                firesSetTheme: `Calls setTheme on the surrounding context when a theme is picked.`,
-                popoverShowsCurrent: `Renders the popover trigger with the current theme by default.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Wrap inside dir="rtl" and the trigger + search field flip to right-to-left.` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <ThemePicker>.` }
-    }
+  popover: {
+    title: `Popover trigger`,
+    description: `Default form — the picker lives behind a popover.`,
+  },
+  standalone: {
+    title: `Standalone`,
+    description: `Searchable list inline, no popover.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Mount <ThemePicker> inside <MowsProvider>. It reads the available themes and current theme from context and calls setTheme on selection.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<ThemePicker> is a thin wrapper around <SearchSelectPicker>. The "system" entry shows the OS-resolved variant ("(dark)" / "(light)") in the popover row.`,
+    },
+    examples: {
+      title: `Examples`,
+      popover: {
+        title: `Popover trigger`,
+        description: `Trigger + popover list.`,
+      },
+      standalone: {
+        title: `Standalone`,
+        description: `Inline searchable list.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <ThemePicker> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        listsThemes: `Lists every theme in standalone mode.`,
+        firesSetTheme: `Calls setTheme on the surrounding context when a theme is picked.`,
+        popoverShowsCurrent: `Renders the popover trigger with the current theme by default.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Wrap inside dir="rtl" and the trigger + search field flip to right-to-left.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <ThemePicker>.`,
+    },
+  },
 };
 
 export const themePickerDe: ThemePickerTranslation = {
-    popover: { title: `Popover-Trigger`, description: `Standardform — der Picker lebt hinter einem Popover.` },
-    standalone: { title: `Eigenständig`, description: `Suchliste inline, ohne Popover.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
-        usage: { title: `Verwendung`, body: `<ThemePicker> innerhalb von <MowsProvider> mounten. Er liest die verfügbaren Themes und das aktive Theme aus dem Context und ruft setTheme bei der Auswahl auf.` },
-        composition: { title: `Komposition`, body: `<ThemePicker> ist ein dünner Wrapper um <SearchSelectPicker>. Der „system"-Eintrag zeigt in der Popover-Zeile die OS-aufgelöste Variante („(dark)" / „(light)").` },
-        examples: { title: `Beispiele`, popover: { title: `Popover-Trigger`, description: `Trigger + Popover-Liste.` }, standalone: { title: `Eigenständig`, description: `Inline-Suchliste.` } },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <ThemePicker> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
-            statements: {
-                listsThemes: `Listet jedes Theme im Standalone-Modus.`,
-                firesSetTheme: `Ruft setTheme im umgebenden Context auf, wenn ein Theme gewählt wird.`,
-                popoverShowsCurrent: `Rendert den Popover-Trigger standardmäßig mit dem aktuellen Theme.`
-            }
-        },
-        rtl: { title: `RTL`, body: `In dir="rtl" eingewickelt drehen sich Trigger + Suchfeld nach rechts-nach-links.` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <ThemePicker> akzeptiert.` }
-    }
+  popover: {
+    title: `Popover-Trigger`,
+    description: `Standardform — der Picker lebt hinter einem Popover.`,
+  },
+  standalone: {
+    title: `Eigenständig`,
+    description: `Suchliste inline, ohne Popover.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<ThemePicker> innerhalb von <MowsProvider> mounten. Er liest die verfügbaren Themes und das aktive Theme aus dem Context und ruft setTheme bei der Auswahl auf.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<ThemePicker> ist ein dünner Wrapper um <SearchSelectPicker>. Der „system"-Eintrag zeigt in der Popover-Zeile die OS-aufgelöste Variante („(dark)" / „(light)").`,
+    },
+    examples: {
+      title: `Beispiele`,
+      popover: {
+        title: `Popover-Trigger`,
+        description: `Trigger + Popover-Liste.`,
+      },
+      standalone: { title: `Eigenständig`, description: `Inline-Suchliste.` },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <ThemePicker> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        listsThemes: `Listet jedes Theme im Standalone-Modus.`,
+        firesSetTheme: `Ruft setTheme im umgebenden Context auf, wenn ein Theme gewählt wird.`,
+        popoverShowsCurrent: `Rendert den Popover-Trigger standardmäßig mit dem aktuellen Theme.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `In dir="rtl" eingewickelt drehen sich Trigger + Suchfeld nach rechts-nach-links.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <ThemePicker> akzeptiert.`,
+    },
+  },
 };

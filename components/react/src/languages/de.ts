@@ -215,7 +215,7 @@ const translation: Translation = {
                     intro: `Übersetzungen werden einmal am Root verdrahtet. Alles weitere — Sprachumschaltung, Persistenz, automatische Browserspracherkennung — übernimmt der Provider.`,
                     mountProvider: {
                         title: `Mit languages + initialem Baum mounten`,
-                        body: `Übergib \`languages\` und \`initialTranslation\` an \`<MowsProvider>\`. Der initiale Baum ist mit dem Entry-Chunk gebundelt, damit das erste Rendering nicht kurz auf Englisch aufflackert, während ein Locale-Chunk lädt. Wähle ihn zuerst über \`localStorage\`, dann \`navigator.language\`, dann ein hartcodiertes englisches Fallback — die \`main.tsx\` der Beispiel-App zeigt das exakte Muster.`
+                        body: `Übergib \`languages\` und \`initialTranslation\` an \`<MowsProvider>\`. Wähle die initiale Locale zuerst über \`localStorage\`, dann \`navigator.language\`, dann ein hartcodiertes englisches Fallback. Lade die gewählte Locale per dynamischem \`import()\`, bevor du React mountest — Vite gibt pro Locale einen eigenen Chunk aus, sodass Nutzer nur die Locale herunterladen, mit der sie starten. Die \`main.tsx\` der Beispiel-App zeigt das exakte Muster.`
                     },
                     defaultLanguages: {
                         title: `Ohne languages-Prop reichen Englisch + Deutsch`,

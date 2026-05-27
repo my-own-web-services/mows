@@ -12,82 +12,136 @@
  */
 
 export interface TimezoneSelectorTranslation {
-    default: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersTrigger: string;
-                showsSelected: string;
-                opensSearch: string;
-                firesOnChange: string;
-                fullyControllable: string;
-                disabledNoOpen: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersTrigger: string;
+        showsSelected: string;
+        opensSearch: string;
+        firesOnChange: string;
+        fullyControllable: string;
+        disabledNoOpen: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const timezoneSelectorEn: TimezoneSelectorTranslation = {
-    default: { title: `Default`, description: `A combobox-style trigger that opens a searchable IANA timezone list.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `<TimezoneSelector> wraps Radix Popover + cmdk Command to expose every IANA timezone with offset info. value / onChange use the canonical IANA id.` },
-        composition: { title: `Composition`, body: `Used standalone for explicit "log timezone" pickers, and inside <DateTimePicker> when showTimezone is set.` },
-        examples: { title: `Examples`, default: { title: `Default`, description: `Searchable timezone picker.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <TimezoneSelector> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                rendersTrigger: `Renders the trigger button.`,
-                showsSelected: `Shows the selected timezone on the trigger.`,
-                opensSearch: `Opens a search list when the trigger is clicked.`,
-                firesOnChange: `Fires onChange when the user picks a timezone.`,
-                fullyControllable: `Is fully controllable via value + onChange.`,
-                disabledNoOpen: `Disabled prevents opening the popover.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Under dir="rtl" the trigger arrow and listbox mirror.` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <TimezoneSelector>.` }
-    }
+  default: {
+    title: `Default`,
+    description: `A combobox-style trigger that opens a searchable IANA timezone list.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<TimezoneSelector> wraps Radix Popover + cmdk Command to expose every IANA timezone with offset info. value / onChange use the canonical IANA id.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Used standalone for explicit "log timezone" pickers, and inside <DateTimePicker> when showTimezone is set.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: { title: `Default`, description: `Searchable timezone picker.` },
+    },
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <TimezoneSelector> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersTrigger: `Renders the trigger button.`,
+        showsSelected: `Shows the selected timezone on the trigger.`,
+        opensSearch: `Opens a search list when the trigger is clicked.`,
+        firesOnChange: `Fires onChange when the user picks a timezone.`,
+        fullyControllable: `Is fully controllable via value + onChange.`,
+        disabledNoOpen: `Disabled prevents opening the popover.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the trigger arrow and listbox mirror.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <TimezoneSelector>.`,
+    },
+  },
 };
 
 export const timezoneSelectorDe: TimezoneSelectorTranslation = {
-    default: { title: `Standard`, description: `Ein Combobox-artiger Trigger, der eine suchbare IANA-Timezone-Liste öffnet.` },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
-        usage: { title: `Verwendung`, body: `<TimezoneSelector> kapselt Radix Popover + cmdk Command, um jede IANA-Timezone mit Offset-Info anzuzeigen. value / onChange nutzen die kanonische IANA-ID.` },
-        composition: { title: `Komposition`, body: `Standalone für explizite „Log-Timezone"-Picker, und innerhalb <DateTimePicker>, wenn showTimezone gesetzt ist.` },
-        examples: { title: `Beispiele`, default: { title: `Standard`, description: `Suchbarer Timezone-Picker.` } },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <TimezoneSelector> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
-            statements: {
-                rendersTrigger: `Rendert den Trigger-Button.`,
-                showsSelected: `Zeigt die ausgewählte Timezone am Trigger.`,
-                opensSearch: `Öffnet beim Klick eine Suchliste.`,
-                firesOnChange: `Feuert onChange, wenn der Nutzer eine Timezone auswählt.`,
-                fullyControllable: `Ist vollständig steuerbar via value + onChange.`,
-                disabledNoOpen: `Disabled verhindert das Öffnen des Popovers.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Unter dir="rtl" spiegelt Trigger-Pfeil + Listbox.` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <TimezoneSelector> akzeptiert.` }
-    }
+  default: {
+    title: `Standard`,
+    description: `Ein Combobox-artiger Trigger, der eine suchbare IANA-Timezone-Liste öffnet.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<TimezoneSelector> kapselt Radix Popover + cmdk Command, um jede IANA-Timezone mit Offset-Info anzuzeigen. value / onChange nutzen die kanonische IANA-ID.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Standalone für explizite „Log-Timezone"-Picker, und innerhalb <DateTimePicker>, wenn showTimezone gesetzt ist.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: { title: `Standard`, description: `Suchbarer Timezone-Picker.` },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <TimezoneSelector> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersTrigger: `Rendert den Trigger-Button.`,
+        showsSelected: `Zeigt die ausgewählte Timezone am Trigger.`,
+        opensSearch: `Öffnet beim Klick eine Suchliste.`,
+        firesOnChange: `Feuert onChange, wenn der Nutzer eine Timezone auswählt.`,
+        fullyControllable: `Ist vollständig steuerbar via value + onChange.`,
+        disabledNoOpen: `Disabled verhindert das Öffnen des Popovers.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" spiegelt Trigger-Pfeil + Listbox.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <TimezoneSelector> akzeptiert.`,
+    },
+  },
 };

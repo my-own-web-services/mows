@@ -12,157 +12,157 @@
  */
 
 export interface CalendarTranslation {
-    default: { title: string; description: string };
-    disableFuture: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            disableFuture: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersGrid: string;
-                marksSelected: string;
-                firesOnSelect: string;
-                disableFutureDisables: string;
-                navigatesMonths: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  disableFuture: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      disableFuture: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersGrid: string;
+        marksSelected: string;
+        firesOnSelect: string;
+        disableFutureDisables: string;
+        navigatesMonths: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const calendarEn: CalendarTranslation = {
-    default: {
+  default: {
+    title: `Single-date picker`,
+    description: `mode="single" with controlled selected + onSelect.`,
+  },
+  disableFuture: {
+    title: `disableFuture`,
+    description: `Convenience for date-of-birth pickers: every day after today is disabled.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Calendar> wraps react-day-picker with shadcn styling. Pass mode + selected + onSelect for the standard controlled flow.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Pass disableFuture for "no future dates"; pass captionLayout="dropdown" for clickable month + year selectors; pass disabled with a Matcher for arbitrary disabled ranges.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Single-date picker`,
-        description: `mode="single" with controlled selected + onSelect.`
-    },
-    disableFuture: {
+        description: `Controlled single selection.`,
+      },
+      disableFuture: {
         title: `disableFuture`,
-        description: `Convenience for date-of-birth pickers: every day after today is disabled.`
+        description: `Future days are disabled.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Calendar> wraps react-day-picker with shadcn styling. Pass mode + selected + onSelect for the standard controlled flow.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Pass disableFuture for "no future dates"; pass captionLayout="dropdown" for clickable month + year selectors; pass disabled with a Matcher for arbitrary disabled ranges.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Single-date picker`,
-                description: `Controlled single selection.`
-            },
-            disableFuture: {
-                title: `disableFuture`,
-                description: `Future days are disabled.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Calendar> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersGrid: `Renders a grid of day cells for the visible month.`,
-                marksSelected: `Marks the selected day on the cell or button via data-selected* attributes.`,
-                firesOnSelect: `Fires onSelect when the user picks a day in single mode.`,
-                disableFutureDisables: `disableFuture disables every day after today.`,
-                navigatesMonths: `Navigates to the next month when the next-month button is clicked.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" the calendar grid flips so weekday headers read right-to-left; navigation buttons mirror.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Calendar>. The component forwards every react-day-picker prop in addition to the listed ones.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Calendar> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersGrid: `Renders a grid of day cells for the visible month.`,
+        marksSelected: `Marks the selected day on the cell or button via data-selected* attributes.`,
+        firesOnSelect: `Fires onSelect when the user picks a day in single mode.`,
+        disableFutureDisables: `disableFuture disables every day after today.`,
+        navigatesMonths: `Navigates to the next month when the next-month button is clicked.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the calendar grid flips so weekday headers read right-to-left; navigation buttons mirror.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Calendar>. The component forwards every react-day-picker prop in addition to the listed ones.`,
+    },
+  },
 };
 
 export const calendarDe: CalendarTranslation = {
-    default: {
+  default: {
+    title: `Einzeldatum-Picker`,
+    description: `mode="single" mit kontrolliertem selected + onSelect.`,
+  },
+  disableFuture: {
+    title: `disableFuture`,
+    description: `Komfort für Geburtsdatum-Picker: jeder Tag nach heute ist deaktiviert.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Calendar> kapselt react-day-picker mit shadcn-Styling. mode + selected + onSelect für den Standard-Fluss.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `disableFuture für „keine Zukunftsdaten"; captionLayout="dropdown" für klickbare Monat-/Jahr-Selektoren; disabled mit Matcher für beliebige deaktivierte Bereiche.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Einzeldatum-Picker`,
-        description: `mode="single" mit kontrolliertem selected + onSelect.`
-    },
-    disableFuture: {
+        description: `Kontrollierte Einzelauswahl.`,
+      },
+      disableFuture: {
         title: `disableFuture`,
-        description: `Komfort für Geburtsdatum-Picker: jeder Tag nach heute ist deaktiviert.`
+        description: `Zukunftstage sind deaktiviert.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Calendar> kapselt react-day-picker mit shadcn-Styling. mode + selected + onSelect für den Standard-Fluss.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `disableFuture für „keine Zukunftsdaten"; captionLayout="dropdown" für klickbare Monat-/Jahr-Selektoren; disabled mit Matcher für beliebige deaktivierte Bereiche.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Einzeldatum-Picker`,
-                description: `Kontrollierte Einzelauswahl.`
-            },
-            disableFuture: {
-                title: `disableFuture`,
-                description: `Zukunftstage sind deaktiviert.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Calendar> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                rendersGrid: `Rendert ein Tages-Grid für den sichtbaren Monat.`,
-                marksSelected: `Markiert den ausgewählten Tag via data-selected*-Attribute auf Zelle oder Button.`,
-                firesOnSelect: `Feuert onSelect, wenn der Nutzer einen Tag im single-Modus auswählt.`,
-                disableFutureDisables: `disableFuture deaktiviert jeden Tag nach heute.`,
-                navigatesMonths: `Wechselt zum nächsten Monat beim Klick auf den Nächster-Monat-Button.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" spiegelt das Kalender-Grid; Wochentag-Header lesen rechts-nach-links.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Calendar> akzeptiert. Alle react-day-picker-Props werden ebenfalls durchgereicht.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Calendar> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersGrid: `Rendert ein Tages-Grid für den sichtbaren Monat.`,
+        marksSelected: `Markiert den ausgewählten Tag via data-selected*-Attribute auf Zelle oder Button.`,
+        firesOnSelect: `Feuert onSelect, wenn der Nutzer einen Tag im single-Modus auswählt.`,
+        disableFutureDisables: `disableFuture deaktiviert jeden Tag nach heute.`,
+        navigatesMonths: `Wechselt zum nächsten Monat beim Klick auf den Nächster-Monat-Button.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" spiegelt das Kalender-Grid; Wochentag-Header lesen rechts-nach-links.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Calendar> akzeptiert. Alle react-day-picker-Props werden ebenfalls durchgereicht.`,
+    },
+  },
 };

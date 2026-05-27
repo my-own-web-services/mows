@@ -12,154 +12,154 @@
  */
 
 export interface ScrollAreaTranslation {
-    default: { title: string; description: string };
-    horizontal: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            horizontal: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                shell: string;
-                viewport: string;
-                viewportRef: string;
-                viewportClassName: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  horizontal: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      horizontal: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        shell: string;
+        viewport: string;
+        viewportRef: string;
+        viewportClassName: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const scrollAreaEn: ScrollAreaTranslation = {
-    default: {
+  default: {
+    title: `Vertical scroll`,
+    description: `A list of 30 items inside a 48-tall viewport. The scrollbar shows on overflow.`,
+  },
+  horizontal: {
+    title: `Horizontal scroll`,
+    description: `Render an explicit <ScrollBar orientation="horizontal" /> to get a horizontal scrollbar — Radix does not render one by default.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<ScrollArea> wraps the Radix ScrollArea primitive. Size the container with h-*/ w-* utilities — content beyond that size triggers the custom-styled scrollbar.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `For horizontal scrolling, render <ScrollBar orientation="horizontal" /> inside the ScrollArea. Use viewportRef to scroll imperatively from parent code (autoscroll log viewers etc.).`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Vertical scroll`,
-        description: `A list of 30 items inside a 48-tall viewport. The scrollbar shows on overflow.`
-    },
-    horizontal: {
+        description: `30 items inside a 48-tall viewport.`,
+      },
+      horizontal: {
         title: `Horizontal scroll`,
-        description: `Render an explicit <ScrollBar orientation="horizontal" /> to get a horizontal scrollbar — Radix does not render one by default.`
+        description: `Cards laid out horizontally with explicit ScrollBar.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<ScrollArea> wraps the Radix ScrollArea primitive. Size the container with h-*/ w-* utilities — content beyond that size triggers the custom-styled scrollbar.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `For horizontal scrolling, render <ScrollBar orientation="horizontal" /> inside the ScrollArea. Use viewportRef to scroll imperatively from parent code (autoscroll log viewers etc.).`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Vertical scroll`,
-                description: `30 items inside a 48-tall viewport.`
-            },
-            horizontal: {
-                title: `Horizontal scroll`,
-                description: `Cards laid out horizontally with explicit ScrollBar.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <ScrollArea> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                shell: `Renders a relative-positioned, overflow-hidden shell.`,
-                viewport: `Renders its children inside a viewport with h-full / w-full.`,
-                viewportRef: `Forwards viewportRef to the inner viewport.`,
-                viewportClassName: `Merges viewportClassName onto the viewport.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" the vertical scrollbar pins to the left edge; horizontal scrolling direction follows the text direction.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <ScrollArea> and <ScrollBar>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <ScrollArea> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        shell: `Renders a relative-positioned, overflow-hidden shell.`,
+        viewport: `Renders its children inside a viewport with h-full / w-full.`,
+        viewportRef: `Forwards viewportRef to the inner viewport.`,
+        viewportClassName: `Merges viewportClassName onto the viewport.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the vertical scrollbar pins to the left edge; horizontal scrolling direction follows the text direction.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <ScrollArea> and <ScrollBar>.`,
+    },
+  },
 };
 
 export const scrollAreaDe: ScrollAreaTranslation = {
-    default: {
+  default: {
+    title: `Vertikal scrollen`,
+    description: `30 Einträge in einem 48-hohen Viewport. Die Scrollleiste erscheint bei Überlauf.`,
+  },
+  horizontal: {
+    title: `Horizontal scrollen`,
+    description: `Eine explizite <ScrollBar orientation="horizontal" /> rendern, um eine horizontale Scrollleiste zu bekommen — Radix rendert sie nicht automatisch.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<ScrollArea> kapselt die Radix-ScrollArea-Primitive. Container mit h-*/w-*-Utilities dimensionieren — bei Überlauf erscheint die custom-gestylte Scrollleiste.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Für horizontales Scrollen ein <ScrollBar orientation="horizontal" /> in der ScrollArea rendern. Über viewportRef kann man imperativ scrollen (z. B. Auto-Scroll bei LogView).`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Vertikal scrollen`,
-        description: `30 Einträge in einem 48-hohen Viewport. Die Scrollleiste erscheint bei Überlauf.`
-    },
-    horizontal: {
+        description: `30 Items in einem 48-hohen Viewport.`,
+      },
+      horizontal: {
         title: `Horizontal scrollen`,
-        description: `Eine explizite <ScrollBar orientation="horizontal" /> rendern, um eine horizontale Scrollleiste zu bekommen — Radix rendert sie nicht automatisch.`
+        description: `Horizontal angeordnete Karten mit expliziter ScrollBar.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<ScrollArea> kapselt die Radix-ScrollArea-Primitive. Container mit h-*/w-*-Utilities dimensionieren — bei Überlauf erscheint die custom-gestylte Scrollleiste.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `Für horizontales Scrollen ein <ScrollBar orientation="horizontal" /> in der ScrollArea rendern. Über viewportRef kann man imperativ scrollen (z. B. Auto-Scroll bei LogView).`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Vertikal scrollen`,
-                description: `30 Items in einem 48-hohen Viewport.`
-            },
-            horizontal: {
-                title: `Horizontal scrollen`,
-                description: `Horizontal angeordnete Karten mit expliziter ScrollBar.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <ScrollArea> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                shell: `Rendert ein relativ positioniertes, overflow-hidden Gehäuse.`,
-                viewport: `Rendert die children in einem Viewport mit h-full / w-full.`,
-                viewportRef: `Reicht viewportRef an den inneren Viewport durch.`,
-                viewportClassName: `Merged viewportClassName auf den Viewport.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" sitzt die vertikale Scrollleiste am linken Rand; horizontales Scrollen folgt der Schreibrichtung.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <ScrollArea> und <ScrollBar> akzeptieren.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <ScrollArea> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        shell: `Rendert ein relativ positioniertes, overflow-hidden Gehäuse.`,
+        viewport: `Rendert die children in einem Viewport mit h-full / w-full.`,
+        viewportRef: `Reicht viewportRef an den inneren Viewport durch.`,
+        viewportClassName: `Merged viewportClassName auf den Viewport.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" sitzt die vertikale Scrollleiste am linken Rand; horizontales Scrollen folgt der Schreibrichtung.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <ScrollArea> und <ScrollBar> akzeptieren.`,
+    },
+  },
 };

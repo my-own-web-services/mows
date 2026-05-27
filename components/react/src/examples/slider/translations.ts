@@ -12,181 +12,181 @@
  */
 
 export interface SliderTranslation {
-    default: { title: string; description: string };
-    range: { title: string; description: string };
-    disabled: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            range: { title: string; description: string };
-            disabled: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                singleThumbDefault: string;
-                thumbsFromDefaultValue: string;
-                thumbsFromControlledValue: string;
-                forwardsMinMax: string;
-                defaultRange: string;
-                disabledForwards: string;
-                classNameMerge: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  range: { title: string; description: string };
+  disabled: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      range: { title: string; description: string };
+      disabled: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        singleThumbDefault: string;
+        thumbsFromDefaultValue: string;
+        thumbsFromControlledValue: string;
+        forwardsMinMax: string;
+        defaultRange: string;
+        disabledForwards: string;
+        classNameMerge: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const sliderEn: SliderTranslation = {
-    default: {
+  default: {
+    title: `Single thumb`,
+    description: `Standard 0-100 slider with a single thumb. value is always a number[].`,
+  },
+  range: {
+    title: `Range (two thumbs)`,
+    description: `Pass a two-entry array to get a range slider; the second thumb cannot cross the first.`,
+  },
+  disabled: {
+    title: `Disabled`,
+    description: `disabled ignores pointer + keyboard input; the wrapper is dimmed via opacity-60.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Slider> wraps Radix Slider with the shadcn track / thumb styling. The library renders one thumb per entry in value / defaultValue — pass a two-entry array for a range slider.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `onValueChange fires while dragging; onValueCommit fires once when the drag ends.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Single thumb`,
-        description: `Standard 0-100 slider with a single thumb. value is always a number[].`
-    },
-    range: {
+        description: `Controlled single-thumb slider.`,
+      },
+      range: {
         title: `Range (two thumbs)`,
-        description: `Pass a two-entry array to get a range slider; the second thumb cannot cross the first.`
-    },
-    disabled: {
+        description: `Controlled range slider.`,
+      },
+      disabled: {
         title: `Disabled`,
-        description: `disabled ignores pointer + keyboard input; the wrapper is dimmed via opacity-60.`
+        description: `Inactive slider.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Slider> wraps Radix Slider with the shadcn track / thumb styling. The library renders one thumb per entry in value / defaultValue — pass a two-entry array for a range slider.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `onValueChange fires while dragging; onValueCommit fires once when the drag ends.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Single thumb`,
-                description: `Controlled single-thumb slider.`
-            },
-            range: {
-                title: `Range (two thumbs)`,
-                description: `Controlled range slider.`
-            },
-            disabled: {
-                title: `Disabled`,
-                description: `Inactive slider.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Slider> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                singleThumbDefault: `Renders a single thumb by default.`,
-                thumbsFromDefaultValue: `Renders one thumb per entry in defaultValue.`,
-                thumbsFromControlledValue: `Renders one thumb per entry in controlled value.`,
-                forwardsMinMax: `Forwards min / max to the underlying slider (aria-valuemin / aria-valuemax).`,
-                defaultRange: `Uses 0-100 as the default range.`,
-                disabledForwards: `disabled forwards onto the thumbs (data-disabled).`,
-                classNameMerge: `Merges a custom className with the base classes.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" the slider direction flips: dragging right decreases the value.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Slider>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Slider> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        singleThumbDefault: `Renders a single thumb by default.`,
+        thumbsFromDefaultValue: `Renders one thumb per entry in defaultValue.`,
+        thumbsFromControlledValue: `Renders one thumb per entry in controlled value.`,
+        forwardsMinMax: `Forwards min / max to the underlying slider (aria-valuemin / aria-valuemax).`,
+        defaultRange: `Uses 0-100 as the default range.`,
+        disabledForwards: `disabled forwards onto the thumbs (data-disabled).`,
+        classNameMerge: `Merges a custom className with the base classes.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the slider direction flips: dragging right decreases the value.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Slider>.`,
+    },
+  },
 };
 
 export const sliderDe: SliderTranslation = {
-    default: {
+  default: {
+    title: `Einzelner Thumb`,
+    description: `Standard 0-100-Slider mit einem Thumb. value ist immer ein number[].`,
+  },
+  range: {
+    title: `Range (zwei Thumbs)`,
+    description: `Ein Zwei-Eintrag-Array für einen Range-Slider; der zweite Thumb kann den ersten nicht kreuzen.`,
+  },
+  disabled: {
+    title: `Deaktiviert`,
+    description: `disabled ignoriert Pointer + Tastatur; der Wrapper wird per opacity-60 abgedimmt.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Slider> kapselt Radix Slider mit dem shadcn-Track/Thumb-Styling. Die Library rendert einen Thumb pro Eintrag in value / defaultValue.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `onValueChange feuert während des Ziehens; onValueCommit feuert einmal beim Loslassen.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Einzelner Thumb`,
-        description: `Standard 0-100-Slider mit einem Thumb. value ist immer ein number[].`
-    },
-    range: {
+        description: `Kontrollierter Single-Thumb-Slider.`,
+      },
+      range: {
         title: `Range (zwei Thumbs)`,
-        description: `Ein Zwei-Eintrag-Array für einen Range-Slider; der zweite Thumb kann den ersten nicht kreuzen.`
-    },
-    disabled: {
+        description: `Kontrollierter Range-Slider.`,
+      },
+      disabled: {
         title: `Deaktiviert`,
-        description: `disabled ignoriert Pointer + Tastatur; der Wrapper wird per opacity-60 abgedimmt.`
+        description: `Inaktiver Slider.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Slider> kapselt Radix Slider mit dem shadcn-Track/Thumb-Styling. Die Library rendert einen Thumb pro Eintrag in value / defaultValue.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `onValueChange feuert während des Ziehens; onValueCommit feuert einmal beim Loslassen.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Einzelner Thumb`,
-                description: `Kontrollierter Single-Thumb-Slider.`
-            },
-            range: {
-                title: `Range (zwei Thumbs)`,
-                description: `Kontrollierter Range-Slider.`
-            },
-            disabled: {
-                title: `Deaktiviert`,
-                description: `Inaktiver Slider.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Slider> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                singleThumbDefault: `Rendert standardmäßig einen einzigen Thumb.`,
-                thumbsFromDefaultValue: `Rendert einen Thumb pro Eintrag in defaultValue.`,
-                thumbsFromControlledValue: `Rendert einen Thumb pro Eintrag im kontrollierten value.`,
-                forwardsMinMax: `Reicht min / max an den darunterliegenden Slider durch (aria-valuemin / aria-valuemax).`,
-                defaultRange: `Verwendet 0-100 als Standardbereich.`,
-                disabledForwards: `disabled wird an die Thumbs durchgereicht (data-disabled).`,
-                classNameMerge: `Merged ein eigenes className mit den Basis-Klassen.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" dreht sich die Slider-Richtung: Ziehen nach rechts senkt den Wert.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Slider> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Slider> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        singleThumbDefault: `Rendert standardmäßig einen einzigen Thumb.`,
+        thumbsFromDefaultValue: `Rendert einen Thumb pro Eintrag in defaultValue.`,
+        thumbsFromControlledValue: `Rendert einen Thumb pro Eintrag im kontrollierten value.`,
+        forwardsMinMax: `Reicht min / max an den darunterliegenden Slider durch (aria-valuemin / aria-valuemax).`,
+        defaultRange: `Verwendet 0-100 als Standardbereich.`,
+        disabledForwards: `disabled wird an die Thumbs durchgereicht (data-disabled).`,
+        classNameMerge: `Merged ein eigenes className mit den Basis-Klassen.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" dreht sich die Slider-Richtung: Ziehen nach rechts senkt den Wert.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Slider> akzeptiert.`,
+    },
+  },
 };

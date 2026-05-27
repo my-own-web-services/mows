@@ -12,181 +12,181 @@
  */
 
 export interface FileIconTranslation {
-    default: { title: string; description: string };
-    sizes: { title: string; description: string };
-    fallback: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            sizes: { title: string; description: string };
-            fallback: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                resolvesAll: string;
-                extension: string;
-                exactName: string;
-                defaultFallback: string;
-                sizeForwarded: string;
-                rerendersOnFileName: string;
-                lucideFallback: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  sizes: { title: string; description: string };
+  fallback: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      sizes: { title: string; description: string };
+      fallback: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        resolvesAll: string;
+        extension: string;
+        exactName: string;
+        defaultFallback: string;
+        sizeForwarded: string;
+        rerendersOnFileName: string;
+        lucideFallback: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const fileIconEn: FileIconTranslation = {
-    default: {
+  default: {
+    title: `Common file types`,
+    description: `Resolves a filename to a Material file icon. Lookup tries exact file-name matches first (e.g. Dockerfile, .gitignore), then file extensions, then falls back to a generic file icon.`,
+  },
+  sizes: {
+    title: `Sizes`,
+    description: `The same icon at several pixel sizes. The size prop sets both width and height; the underlying SVG scales without quality loss.`,
+  },
+  fallback: {
+    title: `Unknown extensions`,
+    description: `When upstream finds no specific match, it returns the generic file icon. Only if the SVG itself fails to load does FileIcon fall back further to a lucide File glyph.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Import <FileIcon> from the package and pass a fileName. The component resolves the matching Material icon and falls back gracefully when nothing matches.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<FileIcon> bundles the full 1109-icon set as Vite assets so consumers don't need to mirror SVGs in their own public/. The resolved <img> can be swapped for a lucide File glyph if the SVG itself fails to load.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Common file types`,
-        description: `Resolves a filename to a Material file icon. Lookup tries exact file-name matches first (e.g. Dockerfile, .gitignore), then file extensions, then falls back to a generic file icon.`
-    },
-    sizes: {
+        description: `A grid of recognisable extensions and exact-name matches.`,
+      },
+      sizes: {
         title: `Sizes`,
-        description: `The same icon at several pixel sizes. The size prop sets both width and height; the underlying SVG scales without quality loss.`
-    },
-    fallback: {
+        description: `Same icon at several pixel sizes.`,
+      },
+      fallback: {
         title: `Unknown extensions`,
-        description: `When upstream finds no specific match, it returns the generic file icon. Only if the SVG itself fails to load does FileIcon fall back further to a lucide File glyph.`
+        description: `What happens when no match is found.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Import <FileIcon> from the package and pass a fileName. The component resolves the matching Material icon and falls back gracefully when nothing matches.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<FileIcon> bundles the full 1109-icon set as Vite assets so consumers don't need to mirror SVGs in their own public/. The resolved <img> can be swapped for a lucide File glyph if the SVG itself fails to load.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Common file types`,
-                description: `A grid of recognisable extensions and exact-name matches.`
-            },
-            sizes: {
-                title: `Sizes`,
-                description: `Same icon at several pixel sizes.`
-            },
-            fallback: {
-                title: `Unknown extensions`,
-                description: `What happens when no match is found.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <FileIcon> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                resolvesAll: `Resolves extensions, exact names, and the default fallback in priority order.`,
-                extension: `A file extension alone resolves to the matching icon.`,
-                exactName: `An exact file-name match wins over the extension.`,
-                defaultFallback: `Unknown extensions render the default file icon.`,
-                sizeForwarded: `The size prop forwards to width + height on the rendered <img>.`,
-                rerendersOnFileName: `Changing the fileName prop re-resolves to the new icon.`,
-                lucideFallback: `If the SVG itself fails to load, the lucide File fallback is shown.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `The icon is a square <img> — its visual orientation is direction-agnostic. Wrapping in dir="rtl" leaves the icon unchanged.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <FileIcon>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <FileIcon> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        resolvesAll: `Resolves extensions, exact names, and the default fallback in priority order.`,
+        extension: `A file extension alone resolves to the matching icon.`,
+        exactName: `An exact file-name match wins over the extension.`,
+        defaultFallback: `Unknown extensions render the default file icon.`,
+        sizeForwarded: `The size prop forwards to width + height on the rendered <img>.`,
+        rerendersOnFileName: `Changing the fileName prop re-resolves to the new icon.`,
+        lucideFallback: `If the SVG itself fails to load, the lucide File fallback is shown.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `The icon is a square <img> — its visual orientation is direction-agnostic. Wrapping in dir="rtl" leaves the icon unchanged.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <FileIcon>.`,
+    },
+  },
 };
 
 export const fileIconDe: FileIconTranslation = {
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Importiere <FileIcon> aus dem Paket und übergib einen fileName. Die Komponente löst das passende Material-Icon auf und greift bei fehlender Übereinstimmung sanft auf einen Fallback zurück.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<FileIcon> bündelt das vollständige 1109-Icon-Set als Vite-Assets, sodass Konsumenten die SVGs nicht in ihrem eigenen public/ spiegeln müssen. Schlägt das Laden des SVGs selbst fehl, wird auf ein lucide-File-Glyph zurückgegriffen.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Gängige Dateitypen`,
-                description: `Ein Raster bekannter Endungen und exakter Namenstreffer.`
-            },
-            sizes: {
-                title: `Größen`,
-                description: `Dasselbe Icon in verschiedenen Pixelgrößen.`
-            },
-            fallback: {
-                title: `Unbekannte Endungen`,
-                description: `Was passiert, wenn kein Treffer gefunden wird.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <FileIcon> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                resolvesAll: `Löst Endungen, exakte Namen und den Default-Fallback in Prioritätsreihenfolge auf.`,
-                extension: `Eine Dateiendung allein löst zum passenden Icon auf.`,
-                exactName: `Ein exakter Dateinamens-Treffer gewinnt gegen die Endung.`,
-                defaultFallback: `Unbekannte Endungen rendern das Default-File-Icon.`,
-                sizeForwarded: `Die size-Prop wird an width + height des gerenderten <img> weitergereicht.`,
-                rerendersOnFileName: `Eine Änderung des fileName-Props löst zu einem neuen Icon auf.`,
-                lucideFallback: `Schlägt das Laden des SVGs fehl, wird der lucide-File-Fallback angezeigt.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Das Icon ist ein quadratisches <img> — seine visuelle Ausrichtung ist richtungsneutral. Ein umgebendes dir="rtl" lässt das Icon unverändert.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <FileIcon> akzeptiert.`
-        }
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
     },
-    default: {
+    usage: {
+      title: `Verwendung`,
+      body: `Importiere <FileIcon> aus dem Paket und übergib einen fileName. Die Komponente löst das passende Material-Icon auf und greift bei fehlender Übereinstimmung sanft auf einen Fallback zurück.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<FileIcon> bündelt das vollständige 1109-Icon-Set als Vite-Assets, sodass Konsumenten die SVGs nicht in ihrem eigenen public/ spiegeln müssen. Schlägt das Laden des SVGs selbst fehl, wird auf ein lucide-File-Glyph zurückgegriffen.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Gängige Dateitypen`,
-        description: `Wählt anhand des Dateinamens das passende Material-Datei-Icon. Zuerst wird nach exaktem Dateinamen gesucht (z. B. Dockerfile, .gitignore), dann nach Dateiendung; sonst greift das generische Datei-Icon.`
-    },
-    sizes: {
+        description: `Ein Raster bekannter Endungen und exakter Namenstreffer.`,
+      },
+      sizes: {
         title: `Größen`,
-        description: `Dasselbe Icon in mehreren Pixelgrößen. Die size-Property bestimmt Breite und Höhe; das SVG skaliert ohne Qualitätsverlust.`
-    },
-    fallback: {
+        description: `Dasselbe Icon in verschiedenen Pixelgrößen.`,
+      },
+      fallback: {
         title: `Unbekannte Endungen`,
-        description: `Findet der Upstream-Resolver keine spezifische Zuordnung, liefert er das generische File-Icon zurück. Nur wenn auch das SVG selbst nicht laden kann, zeigt FileIcon zusätzlich das lucide-File-Glyph als Fallback.`
-    }
+        description: `Was passiert, wenn kein Treffer gefunden wird.`,
+      },
+    },
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <FileIcon> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        resolvesAll: `Löst Endungen, exakte Namen und den Default-Fallback in Prioritätsreihenfolge auf.`,
+        extension: `Eine Dateiendung allein löst zum passenden Icon auf.`,
+        exactName: `Ein exakter Dateinamens-Treffer gewinnt gegen die Endung.`,
+        defaultFallback: `Unbekannte Endungen rendern das Default-File-Icon.`,
+        sizeForwarded: `Die size-Prop wird an width + height des gerenderten <img> weitergereicht.`,
+        rerendersOnFileName: `Eine Änderung des fileName-Props löst zu einem neuen Icon auf.`,
+        lucideFallback: `Schlägt das Laden des SVGs fehl, wird der lucide-File-Fallback angezeigt.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Das Icon ist ein quadratisches <img> — seine visuelle Ausrichtung ist richtungsneutral. Ein umgebendes dir="rtl" lässt das Icon unverändert.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <FileIcon> akzeptiert.`,
+    },
+  },
+  default: {
+    title: `Gängige Dateitypen`,
+    description: `Wählt anhand des Dateinamens das passende Material-Datei-Icon. Zuerst wird nach exaktem Dateinamen gesucht (z. B. Dockerfile, .gitignore), dann nach Dateiendung; sonst greift das generische Datei-Icon.`,
+  },
+  sizes: {
+    title: `Größen`,
+    description: `Dasselbe Icon in mehreren Pixelgrößen. Die size-Property bestimmt Breite und Höhe; das SVG skaliert ohne Qualitätsverlust.`,
+  },
+  fallback: {
+    title: `Unbekannte Endungen`,
+    description: `Findet der Upstream-Resolver keine spezifische Zuordnung, liefert er das generische File-Icon zurück. Nur wenn auch das SVG selbst nicht laden kann, zeigt FileIcon zusätzlich das lucide-File-Glyph als Fallback.`,
+  },
 };

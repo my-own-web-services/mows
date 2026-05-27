@@ -12,206 +12,262 @@
  */
 
 export interface ColorCurvesTranslation {
-    photo: { title: string; description: string };
-    standalone: { title: string; description: string };
-    photoLabels: {
-        channelHint: string;
-        addPointHint: string;
-        deletePointHint: string;
-        keyboardHint: string;
-        loading: string;
-        photoLabel: string;
-        byLabel: string;
+  photo: { title: string; description: string };
+  standalone: { title: string; description: string };
+  photoLabels: {
+    channelHint: string;
+    addPointHint: string;
+    deletePointHint: string;
+    keyboardHint: string;
+    loading: string;
+    photoLabel: string;
+    byLabel: string;
+  };
+  componentStrings: {
+    channelRgb: string;
+    channelRed: string;
+    channelGreen: string;
+    channelBlue: string;
+    resetChannel: string;
+    resetAll: string;
+    editorAriaLabel: string;
+  };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
-    componentStrings: {
-        channelRgb: string;
-        channelRed: string;
-        channelGreen: string;
-        channelBlue: string;
-        resetChannel: string;
-        resetAll: string;
-        editorAriaLabel: string;
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      photo: { title: string; description: string };
+      standalone: { title: string; description: string };
     };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            photo: { title: string; description: string };
-            standalone: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersSurface: string;
-                rendersChannelButtons: string;
-                channelClickSwitches: string;
-                resetChannelRestoresIdentity: string;
-                resetAllRestoresIdentity: string;
-                clickAddsPoint: string;
-                deleteRemovesPoint: string;
-                disabledPreventsInput: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: {
-            title: string;
-            intro: string;
-            props: {
-                value: string;
-                onChange: string;
-                channel: string;
-                onChannelChange: string;
-                histogram: string;
-                showHistogram: string;
-                size: string;
-                disabled: string;
-                hideResetAll: string;
-                strings: string;
-                ariaLabel: string;
-            };
-        };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersSurface: string;
+        rendersChannelButtons: string;
+        channelClickSwitches: string;
+        resetChannelRestoresIdentity: string;
+        resetAllRestoresIdentity: string;
+        clickAddsPoint: string;
+        deleteRemovesPoint: string;
+        disabledPreventsInput: string;
+      };
     };
+    rtl: { title: string; body: string };
+    apiReference: {
+      title: string;
+      intro: string;
+      props: {
+        value: string;
+        onChange: string;
+        channel: string;
+        onChannelChange: string;
+        histogram: string;
+        showHistogram: string;
+        size: string;
+        disabled: string;
+        hideResetAll: string;
+        strings: string;
+        ariaLabel: string;
+      };
+    };
+  };
 }
 
 export const colorCurvesEn: ColorCurvesTranslation = {
-    photo: {
+  photo: {
+    title: `Photo curves`,
+    description: `Lightroom-style tonal curves applied to a real photo. The histogram backdrop is computed from the source pixels; drag the points to recolour, drag any non-endpoint off the surface to delete it.`,
+  },
+  standalone: {
+    title: `Standalone editor`,
+    description: `The editor without a connected canvas — useful when the curves are saved as a preset or sent to a server-side image pipeline.`,
+  },
+  photoLabels: {
+    channelHint: `Tabs above switch the active channel: composite RGB, then R / G / B.`,
+    addPointHint: `Click on the surface to add a control point.`,
+    deletePointHint: `Drag a non-endpoint point off the surface, or focus it and press Delete, to remove.`,
+    keyboardHint: `Focus a point and use arrow keys (Shift = coarse) for keyboard control.`,
+    loading: `Loading photo…`,
+    photoLabel: `Photo:`,
+    byLabel: `by`,
+  },
+  componentStrings: {
+    channelRgb: `RGB`,
+    channelRed: `R`,
+    channelGreen: `G`,
+    channelBlue: `B`,
+    resetChannel: `Reset channel`,
+    resetAll: `Reset all`,
+    editorAriaLabel: `Color curves editor`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<ColorCurves> is a controlled, channel-aware tonal-curve editor. It emits a per-channel array of control points; feed the result through applyColorCurvesToImageData() against a canvas to actually transform pixels.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Pair <ColorCurves> with a <canvas> for live grading: compute a histogram from the source ImageData with computeColorCurvesHistogram(), then re-apply the curves on every change. The math (buildCurveLUT, sampleCurve) is exported for server-side or offline use.`,
+    },
+    examples: {
+      title: `Examples`,
+      photo: {
         title: `Photo curves`,
-        description: `Lightroom-style tonal curves applied to a real photo. The histogram backdrop is computed from the source pixels; drag the points to recolour, drag any non-endpoint off the surface to delete it.`
-    },
-    standalone: {
+        description: `Real photo + live histogram + 4 channels.`,
+      },
+      standalone: {
         title: `Standalone editor`,
-        description: `The editor without a connected canvas — useful when the curves are saved as a preset or sent to a server-side image pipeline.`
+        description: `Editor only, no canvas wiring.`,
+      },
     },
-    photoLabels: {
-        channelHint: `Tabs above switch the active channel: composite RGB, then R / G / B.`,
-        addPointHint: `Click on the surface to add a control point.`,
-        deletePointHint: `Drag a non-endpoint point off the surface, or focus it and press Delete, to remove.`,
-        keyboardHint: `Focus a point and use arrow keys (Shift = coarse) for keyboard control.`,
-        loading: `Loading photo…`,
-        photoLabel: `Photo:`,
-        byLabel: `by`
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <ColorCurves> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersSurface: `Renders the SVG curve editing surface.`,
+        rendersChannelButtons: `Renders one channel tab per RGB/R/G/B channel.`,
+        channelClickSwitches: `Clicking a channel tab switches the active channel.`,
+        resetChannelRestoresIdentity: `Reset channel button restores the active channel to the identity curve.`,
+        resetAllRestoresIdentity: `Reset all button restores every channel to the identity curve.`,
+        clickAddsPoint: `Clicking empty space on the surface adds a control point.`,
+        deleteRemovesPoint: `Pressing Delete on a focused non-endpoint point removes it.`,
+        disabledPreventsInput: `disabled prop hides pointer interaction and disables the action buttons.`,
+      },
     },
-    componentStrings: {
-        channelRgb: `RGB`,
-        channelRed: `R`,
-        channelGreen: `G`,
-        channelBlue: `B`,
-        resetChannel: `Reset channel`,
-        resetAll: `Reset all`,
-        editorAriaLabel: `Color curves editor`
+    rtl: {
+      title: `RTL`,
+      body: `The editor is direction-agnostic — the x-axis is always input-low → input-high regardless of writing direction. Surrounding text in the controls flips under dir="rtl".`,
     },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `<ColorCurves> is a controlled, channel-aware tonal-curve editor. It emits a per-channel array of control points; feed the result through applyColorCurvesToImageData() against a canvas to actually transform pixels.` },
-        composition: { title: `Composition`, body: `Pair <ColorCurves> with a <canvas> for live grading: compute a histogram from the source ImageData with computeColorCurvesHistogram(), then re-apply the curves on every change. The math (buildCurveLUT, sampleCurve) is exported for server-side or offline use.` },
-        examples: { title: `Examples`, photo: { title: `Photo curves`, description: `Real photo + live histogram + 4 channels.` }, standalone: { title: `Standalone editor`, description: `Editor only, no canvas wiring.` } },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <ColorCurves> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                rendersSurface: `Renders the SVG curve editing surface.`,
-                rendersChannelButtons: `Renders one channel tab per RGB/R/G/B channel.`,
-                channelClickSwitches: `Clicking a channel tab switches the active channel.`,
-                resetChannelRestoresIdentity: `Reset channel button restores the active channel to the identity curve.`,
-                resetAllRestoresIdentity: `Reset all button restores every channel to the identity curve.`,
-                clickAddsPoint: `Clicking empty space on the surface adds a control point.`,
-                deleteRemovesPoint: `Pressing Delete on a focused non-endpoint point removes it.`,
-                disabledPreventsInput: `disabled prop hides pointer interaction and disables the action buttons.`
-            }
-        },
-        rtl: { title: `RTL`, body: `The editor is direction-agnostic — the x-axis is always input-low → input-high regardless of writing direction. Surrounding text in the controls flips under dir="rtl".` },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <ColorCurves>.`,
-            props: {
-                value: `Required. One curve per channel — each curve is an ordered list of { x, y } control points with coordinates in [0, 1].`,
-                onChange: `Required. Fires with the next value after every edit, add, delete, or reset.`,
-                channel: `Externally-controlled active channel. Omit to let the component own the selection internally.`,
-                onChannelChange: `Fires when the user picks a channel tab.`,
-                histogram: `Optional 256-bin histogram drawn behind the curve. Build one from a canvas via computeColorCurvesHistogram(imageData).`,
-                showHistogram: `Toggle the histogram backdrop. Has no effect if no histogram is supplied.`,
-                size: `Edge length of the square graphing surface, in SVG viewBox units.`,
-                disabled: `Disable pointer interaction, focus, and the action buttons.`,
-                hideResetAll: `Hide the "Reset all" button if only per-channel resets are wanted.`,
-                strings: `Translated labels for the channel tabs, reset buttons, and ARIA strings. Falls back to English defaults for any key you omit.`,
-                ariaLabel: `Accessible label for the editor container.`
-            }
-        }
-    }
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <ColorCurves>.`,
+      props: {
+        value: `Required. One curve per channel — each curve is an ordered list of { x, y } control points with coordinates in [0, 1].`,
+        onChange: `Required. Fires with the next value after every edit, add, delete, or reset.`,
+        channel: `Externally-controlled active channel. Omit to let the component own the selection internally.`,
+        onChannelChange: `Fires when the user picks a channel tab.`,
+        histogram: `Optional 256-bin histogram drawn behind the curve. Build one from a canvas via computeColorCurvesHistogram(imageData).`,
+        showHistogram: `Toggle the histogram backdrop. Has no effect if no histogram is supplied.`,
+        size: `Edge length of the square graphing surface, in SVG viewBox units.`,
+        disabled: `Disable pointer interaction, focus, and the action buttons.`,
+        hideResetAll: `Hide the "Reset all" button if only per-channel resets are wanted.`,
+        strings: `Translated labels for the channel tabs, reset buttons, and ARIA strings. Falls back to English defaults for any key you omit.`,
+        ariaLabel: `Accessible label for the editor container.`,
+      },
+    },
+  },
 };
 
 export const colorCurvesDe: ColorCurvesTranslation = {
-    photo: {
+  photo: {
+    title: `Foto-Kurven`,
+    description: `Lightroom-artige Tonwertkurven auf ein echtes Foto angewendet. Die Histogramm-Backdrop wird aus den Pixeln berechnet; Punkte ziehen zum Umfärben, Nicht-Endpunkte zum Löschen aus der Fläche schieben.`,
+  },
+  standalone: {
+    title: `Editor alleinstehend`,
+    description: `Der Editor ohne angeschlossenes Canvas — nützlich, wenn die Kurven als Preset gespeichert oder an eine serverseitige Pipeline geschickt werden.`,
+  },
+  photoLabels: {
+    channelHint: `Die Tabs oben wechseln den aktiven Kanal: zusammengesetzt RGB, dann R / G / B.`,
+    addPointHint: `Klicke auf die Fläche, um einen Kontrollpunkt hinzuzufügen.`,
+    deletePointHint: `Ziehe einen Nicht-Endpunkt aus der Fläche oder fokussiere ihn und drücke Entf, um ihn zu entfernen.`,
+    keyboardHint: `Punkt fokussieren und mit Pfeiltasten verschieben (Shift = grob).`,
+    loading: `Foto wird geladen…`,
+    photoLabel: `Foto:`,
+    byLabel: `von`,
+  },
+  componentStrings: {
+    channelRgb: `RGB`,
+    channelRed: `R`,
+    channelGreen: `G`,
+    channelBlue: `B`,
+    resetChannel: `Kanal zurücksetzen`,
+    resetAll: `Alle zurücksetzen`,
+    editorAriaLabel: `Farbkurven-Editor`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<ColorCurves> ist ein kontrollierter, kanalbasierter Tonwertkurven-Editor. Er liefert pro Kanal ein Array von Kontrollpunkten; das Ergebnis durch applyColorCurvesToImageData() gegen ein Canvas schicken, um Pixel zu transformieren.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<ColorCurves> mit einem <canvas> kombinieren für Live-Grading: Histogramm aus der ImageData mit computeColorCurvesHistogram() berechnen und Kurven bei jedem Change neu anwenden. Die Mathematik (buildCurveLUT, sampleCurve) ist für serverseitigen Einsatz exportiert.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      photo: {
         title: `Foto-Kurven`,
-        description: `Lightroom-artige Tonwertkurven auf ein echtes Foto angewendet. Die Histogramm-Backdrop wird aus den Pixeln berechnet; Punkte ziehen zum Umfärben, Nicht-Endpunkte zum Löschen aus der Fläche schieben.`
-    },
-    standalone: {
+        description: `Echtes Foto + Live-Histogramm + 4 Kanäle.`,
+      },
+      standalone: {
         title: `Editor alleinstehend`,
-        description: `Der Editor ohne angeschlossenes Canvas — nützlich, wenn die Kurven als Preset gespeichert oder an eine serverseitige Pipeline geschickt werden.`
+        description: `Nur Editor, ohne Canvas-Anbindung.`,
+      },
     },
-    photoLabels: {
-        channelHint: `Die Tabs oben wechseln den aktiven Kanal: zusammengesetzt RGB, dann R / G / B.`,
-        addPointHint: `Klicke auf die Fläche, um einen Kontrollpunkt hinzuzufügen.`,
-        deletePointHint: `Ziehe einen Nicht-Endpunkt aus der Fläche oder fokussiere ihn und drücke Entf, um ihn zu entfernen.`,
-        keyboardHint: `Punkt fokussieren und mit Pfeiltasten verschieben (Shift = grob).`,
-        loading: `Foto wird geladen…`,
-        photoLabel: `Foto:`,
-        byLabel: `von`
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <ColorCurves> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        rendersSurface: `Rendert die SVG-Fläche zur Kurvenbearbeitung.`,
+        rendersChannelButtons: `Rendert einen Kanal-Tab pro RGB/R/G/B-Kanal.`,
+        channelClickSwitches: `Klick auf einen Kanal-Tab wechselt den aktiven Kanal.`,
+        resetChannelRestoresIdentity: `Kanal zurücksetzen stellt den aktiven Kanal auf die Identitätskurve zurück.`,
+        resetAllRestoresIdentity: `Alle zurücksetzen stellt jeden Kanal auf die Identitätskurve zurück.`,
+        clickAddsPoint: `Klick auf leere Fläche fügt einen Kontrollpunkt hinzu.`,
+        deleteRemovesPoint: `Entf-Taste auf einem fokussierten Nicht-Endpunkt entfernt diesen.`,
+        disabledPreventsInput: `disabled-Prop versteckt Pointer-Interaktion und deaktiviert die Action-Buttons.`,
+      },
     },
-    componentStrings: {
-        channelRgb: `RGB`,
-        channelRed: `R`,
-        channelGreen: `G`,
-        channelBlue: `B`,
-        resetChannel: `Kanal zurücksetzen`,
-        resetAll: `Alle zurücksetzen`,
-        editorAriaLabel: `Farbkurven-Editor`
+    rtl: {
+      title: `RTL`,
+      body: `Der Editor ist richtungsneutral — die x-Achse ist immer input-low → input-high. Texte in den Controls drehen sich unter dir="rtl".`,
     },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Importpfade an dein Projekt an.` },
-        usage: { title: `Verwendung`, body: `<ColorCurves> ist ein kontrollierter, kanalbasierter Tonwertkurven-Editor. Er liefert pro Kanal ein Array von Kontrollpunkten; das Ergebnis durch applyColorCurvesToImageData() gegen ein Canvas schicken, um Pixel zu transformieren.` },
-        composition: { title: `Komposition`, body: `<ColorCurves> mit einem <canvas> kombinieren für Live-Grading: Histogramm aus der ImageData mit computeColorCurvesHistogram() berechnen und Kurven bei jedem Change neu anwenden. Die Mathematik (buildCurveLUT, sampleCurve) ist für serverseitigen Einsatz exportiert.` },
-        examples: { title: `Beispiele`, photo: { title: `Foto-Kurven`, description: `Echtes Foto + Live-Histogramm + 4 Kanäle.` }, standalone: { title: `Editor alleinstehend`, description: `Nur Editor, ohne Canvas-Anbindung.` } },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`, intro: `Aussagen darüber, wie sich <ColorCurves> verhalten soll, jeweils mit Verweis auf den Test.`, verifiedBy: `geprüft durch`,
-            statements: {
-                rendersSurface: `Rendert die SVG-Fläche zur Kurvenbearbeitung.`,
-                rendersChannelButtons: `Rendert einen Kanal-Tab pro RGB/R/G/B-Kanal.`,
-                channelClickSwitches: `Klick auf einen Kanal-Tab wechselt den aktiven Kanal.`,
-                resetChannelRestoresIdentity: `Kanal zurücksetzen stellt den aktiven Kanal auf die Identitätskurve zurück.`,
-                resetAllRestoresIdentity: `Alle zurücksetzen stellt jeden Kanal auf die Identitätskurve zurück.`,
-                clickAddsPoint: `Klick auf leere Fläche fügt einen Kontrollpunkt hinzu.`,
-                deleteRemovesPoint: `Entf-Taste auf einem fokussierten Nicht-Endpunkt entfernt diesen.`,
-                disabledPreventsInput: `disabled-Prop versteckt Pointer-Interaktion und deaktiviert die Action-Buttons.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Der Editor ist richtungsneutral — die x-Achse ist immer input-low → input-high. Texte in den Controls drehen sich unter dir="rtl".` },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <ColorCurves> akzeptiert.`,
-            props: {
-                value: `Pflicht. Eine Kurve pro Kanal — jede Kurve ist eine geordnete Liste von { x, y }-Kontrollpunkten mit Koordinaten in [0, 1].`,
-                onChange: `Pflicht. Wird mit dem neuen Wert nach jeder Bearbeitung, jedem Hinzufügen, Löschen oder Zurücksetzen aufgerufen.`,
-                channel: `Extern gesteuerter aktiver Kanal. Wenn weggelassen, verwaltet die Komponente die Auswahl intern.`,
-                onChannelChange: `Wird ausgelöst, wenn ein Kanal-Tab ausgewählt wird.`,
-                histogram: `Optionales Histogramm mit 256 Bins, das hinter der Kurve gezeichnet wird. Mit computeColorCurvesHistogram(imageData) aus einem Canvas erzeugen.`,
-                showHistogram: `Schaltet das Histogramm im Hintergrund ein/aus. Wirkt nur, wenn ein Histogramm übergeben wurde.`,
-                size: `Kantenlänge der quadratischen Zeichenfläche in SVG-viewBox-Einheiten.`,
-                disabled: `Deaktiviert Pointer-Interaktion, Fokus und die Action-Buttons.`,
-                hideResetAll: `Versteckt den „Alle zurücksetzen"-Button, wenn nur pro Kanal zurückgesetzt werden soll.`,
-                strings: `Übersetzte Beschriftungen für die Kanal-Tabs, Reset-Buttons und ARIA-Strings. Fehlende Schlüssel fallen auf die englischen Defaults zurück.`,
-                ariaLabel: `Zugängliche Beschriftung für den Editor-Container.`
-            }
-        }
-    }
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <ColorCurves> akzeptiert.`,
+      props: {
+        value: `Pflicht. Eine Kurve pro Kanal — jede Kurve ist eine geordnete Liste von { x, y }-Kontrollpunkten mit Koordinaten in [0, 1].`,
+        onChange: `Pflicht. Wird mit dem neuen Wert nach jeder Bearbeitung, jedem Hinzufügen, Löschen oder Zurücksetzen aufgerufen.`,
+        channel: `Extern gesteuerter aktiver Kanal. Wenn weggelassen, verwaltet die Komponente die Auswahl intern.`,
+        onChannelChange: `Wird ausgelöst, wenn ein Kanal-Tab ausgewählt wird.`,
+        histogram: `Optionales Histogramm mit 256 Bins, das hinter der Kurve gezeichnet wird. Mit computeColorCurvesHistogram(imageData) aus einem Canvas erzeugen.`,
+        showHistogram: `Schaltet das Histogramm im Hintergrund ein/aus. Wirkt nur, wenn ein Histogramm übergeben wurde.`,
+        size: `Kantenlänge der quadratischen Zeichenfläche in SVG-viewBox-Einheiten.`,
+        disabled: `Deaktiviert Pointer-Interaktion, Fokus und die Action-Buttons.`,
+        hideResetAll: `Versteckt den „Alle zurücksetzen"-Button, wenn nur pro Kanal zurückgesetzt werden soll.`,
+        strings: `Übersetzte Beschriftungen für die Kanal-Tabs, Reset-Buttons und ARIA-Strings. Fehlende Schlüssel fallen auf die englischen Defaults zurück.`,
+        ariaLabel: `Zugängliche Beschriftung für den Editor-Container.`,
+      },
+    },
+  },
 };

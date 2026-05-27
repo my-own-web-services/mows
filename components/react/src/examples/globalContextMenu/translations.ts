@@ -12,178 +12,178 @@
  */
 
 export interface GlobalContextMenuTranslation {
-    default: { title: string; description: string };
-    submenus: { title: string; description: string };
-    modifierVariants: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            submenus: { title: string; description: string };
-            modifierVariants: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                positionsAtCursor: string;
-                sideOffsetZero: string;
-                suppressesNativeOnlyWhenMatched: string;
-                doesNotSuppressWhenScopeEmpty: string;
-                clickItemDispatches: string;
-                updatesOnSecondClick: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  submenus: { title: string; description: string };
+  modifierVariants: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      submenus: { title: string; description: string };
+      modifierVariants: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        positionsAtCursor: string;
+        sideOffsetZero: string;
+        suppressesNativeOnlyWhenMatched: string;
+        doesNotSuppressWhenScopeEmpty: string;
+        clickItemDispatches: string;
+        updatesOnSecondClick: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const globalContextMenuEn: GlobalContextMenuTranslation = {
-    default: {
+  default: {
+    title: `Right-click target`,
+    description: `A bordered drop zone whose data-actionscope is wired to the GlobalContextMenu. Right-click inside the box to open the menu at the cursor.`,
+  },
+  submenus: {
+    title: `Submenus`,
+    description: `An ActionHandler whose children() returns more actions renders as a submenu. No special menu primitive in your call site — declare data, the menu picks DropdownMenuSub automatically.`,
+  },
+  modifierVariants: {
+    title: `Modifier-key variants`,
+    description: `An action can declare variants keyed by held modifiers. Holding Shift live-morphs the label from "Move to bin" to "Delete permanently"; a Shift-held click skips the confirm. The executed branch is re-resolved from event.shiftKey, so releasing Shift before the click safely reverts to the default.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `Mount <GlobalContextMenu> once inside <MowsProvider>. Any descendant element carrying data-actionscope="<scope>" intercepts the native context menu and opens the menu at the cursor with the actions registered for that scope.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `<GlobalContextMenu> walks up the DOM from the right-click target looking for the nearest [data-actionscope], asks the <ActionManager> for matching actions, and renders them through <DropdownMenu>.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Right-click target`,
-        description: `A bordered drop zone whose data-actionscope is wired to the GlobalContextMenu. Right-click inside the box to open the menu at the cursor.`
-    },
-    submenus: {
+        description: `The dashed area below carries data-actionscope; right-click inside it.`,
+      },
+      submenus: {
         title: `Submenus`,
-        description: `An ActionHandler whose children() returns more actions renders as a submenu. No special menu primitive in your call site — declare data, the menu picks DropdownMenuSub automatically.`
-    },
-    modifierVariants: {
+        description: `Right-click — "Share" opens into Copy link / Email / Slack via an ActionHandler.children resolver.`,
+      },
+      modifierVariants: {
         title: `Modifier-key variants`,
-        description: `An action can declare variants keyed by held modifiers. Holding Shift live-morphs the label from "Move to bin" to "Delete permanently"; a Shift-held click skips the confirm. The executed branch is re-resolved from event.shiftKey, so releasing Shift before the click safely reverts to the default.`
+        description: `Right-click on the target, then hold Shift to switch the affordance from "Move to bin" to "Delete permanently". The State tab below records which branch ran.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `Mount <GlobalContextMenu> once inside <MowsProvider>. Any descendant element carrying data-actionscope="<scope>" intercepts the native context menu and opens the menu at the cursor with the actions registered for that scope.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `<GlobalContextMenu> walks up the DOM from the right-click target looking for the nearest [data-actionscope], asks the <ActionManager> for matching actions, and renders them through <DropdownMenu>.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Right-click target`,
-                description: `The dashed area below carries data-actionscope; right-click inside it.`
-            },
-            submenus: {
-                title: `Submenus`,
-                description: `Right-click — "Share" opens into Copy link / Email / Slack via an ActionHandler.children resolver.`
-            },
-            modifierVariants: {
-                title: `Modifier-key variants`,
-                description: `Right-click on the target, then hold Shift to switch the affordance from "Move to bin" to "Delete permanently". The State tab below records which branch ran.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <GlobalContextMenu> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                positionsAtCursor: `Positions the trigger wrapper at the exact cursor coordinates so the menu opens under the click.`,
-                sideOffsetZero: `Opens with sideOffset=0 so the menu top edge starts at the cursor, not below it.`,
-                suppressesNativeOnlyWhenMatched: `Only suppresses the native context menu when the action scope under the cursor has at least one registered action.`,
-                doesNotSuppressWhenScopeEmpty: `Lets the native context menu through when the scope under the cursor has no actions registered.`,
-                clickItemDispatches: `Selecting a menu entry dispatches the action and prevents the native context menu.`,
-                updatesOnSecondClick: `Updates the cursor position on every subsequent right-click instead of staying anchored to the first one.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `The menu inherits direction from its ancestor; menu entries flip when wrapped in dir="rtl". Cursor anchoring uses viewport coordinates and is direction-agnostic.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <GlobalContextMenu>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <GlobalContextMenu> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        positionsAtCursor: `Positions the trigger wrapper at the exact cursor coordinates so the menu opens under the click.`,
+        sideOffsetZero: `Opens with sideOffset=0 so the menu top edge starts at the cursor, not below it.`,
+        suppressesNativeOnlyWhenMatched: `Only suppresses the native context menu when the action scope under the cursor has at least one registered action.`,
+        doesNotSuppressWhenScopeEmpty: `Lets the native context menu through when the scope under the cursor has no actions registered.`,
+        clickItemDispatches: `Selecting a menu entry dispatches the action and prevents the native context menu.`,
+        updatesOnSecondClick: `Updates the cursor position on every subsequent right-click instead of staying anchored to the first one.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `The menu inherits direction from its ancestor; menu entries flip when wrapped in dir="rtl". Cursor anchoring uses viewport coordinates and is direction-agnostic.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <GlobalContextMenu>.`,
+    },
+  },
 };
 
 export const globalContextMenuDe: GlobalContextMenuTranslation = {
-    default: {
+  default: {
+    title: `Rechtsklick-Ziel`,
+    description: `Eine umrandete Drop-Zone, deren data-actionscope mit dem GlobalContextMenu verbunden ist. Rechtsklick in der Box öffnet das Menü an der Cursorposition.`,
+  },
+  submenus: {
+    title: `Untermenüs`,
+    description: `Gibt der ActionHandler.children() weitere Actions zurück, rendert das Menü ein Untermenü. Am Aufrufer ändert sich nichts — du beschreibst Daten, der Renderer wählt automatisch DropdownMenuSub.`,
+  },
+  modifierVariants: {
+    title: `Modifier-Varianten`,
+    description: `Eine Action kann Varianten anhand gedrückter Modifiertasten deklarieren. Shift gedrückt halten verwandelt „In den Papierkorb verschieben“ live in „Endgültig löschen“; ein Shift-Klick überspringt den Bestätigungsdialog. Der ausgeführte Zweig wird aus event.shiftKey neu aufgelöst — wird Shift vor dem Klick losgelassen, läuft sicher der Standardzweig.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `Mounte <GlobalContextMenu> einmal innerhalb von <MowsProvider>. Jedes Nachkommen-Element mit data-actionscope="<scope>" fängt das native Kontextmenü ab und öffnet stattdessen das Menü an der Cursorposition.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `<GlobalContextMenu> sucht vom Rechtsklick-Ziel im DOM nach dem nächsten [data-actionscope], fragt den <ActionManager> nach passenden Actions und rendert sie über <DropdownMenu>.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Rechtsklick-Ziel`,
-        description: `Eine umrandete Drop-Zone, deren data-actionscope mit dem GlobalContextMenu verbunden ist. Rechtsklick in der Box öffnet das Menü an der Cursorposition.`
-    },
-    submenus: {
+        description: `Die gestrichelte Fläche unten trägt data-actionscope; mache einen Rechtsklick darauf.`,
+      },
+      submenus: {
         title: `Untermenüs`,
-        description: `Gibt der ActionHandler.children() weitere Actions zurück, rendert das Menü ein Untermenü. Am Aufrufer ändert sich nichts — du beschreibst Daten, der Renderer wählt automatisch DropdownMenuSub.`
-    },
-    modifierVariants: {
+        description: `Rechtsklick — „Teilen“ öffnet sich in Link kopieren / E-Mail / Slack über einen ActionHandler.children-Resolver.`,
+      },
+      modifierVariants: {
         title: `Modifier-Varianten`,
-        description: `Eine Action kann Varianten anhand gedrückter Modifiertasten deklarieren. Shift gedrückt halten verwandelt „In den Papierkorb verschieben“ live in „Endgültig löschen“; ein Shift-Klick überspringt den Bestätigungsdialog. Der ausgeführte Zweig wird aus event.shiftKey neu aufgelöst — wird Shift vor dem Klick losgelassen, läuft sicher der Standardzweig.`
+        description: `Rechtsklick auf das Ziel, dann Shift halten, um die Affordance von „In den Papierkorb“ auf „Endgültig löschen“ umzuschalten. Im State-Tab unten wird festgehalten, welcher Zweig lief.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `Mounte <GlobalContextMenu> einmal innerhalb von <MowsProvider>. Jedes Nachkommen-Element mit data-actionscope="<scope>" fängt das native Kontextmenü ab und öffnet stattdessen das Menü an der Cursorposition.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `<GlobalContextMenu> sucht vom Rechtsklick-Ziel im DOM nach dem nächsten [data-actionscope], fragt den <ActionManager> nach passenden Actions und rendert sie über <DropdownMenu>.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Rechtsklick-Ziel`,
-                description: `Die gestrichelte Fläche unten trägt data-actionscope; mache einen Rechtsklick darauf.`
-            },
-            submenus: {
-                title: `Untermenüs`,
-                description: `Rechtsklick — „Teilen“ öffnet sich in Link kopieren / E-Mail / Slack über einen ActionHandler.children-Resolver.`
-            },
-            modifierVariants: {
-                title: `Modifier-Varianten`,
-                description: `Rechtsklick auf das Ziel, dann Shift halten, um die Affordance von „In den Papierkorb“ auf „Endgültig löschen“ umzuschalten. Im State-Tab unten wird festgehalten, welcher Zweig lief.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <GlobalContextMenu> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                positionsAtCursor: `Positioniert den Trigger-Wrapper exakt auf den Cursorkoordinaten, damit das Menü unter dem Klick öffnet.`,
-                sideOffsetZero: `Öffnet mit sideOffset=0, sodass die Menü-Oberkante am Cursor und nicht darunter beginnt.`,
-                suppressesNativeOnlyWhenMatched: `Unterdrückt das native Kontextmenü nur dann, wenn der Action-Scope unter dem Cursor mindestens eine registrierte Action hat.`,
-                doesNotSuppressWhenScopeEmpty: `Lässt das native Kontextmenü durch, wenn der Scope unter dem Cursor keine Actions hat.`,
-                clickItemDispatches: `Beim Auswählen eines Eintrags wird die Action ausgelöst und das native Kontextmenü verhindert.`,
-                updatesOnSecondClick: `Aktualisiert die Cursorposition bei jedem weiteren Rechtsklick, statt am ersten Klick zu kleben.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Das Menü erbt die Schreibrichtung vom Vorfahren; Einträge kippen unter dir="rtl". Die Cursor-Verankerung nutzt Viewport-Koordinaten und ist richtungsneutral.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <GlobalContextMenu> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <GlobalContextMenu> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        positionsAtCursor: `Positioniert den Trigger-Wrapper exakt auf den Cursorkoordinaten, damit das Menü unter dem Klick öffnet.`,
+        sideOffsetZero: `Öffnet mit sideOffset=0, sodass die Menü-Oberkante am Cursor und nicht darunter beginnt.`,
+        suppressesNativeOnlyWhenMatched: `Unterdrückt das native Kontextmenü nur dann, wenn der Action-Scope unter dem Cursor mindestens eine registrierte Action hat.`,
+        doesNotSuppressWhenScopeEmpty: `Lässt das native Kontextmenü durch, wenn der Scope unter dem Cursor keine Actions hat.`,
+        clickItemDispatches: `Beim Auswählen eines Eintrags wird die Action ausgelöst und das native Kontextmenü verhindert.`,
+        updatesOnSecondClick: `Aktualisiert die Cursorposition bei jedem weiteren Rechtsklick, statt am ersten Klick zu kleben.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Das Menü erbt die Schreibrichtung vom Vorfahren; Einträge kippen unter dir="rtl". Die Cursor-Verankerung nutzt Viewport-Koordinaten und ist richtungsneutral.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <GlobalContextMenu> akzeptiert.`,
+    },
+  },
 };

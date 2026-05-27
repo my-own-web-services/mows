@@ -12,145 +12,199 @@
  */
 
 export interface Image360ViewerTranslation {
-    default: { title: string; description: string };
-    switchImages: { title: string; description: string };
-    compassOverlay: { title: string; description: string };
-    virtualTour: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            switchImages: { title: string; description: string };
-            compassOverlay: { title: string; description: string };
-            virtualTour: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                mountsViewer: string;
-                subscribesPosition: string;
-                noLoadingIndicator: string;
-                hardCutSwitch: string;
-                crossfadeOptIn: string;
-                forwardsClassName: string;
-                forwardsStyle: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  switchImages: { title: string; description: string };
+  compassOverlay: { title: string; description: string };
+  virtualTour: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      switchImages: { title: string; description: string };
+      compassOverlay: { title: string; description: string };
+      virtualTour: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        mountsViewer: string;
+        subscribesPosition: string;
+        noLoadingIndicator: string;
+        hardCutSwitch: string;
+        crossfadeOptIn: string;
+        forwardsClassName: string;
+        forwardsStyle: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const image360ViewerEn: Image360ViewerTranslation = {
-    default: { title: `Default`, description: `Plain Image360Viewer mounting a single equirectangular panorama — drag to look around, scroll to zoom.` },
-    switchImages: {
+  default: {
+    title: `Default`,
+    description: `Plain Image360Viewer mounting a single equirectangular panorama — drag to look around, scroll to zoom.`,
+  },
+  switchImages: {
+    title: `Switch images`,
+    description: `Two-source switcher driven by buttons below the viewer. Each click updates the src prop; the viewer reuses its WebGL context (setPanorama) instead of remounting — the previous frame stays visible until the new texture is ready.`,
+  },
+  compassOverlay: {
+    title: `Compass overlay`,
+    description: `Compass component absolutely positioned ON TOP of the viewer (HUD-style) instead of below, so the bearing readout stays in view while the user pans.`,
+  },
+  virtualTour: {
+    title: `Virtual tour`,
+    description: `Markers overlay click-to-navigate hotspots on the sphere. Each pin carries a data.target payload; onMarkerClick swaps the src + marker set, demonstrating the scene-switch pattern. The teal dot is a tooltip-only info hotspot.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Image360Viewer> wraps Photo Sphere Viewer (three.js) with shadcn-friendly defaults: hidden navbar, no in-app loading indicator, and an onHeadingChange callback for HUD-style yaw indicators.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Combine with <Compass> to render a directional indicator that follows the user's view. Pass markers + onMarkerClick to overlay clickable hotspots — backed by the markers-plugin from Photo Sphere Viewer, so HTML/image/polygon markers and tooltips are all supported. Updating the markers prop diff-replaces the live set, which is exactly the pattern a virtual-tour scene swap needs.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
+        title: `Default`,
+        description: `Plain viewer, no compass, no markers.`,
+      },
+      switchImages: {
         title: `Switch images`,
-        description: `Two-source switcher driven by buttons below the viewer. Each click updates the src prop; the viewer reuses its WebGL context (setPanorama) instead of remounting — the previous frame stays visible until the new texture is ready.`
-    },
-    compassOverlay: {
+        description: `Two buttons swap the src between panoramas; the viewer reuses its WebGL context via setPanorama.`,
+      },
+      compassOverlay: {
         title: `Compass overlay`,
-        description: `Compass component absolutely positioned ON TOP of the viewer (HUD-style) instead of below, so the bearing readout stays in view while the user pans.`
-    },
-    virtualTour: {
+        description: `Compass rendered on top of the viewer with absolute positioning.`,
+      },
+      virtualTour: {
         title: `Virtual tour`,
-        description: `Markers overlay click-to-navigate hotspots on the sphere. Each pin carries a data.target payload; onMarkerClick swaps the src + marker set, demonstrating the scene-switch pattern. The teal dot is a tooltip-only info hotspot.`
+        description: `Markers-plugin hotspots with click-to-navigate between two scenes.`,
+      },
     },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Command`, manualTab: `Manual`, manualStep1: `Install the following dependencies:`, manualStep2: `Copy and paste the following code into your project.`, manualStep3: `Update the import paths to match your project setup.` },
-        usage: { title: `Usage`, body: `<Image360Viewer> wraps Photo Sphere Viewer (three.js) with shadcn-friendly defaults: hidden navbar, no in-app loading indicator, and an onHeadingChange callback for HUD-style yaw indicators.` },
-        composition: { title: `Composition`, body: `Combine with <Compass> to render a directional indicator that follows the user's view. Pass markers + onMarkerClick to overlay clickable hotspots — backed by the markers-plugin from Photo Sphere Viewer, so HTML/image/polygon markers and tooltips are all supported. Updating the markers prop diff-replaces the live set, which is exactly the pattern a virtual-tour scene swap needs.` },
-        examples: {
-            title: `Examples`,
-            default: { title: `Default`, description: `Plain viewer, no compass, no markers.` },
-            switchImages: {
-                title: `Switch images`,
-                description: `Two buttons swap the src between panoramas; the viewer reuses its WebGL context via setPanorama.`
-            },
-            compassOverlay: {
-                title: `Compass overlay`,
-                description: `Compass rendered on top of the viewer with absolute positioning.`
-            },
-            virtualTour: {
-                title: `Virtual tour`,
-                description: `Markers-plugin hotspots with click-to-navigate between two scenes.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`, intro: `Statements describing how <Image360Viewer> is expected to behave, each linked to the test that verifies it.`, verifiedBy: `verified by`,
-            statements: {
-                mountsViewer: `Mounts a Photo Sphere Viewer with the given src.`,
-                subscribesPosition: `Subscribes to the PSV position-updated event to forward heading changes.`,
-                noLoadingIndicator: `Renders no loading indicator while the initial panorama loads.`,
-                hardCutSwitch: `Hides the old panorama under a Skeleton during an src swap and tells PSV to skip its crossfade — the Skeleton clears when the new texture is ready.`,
-                crossfadeOptIn: `crossfadeOnSwitch={true} skips the Skeleton and asks PSV to crossfade between panoramas instead.`,
-                forwardsClassName: `Forwards className onto the outer wrapper.`,
-                forwardsStyle: `Forwards inline style onto the outer wrapper.`
-            }
-        },
-        rtl: { title: `RTL`, body: `The 3D scene is direction-agnostic; the wrapper does not flip.` },
-        apiReference: { title: `API Reference`, intro: `Props accepted by <Image360Viewer>.` }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Image360Viewer> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        mountsViewer: `Mounts a Photo Sphere Viewer with the given src.`,
+        subscribesPosition: `Subscribes to the PSV position-updated event to forward heading changes.`,
+        noLoadingIndicator: `Renders no loading indicator while the initial panorama loads.`,
+        hardCutSwitch: `Hides the old panorama under a Skeleton during an src swap and tells PSV to skip its crossfade — the Skeleton clears when the new texture is ready.`,
+        crossfadeOptIn: `crossfadeOnSwitch={true} skips the Skeleton and asks PSV to crossfade between panoramas instead.`,
+        forwardsClassName: `Forwards className onto the outer wrapper.`,
+        forwardsStyle: `Forwards inline style onto the outer wrapper.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `The 3D scene is direction-agnostic; the wrapper does not flip.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Image360Viewer>.`,
+    },
+  },
 };
 
 export const image360ViewerDe: Image360ViewerTranslation = {
-    default: { title: `Standard`, description: `Schlichter Image360Viewer mit einem einzelnen äquirektangulären Panorama — ziehen zum Umsehen, scrollen zum Zoomen.` },
-    switchImages: {
+  default: {
+    title: `Standard`,
+    description: `Schlichter Image360Viewer mit einem einzelnen äquirektangulären Panorama — ziehen zum Umsehen, scrollen zum Zoomen.`,
+  },
+  switchImages: {
+    title: `Bilder wechseln`,
+    description: `Zwei-Quellen-Umschalter, gesteuert durch Buttons unterhalb des Viewers. Jeder Klick aktualisiert die src-Prop; der Viewer nutzt seinen WebGL-Kontext per setPanorama weiter, statt neu zu mounten — das vorherige Bild bleibt sichtbar, bis die neue Textur geladen ist.`,
+  },
+  compassOverlay: {
+    title: `Compass-Overlay`,
+    description: `Compass-Komponente absolut ÜBER dem Viewer positioniert (HUD-Stil) statt darunter, sodass die Richtungsanzeige beim Schwenken sichtbar bleibt.`,
+  },
+  virtualTour: {
+    title: `Virtueller Rundgang`,
+    description: `Marker überlagern anklickbare Hotspots auf der Sphäre. Jeder Pin trägt eine data.target-Payload; onMarkerClick tauscht src und Marker-Set aus — das Muster für einen Szenenwechsel. Der türkise Punkt ist ein reiner Tooltip-Hotspot.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Image360Viewer> umschließt Photo Sphere Viewer (three.js) mit shadcn-freundlichen Defaults: ausgeblendete Navbar, keine eigene Ladeanzeige und einen onHeadingChange-Callback für HUD-artige Yaw-Anzeigen.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Kombiniere mit <Compass> für eine Richtungsanzeige, die dem Blick folgt. Über die Props markers und onMarkerClick werden anklickbare Hotspots eingeblendet — gestützt auf das markers-plugin von Photo Sphere Viewer, das HTML-/Bild-/Polygon-Marker und Tooltips unterstützt. Beim Aktualisieren der markers-Prop wird das Live-Set per setMarkers diff-ausgetauscht — exakt das Muster, das ein virtueller Rundgang für Szenenwechsel braucht.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
+        title: `Standard`,
+        description: `Schlichter Viewer, ohne Compass, ohne Marker.`,
+      },
+      switchImages: {
         title: `Bilder wechseln`,
-        description: `Zwei-Quellen-Umschalter, gesteuert durch Buttons unterhalb des Viewers. Jeder Klick aktualisiert die src-Prop; der Viewer nutzt seinen WebGL-Kontext per setPanorama weiter, statt neu zu mounten — das vorherige Bild bleibt sichtbar, bis die neue Textur geladen ist.`
-    },
-    compassOverlay: {
+        description: `Zwei Buttons tauschen die src zwischen Panoramen aus; der Viewer nutzt seinen WebGL-Kontext per setPanorama weiter.`,
+      },
+      compassOverlay: {
         title: `Compass-Overlay`,
-        description: `Compass-Komponente absolut ÜBER dem Viewer positioniert (HUD-Stil) statt darunter, sodass die Richtungsanzeige beim Schwenken sichtbar bleibt.`
-    },
-    virtualTour: {
+        description: `Compass per absoluter Positionierung über dem Viewer.`,
+      },
+      virtualTour: {
         title: `Virtueller Rundgang`,
-        description: `Marker überlagern anklickbare Hotspots auf der Sphäre. Jeder Pin trägt eine data.target-Payload; onMarkerClick tauscht src und Marker-Set aus — das Muster für einen Szenenwechsel. Der türkise Punkt ist ein reiner Tooltip-Hotspot.`
+        description: `markers-plugin-Hotspots mit Klick-Navigation zwischen zwei Szenen.`,
+      },
     },
-    doc: {
-        installation: { title: `Installation`, commandTab: `Befehl`, manualTab: `Manuell`, manualStep1: `Installiere die folgenden Abhängigkeiten:`, manualStep2: `Kopiere den folgenden Code in dein Projekt.`, manualStep3: `Passe die Import-Pfade an deine Projektstruktur an.` },
-        usage: { title: `Verwendung`, body: `<Image360Viewer> umschließt Photo Sphere Viewer (three.js) mit shadcn-freundlichen Defaults: ausgeblendete Navbar, keine eigene Ladeanzeige und einen onHeadingChange-Callback für HUD-artige Yaw-Anzeigen.` },
-        composition: { title: `Komposition`, body: `Kombiniere mit <Compass> für eine Richtungsanzeige, die dem Blick folgt. Über die Props markers und onMarkerClick werden anklickbare Hotspots eingeblendet — gestützt auf das markers-plugin von Photo Sphere Viewer, das HTML-/Bild-/Polygon-Marker und Tooltips unterstützt. Beim Aktualisieren der markers-Prop wird das Live-Set per setMarkers diff-ausgetauscht — exakt das Muster, das ein virtueller Rundgang für Szenenwechsel braucht.` },
-        examples: {
-            title: `Beispiele`,
-            default: { title: `Standard`, description: `Schlichter Viewer, ohne Compass, ohne Marker.` },
-            switchImages: {
-                title: `Bilder wechseln`,
-                description: `Zwei Buttons tauschen die src zwischen Panoramen aus; der Viewer nutzt seinen WebGL-Kontext per setPanorama weiter.`
-            },
-            compassOverlay: {
-                title: `Compass-Overlay`,
-                description: `Compass per absoluter Positionierung über dem Viewer.`
-            },
-            virtualTour: {
-                title: `Virtueller Rundgang`,
-                description: `markers-plugin-Hotspots mit Klick-Navigation zwischen zwei Szenen.`
-            }
-        },
-        definedBehaviour: {
-            title: `Definiertes Verhalten`, intro: `Aussagen darüber, wie sich <Image360Viewer> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`, verifiedBy: `verifiziert durch`,
-            statements: {
-                mountsViewer: `Erzeugt einen Photo Sphere Viewer mit der angegebenen src.`,
-                subscribesPosition: `Abonniert das PSV-Event position-updated, um Heading-Änderungen weiterzuleiten.`,
-                noLoadingIndicator: `Zeigt während des Ladens des initialen Panoramas keine Ladeanzeige.`,
-                hardCutSwitch: `Blendet beim src-Wechsel sofort einen Skeleton über das alte Panorama und weist PSV an, das Crossfade zu überspringen — der Skeleton verschwindet, sobald die neue Textur bereit ist.`,
-                crossfadeOptIn: `crossfadeOnSwitch={true} überspringt den Skeleton und lässt PSV stattdessen zwischen den Panoramen blenden.`,
-                forwardsClassName: `Reicht className an den äußeren Wrapper durch.`,
-                forwardsStyle: `Reicht Inline-Style an den äußeren Wrapper durch.`
-            }
-        },
-        rtl: { title: `RTL`, body: `Die 3D-Szene ist richtungs-agnostisch; der Wrapper wird nicht gespiegelt.` },
-        apiReference: { title: `API-Referenz`, intro: `Props, die <Image360Viewer> akzeptiert.` }
-    }
+    definedBehaviour: {
+      title: `Definiertes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Image360Viewer> verhalten soll — jede verlinkt mit dem Test, der sie verifiziert.`,
+      verifiedBy: `verifiziert durch`,
+      statements: {
+        mountsViewer: `Erzeugt einen Photo Sphere Viewer mit der angegebenen src.`,
+        subscribesPosition: `Abonniert das PSV-Event position-updated, um Heading-Änderungen weiterzuleiten.`,
+        noLoadingIndicator: `Zeigt während des Ladens des initialen Panoramas keine Ladeanzeige.`,
+        hardCutSwitch: `Blendet beim src-Wechsel sofort einen Skeleton über das alte Panorama und weist PSV an, das Crossfade zu überspringen — der Skeleton verschwindet, sobald die neue Textur bereit ist.`,
+        crossfadeOptIn: `crossfadeOnSwitch={true} überspringt den Skeleton und lässt PSV stattdessen zwischen den Panoramen blenden.`,
+        forwardsClassName: `Reicht className an den äußeren Wrapper durch.`,
+        forwardsStyle: `Reicht Inline-Style an den äußeren Wrapper durch.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Die 3D-Szene ist richtungs-agnostisch; der Wrapper wird nicht gespiegelt.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Image360Viewer> akzeptiert.`,
+    },
+  },
 };

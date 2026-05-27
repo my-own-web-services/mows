@@ -12,217 +12,217 @@
  */
 
 export interface InlineEditTranslation {
-    basic: { title: string; description: string };
-    heading: { title: string; description: string };
-    placeholder: { title: string; description: string };
-    fixedWidth: { title: string; description: string };
-    disabled: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            basic: { title: string; description: string };
-            heading: { title: string; description: string };
-            placeholder: { title: string; description: string };
-            fixedWidth: { title: string; description: string };
-            disabled: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                rendersValue: string;
-                commitsOnEnter: string;
-                cancelsOnEscape: string;
-                discardsUnchanged: string;
-                hidesButtonsWhenDisabled: string;
-                stableAffordanceWidth: string;
-                fixedWidthDoesNotGrow: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  basic: { title: string; description: string };
+  heading: { title: string; description: string };
+  placeholder: { title: string; description: string };
+  fixedWidth: { title: string; description: string };
+  disabled: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      basic: { title: string; description: string };
+      heading: { title: string; description: string };
+      placeholder: { title: string; description: string };
+      fixedWidth: { title: string; description: string };
+      disabled: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        rendersValue: string;
+        commitsOnEnter: string;
+        cancelsOnEscape: string;
+        discardsUnchanged: string;
+        hidesButtonsWhenDisabled: string;
+        stableAffordanceWidth: string;
+        fixedWidthDoesNotGrow: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const inlineEditEn: InlineEditTranslation = {
-    basic: {
+  basic: {
+    title: `Basic`,
+    description: `Click the text or pencil to edit. Press Enter or click the green check to commit; press Escape or click the red X to cancel.`,
+  },
+  heading: {
+    title: `Heading`,
+    description: `Use the as prop to render the editable surface as <h2> (or any other heading tag) while keeping inline editing.`,
+  },
+  placeholder: {
+    title: `Placeholder`,
+    description: `When the value is empty the placeholder is shown in muted italic until the user types something.`,
+  },
+  fixedWidth: {
+    title: `Fixed width`,
+    description: `Pin the editor to a fixed CSS width with the width prop. Typing past the box scrolls horizontally instead of expanding the row.`,
+  },
+  disabled: {
+    title: `Disabled`,
+    description: `disabled hides the edit affordances and renders the text as static content.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<InlineEdit> is a controlled text field that edits in place without swapping the surrounding layout. It uses contentEditable instead of an <input>, so font metrics and row height stay identical between display and edit modes.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `The affordance column is a fixed-width 2-slot grid. The edit, save and cancel buttons share those slots via opacity toggles, so the parent row keeps the same width whether the user is idle, hovering, or actively editing.`,
+    },
+    examples: {
+      title: `Examples`,
+      basic: {
         title: `Basic`,
-        description: `Click the text or pencil to edit. Press Enter or click the green check to commit; press Escape or click the red X to cancel.`
-    },
-    heading: {
+        description: `Inline-rename a short string. The row width is identical before, during and after editing.`,
+      },
+      heading: {
         title: `Heading`,
-        description: `Use the as prop to render the editable surface as <h2> (or any other heading tag) while keeping inline editing.`
-    },
-    placeholder: {
+        description: `Render the editable surface as an <h2> using the as prop, useful for in-place page titles.`,
+      },
+      placeholder: {
         title: `Placeholder`,
-        description: `When the value is empty the placeholder is shown in muted italic until the user types something.`
-    },
-    fixedWidth: {
+        description: `Empty values show the placeholder in muted italic until the user types something.`,
+      },
+      fixedWidth: {
         title: `Fixed width`,
-        description: `Pin the editor to a fixed CSS width with the width prop. Typing past the box scrolls horizontally instead of expanding the row.`
-    },
-    disabled: {
+        description: `When the width prop is set, the contentEditable element stays at that fixed size while typing. Overflow is clipped and the caret scrolls inside the box, so the row width is locked.`,
+      },
+      disabled: {
         title: `Disabled`,
-        description: `disabled hides the edit affordances and renders the text as static content.`
+        description: `Disabling InlineEdit hides the buttons entirely and renders the text as static content. Row geometry still matches the editable variant.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<InlineEdit> is a controlled text field that edits in place without swapping the surrounding layout. It uses contentEditable instead of an <input>, so font metrics and row height stay identical between display and edit modes.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `The affordance column is a fixed-width 2-slot grid. The edit, save and cancel buttons share those slots via opacity toggles, so the parent row keeps the same width whether the user is idle, hovering, or actively editing.`
-        },
-        examples: {
-            title: `Examples`,
-            basic: {
-                title: `Basic`,
-                description: `Inline-rename a short string. The row width is identical before, during and after editing.`
-            },
-            heading: {
-                title: `Heading`,
-                description: `Render the editable surface as an <h2> using the as prop, useful for in-place page titles.`
-            },
-            placeholder: {
-                title: `Placeholder`,
-                description: `Empty values show the placeholder in muted italic until the user types something.`
-            },
-            fixedWidth: {
-                title: `Fixed width`,
-                description: `When the width prop is set, the contentEditable element stays at that fixed size while typing. Overflow is clipped and the caret scrolls inside the box, so the row width is locked.`
-            },
-            disabled: {
-                title: `Disabled`,
-                description: `Disabling InlineEdit hides the buttons entirely and renders the text as static content. Row geometry still matches the editable variant.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <InlineEdit> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                rendersValue: `Renders the current value in display mode.`,
-                commitsOnEnter: `Pressing Enter blurs the editor and fires onCommit with the trimmed value.`,
-                cancelsOnEscape: `Pressing Escape exits edit mode without firing onCommit and restores the original value.`,
-                discardsUnchanged: `Empty or unchanged values are silently discarded — onCommit is never called with them.`,
-                hidesButtonsWhenDisabled: `When disabled the edit / save / cancel buttons are not rendered.`,
-                stableAffordanceWidth: `The affordance column has a fixed width so the row does not reflow when entering or leaving edit mode.`,
-                fixedWidthDoesNotGrow: `When width is set the editor element keeps that exact width regardless of the typed value.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" the affordance column flips to the left of the text; the fixed-width slot guarantees the row stays the same width.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <InlineEdit>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <InlineEdit> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        rendersValue: `Renders the current value in display mode.`,
+        commitsOnEnter: `Pressing Enter blurs the editor and fires onCommit with the trimmed value.`,
+        cancelsOnEscape: `Pressing Escape exits edit mode without firing onCommit and restores the original value.`,
+        discardsUnchanged: `Empty or unchanged values are silently discarded — onCommit is never called with them.`,
+        hidesButtonsWhenDisabled: `When disabled the edit / save / cancel buttons are not rendered.`,
+        stableAffordanceWidth: `The affordance column has a fixed width so the row does not reflow when entering or leaving edit mode.`,
+        fixedWidthDoesNotGrow: `When width is set the editor element keeps that exact width regardless of the typed value.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the affordance column flips to the left of the text; the fixed-width slot guarantees the row stays the same width.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <InlineEdit>.`,
+    },
+  },
 };
 
 export const inlineEditDe: InlineEditTranslation = {
-    basic: {
+  basic: {
+    title: `Standard`,
+    description: `Klicke auf den Text oder das Stiftsymbol, um zu bearbeiten. Mit Enter oder dem grünen Haken übernimmst du den Wert, mit Escape oder dem roten X verwirfst du ihn.`,
+  },
+  heading: {
+    title: `Überschrift`,
+    description: `Mit dem as-Prop rendert die bearbeitbare Fläche als <h2> (oder eine andere Überschrift) — der Inline-Bearbeitungsmodus bleibt erhalten.`,
+  },
+  placeholder: {
+    title: `Platzhalter`,
+    description: `Bei leerem Wert wird der Platzhalter in gedämpfter Kursivschrift angezeigt, bis etwas getippt wird.`,
+  },
+  fixedWidth: {
+    title: `Feste Breite`,
+    description: `Mit dem width-Prop wird das Eingabefeld auf eine feste CSS-Breite fixiert. Tippen über die Breite hinaus scrollt horizontal, statt die Zeile zu vergrößern.`,
+  },
+  disabled: {
+    title: `Deaktiviert`,
+    description: `disabled blendet die Bearbeitungs-Buttons aus und stellt den Text statisch dar.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<InlineEdit> ist ein kontrolliertes Textfeld, das sich an Ort und Stelle bearbeiten lässt, ohne das umgebende Layout zu verändern. Statt eines <input> wird contentEditable verwendet, sodass Schriftmaße und Zeilenhöhe zwischen Anzeige- und Bearbeitungsmodus identisch bleiben.`,
+    },
+    composition: {
+      title: `Zusammensetzung`,
+      body: `Die Aktionsleiste ist ein Grid mit zwei festen Slots. Die Buttons für Bearbeiten, Speichern und Abbrechen teilen sich diese Slots per Opazitäts-Wechsel — die Zeile behält im Ruhezustand, beim Hover und im Bearbeitungsmodus dieselbe Breite.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      basic: {
         title: `Standard`,
-        description: `Klicke auf den Text oder das Stiftsymbol, um zu bearbeiten. Mit Enter oder dem grünen Haken übernimmst du den Wert, mit Escape oder dem roten X verwirfst du ihn.`
-    },
-    heading: {
+        description: `Eine kurze Zeichenkette inline umbenennen. Die Zeilenbreite ist vor, während und nach der Bearbeitung identisch.`,
+      },
+      heading: {
         title: `Überschrift`,
-        description: `Mit dem as-Prop rendert die bearbeitbare Fläche als <h2> (oder eine andere Überschrift) — der Inline-Bearbeitungsmodus bleibt erhalten.`
-    },
-    placeholder: {
+        description: `Mit as wird die Bearbeitungsfläche als <h2> gerendert — nützlich für inline editierbare Seitentitel.`,
+      },
+      placeholder: {
         title: `Platzhalter`,
-        description: `Bei leerem Wert wird der Platzhalter in gedämpfter Kursivschrift angezeigt, bis etwas getippt wird.`
-    },
-    fixedWidth: {
+        description: `Leere Werte zeigen den Platzhalter in gedämpfter Kursivschrift, bis Inhalt eingegeben wird.`,
+      },
+      fixedWidth: {
         title: `Feste Breite`,
-        description: `Mit dem width-Prop wird das Eingabefeld auf eine feste CSS-Breite fixiert. Tippen über die Breite hinaus scrollt horizontal, statt die Zeile zu vergrößern.`
-    },
-    disabled: {
+        description: `Ist das width-Prop gesetzt, behält das contentEditable-Element seine Größe beim Tippen bei. Der Überlauf wird abgeschnitten und der Cursor scrollt innerhalb der Box — die Zeilenbreite bleibt unverändert.`,
+      },
+      disabled: {
         title: `Deaktiviert`,
-        description: `disabled blendet die Bearbeitungs-Buttons aus und stellt den Text statisch dar.`
+        description: `Im deaktivierten Zustand werden die Buttons ausgeblendet und der Text statisch angezeigt. Die Zeilengeometrie entspricht weiterhin der bearbeitbaren Variante.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<InlineEdit> ist ein kontrolliertes Textfeld, das sich an Ort und Stelle bearbeiten lässt, ohne das umgebende Layout zu verändern. Statt eines <input> wird contentEditable verwendet, sodass Schriftmaße und Zeilenhöhe zwischen Anzeige- und Bearbeitungsmodus identisch bleiben.`
-        },
-        composition: {
-            title: `Zusammensetzung`,
-            body: `Die Aktionsleiste ist ein Grid mit zwei festen Slots. Die Buttons für Bearbeiten, Speichern und Abbrechen teilen sich diese Slots per Opazitäts-Wechsel — die Zeile behält im Ruhezustand, beim Hover und im Bearbeitungsmodus dieselbe Breite.`
-        },
-        examples: {
-            title: `Beispiele`,
-            basic: {
-                title: `Standard`,
-                description: `Eine kurze Zeichenkette inline umbenennen. Die Zeilenbreite ist vor, während und nach der Bearbeitung identisch.`
-            },
-            heading: {
-                title: `Überschrift`,
-                description: `Mit as wird die Bearbeitungsfläche als <h2> gerendert — nützlich für inline editierbare Seitentitel.`
-            },
-            placeholder: {
-                title: `Platzhalter`,
-                description: `Leere Werte zeigen den Platzhalter in gedämpfter Kursivschrift, bis Inhalt eingegeben wird.`
-            },
-            fixedWidth: {
-                title: `Feste Breite`,
-                description: `Ist das width-Prop gesetzt, behält das contentEditable-Element seine Größe beim Tippen bei. Der Überlauf wird abgeschnitten und der Cursor scrollt innerhalb der Box — die Zeilenbreite bleibt unverändert.`
-            },
-            disabled: {
-                title: `Deaktiviert`,
-                description: `Im deaktivierten Zustand werden die Buttons ausgeblendet und der Text statisch angezeigt. Die Zeilengeometrie entspricht weiterhin der bearbeitbaren Variante.`
-            }
-        },
-        definedBehaviour: {
-            title: `Definiertes Verhalten`,
-            intro: `Aussagen darüber, wie sich <InlineEdit> verhalten soll — jeweils mit dem Test verlinkt, der sie verifiziert.`,
-            verifiedBy: `verifiziert durch`,
-            statements: {
-                rendersValue: `Zeigt den aktuellen Wert im Anzeigemodus an.`,
-                commitsOnEnter: `Enter beendet die Bearbeitung und ruft onCommit mit dem getrimmten Wert auf.`,
-                cancelsOnEscape: `Escape verlässt den Bearbeitungsmodus ohne onCommit aufzurufen und stellt den ursprünglichen Wert wieder her.`,
-                discardsUnchanged: `Leere oder unveränderte Werte werden stillschweigend verworfen — onCommit wird damit nie aufgerufen.`,
-                hidesButtonsWhenDisabled: `Im deaktivierten Zustand werden Bearbeiten-/Speichern-/Abbrechen-Buttons nicht gerendert.`,
-                stableAffordanceWidth: `Die Aktionsleiste hat eine feste Breite, sodass die Zeile beim Wechsel in/aus dem Bearbeitungsmodus nicht umbricht.`,
-                fixedWidthDoesNotGrow: `Ist width gesetzt, behält das Eingabefeld unabhängig vom eingegebenen Wert exakt diese Breite.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" wandert die Aktionsleiste auf die linke Seite des Texts; die feste Slotbreite garantiert eine unveränderte Zeilenbreite.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <InlineEdit> akzeptiert.`
-        }
-    }
+    definedBehaviour: {
+      title: `Definiertes Verhalten`,
+      intro: `Aussagen darüber, wie sich <InlineEdit> verhalten soll — jeweils mit dem Test verlinkt, der sie verifiziert.`,
+      verifiedBy: `verifiziert durch`,
+      statements: {
+        rendersValue: `Zeigt den aktuellen Wert im Anzeigemodus an.`,
+        commitsOnEnter: `Enter beendet die Bearbeitung und ruft onCommit mit dem getrimmten Wert auf.`,
+        cancelsOnEscape: `Escape verlässt den Bearbeitungsmodus ohne onCommit aufzurufen und stellt den ursprünglichen Wert wieder her.`,
+        discardsUnchanged: `Leere oder unveränderte Werte werden stillschweigend verworfen — onCommit wird damit nie aufgerufen.`,
+        hidesButtonsWhenDisabled: `Im deaktivierten Zustand werden Bearbeiten-/Speichern-/Abbrechen-Buttons nicht gerendert.`,
+        stableAffordanceWidth: `Die Aktionsleiste hat eine feste Breite, sodass die Zeile beim Wechsel in/aus dem Bearbeitungsmodus nicht umbricht.`,
+        fixedWidthDoesNotGrow: `Ist width gesetzt, behält das Eingabefeld unabhängig vom eingegebenen Wert exakt diese Breite.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" wandert die Aktionsleiste auf die linke Seite des Texts; die feste Slotbreite garantiert eine unveränderte Zeilenbreite.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <InlineEdit> akzeptiert.`,
+    },
+  },
 };

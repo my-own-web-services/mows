@@ -12,154 +12,154 @@
  */
 
 export interface SelectTranslation {
-    default: { title: string; description: string };
-    disabledOption: { title: string; description: string };
-    doc: {
-        installation: {
-            title: string;
-            commandTab: string;
-            manualTab: string;
-            manualStep1: string;
-            manualStep2: string;
-            manualStep3: string;
-        };
-        usage: { title: string; body: string };
-        composition: { title: string; body: string };
-        examples: {
-            title: string;
-            default: { title: string; description: string };
-            disabledOption: { title: string; description: string };
-        };
-        definedBehaviour: {
-            title: string;
-            intro: string;
-            verifiedBy: string;
-            statements: {
-                placeholderWhenEmpty: string;
-                reflectsDefaultValue: string;
-                fullyControllable: string;
-                firesOnExternalValueChange: string;
-            };
-        };
-        rtl: { title: string; body: string };
-        apiReference: { title: string; intro: string };
+  default: { title: string; description: string };
+  disabledOption: { title: string; description: string };
+  doc: {
+    installation: {
+      title: string;
+      commandTab: string;
+      manualTab: string;
+      manualStep1: string;
+      manualStep2: string;
+      manualStep3: string;
     };
+    usage: { title: string; body: string };
+    composition: { title: string; body: string };
+    examples: {
+      title: string;
+      default: { title: string; description: string };
+      disabledOption: { title: string; description: string };
+    };
+    definedBehaviour: {
+      title: string;
+      intro: string;
+      verifiedBy: string;
+      statements: {
+        placeholderWhenEmpty: string;
+        reflectsDefaultValue: string;
+        fullyControllable: string;
+        firesOnExternalValueChange: string;
+      };
+    };
+    rtl: { title: string; body: string };
+    apiReference: { title: string; intro: string };
+  };
 }
 
 export const selectEn: SelectTranslation = {
-    default: {
+  default: {
+    title: `Controlled selection`,
+    description: `Click the trigger to open the listbox. value + onValueChange drive the controlled state.`,
+  },
+  disabledOption: {
+    title: `Disabled option`,
+    description: `Mark a single <SelectItem disabled> to lock it out of selection.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Command`,
+      manualTab: `Manual`,
+      manualStep1: `Install the following dependencies:`,
+      manualStep2: `Copy and paste the following code into your project.`,
+      manualStep3: `Update the import paths to match your project setup.`,
+    },
+    usage: {
+      title: `Usage`,
+      body: `<Select> wraps Radix Select. Compose with <SelectTrigger>+<SelectValue> for the trigger and <SelectContent>+<SelectItem> for the listbox.`,
+    },
+    composition: {
+      title: `Composition`,
+      body: `Each <SelectItem value> must be unique within the listbox. Pass value + onValueChange to drive the active item from outside.`,
+    },
+    examples: {
+      title: `Examples`,
+      default: {
         title: `Controlled selection`,
-        description: `Click the trigger to open the listbox. value + onValueChange drive the controlled state.`
-    },
-    disabledOption: {
+        description: `Three items with controlled state.`,
+      },
+      disabledOption: {
         title: `Disabled option`,
-        description: `Mark a single <SelectItem disabled> to lock it out of selection.`
+        description: `One option disabled.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Command`,
-            manualTab: `Manual`,
-            manualStep1: `Install the following dependencies:`,
-            manualStep2: `Copy and paste the following code into your project.`,
-            manualStep3: `Update the import paths to match your project setup.`
-        },
-        usage: {
-            title: `Usage`,
-            body: `<Select> wraps Radix Select. Compose with <SelectTrigger>+<SelectValue> for the trigger and <SelectContent>+<SelectItem> for the listbox.`
-        },
-        composition: {
-            title: `Composition`,
-            body: `Each <SelectItem value> must be unique within the listbox. Pass value + onValueChange to drive the active item from outside.`
-        },
-        examples: {
-            title: `Examples`,
-            default: {
-                title: `Controlled selection`,
-                description: `Three items with controlled state.`
-            },
-            disabledOption: {
-                title: `Disabled option`,
-                description: `One option disabled.`
-            }
-        },
-        definedBehaviour: {
-            title: `Defined behaviour`,
-            intro: `Statements describing how <Select> is expected to behave, each linked to the test that verifies it.`,
-            verifiedBy: `verified by`,
-            statements: {
-                placeholderWhenEmpty: `Renders a combobox trigger with placeholder text when empty.`,
-                reflectsDefaultValue: `Reflects defaultValue on the trigger.`,
-                fullyControllable: `Is fully controllable via value + onValueChange.`,
-                firesOnExternalValueChange: `Trigger text follows the controlled value when it changes from outside.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Under dir="rtl" the trigger arrow flips to the leading edge; the listbox aligns with the trigger.`
-        },
-        apiReference: {
-            title: `API Reference`,
-            intro: `Props accepted by <Select> and <SelectItem>.`
-        }
-    }
+    definedBehaviour: {
+      title: `Defined behaviour`,
+      intro: `Statements describing how <Select> is expected to behave, each linked to the test that verifies it.`,
+      verifiedBy: `verified by`,
+      statements: {
+        placeholderWhenEmpty: `Renders a combobox trigger with placeholder text when empty.`,
+        reflectsDefaultValue: `Reflects defaultValue on the trigger.`,
+        fullyControllable: `Is fully controllable via value + onValueChange.`,
+        firesOnExternalValueChange: `Trigger text follows the controlled value when it changes from outside.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Under dir="rtl" the trigger arrow flips to the leading edge; the listbox aligns with the trigger.`,
+    },
+    apiReference: {
+      title: `API Reference`,
+      intro: `Props accepted by <Select> and <SelectItem>.`,
+    },
+  },
 };
 
 export const selectDe: SelectTranslation = {
-    default: {
+  default: {
+    title: `Kontrollierte Auswahl`,
+    description: `Klick auf den Trigger öffnet die Listbox. value + onValueChange treiben den kontrollierten Zustand.`,
+  },
+  disabledOption: {
+    title: `Option deaktiviert`,
+    description: `Ein einzelnes <SelectItem disabled> aus der Auswahl ausschließen.`,
+  },
+  doc: {
+    installation: {
+      title: `Installation`,
+      commandTab: `Befehl`,
+      manualTab: `Manuell`,
+      manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+      manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+      manualStep3: `Passe die Importpfade an dein Projekt an.`,
+    },
+    usage: {
+      title: `Verwendung`,
+      body: `<Select> kapselt Radix Select. Kombiniere mit <SelectTrigger>+<SelectValue> für den Trigger und <SelectContent>+<SelectItem> für die Listbox.`,
+    },
+    composition: {
+      title: `Komposition`,
+      body: `Jedes <SelectItem value> muss in der Listbox eindeutig sein. value + onValueChange für externe Steuerung des aktiven Items.`,
+    },
+    examples: {
+      title: `Beispiele`,
+      default: {
         title: `Kontrollierte Auswahl`,
-        description: `Klick auf den Trigger öffnet die Listbox. value + onValueChange treiben den kontrollierten Zustand.`
-    },
-    disabledOption: {
+        description: `Drei Items mit kontrolliertem Zustand.`,
+      },
+      disabledOption: {
         title: `Option deaktiviert`,
-        description: `Ein einzelnes <SelectItem disabled> aus der Auswahl ausschließen.`
+        description: `Eine Option deaktiviert.`,
+      },
     },
-    doc: {
-        installation: {
-            title: `Installation`,
-            commandTab: `Befehl`,
-            manualTab: `Manuell`,
-            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
-            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
-            manualStep3: `Passe die Importpfade an dein Projekt an.`
-        },
-        usage: {
-            title: `Verwendung`,
-            body: `<Select> kapselt Radix Select. Kombiniere mit <SelectTrigger>+<SelectValue> für den Trigger und <SelectContent>+<SelectItem> für die Listbox.`
-        },
-        composition: {
-            title: `Komposition`,
-            body: `Jedes <SelectItem value> muss in der Listbox eindeutig sein. value + onValueChange für externe Steuerung des aktiven Items.`
-        },
-        examples: {
-            title: `Beispiele`,
-            default: {
-                title: `Kontrollierte Auswahl`,
-                description: `Drei Items mit kontrolliertem Zustand.`
-            },
-            disabledOption: {
-                title: `Option deaktiviert`,
-                description: `Eine Option deaktiviert.`
-            }
-        },
-        definedBehaviour: {
-            title: `Festgelegtes Verhalten`,
-            intro: `Aussagen darüber, wie sich <Select> verhalten soll, jeweils mit Verweis auf den Test.`,
-            verifiedBy: `geprüft durch`,
-            statements: {
-                placeholderWhenEmpty: `Rendert einen Combobox-Trigger mit Placeholder-Text, wenn leer.`,
-                reflectsDefaultValue: `Spiegelt defaultValue am Trigger.`,
-                fullyControllable: `Ist vollständig steuerbar via value + onValueChange.`,
-                firesOnExternalValueChange: `Der Trigger-Text folgt dem kontrollierten value, wenn er von außen geändert wird.`
-            }
-        },
-        rtl: {
-            title: `RTL`,
-            body: `Unter dir="rtl" wandert der Trigger-Pfeil an den führenden Rand; die Listbox richtet sich am Trigger aus.`
-        },
-        apiReference: {
-            title: `API-Referenz`,
-            intro: `Props, die <Select> und <SelectItem> akzeptieren.`
-        }
-    }
+    definedBehaviour: {
+      title: `Festgelegtes Verhalten`,
+      intro: `Aussagen darüber, wie sich <Select> verhalten soll, jeweils mit Verweis auf den Test.`,
+      verifiedBy: `geprüft durch`,
+      statements: {
+        placeholderWhenEmpty: `Rendert einen Combobox-Trigger mit Placeholder-Text, wenn leer.`,
+        reflectsDefaultValue: `Spiegelt defaultValue am Trigger.`,
+        fullyControllable: `Ist vollständig steuerbar via value + onValueChange.`,
+        firesOnExternalValueChange: `Der Trigger-Text folgt dem kontrollierten value, wenn er von außen geändert wird.`,
+      },
+    },
+    rtl: {
+      title: `RTL`,
+      body: `Unter dir="rtl" wandert der Trigger-Pfeil an den führenden Rand; die Listbox richtet sich am Trigger aus.`,
+    },
+    apiReference: {
+      title: `API-Referenz`,
+      intro: `Props, die <Select> und <SelectItem> akzeptieren.`,
+    },
+  },
 };
