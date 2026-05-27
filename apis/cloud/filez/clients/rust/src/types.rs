@@ -1938,7 +1938,13 @@ pub struct UpdateTagsRequestBody {
 // UpdateUserGroupChangeset
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateUserGroupChangeset {
+    /// Optional new free-text description shown in the directory.
+    /// `Some(None)` clears the field; omitting the field leaves it
+    /// alone (serde double-Option pattern).
+    pub new_description: Option<String>,
+    pub new_join_policy: Option<GroupJoinPolicy>,
     pub new_user_group_name: Option<String>,
+    pub new_visibility: Option<GroupVisibility>,
 }
 
 // UpdateUserGroupMembersRequestBody

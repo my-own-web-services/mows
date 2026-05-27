@@ -2081,8 +2081,19 @@ export interface UpdateTagsRequestBody {
 }
 
 export interface UpdateUserGroupChangeset {
+  /**
+   * Optional new free-text description shown in the directory.
+   * `Some(None)` clears the field; omitting the field leaves it
+   * alone (serde double-Option pattern).
+   * @maxLength 1024
+   */
+  new_description?: string | null;
+  /** USER_GROUPS.md §1 — who can become a member. */
+  new_join_policy?: null | GroupJoinPolicy;
   /** @maxLength 256 */
   new_user_group_name?: string | null;
+  /** USER_GROUPS.md §1 — who can see this group exists. */
+  new_visibility?: null | GroupVisibility;
 }
 
 export interface UpdateUserGroupMembersRequestBody {

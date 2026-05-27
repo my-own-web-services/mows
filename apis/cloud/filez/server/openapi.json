@@ -8654,12 +8654,42 @@
       "UpdateUserGroupChangeset": {
         "type": "object",
         "properties": {
+          "new_description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional new free-text description shown in the directory.\n`Some(None)` clears the field; omitting the field leaves it\nalone (serde double-Option pattern).",
+            "maxLength": 1024
+          },
+          "new_join_policy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GroupJoinPolicy",
+                "description": "USER_GROUPS.md §1 — who can become a member."
+              }
+            ]
+          },
           "new_user_group_name": {
             "type": [
               "string",
               "null"
             ],
             "maxLength": 256
+          },
+          "new_visibility": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GroupVisibility",
+                "description": "USER_GROUPS.md §1 — who can see this group exists."
+              }
+            ]
           }
         }
       },

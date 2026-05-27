@@ -52,6 +52,23 @@ pub struct UpdateUserGroupChangeset {
     #[validate(max_length = 256)]
     #[diesel(column_name = name)]
     pub new_user_group_name: Option<String>,
+
+    /// Optional new free-text description shown in the directory.
+    /// `Some(None)` clears the field; omitting the field leaves it
+    /// alone (serde double-Option pattern).
+    #[schema(max_length = 1024)]
+    #[validate(max_length = 1024)]
+    #[diesel(column_name = description)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub new_description: Option<Option<String>>,
+
+    /// USER_GROUPS.md §1 — who can see this group exists.
+    #[diesel(column_name = visibility)]
+    pub new_visibility: Option<mows_auth_core::types::GroupVisibility>,
+
+    /// USER_GROUPS.md §1 — who can become a member.
+    #[diesel(column_name = join_policy)]
+    pub new_join_policy: Option<mows_auth_core::types::GroupJoinPolicy>,
 }
 
 impl UserGroup {
