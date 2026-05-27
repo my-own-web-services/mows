@@ -265,6 +265,41 @@ pub trait PolicyStore: Send + Sync {
     ) -> Result<Vec<PolicyView>, AuthError> {
         Ok(vec![])
     }
+
+    /// Listing-side primitive backing [`crate::list::list_visible_resource_ids`].
+    ///
+    /// Returns every `(resource_id, effect)` pair that matches the
+    /// `subject` × `app` × `action` triple — across **all** access
+    /// sources (direct, resource-group, owner-scoped, …) and across
+    /// every Allow/Deny combination. The engine collapses the pairs
+    /// into the final allow-minus-deny set; the store does NOT pre-
+    /// apply Deny precedence so the engine remains the single source
+    /// of truth for evaluation semantics.
+    ///
+    /// Owned-by-the-user rows are also included here when the
+    /// auth_info has an `owner_column` — modelled as `(resource_id,
+    /// Allow)` pairs so the engine treats ownership and Allow
+    /// policies uniformly. Owner-scoped policies use the
+    /// `policy.owner_id == resource.owner_id` match per
+    /// POLICY_SEMANTICS.md §4 (AccessibleByOwner is deferred — same
+    /// cycle-break the check path uses).
+    ///
+    /// LISTING.md §3 calls out that this Phase-1 shape is a "fetch
+    /// everything then diff" implementation — fine at today's scale,
+    /// replaced by a k-way sorted merge with keyset pagination in
+    /// Phase 3 once the cover tables land (P2-5).
+    ///
+    /// Default returns empty so existing stores keep compiling; stores
+    /// that want listing support override this.
+    async fn list_visible_resource_ids(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _subject: &Subject,
+        _app: AppView,
+        _action: u32,
+    ) -> Result<Vec<(Uuid, crate::types::Effect)>, AuthError> {
+        Ok(vec![])
+    }
 }
 
 #[cfg(test)]

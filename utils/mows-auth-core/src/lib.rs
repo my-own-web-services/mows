@@ -45,10 +45,12 @@ pub mod list;
 // Re-export the most-used items at the crate root so downstream services
 // don't need a deep import path.
 //
-// `list_visible` is still a stub returning Denied (lands in Phase 3
-// when listing extracts). `check_access` is the real evaluator on top
-// of `PolicyStore` — re-exported.
+// `list_visible_resource_ids` is the Phase-1 listing primitive: a thin
+// allow-minus-deny fold over a single store call. Phase 3 swaps the
+// body for a k-way sorted-stream merge with keyset pagination per
+// LISTING.md §3 + §8 — the public signature stays put.
 pub use crate::check::check_access;
+pub use crate::list::list_visible_resource_ids;
 pub use crate::evaluation::{AuthEvaluation, AuthReason, AuthResult};
 pub use crate::idp::{
     IntrospectedUser, IntrospectionError, IntrospectionResult, TokenIntrospector,

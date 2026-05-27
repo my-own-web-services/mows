@@ -15,7 +15,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use mows_auth_core::{
-    AppView, AuthError, PolicyStore, PolicyView, ResourceAuthInfo, Subject,
+    types::Effect, AppView, AuthError, PolicyStore, PolicyView, ResourceAuthInfo, Subject,
 };
 use uuid::Uuid;
 
@@ -255,6 +255,187 @@ impl<'a> PolicyStore for FilezPolicyStore<'a> {
             .load::<AccessPolicy>(&mut connection)
             .await?;
         Ok(policies.iter().map(PolicyView::from).collect())
+    }
+
+    /// Phase-1 listing impl per LISTING.md §3 — fetch every
+    /// `(resource_id, effect)` pair from the three access sources
+    /// (owner column, direct policies, resource-group policies) in
+    /// one batch. The engine's `list_visible_resource_ids` folds
+    /// these into the final allow-minus-deny set.
+    ///
+    /// The algorithm is the same one
+    /// `AccessPolicy::get_all_resources_with_user_access` used to
+    /// run inline — moving it here makes the engine the single owner
+    /// of the listing primitive and unblocks the Phase-3 swap to a
+    /// k-way sorted merge without changing service code.
+    async fn list_visible_resource_ids(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        subject: &Subject,
+        app: AppView,
+        action: u32,
+    ) -> Result<Vec<(Uuid, Effect)>, AuthError> {
+        use diesel::sql_types::SmallInt;
+
+        let resource_type = AccessPolicyResourceType::from_u32(auth_info.resource_type)
+            .expect("resource_type registered");
+        let action_enum =
+            action_from_u32(action).expect("AccessPolicyAction value out of range");
+        let app_id_wrapped = crate::models::apps::MowsAppId(app.id.into());
+
+        let pool = self
+            .database
+            .pool
+            .as_ref()
+            .ok_or_else(|| AuthError::Evaluation("database pool not initialized".to_string()))?;
+        let mut connection = pool.get().await?;
+
+        let mut pairs: Vec<(Uuid, Effect)> = Vec::new();
+
+        // 1. Resources owned by the requesting user (modelled as
+        //    Allow pairs so the engine folds ownership and Allow
+        //    policies uniformly).
+        if let (Some(user), Some(owner_col)) =
+            (self.maybe_user, auth_info.resource_table_owner_column)
+        {
+            #[derive(QueryableByName, Debug)]
+            struct OwnedResourceId {
+                #[diesel(sql_type = sql_types::Uuid)]
+                id: Uuid,
+            }
+            let owned_sql = format!(
+                "SELECT {id_col} as id FROM {table_name} WHERE {owner_col} = $1",
+                table_name = auth_info.resource_table,
+                id_col = auth_info.resource_table_id_column,
+                owner_col = owner_col,
+            );
+            let owned: Vec<OwnedResourceId> = diesel::sql_query(&owned_sql)
+                .bind::<sql_types::Uuid, _>(user.id.0)
+                .load(&mut connection)
+                .await?;
+            pairs.extend(owned.into_iter().map(|row| (row.id, Effect::Allow)));
+        }
+
+        // 2. Direct policies (resource_id IS NOT NULL) for this
+        //    resource_type/app/action that the subject matches.
+        let direct_policies = schema::access_policies::table
+            .filter(schema::access_policies::resource_type.eq(&resource_type))
+            .filter(
+                schema::access_policies::context_app_ids
+                    .contains(vec![app_id_wrapped.clone()]),
+            )
+            .filter(schema::access_policies::actions.contains(vec![action_enum]))
+            .filter(filter_subject_access_policies!(
+                self.maybe_user,
+                self.maybe_group_ids
+            ))
+            .filter(lifecycle_filter())
+            .select((
+                schema::access_policies::resource_id,
+                schema::access_policies::effect,
+            ))
+            .load::<(Option<Uuid>, Effect)>(&mut connection)
+            .await?;
+        for (maybe_id, effect) in direct_policies {
+            if let Some(id) = maybe_id {
+                pairs.push((id, effect));
+            }
+        }
+
+        // 3. Policies attached to resource-groups that the resource
+        //    is a member of.
+        if let (
+            Some(group_membership_table),
+            Some(group_resource_id_col),
+            Some(group_id_col),
+            Some(resource_group_type_u32),
+        ) = (
+            auth_info.group_membership_table,
+            auth_info.group_membership_resource_id_column,
+            auth_info.group_membership_group_id_column,
+            auth_info.resource_group_type,
+        ) {
+            let resource_group_type: i16 = i16::try_from(resource_group_type_u32)
+                .expect("resource_group_type fits in i16 (registered range 0..=8)");
+
+            #[derive(QueryableByName, Debug)]
+            struct GroupPolicyRow {
+                #[diesel(sql_type = sql_types::Uuid)]
+                id: Uuid,
+                #[diesel(sql_type = diesel::sql_types::SmallInt)]
+                effect: Effect,
+            }
+
+            // identifier-validated at registry-build time
+            // (mows_auth_core::registry::SAFE_IDENTIFIER_REGEX) — safe
+            // to interpolate.
+            let (group_sql, anonymous_branch) = match subject {
+                Subject::Anonymous => (
+                    format!(
+                        "SELECT gm.{resource_id_col} as id, ap.effect \
+                         FROM {group_membership_table} gm \
+                         JOIN access_policies ap ON ap.resource_id = gm.{group_id_col} \
+                         WHERE ap.resource_type = $1 \
+                           AND ap.context_app_ids @> $2 \
+                           AND ap.actions @> $3 \
+                           AND ap.subject_type = 3 \
+                           AND NOT ap.revoked \
+                           AND (ap.expires_at IS NULL OR ap.expires_at > now())",
+                        resource_id_col = group_resource_id_col,
+                        group_id_col = group_id_col,
+                        group_membership_table = group_membership_table,
+                    ),
+                    true,
+                ),
+                Subject::User { .. } => (
+                    format!(
+                        "SELECT gm.{resource_id_col} as id, ap.effect \
+                         FROM {group_membership_table} gm \
+                         JOIN access_policies ap ON ap.resource_id = gm.{group_id_col} \
+                         WHERE ap.resource_type = $1 \
+                           AND ap.context_app_ids @> $2 \
+                           AND ap.actions @> $3 \
+                           AND ( \
+                               (ap.subject_type = 0 AND ap.subject_id = $4) OR \
+                               (ap.subject_type = 1 AND ap.subject_id = ANY($5)) OR \
+                               (ap.subject_type = 2) OR \
+                               (ap.subject_type = 3) \
+                           ) \
+                           AND NOT ap.revoked \
+                           AND (ap.expires_at IS NULL OR ap.expires_at > now())",
+                        resource_id_col = group_resource_id_col,
+                        group_id_col = group_id_col,
+                        group_membership_table = group_membership_table,
+                    ),
+                    false,
+                ),
+            };
+
+            let rows: Vec<GroupPolicyRow> = if anonymous_branch {
+                diesel::sql_query(&group_sql)
+                    .bind::<SmallInt, _>(resource_group_type)
+                    .bind::<sql_types::Array<sql_types::Uuid>, _>(vec![app_id_wrapped.clone()])
+                    .bind::<sql_types::Array<SmallInt>, _>(vec![action_enum])
+                    .load(&mut connection)
+                    .await?
+            } else {
+                let (user_id, group_ids) = match subject {
+                    Subject::User { user_id, groups, .. } => (*user_id, groups.clone()),
+                    _ => unreachable!("anonymous_branch=false implies User subject"),
+                };
+                diesel::sql_query(&group_sql)
+                    .bind::<SmallInt, _>(resource_group_type)
+                    .bind::<sql_types::Array<sql_types::Uuid>, _>(vec![app_id_wrapped.clone()])
+                    .bind::<sql_types::Array<SmallInt>, _>(vec![action_enum])
+                    .bind::<sql_types::Uuid, _>(user_id)
+                    .bind::<sql_types::Array<sql_types::Uuid>, _>(group_ids)
+                    .load(&mut connection)
+                    .await?
+            };
+            pairs.extend(rows.into_iter().map(|r| (r.id, r.effect)));
+        }
+
+        Ok(pairs)
     }
 
     async fn fetch_owner_scoped_policies(

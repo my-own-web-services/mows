@@ -29,7 +29,6 @@ use diesel_enum::DbEnum;
 use mows_auth_core::types::{Effect, SubjectType};
 use serde::{Deserialize, Serialize};
 use serde_valid::Validate;
-use std::collections::HashSet;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -411,7 +410,12 @@ impl AccessPolicy {
         Ok(access_policies)
     }
 
-    /// Lists all resource ids that the user has access to for a specific resource type.
+    /// Lists all resource ids the requesting user has access to for a
+    /// specific resource type. Thin adapter on top of
+    /// [`mows_auth_core::list_visible_resource_ids`] —
+    /// `FilezPolicyStore::list_visible_resource_ids` does the actual
+    /// SQL; the engine folds the resulting `(id, effect)` pairs into
+    /// the final allow-minus-deny set (LISTING.md §3).
     #[tracing::instrument(level = "trace", skip(database))]
     pub async fn get_all_resources_with_user_access(
         database: &Database,
@@ -420,13 +424,11 @@ impl AccessPolicy {
         resource_type: AccessPolicyResourceType,
         action_to_perform: AccessPolicyAction,
     ) -> Result<Vec<Uuid>, FilezError> {
-        let mut connection = database.get_connection().await?;
-        // Engine-registry lookup. .expect — registry was populated
-        // from these very enum values at startup.
         use mows_auth_core::ResourceTypeRegistry;
         let resource_auth_info = check::engine_resource_registry()
             .lookup(resource_type as u32)
             .expect("resource type registered in engine registry");
+
         let maybe_user_group_ids = match maybe_requesting_user {
             Some(requesting_user) => {
                 Some(UserGroup::get_all_ids_by_user_id(database, &requesting_user.id).await?)
@@ -434,169 +436,35 @@ impl AccessPolicy {
             None => None,
         };
 
-        let mut allowed_ids: HashSet<Uuid> = HashSet::new();
-        let mut denied_ids: HashSet<Uuid> = HashSet::new();
+        let subject = match maybe_requesting_user {
+            Some(user) => mows_auth_core::Subject::user(
+                user.id.0,
+                maybe_user_group_ids
+                    .as_ref()
+                    .map(|gids| gids.iter().map(|g| g.0).collect())
+                    .unwrap_or_default(),
+            ),
+            None => mows_auth_core::Subject::Anonymous,
+        };
+        let app_view = mows_auth_core::AppView {
+            id: requesting_app.id.into(),
+            trusted: requesting_app.trusted,
+        };
+        let store = crate::models::access_policies::store::FilezPolicyStore::new(
+            database,
+            maybe_requesting_user,
+            maybe_user_group_ids.as_ref(),
+        );
 
-        if let Some(requesting_user) = maybe_requesting_user {
-            if let Some(owner_col) = resource_auth_info.resource_table_owner_column {
-                // 1. Get resources owned by the user
-                let owned_query_string = format!(
-                    "SELECT {id_col} as id FROM {table_name} WHERE {owner_col} = $1",
-                    table_name = resource_auth_info.resource_table,
-                    id_col = resource_auth_info.resource_table_id_column,
-                    owner_col = owner_col
-                );
-
-                #[derive(QueryableByName, Debug)]
-                struct ResourceId {
-                    #[diesel(sql_type = diesel::sql_types::Uuid)]
-                    id: Uuid,
-                }
-
-                let owned_ids: Vec<ResourceId> = diesel::sql_query(&owned_query_string)
-                    .bind::<diesel::sql_types::Uuid, _>(requesting_user.id)
-                    .load::<ResourceId>(&mut connection)
-                    .await?;
-                allowed_ids.extend(owned_ids.into_iter().map(|r| r.id));
-            }
-        }
-
-        // 2. Get resources with direct policies
-        let direct_policies = schema::access_policies::table
-            .filter(schema::access_policies::resource_type.eq(resource_type))
-            .filter(schema::access_policies::context_app_ids.contains(vec![requesting_app.id]))
-            .filter(schema::access_policies::actions.contains(vec![action_to_perform]))
-            .filter(filter_subject_access_policies!(
-                maybe_requesting_user,
-                maybe_user_group_ids.as_ref()
-            ))
-            .select((
-                schema::access_policies::resource_id,
-                schema::access_policies::effect,
-            ))
-            .load::<(Option<Uuid>, Effect)>(&mut connection)
-            .await?;
-
-        for (resource_id, effect) in direct_policies {
-            if let Some(id) = resource_id {
-                match effect {
-                    Effect::Allow => {
-                        allowed_ids.insert(id);
-                    }
-                    Effect::Deny => {
-                        denied_ids.insert(id);
-                    }
-                }
-            }
-        }
-
-        // 3. Get resources with policies on their resource groups
-        if let (
-            Some(group_membership_table),
-            Some(group_membership_table_resource_id_column),
-            Some(group_membership_table_group_id_column),
-            Some(resource_group_type_u32),
-        ) = (
-            resource_auth_info.group_membership_table,
-            resource_auth_info.group_membership_resource_id_column,
-            resource_auth_info.group_membership_group_id_column,
-            resource_auth_info.resource_group_type,
-        ) {
-            // Engine returns u32; convert back to i16 for the SmallInt
-            // bind below. Conversion is safe — the registry was
-            // populated from the typed enum at startup.
-            let resource_group_type: i16 = i16::try_from(resource_group_type_u32)
-                .expect("resource_group_type fits in i16 (registered range 0..=8)");
-            #[derive(QueryableByName, Debug)]
-            struct GroupPolicyResult {
-                #[diesel(sql_type = diesel::sql_types::Uuid)]
-                id: Uuid,
-                #[diesel(sql_type = diesel::sql_types::SmallInt)]
-                effect: Effect,
-            }
-
-            let resource_group_policies: Vec<GroupPolicyResult> = match maybe_requesting_user {
-                Some(requesting_user) => {
-                    let resource_group_policies_query = format!(
-                        "
-                        SELECT gm.{resource_id_col} as id, ap.effect
-                        FROM {group_membership_table} gm
-                        JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
-                        WHERE ap.resource_type = $1
-                            AND ap.context_app_ids @> $2
-                            AND ap.actions @> $3
-                            AND (
-                                (ap.subject_type = 0 AND ap.subject_id = $4) OR
-                                (ap.subject_type = 1 AND ap.subject_id = ANY($5)) OR
-                                (ap.subject_type = 2) OR
-                                (ap.subject_type = 3)
-                            )",
-                        resource_id_col = group_membership_table_resource_id_column,
-                        group_id_col = group_membership_table_group_id_column,
-                        group_membership_table = group_membership_table
-                    );
-
-                    diesel::sql_query(&resource_group_policies_query)
-                        .bind::<diesel::sql_types::SmallInt, _>(resource_group_type)
-                        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(vec![
-                            requesting_app.id,
-                        ])
-                        .bind::<diesel::sql_types::Array<SmallInt>, _>(vec![action_to_perform])
-                        .bind::<diesel::sql_types::Uuid, _>(requesting_user.id)
-                        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(
-                            maybe_user_group_ids.unwrap_or(Vec::new()),
-                        )
-                        .load(&mut connection)
-                        .await?
-                }
-                None => {
-                    // NOTE: the column is `context_app_ids` (plural).
-                    // An earlier version used the singular `context_app_id`
-                    // which caused this branch to error at runtime — returning
-                    // zero resource-group results for every anonymous request.
-                    // Keep this query consistent with the Some(requesting_user)
-                    // branch above.
-                    let resource_group_policies_query = format!(
-                        "
-                        SELECT gm.{resource_id_col} as id, ap.effect
-                        FROM {group_membership_table} gm
-                        JOIN access_policies ap ON ap.resource_id = gm.{group_id_col}
-                        WHERE ap.resource_type = $1
-                            AND ap.context_app_ids @> $2
-                            AND ap.actions @> $3
-                            AND ap.subject_type = 3",
-                        resource_id_col = group_membership_table_resource_id_column,
-                        group_id_col = group_membership_table_group_id_column,
-                        group_membership_table = group_membership_table
-                    );
-
-                    diesel::sql_query(&resource_group_policies_query)
-                        .bind::<diesel::sql_types::SmallInt, _>(resource_group_type)
-                        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(vec![
-                            requesting_app.id,
-                        ])
-                        .bind::<diesel::sql_types::Array<SmallInt>, _>(vec![action_to_perform])
-                        .load(&mut connection)
-                        .await?
-                }
-            };
-
-            for result in resource_group_policies {
-                match result.effect {
-                    Effect::Allow => {
-                        allowed_ids.insert(result.id);
-                    }
-                    Effect::Deny => {
-                        denied_ids.insert(result.id);
-                    }
-                }
-            }
-        }
-
-        // 4. Final computation: allowed minus denied
-        let final_allowed_ids: Vec<Uuid> = allowed_ids.difference(&denied_ids).cloned().collect();
-
-        Ok(final_allowed_ids)
+        let allowed = mows_auth_core::list_visible_resource_ids(
+            &store,
+            &resource_auth_info,
+            &subject,
+            app_view,
+            action_to_perform as u32,
+        )
+        .await?;
+        Ok(allowed)
     }
 
     #[tracing::instrument(level = "trace", skip(database))]

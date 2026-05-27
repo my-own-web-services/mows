@@ -537,3 +537,33 @@ mod constructor_idp_id_stamping {
     // The direct-stamping pattern is identical to no_origin / new, so
     // these two suffice for the unit-level QA-8 guard.
 }
+
+#[cfg(test)]
+mod app_lookup_query_shape {
+    //! AUTHENTICATION.md §4.2 + §8 regression guard: the new app
+    //! lookup MUST filter on BOTH `idp_id` and `external_client_id`.
+    //! A refactor that drops either clause re-introduces the
+    //! pre-Phase-2 ambiguity where two IdPs issuing the same opaque
+    //! `client_id` would collide on the same `MowsApp` row.
+    use super::*;
+    use diesel::{debug_query, pg::Pg};
+
+    #[test]
+    fn get_by_idp_and_external_client_id_filters_on_both_columns() {
+        let idp_id = mows_auth_core::ZITADEL_IDP_ID;
+        let external_client_id = "client-abc";
+        let query = crate::schema::apps::table
+            .filter(crate::schema::apps::idp_id.eq(&idp_id))
+            .filter(crate::schema::apps::external_client_id.eq(external_client_id))
+            .select(MowsApp::as_select());
+        let sql = debug_query::<Pg, _>(&query).to_string();
+        assert!(
+            sql.contains("\"apps\".\"idp_id\" ="),
+            "app lookup must filter on idp_id: {sql}"
+        );
+        assert!(
+            sql.contains("\"apps\".\"external_client_id\" ="),
+            "app lookup must filter on external_client_id: {sql}"
+        );
+    }
+}
