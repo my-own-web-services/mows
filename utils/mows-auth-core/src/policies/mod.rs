@@ -300,6 +300,36 @@ pub trait PolicyStore: Send + Sync {
     ) -> Result<Vec<(Uuid, crate::types::Effect)>, AuthError> {
         Ok(vec![])
     }
+
+    /// Phase 3 P3-2 — batched read for the OwnedStream feeding the
+    /// k-way merge in [`crate::list::merge_streams`].
+    ///
+    /// Returns up to `batch_size` resources owned by `user_id`,
+    /// ordered `(created_time DESC, resource_id DESC)`, strictly
+    /// past the keyset cursor when provided. The Phase-3 listing
+    /// engine pulls batches lazily as the merge advances — at most
+    /// one batch per stream per page (LISTING.md §5.1).
+    ///
+    /// Returning fewer than `batch_size` items signals the stream
+    /// is exhausted (the caller stops refilling). Returning
+    /// `batch_size` items does NOT necessarily mean more exist;
+    /// the caller's next call will return empty if so.
+    ///
+    /// `auth_info.resource_table_owner_column` must be `Some` for
+    /// this to return anything; resource types without an owner
+    /// (e.g. AccessPolicy itself) return an empty Vec — they
+    /// don't participate in the OwnedStream.
+    ///
+    /// Default returns empty so existing stores keep compiling.
+    async fn stream_owned_resources(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _user_id: &Uuid,
+        _cursor: Option<crate::list::ListingCursor>,
+        _batch_size: usize,
+    ) -> Result<Vec<crate::list::StreamItem>, AuthError> {
+        Ok(vec![])
+    }
 }
 
 #[cfg(test)]

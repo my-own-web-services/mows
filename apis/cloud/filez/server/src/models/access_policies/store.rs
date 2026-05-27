@@ -15,7 +15,9 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use mows_auth_core::{
-    types::Effect, AppView, AuthError, PolicyStore, PolicyView, ResourceAuthInfo, Subject,
+    list::{ListingCursor, StreamItem},
+    types::Effect,
+    AppView, AuthError, PolicyStore, PolicyView, ResourceAuthInfo, Subject,
 };
 use uuid::Uuid;
 
@@ -474,6 +476,112 @@ impl<'a> PolicyStore for FilezPolicyStore<'a> {
             .load::<AccessPolicy>(&mut connection)
             .await?;
         Ok(policies.iter().map(PolicyView::from).collect())
+    }
+
+    /// Phase 3 P3-2 — keyset-paginated batched read for the
+    /// OwnedStream in the listing engine's k-way merge.
+    ///
+    /// Issues exactly one indexed SELECT per call against the
+    /// resource table named by `auth_info.resource_table`. The
+    /// matching index for `files` is
+    /// `files(owner_id, created_time DESC, id DESC)` (migration
+    /// 00000000000009_listing_hot_path_indexes). Other resource
+    /// types either don't have an owner column (return empty) or
+    /// gain their own owner_created_id_idx in the same migration
+    /// when they're added.
+    ///
+    /// `auth_info.resource_table` / `_id_column` / `_owner_column`
+    /// are identifier-validated at registry-build time
+    /// (`SAFE_IDENTIFIER_REGEX`) so the format! is safe.
+    async fn stream_owned_resources(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        user_id: &Uuid,
+        cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Result<Vec<StreamItem>, AuthError> {
+        let Some(owner_col) = auth_info.resource_table_owner_column else {
+            // Resource type without an owner column doesn't
+            // participate in OwnedStream — by contract.
+            return Ok(vec![]);
+        };
+
+        let pool = self
+            .database
+            .pool
+            .as_ref()
+            .ok_or_else(|| AuthError::Evaluation("database pool not initialized".to_string()))?;
+        let mut connection = pool.get().await?;
+
+        // Build the keyset query. The cursor-vs-no-cursor split
+        // changes the WHERE shape — keep them as two distinct
+        // format!() outputs so the planner sees stable SQL per
+        // shape (DATA_MODEL.md §3.7 / LISTING.md §4).
+        let table = auth_info.resource_table;
+        let id_col = auth_info.resource_table_id_column;
+        // Sort key is `created_time` — the canonical sort dimension
+        // for the Phase-3 default page. Other sort dimensions land
+        // in a follow-up with their own stream constructors.
+        let (sql, has_cursor) = if cursor.is_some() {
+            (
+                format!(
+                    "SELECT {id_col} AS resource_id, created_time AS sort_key \
+                     FROM {table} \
+                     WHERE {owner_col} = $1 \
+                       AND (created_time, {id_col}) < ($2, $3) \
+                     ORDER BY created_time DESC, {id_col} DESC \
+                     LIMIT $4",
+                ),
+                true,
+            )
+        } else {
+            (
+                format!(
+                    "SELECT {id_col} AS resource_id, created_time AS sort_key \
+                     FROM {table} \
+                     WHERE {owner_col} = $1 \
+                     ORDER BY created_time DESC, {id_col} DESC \
+                     LIMIT $2",
+                ),
+                false,
+            )
+        };
+
+        #[derive(QueryableByName, Debug)]
+        struct Row {
+            #[diesel(sql_type = sql_types::Uuid)]
+            resource_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Timestamp)]
+            sort_key: chrono::NaiveDateTime,
+        }
+
+        let batch_size_i64 = i64::try_from(batch_size)
+            .map_err(|e| AuthError::Evaluation(format!("batch_size overflow: {e}")))?;
+
+        let rows: Vec<Row> = if has_cursor {
+            let c = cursor.expect("cursor present");
+            diesel::sql_query(sql)
+                .bind::<sql_types::Uuid, _>(user_id)
+                .bind::<diesel::sql_types::Timestamp, _>(c.sort_key)
+                .bind::<sql_types::Uuid, _>(c.resource_id)
+                .bind::<diesel::sql_types::BigInt, _>(batch_size_i64)
+                .load(&mut connection)
+                .await?
+        } else {
+            diesel::sql_query(sql)
+                .bind::<sql_types::Uuid, _>(user_id)
+                .bind::<diesel::sql_types::BigInt, _>(batch_size_i64)
+                .load(&mut connection)
+                .await?
+        };
+
+        Ok(rows
+            .into_iter()
+            .map(|r| StreamItem {
+                sort_key: r.sort_key,
+                resource_id: r.resource_id,
+            })
+            .collect())
     }
 }
 
