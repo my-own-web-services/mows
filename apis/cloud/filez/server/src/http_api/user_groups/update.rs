@@ -17,6 +17,7 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus, EmptyApiResponse},
     with_timing,
 };
+use crate::models::user_groups::UpdateUserGroupOutcome;
 
 #[utoipa::path(
     put,
@@ -57,7 +58,7 @@ pub async fn update_user_group(
         timing
     );
 
-    let updated_user_group = with_timing!(
+    let outcome = with_timing!(
         UserGroup::update_one(
             &database,
             &request_body.user_group_id,
@@ -68,10 +69,26 @@ pub async fn update_user_group(
         timing
     );
 
+    if outcome.auto_promoted_requests > 0 {
+        tracing::info!(
+            user_group_id = %request_body.user_group_id,
+            promoted = outcome.auto_promoted_requests,
+            "USER_GROUPS.md §7.3: auto-promoted pending join requests after \
+             join_policy flip to OpenJoin"
+        );
+    }
+
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success {},
-        message: "User group updated".to_string(),
-        data: Some(UpdateUserGroupResponseBody { updated_user_group }),
+        message: if outcome.auto_promoted_requests > 0 {
+            format!(
+                "User group updated ({} pending join request(s) auto-promoted)",
+                outcome.auto_promoted_requests
+            )
+        } else {
+            "User group updated".to_string()
+        },
+        data: Some(UpdateUserGroupResponseBody { outcome }),
     }))
 }
 
@@ -83,5 +100,5 @@ pub struct UpdateUserGroupRequestBody {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, Validate)]
 pub struct UpdateUserGroupResponseBody {
-    pub updated_user_group: UserGroup,
+    pub outcome: UpdateUserGroupOutcome,
 }

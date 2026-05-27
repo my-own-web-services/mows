@@ -770,7 +770,13 @@ export interface ApiResponseUpdateStorageQuotaResponseBody {
 
 export interface ApiResponseUpdateUserGroupResponseBody {
   data?: {
-    updated_user_group: UserGroup;
+    /**
+     * Result of `UserGroup::update_one`. Carries the updated row plus
+     * the count of pending join requests that were auto-promoted to
+     * memberships as a side-effect (USER_GROUPS.md §7.3 — only > 0
+     * when join_policy transitioned to OpenJoin in this update).
+     */
+    outcome: UpdateUserGroupOutcome;
   };
   message: string;
   status: ApiResponseStatus;
@@ -2126,13 +2132,31 @@ export interface UpdateUserGroupMembersRequestBody {
   users_to_remove?: any[] | null;
 }
 
+/**
+ * Result of `UserGroup::update_one`. Carries the updated row plus
+ * the count of pending join requests that were auto-promoted to
+ * memberships as a side-effect (USER_GROUPS.md §7.3 — only > 0
+ * when join_policy transitioned to OpenJoin in this update).
+ */
+export interface UpdateUserGroupOutcome {
+  /** @min 0 */
+  auto_promoted_requests: number;
+  updated_user_group: UserGroup;
+}
+
 export interface UpdateUserGroupRequestBody {
   changeset: UpdateUserGroupChangeset;
   user_group_id: UserGroupId;
 }
 
 export interface UpdateUserGroupResponseBody {
-  updated_user_group: UserGroup;
+  /**
+   * Result of `UserGroup::update_one`. Carries the updated row plus
+   * the count of pending join requests that were auto-promoted to
+   * memberships as a side-effect (USER_GROUPS.md §7.3 — only > 0
+   * when join_policy transitioned to OpenJoin in this update).
+   */
+  outcome: UpdateUserGroupOutcome;
 }
 
 export interface UserGroup {

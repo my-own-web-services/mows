@@ -4960,11 +4960,11 @@
           "data": {
             "type": "object",
             "required": [
-              "updated_user_group"
+              "outcome"
             ],
             "properties": {
-              "updated_user_group": {
-                "$ref": "#/components/schemas/UserGroup"
+              "outcome": {
+                "$ref": "#/components/schemas/UpdateUserGroupOutcome"
               }
             }
           },
@@ -8978,6 +8978,23 @@
           }
         }
       },
+      "UpdateUserGroupOutcome": {
+        "type": "object",
+        "description": "Result of `UserGroup::update_one`. Carries the updated row plus\nthe count of pending join requests that were auto-promoted to\nmemberships as a side-effect (USER_GROUPS.md §7.3 — only > 0\nwhen join_policy transitioned to OpenJoin in this update).",
+        "required": [
+          "updated_user_group",
+          "auto_promoted_requests"
+        ],
+        "properties": {
+          "auto_promoted_requests": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "updated_user_group": {
+            "$ref": "#/components/schemas/UserGroup"
+          }
+        }
+      },
       "UpdateUserGroupRequestBody": {
         "type": "object",
         "required": [
@@ -8996,11 +9013,11 @@
       "UpdateUserGroupResponseBody": {
         "type": "object",
         "required": [
-          "updated_user_group"
+          "outcome"
         ],
         "properties": {
-          "updated_user_group": {
-            "$ref": "#/components/schemas/UserGroup"
+          "outcome": {
+            "$ref": "#/components/schemas/UpdateUserGroupOutcome"
           }
         }
       },

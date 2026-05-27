@@ -2508,12 +2508,13 @@ impl ApiClient {
         Ok(response)
     }
 
-    /// Owner-facing: list pending invitations for a group.
+    /// Invite a user to a group. Idempotent — re-invites are a no-op.
     #[tracing::instrument(level = "trace")]
-    pub async fn list_group_invitations(
+    pub async fn invite_to_user_group(
         &self,
         user_group_id: UserGroupId,
-    ) -> Result<ApiResponseListInvitationsResponseBody, ApiClientError> {
+        request_body: InviteToUserGroupRequestBody,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         let full_url = format!(
             "{}/api/user_groups/{user_group_id}/invitations",
             self.base_url
@@ -2522,8 +2523,9 @@ impl ApiClient {
 
         let response = self
             .client
-            .get(full_url)
+            .post(full_url)
             .headers(self.add_auth_headers()?)
+            .json(&request_body)
             .send()
             .await?;
 
@@ -2550,13 +2552,12 @@ impl ApiClient {
         Ok(response)
     }
 
-    /// Invite a user to a group. Idempotent — re-invites are a no-op.
+    /// Owner-facing: list pending invitations for a group.
     #[tracing::instrument(level = "trace")]
-    pub async fn invite_to_user_group(
+    pub async fn list_group_invitations(
         &self,
         user_group_id: UserGroupId,
-        request_body: InviteToUserGroupRequestBody,
-    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    ) -> Result<ApiResponseListInvitationsResponseBody, ApiClientError> {
         let full_url = format!(
             "{}/api/user_groups/{user_group_id}/invitations",
             self.base_url
@@ -2565,9 +2566,8 @@ impl ApiClient {
 
         let response = self
             .client
-            .post(full_url)
+            .get(full_url)
             .headers(self.add_auth_headers()?)
-            .json(&request_body)
             .send()
             .await?;
 

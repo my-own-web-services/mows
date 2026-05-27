@@ -1983,6 +1983,17 @@ pub struct UpdateUserGroupMembersRequestBody {
     pub users_to_remove: Option<Vec<FilezUserId>>,
 }
 
+// UpdateUserGroupOutcome
+/// Result of `UserGroup::update_one`. Carries the updated row plus
+/// the count of pending join requests that were auto-promoted to
+/// memberships as a side-effect (USER_GROUPS.md §7.3 — only > 0
+/// when join_policy transitioned to OpenJoin in this update).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateUserGroupOutcome {
+    pub auto_promoted_requests: i64,
+    pub updated_user_group: UserGroup,
+}
+
 // UpdateUserGroupRequestBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateUserGroupRequestBody {
@@ -1993,7 +2004,7 @@ pub struct UpdateUserGroupRequestBody {
 // UpdateUserGroupResponseBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateUserGroupResponseBody {
-    pub updated_user_group: UserGroup,
+    pub outcome: UpdateUserGroupOutcome,
 }
 
 // UserGroup

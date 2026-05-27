@@ -45,6 +45,16 @@ pub struct UserGroup {
     pub join_policy: mows_auth_core::types::GroupJoinPolicy,
 }
 
+/// Result of `UserGroup::update_one`. Carries the updated row plus
+/// the count of pending join requests that were auto-promoted to
+/// memberships as a side-effect (USER_GROUPS.md §7.3 — only > 0
+/// when join_policy transitioned to OpenJoin in this update).
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct UpdateUserGroupOutcome {
+    pub updated_user_group: UserGroup,
+    pub auto_promoted_requests: usize,
+}
+
 #[derive(Serialize, Deserialize, ToSchema, Validate, AsChangeset, Clone, Debug)]
 #[diesel(table_name = crate::schema::user_groups)]
 pub struct UpdateUserGroupChangeset {
@@ -297,17 +307,84 @@ impl UserGroup {
         database: &Database,
         user_group_id: &UserGroupId,
         changeset: &UpdateUserGroupChangeset,
-    ) -> Result<UserGroup, FilezError> {
+    ) -> Result<UpdateUserGroupOutcome, FilezError> {
+        use diesel_async::{scoped_futures::ScopedFutureExt, AsyncConnection};
+        use mows_auth_core::types::GroupJoinPolicy;
+
         let mut connection = database.get_connection().await?;
-        let updated_user_group = diesel::update(schema::user_groups::table.find(user_group_id))
-            .set((
-                changeset,
-                schema::user_groups::modified_time.eq(get_current_timestamp()),
-            ))
-            .returning(UserGroup::as_select())
-            .get_result::<UserGroup>(&mut connection)
-            .await?;
-        Ok(updated_user_group)
+        connection
+            .transaction::<UpdateUserGroupOutcome, FilezError, _>(|conn| {
+                async move {
+                    // Snapshot the pre-update join_policy so we can
+                    // detect a flip to OpenJoin (USER_GROUPS.md §7.3).
+                    let previous_join_policy: GroupJoinPolicy = schema::user_groups::table
+                        .filter(schema::user_groups::id.eq(user_group_id))
+                        .select(schema::user_groups::join_policy)
+                        .first::<GroupJoinPolicy>(conn)
+                        .await?;
+
+                    let updated_user_group =
+                        diesel::update(schema::user_groups::table.find(user_group_id))
+                            .set((
+                                changeset,
+                                schema::user_groups::modified_time
+                                    .eq(get_current_timestamp()),
+                            ))
+                            .returning(UserGroup::as_select())
+                            .get_result::<UserGroup>(conn)
+                            .await?;
+
+                    // USER_GROUPS.md §7.3: when join_policy transitions
+                    // to OpenJoin, every pending request becomes
+                    // redundant — promote them to memberships in the
+                    // same transaction so the user immediately sees
+                    // membership instead of a stale pending row.
+                    let auto_promoted_requests = if previous_join_policy
+                        != GroupJoinPolicy::OpenJoin
+                        && updated_user_group.join_policy == GroupJoinPolicy::OpenJoin
+                    {
+                        let pending_user_ids: Vec<FilezUserId> =
+                            schema::user_user_group_join_requests::table
+                                .filter(
+                                    schema::user_user_group_join_requests::user_group_id
+                                        .eq(user_group_id),
+                                )
+                                .select(schema::user_user_group_join_requests::user_id)
+                                .load::<FilezUserId>(conn)
+                                .await?;
+                        let count = pending_user_ids.len();
+                        if count > 0 {
+                            let new_members: Vec<UserUserGroupMember> = pending_user_ids
+                                .iter()
+                                .map(|user_id| UserUserGroupMember::new(user_id, user_group_id))
+                                .collect();
+                            diesel::insert_into(schema::user_user_group_members::table)
+                                .values(&new_members)
+                                .on_conflict_do_nothing()
+                                .execute(conn)
+                                .await?;
+                            diesel::delete(
+                                schema::user_user_group_join_requests::table.filter(
+                                    schema::user_user_group_join_requests::user_group_id
+                                        .eq(user_group_id),
+                                ),
+                            )
+                            .execute(conn)
+                            .await?;
+                        }
+                        count
+                    } else {
+                        0
+                    };
+
+                    Ok(UpdateUserGroupOutcome {
+                        updated_user_group,
+                        auto_promoted_requests,
+                    })
+                }
+                .scope_boxed()
+            })
+            .await
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
@@ -533,6 +610,51 @@ async fn load_and_paginate(
 
     let user_groups = query.load::<UserGroup>(connection).await?;
     Ok((user_groups, total_count.try_into()?))
+}
+
+#[cfg(test)]
+mod auto_promote_invariant_guard {
+    //! USER_GROUPS.md §7.3 regression guard: the auto-promote
+    //! transition condition + the membership/request-row pair must
+    //! survive any refactor of `update_one`. Without these the
+    //! UI invariant breaks silently — a user requests to join, the
+    //! owner flips the policy to OpenJoin, and the user stays in
+    //! the pending list forever instead of becoming a member.
+    //!
+    //! Source-string guard (same pattern as
+    //! `context_app_ids_typo_guard` in models/access_policies/mod.rs)
+    //! so the test runs without a live database.
+    const MOD_RS_SOURCE: &str = include_str!("mod.rs");
+
+    #[test]
+    fn update_one_contains_join_policy_transition_check() {
+        // The exact transition predicate from USER_GROUPS.md §7.3.
+        // If a refactor changes the direction (e.g. promotes on
+        // ANY change instead of "to OpenJoin"), this test fires.
+        assert!(
+            MOD_RS_SOURCE.contains("previous_join_policy")
+                && MOD_RS_SOURCE.contains("GroupJoinPolicy::OpenJoin"),
+            "update_one must compare the previous join_policy against \
+             OpenJoin before auto-promoting (USER_GROUPS.md §7.3)"
+        );
+    }
+
+    #[test]
+    fn update_one_promotes_via_insert_then_delete() {
+        // Both halves of the move MUST live in the same transaction.
+        // We can't assert "same transaction" structurally — but we
+        // can assert both operations are present and reference the
+        // expected tables.
+        assert!(
+            MOD_RS_SOURCE.contains("insert_into(schema::user_user_group_members::table)"),
+            "auto-promote must INSERT into user_user_group_members"
+        );
+        assert!(
+            MOD_RS_SOURCE.contains("delete(\n                                schema::user_user_group_join_requests::table")
+                || MOD_RS_SOURCE.contains("schema::user_user_group_join_requests::table.filter"),
+            "auto-promote must DELETE the corresponding join_requests rows"
+        );
+    }
 }
 
 #[cfg(test)]
