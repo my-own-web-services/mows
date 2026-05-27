@@ -52,4 +52,24 @@ INSERT INTO access_policies (
     NULL,
     false,
     0                                                 -- ResourceScope::Single
-) ON CONFLICT (id) DO NOTHING;
+) ON CONFLICT (id) DO UPDATE SET
+    -- Self-healing: if a future operator or buggy migration mangled
+    -- the seed row's gate columns (effect / actions / subject_type /
+    -- context_app_ids), every re-run of this migration restores the
+    -- documented shape. The id is the immutable identity; everything
+    -- else is reset to spec (phase3-review A5 / SLOP-4).
+    --
+    -- name / created_time are NOT reset — preserves any operator's
+    -- annotations + the original boot timestamp for audit purposes.
+    owner_id        = EXCLUDED.owner_id,
+    modified_time   = now(),
+    subject_type    = EXCLUDED.subject_type,
+    subject_id      = EXCLUDED.subject_id,
+    context_app_ids = EXCLUDED.context_app_ids,
+    resource_type   = EXCLUDED.resource_type,
+    resource_id     = EXCLUDED.resource_id,
+    actions         = EXCLUDED.actions,
+    effect          = EXCLUDED.effect,
+    expires_at      = EXCLUDED.expires_at,
+    revoked         = EXCLUDED.revoked,
+    resource_scope  = EXCLUDED.resource_scope;

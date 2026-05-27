@@ -375,11 +375,34 @@ pub async fn merge_streams<'a>(
 ) -> Result<ListingPage, AuthError> {
     use std::collections::HashSet;
 
+    // page_size = 0 is degenerate (would yield zero items + an empty
+    // heap iteration). Caller bug — return empty page with no cursor
+    // rather than spinning. Matches the
+    // pagination_with_zero_page_size test (phase3-review A11).
+    if page_size == 0 {
+        return Ok(ListingPage {
+            resource_ids: Vec::new(),
+            next_cursor: None,
+        });
+    }
+
     let mut heap: BinaryHeap<HeapEntry> = BinaryHeap::with_capacity(streams.len());
+
+    // Tracks each stream's last yielded item — used to debug-assert
+    // the DESC contract every stream MUST honour (phase3-review A2 /
+    // TECH-2 / SLOP-3). Release builds skip the check, trusting the
+    // store-side query's ORDER BY clause.
+    #[cfg(debug_assertions)]
+    let mut last_yielded_per_stream: Vec<Option<StreamItem>> =
+        vec![None; streams.len()];
 
     // Prime the heap: pull the first item from each stream.
     for (idx, stream) in streams.iter_mut().enumerate() {
         if let Some(item) = stream.next().await? {
+            #[cfg(debug_assertions)]
+            {
+                last_yielded_per_stream[idx] = Some(item);
+            }
             heap.push(HeapEntry {
                 item,
                 stream_idx: idx,
@@ -398,6 +421,31 @@ pub async fn merge_streams<'a>(
 
         // Advance the producing stream; push its next item back.
         if let Some(next) = streams[top.stream_idx].next().await? {
+            #[cfg(debug_assertions)]
+            {
+                // DESC contract: each new item from a stream MUST be
+                // strictly less than (sort_key, resource_id) of its
+                // previous item — same ordering the heap uses. A
+                // store that mis-orders silently produces wrong merge
+                // output in release builds; this assert catches it
+                // in tests + dev.
+                if let Some(prev) = last_yielded_per_stream[top.stream_idx] {
+                    let cmp = next
+                        .sort_key
+                        .cmp(&prev.sort_key)
+                        .then_with(|| next.resource_id.cmp(&prev.resource_id));
+                    debug_assert_eq!(
+                        cmp,
+                        Ordering::Less,
+                        "SortedStream contract violated: stream {} yielded {:?} after {:?} \
+                         (must be strictly DESC on (sort_key, resource_id))",
+                        top.stream_idx,
+                        next,
+                        prev,
+                    );
+                }
+                last_yielded_per_stream[top.stream_idx] = Some(next);
+            }
             heap.push(HeapEntry {
                 item: next,
                 stream_idx: top.stream_idx,
@@ -731,6 +779,73 @@ mod owned_stream_tests {
         assert!(stream.next().await.unwrap().is_none());
     }
 
+    // phase3-review A8 / QA-5: store errors must surface through
+    // OwnedStream::next, not be masked into an empty stream.
+    #[tokio::test]
+    async fn owned_stream_propagates_store_errors() {
+        struct ErrorStore;
+        #[async_trait]
+        impl PolicyStore for ErrorStore {
+            async fn fetch_owners(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &[Uuid],
+            ) -> Result<std::collections::HashMap<Uuid, Uuid>, AuthError> {
+                Ok(Default::default())
+            }
+            async fn fetch_direct_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+                _: &[Uuid],
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn fetch_resource_group_memberships(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &[Uuid],
+            ) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>, AuthError>
+            {
+                Ok(Default::default())
+            }
+            async fn fetch_resource_group_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+                _: &[Uuid],
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn fetch_type_level_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn stream_owned_resources(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Uuid,
+                _: Option<ListingCursor>,
+                _: usize,
+            ) -> Result<Vec<StreamItem>, AuthError> {
+                Err(AuthError::Evaluation("simulated store failure".into()))
+            }
+        }
+        let store = ErrorStore;
+        let auth_info = auth_info_for_files();
+        let mut stream = OwnedStream::new(&store, &auth_info, uuid(1), None, 10);
+        assert!(stream.next().await.is_err(), "store error must propagate");
+    }
+
     #[tokio::test]
     async fn owned_stream_feeds_merge_correctly() {
         // OwnedStream + a second in-memory stream → merge sees DESC
@@ -939,6 +1054,84 @@ mod merge_tests {
         let page = merge_streams(&mut streams, None, 10).await.unwrap();
         assert_eq!(page.resource_ids.len(), 2);
         assert_eq!(page.next_cursor, None);
+    }
+
+    /// Stream that always yields `None` — never produced any items.
+    struct EmptyStream;
+    #[async_trait]
+    impl SortedStream for EmptyStream {
+        fn source(&self) -> StreamSource {
+            StreamSource::Owned
+        }
+        async fn next(&mut self) -> Result<Option<StreamItem>, AuthError> {
+            Ok(None)
+        }
+    }
+
+    /// Stream that yields N items then errors on the next call.
+    struct ErrorAfterStream {
+        remaining: VecDeque<StreamItem>,
+    }
+    #[async_trait]
+    impl SortedStream for ErrorAfterStream {
+        fn source(&self) -> StreamSource {
+            StreamSource::Owned
+        }
+        async fn next(&mut self) -> Result<Option<StreamItem>, AuthError> {
+            if let Some(it) = self.remaining.pop_front() {
+                Ok(Some(it))
+            } else {
+                Err(AuthError::Evaluation("simulated stream failure".into()))
+            }
+        }
+    }
+
+    // phase3-review A7 / QA-1: every stream returns None on first
+    // call → page must be empty + cursor None, no spin.
+    #[tokio::test]
+    async fn all_streams_initially_exhausted_returns_empty_page() {
+        let mut streams: Vec<Box<dyn SortedStream>> = vec![
+            Box::new(EmptyStream),
+            Box::new(EmptyStream),
+            Box::new(EmptyStream),
+        ];
+        let page = merge_streams(&mut streams, None, 50).await.unwrap();
+        assert!(page.resource_ids.is_empty());
+        assert_eq!(page.next_cursor, None);
+    }
+
+    // phase3-review A11 / QA-4: page_size = 0 is a caller bug;
+    // return empty rather than spin.
+    #[tokio::test]
+    async fn page_size_zero_returns_empty_page_immediately() {
+        let mut streams = vec![stream(
+            StreamSource::Owned,
+            vec![(100, 1), (90, 2)],
+        )];
+        let page = merge_streams(&mut streams, None, 0).await.unwrap();
+        assert!(page.resource_ids.is_empty());
+        assert_eq!(page.next_cursor, None);
+    }
+
+    // phase3-review A6 / QA-2: stream error mid-page must propagate
+    // immediately, not be silently dropped.
+    #[tokio::test]
+    async fn stream_error_mid_page_propagates() {
+        let mut streams: Vec<Box<dyn SortedStream>> = vec![
+            Box::new(ErrorAfterStream {
+                remaining: vec![StreamItem {
+                    sort_key: ts(100),
+                    resource_id: uuid(1),
+                }]
+                .into(),
+            }),
+            stream(StreamSource::PublicMaterialized, vec![(90, 2)]),
+        ];
+        let result = merge_streams(&mut streams, None, 50).await;
+        assert!(
+            result.is_err(),
+            "merge_streams must propagate the inner stream's error"
+        );
     }
 
     #[tokio::test]

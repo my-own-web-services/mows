@@ -1001,6 +1001,57 @@ async fn load_user_groups_with_predicate(
 }
 
 #[cfg(test)]
+mod create_one_bootstrap_guard {
+    //! phase3-review A9 / QA-7: pin the Phase 4 P4-10 default-policy
+    //! bootstrap invariants at the source level. Integration tests
+    //! against a real postgres lack a rig in this repo today; these
+    //! string-grep tests catch the most likely refactoring regressions:
+    //!
+    //!   * The bootstrap MUST run inside a diesel-async transaction
+    //!     (rollback safety — partial bootstrap can never land).
+    //!   * The member-view policy MUST seed UserGroupsList + UserGroupsListUsers.
+    //!   * The RequestJoin grant MUST be conditional on
+    //!     `join_policy != InviteOnly` (per the spec).
+
+    const MOD_RS_SOURCE: &str = include_str!("mod.rs");
+
+    #[test]
+    fn create_one_runs_in_a_transaction() {
+        assert!(
+            MOD_RS_SOURCE.contains("connection\n            .transaction::<UserGroup,")
+                || MOD_RS_SOURCE.contains(".transaction::<UserGroup, FilezError, _>"),
+            "UserGroup::create_one MUST wrap its inserts in a transaction so a \
+             policy-insert failure rolls back the group row too (USER_GROUPS.md \
+             §6 default-policy bootstrap atomicity)"
+        );
+    }
+
+    #[test]
+    fn create_one_seeds_member_view_policy() {
+        assert!(
+            MOD_RS_SOURCE.contains("AccessPolicyAction::UserGroupsList")
+                && MOD_RS_SOURCE.contains("AccessPolicyAction::UserGroupsListUsers"),
+            "create_one must seed the member-view policy granting UserGroupsList \
+             + UserGroupsListUsers (USER_GROUPS.md §6)"
+        );
+    }
+
+    #[test]
+    fn create_one_conditionally_seeds_request_join() {
+        // The RequestJoin grant is conditional: only seeded when
+        // join_policy != InviteOnly. Refactor that drops the
+        // condition would create the policy for InviteOnly groups,
+        // contradicting the spec.
+        assert!(
+            MOD_RS_SOURCE.contains("GroupJoinPolicy::InviteOnly")
+                && MOD_RS_SOURCE.contains("AccessPolicyAction::UserGroupsRequestJoin"),
+            "create_one must seed UserGroupsRequestJoin only when \
+             join_policy != InviteOnly"
+        );
+    }
+}
+
+#[cfg(test)]
 mod auto_promote_invariant_guard {
     //! USER_GROUPS.md §7.3 regression guard: the auto-promote
     //! transition condition + the membership/request-row pair must

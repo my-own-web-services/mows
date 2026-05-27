@@ -46,16 +46,20 @@ DECLARE
     threshold INTEGER := user_group_materialize_threshold();
     n_changed INTEGER;
 BEGIN
+    -- Single LEFT JOIN + GROUP BY instead of per-group correlated
+    -- subquery. At 100k groups × ~10 members each the correlated
+    -- shape walks the members table 100k times (O(groups × members));
+    -- the JOIN walks it once (O(groups + members)). Postgres uses
+    -- a hash aggregate on the (user_group_id) bucket
+    -- (phase3-review A4 / FUTURE-F8).
     WITH counts AS (
         SELECT ug.id,
-               COALESCE(
-                   (SELECT count(*)::INTEGER
-                      FROM user_user_group_members m
-                      WHERE m.user_group_id = ug.id),
-                   0
-               ) AS member_count,
+               COALESCE(COUNT(m.user_id), 0)::INTEGER AS member_count,
                ug.materialize_uga AS current_flag
-        FROM user_groups ug
+        FROM   user_groups ug
+        LEFT JOIN user_user_group_members m
+               ON m.user_group_id = ug.id
+        GROUP BY ug.id, ug.materialize_uga
     ),
     next AS (
         SELECT id,

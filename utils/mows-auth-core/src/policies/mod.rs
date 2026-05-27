@@ -320,7 +320,17 @@ pub trait PolicyStore: Send + Sync {
     /// (e.g. AccessPolicy itself) return an empty Vec — they
     /// don't participate in the OwnedStream.
     ///
-    /// Default returns empty so existing stores keep compiling.
+    /// Default fails loud — a store that participates in the
+    /// listing engine MUST override. A silent `Ok(vec![])` default
+    /// would mean a misimplemented store ships listings that
+    /// silently omit every owned resource (phase3-review A1 /
+    /// TECH-3 / ARCH-1 / SLOP-3). The engine surfaces
+    /// `AuthError::Evaluation` so the failure is loud and
+    /// debuggable, not a silent empty list.
+    ///
+    /// Stores that genuinely don't participate (e.g. a Phase-6 cron
+    /// runner that only needs `check_access`) can override with
+    /// `Ok(vec![])` explicitly and document the intent.
     async fn stream_owned_resources(
         &self,
         _auth_info: &ResourceAuthInfo,
@@ -328,7 +338,12 @@ pub trait PolicyStore: Send + Sync {
         _cursor: Option<crate::list::ListingCursor>,
         _batch_size: usize,
     ) -> Result<Vec<crate::list::StreamItem>, AuthError> {
-        Ok(vec![])
+        Err(AuthError::Evaluation(
+            "PolicyStore::stream_owned_resources not implemented for this store. \
+             Stores participating in the Phase-3 listing engine MUST override \
+             this method; opt-out stores must override with an explicit Ok(vec![]).
+             phase3-review A1 / TECH-3 / ARCH-1.".to_string(),
+        ))
     }
 }
 
