@@ -442,13 +442,13 @@ mod tests {
     /// Programmable in-memory store. Each field is the canned answer
     /// for the corresponding method.
     #[derive(Debug, Default)]
-    struct CannedStore {
-        owners: HashMap<Uuid, Uuid>,
-        direct: Vec<PolicyView>,
-        memberships: HashMap<Uuid, Vec<Uuid>>,
-        rg_policies: Vec<PolicyView>,
-        type_level: Vec<PolicyView>,
-        owner_scoped: Vec<PolicyView>,
+    pub(super) struct CannedStore {
+        pub(super) owners: HashMap<Uuid, Uuid>,
+        pub(super) direct: Vec<PolicyView>,
+        pub(super) memberships: HashMap<Uuid, Vec<Uuid>>,
+        pub(super) rg_policies: Vec<PolicyView>,
+        pub(super) type_level: Vec<PolicyView>,
+        pub(super) owner_scoped: Vec<PolicyView>,
     }
 
     #[async_trait]
@@ -507,7 +507,7 @@ mod tests {
         }
     }
 
-    fn auth_info() -> ResourceAuthInfo {
+    pub(super) fn auth_info() -> ResourceAuthInfo {
         ResourceAuthInfo {
             resource_table: "files",
             resource_table_id_column: "id",
@@ -520,7 +520,7 @@ mod tests {
         }
     }
 
-    fn untrusted_app() -> AppView {
+    pub(super) fn untrusted_app() -> AppView {
         AppView { id: Uuid::nil(), trusted: false }
     }
 
@@ -745,6 +745,251 @@ mod tests {
         assert_eq!(
             result.evaluations[0].reason,
             AuthReason::NoMatchingAllowPolicy
+        );
+    }
+}
+
+#[cfg(test)]
+mod property_tests {
+    //! POLICY_SEMANTICS.md §9 obligation: the five algorithmic
+    //! properties the engine must satisfy on every input.
+    //!
+    //! These are NOT proptest-driven — adding a property-testing
+    //! framework is out of scope for now. Instead each property is
+    //! pinned by a deterministic test that constructs a baseline +
+    //! a one-edit variant and asserts the property holds.
+    //!
+    //! The five properties:
+    //!   1. Adding a Deny never increases the allowed set.
+    //!   2. Adding an Allow never decreases the allowed set.
+    //!   3. SuperAdmin is always allowed (regardless of policies).
+    //!   4. OwnedByOwner ⊆ Single for the same set of explicit shares
+    //!      (the scope is additive — replacing a Single Allow with an
+    //!      equivalent OwnedByOwner Allow can only widen access).
+    //!   5. AccessibleByOwner chain breaks after one hop — the
+    //!      engine never recurses into another AccessibleByOwner.
+    //!
+    //! If a future refactor breaks any property, the corresponding
+    //! test fires before the change can land.
+
+    use super::tests::*;
+    use super::*;
+
+    fn user_subject() -> (Uuid, Subject) {
+        let user_id = Uuid::new_v4();
+        (user_id, Subject::user(user_id, vec![]))
+    }
+
+    fn allow_policy(subject_user_id: Uuid) -> PolicyView {
+        PolicyView {
+            id: Uuid::new_v4(),
+            owner_id: Uuid::new_v4(),
+            effect: Effect::Allow,
+            subject_type: SubjectType::User,
+            subject_id: subject_user_id,
+            resource_scope: ResourceScope::Single,
+        }
+    }
+
+    fn deny_policy(subject_user_id: Uuid) -> PolicyView {
+        PolicyView {
+            id: Uuid::new_v4(),
+            owner_id: Uuid::new_v4(),
+            effect: Effect::Deny,
+            subject_type: SubjectType::User,
+            subject_id: subject_user_id,
+            resource_scope: ResourceScope::Single,
+        }
+    }
+
+    async fn allowed(store: &CannedStore, subject: &Subject, resource: Uuid) -> bool {
+        check_access(
+            store,
+            &auth_info(),
+            subject,
+            untrusted_app(),
+            0,
+            Some(&[resource]),
+        )
+        .await
+        .unwrap()
+        .access_granted
+    }
+
+    // -------- Property 1: adding a Deny never increases access --------
+    #[tokio::test]
+    async fn property_adding_deny_never_increases_allowed_set() {
+        let (user_id, subject) = user_subject();
+        let resource = Uuid::new_v4();
+
+        let mut baseline = CannedStore::default();
+        baseline.direct.push(allow_policy(user_id));
+        let baseline_allowed = allowed(&baseline, &subject, resource).await;
+
+        let mut with_deny = CannedStore::default();
+        with_deny.direct.push(allow_policy(user_id));
+        with_deny.direct.push(deny_policy(user_id));
+        let after_deny_allowed = allowed(&with_deny, &subject, resource).await;
+
+        // Direction: !after >= !before  ⇔  after ≤ before  (boolean
+        // ordering). i.e. once Deny is added, allowed cannot flip
+        // from false to true.
+        assert!(
+            !(after_deny_allowed && !baseline_allowed),
+            "adding a Deny made access GROW (baseline={baseline_allowed}, after={after_deny_allowed}) — violates POLICY_SEMANTICS.md §9 property 1"
+        );
+    }
+
+    // -------- Property 2: adding an Allow never decreases access ------
+    #[tokio::test]
+    async fn property_adding_allow_never_decreases_allowed_set() {
+        let (user_id, subject) = user_subject();
+        let resource = Uuid::new_v4();
+
+        let baseline = CannedStore::default();
+        let baseline_allowed = allowed(&baseline, &subject, resource).await;
+
+        let mut with_allow = CannedStore::default();
+        with_allow.direct.push(allow_policy(user_id));
+        let after_allow_allowed = allowed(&with_allow, &subject, resource).await;
+
+        assert!(
+            !(baseline_allowed && !after_allow_allowed),
+            "adding an Allow made access SHRINK (baseline={baseline_allowed}, after={after_allow_allowed}) — violates POLICY_SEMANTICS.md §9 property 2"
+        );
+    }
+
+    // -------- Property 3: SuperAdmin is always allowed ---------------
+    #[tokio::test]
+    async fn property_super_admin_always_allowed() {
+        let resource = Uuid::new_v4();
+        let super_admin = Subject::User {
+            user_id: Uuid::new_v4(),
+            groups: vec![],
+            is_super_admin: true,
+        };
+
+        // Hostile environment: empty store + explicit Deny + nothing
+        // matches the subject. SuperAdmin must still get through.
+        let mut hostile = CannedStore::default();
+        hostile.direct.push(PolicyView {
+            id: Uuid::new_v4(),
+            owner_id: Uuid::new_v4(),
+            effect: Effect::Deny,
+            subject_type: SubjectType::Public,
+            subject_id: Uuid::nil(),
+            resource_scope: ResourceScope::Single,
+        });
+        assert!(
+            allowed(&hostile, &super_admin, resource).await,
+            "SuperAdmin denied — violates POLICY_SEMANTICS.md §9 property 3"
+        );
+
+        // Trivial environment.
+        let empty = CannedStore::default();
+        assert!(
+            allowed(&empty, &super_admin, resource).await,
+            "SuperAdmin denied on empty store — violates POLICY_SEMANTICS.md §9 property 3"
+        );
+    }
+
+    // -------- Property 4: OwnedByOwner ⊆ Single (additive) -----------
+    //
+    // Setup: alice owns the resource and is the subject. With a Single
+    // Allow she gets access. With an OwnedByOwner Allow whose owner is
+    // alice (so it matches "every resource alice owns"), she must also
+    // get access. The OwnedByOwner scope cannot grant LESS than the
+    // equivalent Single share.
+    #[tokio::test]
+    async fn property_owned_by_owner_subseteq_single() {
+        let alice = Uuid::new_v4();
+        let subject = Subject::user(alice, vec![]);
+        let resource = Uuid::new_v4();
+
+        // Single Allow: explicit share.
+        let mut single = CannedStore::default();
+        single.owners.insert(resource, alice);
+        single.direct.push(PolicyView {
+            id: Uuid::new_v4(),
+            owner_id: alice,
+            effect: Effect::Allow,
+            subject_type: SubjectType::User,
+            subject_id: alice,
+            resource_scope: ResourceScope::Single,
+        });
+
+        // OwnedByOwner Allow: same effect via the scope shortcut.
+        let mut owned_by_owner = CannedStore::default();
+        owned_by_owner.owners.insert(resource, alice);
+        owned_by_owner.owner_scoped.push(PolicyView {
+            id: Uuid::new_v4(),
+            owner_id: alice,
+            effect: Effect::Allow,
+            subject_type: SubjectType::User,
+            subject_id: alice,
+            resource_scope: ResourceScope::OwnedByOwner,
+        });
+
+        let s_allowed = allowed(&single, &subject, resource).await;
+        let obo_allowed = allowed(&owned_by_owner, &subject, resource).await;
+
+        assert!(s_allowed, "baseline Single Allow must grant access");
+        assert!(
+            obo_allowed,
+            "OwnedByOwner Allow on the owner's own resource must grant at least as much as the equivalent Single Allow — violates POLICY_SEMANTICS.md §9 property 4"
+        );
+    }
+
+    // -------- Property 5: AccessibleByOwner chain breaks at depth 1 --
+    //
+    // Per POLICY_SEMANTICS.md §4: AccessibleByOwner is recursive in
+    // principle but the engine breaks after one hop to avoid cycles
+    // and unbounded expansion. The current implementation (P2-1) goes
+    // further and treats AccessibleByOwner as a no-op (returns false
+    // with tracing::warn). This test pins both invariants:
+    //   * AccessibleByOwner alone never grants access today
+    //   * Combining AccessibleByOwner with an underlying Single Allow
+    //     still only grants via the Single — never via recursion
+    #[tokio::test]
+    async fn property_accessible_by_owner_does_not_recurse() {
+        // Setup the canonical recursion scenario:
+        //   - alice owns resource_a
+        //   - bob is the subject (does NOT own resource_a)
+        //   - one AccessibleByOwner policy: owner=alice, subject=bob,
+        //     Allow. "bob can see anything alice can see."
+        //
+        // If AccessibleByOwner recursed unbounded, the chain would be:
+        //   bob -[ABO]→ alice -(owner)→ resource_a   ⇒ Allow
+        //
+        // The engine's cycle-break (POLICY_SEMANTICS.md §4) MUST
+        // prevent that recursion. Today the implementation is even
+        // stricter — AccessibleByOwner is a no-op stub returning
+        // false. Either contract satisfies the property; the test
+        // checks the stronger current contract and the comment
+        // explains what to change when depth-1 lands.
+        let alice = Uuid::new_v4();
+        let bob = Uuid::new_v4();
+        let resource_a = Uuid::new_v4();
+        let bob_subject = Subject::user(bob, vec![]);
+
+        let mut store = CannedStore::default();
+        store.owners.insert(resource_a, alice);
+        store.owner_scoped.push(PolicyView {
+            id: Uuid::new_v4(),
+            owner_id: alice,
+            effect: Effect::Allow,
+            subject_type: SubjectType::User,
+            subject_id: bob,
+            resource_scope: ResourceScope::AccessibleByOwner,
+        });
+
+        assert!(
+            !allowed(&store, &bob_subject, resource_a).await,
+            "AccessibleByOwner currently MUST be a no-op (cycle-break stub). \
+             When depth-1 recursion ships: bob should now see resource_a, \
+             BUT a CHAIN OF LENGTH 2 (an ABO whose owner has another ABO) \
+             must still NOT compose — rewrite this test to set up that \
+             chain and assert it is broken."
         );
     }
 }
