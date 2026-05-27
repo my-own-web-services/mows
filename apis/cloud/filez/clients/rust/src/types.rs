@@ -1520,9 +1520,24 @@ pub enum ListTagsSortBy {
     ModifiedTime,
 }
 
+// ListUserGroupsFilter
+/// USER_GROUPS.md §6 discovery modes. Each `filter` query value
+/// maps to a single indexed query (see `candidate_ids_for_filter`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ListUserGroupsFilter {
+    AccessGranted,
+    Owned,
+    Member,
+    Invited,
+    Requested,
+    Public,
+    ServerListed,
+}
+
 // ListUserGroupsRequestBody
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ListUserGroupsRequestBody {
+    pub filter: Option<ListUserGroupsFilter>,
     pub from_index: Option<u64>,
     pub limit: Option<u64>,
     pub sort_by: Option<ListUserGroupsSortBy>,

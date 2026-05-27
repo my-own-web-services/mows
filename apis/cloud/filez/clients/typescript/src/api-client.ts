@@ -67,6 +67,20 @@ export enum ListUserGroupsSortBy {
   ModifiedTime = "ModifiedTime",
 }
 
+/**
+ * USER_GROUPS.md §6 discovery modes. Each `filter` query value
+ * maps to a single indexed query (see `candidate_ids_for_filter`).
+ */
+export enum ListUserGroupsFilter {
+  AccessGranted = "AccessGranted",
+  Owned = "Owned",
+  Member = "Member",
+  Invited = "Invited",
+  Requested = "Requested",
+  Public = "Public",
+  ServerListed = "ServerListed",
+}
+
 export enum ListTagsSortBy {
   TagKey = "TagKey",
   TagValue = "TagValue",
@@ -1722,6 +1736,12 @@ export interface ListTagsSearchContext {
 }
 
 export interface ListUserGroupsRequestBody {
+  /**
+   * USER_GROUPS.md §6 discovery filter. `None` (default) preserves
+   * the pre-Phase-4 behaviour: groups the caller has
+   * `UserGroupsList` policy on.
+   */
+  filter?: null | ListUserGroupsFilter;
   /**
    * @format int64
    * @min 0

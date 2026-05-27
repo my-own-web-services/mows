@@ -7623,9 +7623,33 @@
           "ModifiedTime"
         ]
       },
+      "ListUserGroupsFilter": {
+        "type": "string",
+        "description": "USER_GROUPS.md §6 discovery modes. Each `filter` query value\nmaps to a single indexed query (see `candidate_ids_for_filter`).",
+        "enum": [
+          "AccessGranted",
+          "Owned",
+          "Member",
+          "Invited",
+          "Requested",
+          "Public",
+          "ServerListed"
+        ]
+      },
       "ListUserGroupsRequestBody": {
         "type": "object",
         "properties": {
+          "filter": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ListUserGroupsFilter",
+                "description": "USER_GROUPS.md §6 discovery filter. `None` (default) preserves\nthe pre-Phase-4 behaviour: groups the caller has\n`UserGroupsList` policy on."
+              }
+            ]
+          },
           "from_index": {
             "type": [
               "integer",

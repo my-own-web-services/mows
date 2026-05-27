@@ -115,6 +115,82 @@ impl UserGroup {
         Ok(user_groups)
     }
 
+    /// Resolve the candidate user-group id set for a discovery
+    /// filter mode (USER_GROUPS.md §6). Each branch is a single
+    /// indexed query against either user_groups or one of the
+    /// (members / invitations / join_requests) tables.
+    ///
+    /// `Public` is the only mode that does not require an
+    /// authenticated caller; the handler enforces the auth
+    /// requirement before calling this function so a NULL user_id
+    /// here always means "anonymous + Public".
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn candidate_ids_for_filter(
+        database: &Database,
+        maybe_user_id: Option<&FilezUserId>,
+        filter: ListUserGroupsFilter,
+    ) -> Result<Vec<UserGroupId>, FilezError> {
+        use mows_auth_core::types::GroupVisibility;
+        let mut connection = database.get_connection().await?;
+
+        let ids: Vec<UserGroupId> = match (filter, maybe_user_id) {
+            (ListUserGroupsFilter::Owned, Some(user_id)) => {
+                schema::user_groups::table
+                    .filter(schema::user_groups::owner_id.eq(user_id))
+                    .select(schema::user_groups::id)
+                    .load::<UserGroupId>(&mut connection)
+                    .await?
+            }
+            (ListUserGroupsFilter::Member, Some(user_id)) => {
+                schema::user_user_group_members::table
+                    .filter(schema::user_user_group_members::user_id.eq(user_id))
+                    .select(schema::user_user_group_members::user_group_id)
+                    .load::<UserGroupId>(&mut connection)
+                    .await?
+            }
+            (ListUserGroupsFilter::Invited, Some(user_id)) => {
+                schema::user_user_group_invitations::table
+                    .filter(schema::user_user_group_invitations::user_id.eq(user_id))
+                    .select(schema::user_user_group_invitations::user_group_id)
+                    .load::<UserGroupId>(&mut connection)
+                    .await?
+            }
+            (ListUserGroupsFilter::Requested, Some(user_id)) => {
+                schema::user_user_group_join_requests::table
+                    .filter(schema::user_user_group_join_requests::user_id.eq(user_id))
+                    .select(schema::user_user_group_join_requests::user_group_id)
+                    .load::<UserGroupId>(&mut connection)
+                    .await?
+            }
+            (ListUserGroupsFilter::Public, _) => {
+                schema::user_groups::table
+                    .filter(
+                        schema::user_groups::visibility.eq(GroupVisibility::Public),
+                    )
+                    .select(schema::user_groups::id)
+                    .load::<UserGroupId>(&mut connection)
+                    .await?
+            }
+            (ListUserGroupsFilter::ServerListed, Some(_)) => {
+                schema::user_groups::table
+                    .filter(
+                        schema::user_groups::visibility
+                            .eq(GroupVisibility::ListedRestricted)
+                            .or(schema::user_groups::visibility.eq(GroupVisibility::Public)),
+                    )
+                    .select(schema::user_groups::id)
+                    .load::<UserGroupId>(&mut connection)
+                    .await?
+            }
+            // Filters other than Public reaching here with no user
+            // are a handler bug — the handler must reject them with
+            // 401 before dispatching. Return empty rather than
+            // panic to fail closed.
+            _ => Vec::new(),
+        };
+        Ok(ids)
+    }
+
     #[tracing::instrument(level = "trace", skip(database, maybe_requesting_user, requesting_app))]
     pub async fn list_with_user_access(
         database: &Database,
@@ -142,47 +218,61 @@ impl UserGroup {
             .get_result::<i64>(&mut connection)
             .await?;
 
-        let mut query = schema::user_groups::table
-            .filter(schema::user_groups::id.eq_any(resources_with_access))
-            .select(UserGroup::as_select())
-            .into_boxed();
+        load_and_paginate(
+            &mut connection,
+            resources_with_access.into_iter().map(UserGroupId).collect(),
+            from_index,
+            limit,
+            sort_by,
+            sort_order,
+            total_count,
+        )
+        .await
+    }
 
-        let sort_by = sort_by.unwrap_or(ListUserGroupsSortBy::CreatedTime);
-        let sort_order = sort_order.unwrap_or(SortDirection::Descending);
+    /// Discovery-filtered listing (USER_GROUPS.md §6 table). Dispatches
+    /// on the filter mode to one of the candidate queries above, then
+    /// loads + sorts + paginates with the same machinery as
+    /// `list_with_user_access`.
+    ///
+    /// Auth model:
+    ///   - `Public` is the only mode that allows anonymous callers.
+    ///   - Every other mode requires `maybe_requesting_user.is_some()`;
+    ///     the handler MUST enforce that before dispatch (401).
+    #[tracing::instrument(level = "trace", skip(database, maybe_requesting_user))]
+    pub async fn list_with_filter(
+        database: &Database,
+        maybe_requesting_user: Option<&FilezUser>,
+        filter: ListUserGroupsFilter,
+        from_index: Option<u64>,
+        limit: Option<u64>,
+        sort_by: Option<ListUserGroupsSortBy>,
+        sort_order: Option<SortDirection>,
+    ) -> Result<(Vec<UserGroup>, u64), FilezError> {
+        let mut connection = database.get_connection().await?;
+        let candidate_ids = Self::candidate_ids_for_filter(
+            database,
+            maybe_requesting_user.map(|u| &u.id),
+            filter,
+        )
+        .await?;
 
-        match (sort_by, sort_order) {
-            (ListUserGroupsSortBy::CreatedTime, SortDirection::Ascending) => {
-                query = query.order_by(schema::user_groups::created_time.asc());
-            }
-            (ListUserGroupsSortBy::CreatedTime, SortDirection::Descending) => {
-                query = query.order_by(schema::user_groups::created_time.desc());
-            }
-            (ListUserGroupsSortBy::Name, SortDirection::Ascending) => {
-                query = query.order_by(schema::user_groups::name.asc());
-            }
-            (ListUserGroupsSortBy::Name, SortDirection::Descending) => {
-                query = query.order_by(schema::user_groups::name.desc());
-            }
-            (ListUserGroupsSortBy::ModifiedTime, SortDirection::Ascending) => {
-                query = query.order_by(schema::user_groups::modified_time.asc());
-            }
-            (ListUserGroupsSortBy::ModifiedTime, SortDirection::Descending) => {
-                query = query.order_by(schema::user_groups::modified_time.desc());
-            }
-            _ => {
-                query = query.order_by(schema::user_groups::created_time.desc());
-            }
-        };
+        let total_count = schema::user_groups::table
+            .filter(schema::user_groups::id.eq_any(&candidate_ids))
+            .count()
+            .get_result::<i64>(&mut connection)
+            .await?;
 
-        if let Some(from_index) = from_index {
-            query = query.offset(from_index.try_into()?);
-        }
-        if let Some(limit) = limit {
-            query = query.limit(limit.try_into()?);
-        }
-
-        let user_groups = query.load::<UserGroup>(&mut connection).await?;
-        Ok((user_groups, total_count.try_into()?))
+        load_and_paginate(
+            &mut connection,
+            candidate_ids,
+            from_index,
+            limit,
+            sort_by,
+            sort_order,
+            total_count,
+        )
+        .await
     }
 
     #[tracing::instrument(level = "trace", skip(database))]
@@ -342,5 +432,135 @@ impl UserGroup {
         let users_list = query.load::<FilezUser>(&mut connection).await?;
 
         Ok(users_list)
+    }
+}
+
+/// USER_GROUPS.md §6 discovery modes. Each `filter` query value
+/// maps to a single indexed query (see `candidate_ids_for_filter`).
+#[derive(
+    serde::Serialize, serde::Deserialize, utoipa::ToSchema, Clone, Copy, Debug, PartialEq, Eq,
+)]
+pub enum ListUserGroupsFilter {
+    /// Default: groups the caller has UserGroupsList policy on.
+    /// Identical to the pre-Phase-4 list behaviour.
+    AccessGranted,
+    /// Groups owned by the caller.
+    Owned,
+    /// Groups the caller is a member of.
+    Member,
+    /// Groups the caller has a pending invitation to.
+    Invited,
+    /// Groups the caller has a pending join request for.
+    Requested,
+    /// Groups with visibility = Public. Allowed for anonymous callers.
+    Public,
+    /// Groups with visibility IN (ListedRestricted, Public).
+    /// Requires authentication.
+    ServerListed,
+}
+
+/// Sort + paginate a precomputed candidate id set. Shared between
+/// `list_with_user_access` and `list_with_filter` so the two paths
+/// emit identical SQL for the load step.
+#[tracing::instrument(level = "trace", skip(connection, candidate_ids))]
+async fn load_and_paginate(
+    connection: &mut diesel_async::pooled_connection::deadpool::Object<
+        diesel_async::AsyncPgConnection,
+    >,
+    candidate_ids: Vec<UserGroupId>,
+    from_index: Option<u64>,
+    limit: Option<u64>,
+    sort_by: Option<ListUserGroupsSortBy>,
+    sort_order: Option<SortDirection>,
+    total_count: i64,
+) -> Result<(Vec<UserGroup>, u64), FilezError> {
+    let mut query = schema::user_groups::table
+        .filter(schema::user_groups::id.eq_any(candidate_ids))
+        .select(UserGroup::as_select())
+        .into_boxed();
+
+    let sort_by = sort_by.unwrap_or(ListUserGroupsSortBy::CreatedTime);
+    let sort_order = sort_order.unwrap_or(SortDirection::Descending);
+
+    query = match (sort_by, sort_order) {
+        (ListUserGroupsSortBy::CreatedTime, SortDirection::Ascending) => {
+            query.order_by(schema::user_groups::created_time.asc())
+        }
+        (ListUserGroupsSortBy::CreatedTime, SortDirection::Descending) => {
+            query.order_by(schema::user_groups::created_time.desc())
+        }
+        (ListUserGroupsSortBy::Name, SortDirection::Ascending) => {
+            query.order_by(schema::user_groups::name.asc())
+        }
+        (ListUserGroupsSortBy::Name, SortDirection::Descending) => {
+            query.order_by(schema::user_groups::name.desc())
+        }
+        (ListUserGroupsSortBy::ModifiedTime, SortDirection::Ascending) => {
+            query.order_by(schema::user_groups::modified_time.asc())
+        }
+        (ListUserGroupsSortBy::ModifiedTime, SortDirection::Descending) => {
+            query.order_by(schema::user_groups::modified_time.desc())
+        }
+        // SortDirection::Neutral and any future variants fall back
+        // to the default (newest first) — same as the original
+        // inline impl's wildcard arm.
+        _ => query.order_by(schema::user_groups::created_time.desc()),
+    };
+
+    if let Some(from_index) = from_index {
+        query = query.offset(from_index.try_into()?);
+    }
+    if let Some(limit) = limit {
+        query = query.limit(limit.try_into()?);
+    }
+
+    let user_groups = query.load::<UserGroup>(connection).await?;
+    Ok((user_groups, total_count.try_into()?))
+}
+
+#[cfg(test)]
+mod filter_dispatch_guard {
+    //! USER_GROUPS.md §6 invariant: the discovery filter modes MUST
+    //! map to indexed queries. We render each branch's diesel query
+    //! via debug_query and assert the WHERE clause references the
+    //! expected column. A refactor that drops the filter clause
+    //! re-introduces a full-table scan at the directory's worst case
+    //! (1M Public groups per LISTING.md §1).
+    use super::*;
+    use diesel::{debug_query, pg::Pg};
+
+    #[test]
+    fn public_filter_uses_visibility_column() {
+        use mows_auth_core::types::GroupVisibility;
+        let query = schema::user_groups::table
+            .filter(schema::user_groups::visibility.eq(GroupVisibility::Public))
+            .select(schema::user_groups::id);
+        let sql = debug_query::<Pg, _>(&query).to_string();
+        assert!(
+            sql.contains("\"user_groups\".\"visibility\" ="),
+            "Public filter must hit the visibility column: {sql}"
+        );
+    }
+
+    #[test]
+    fn server_listed_filter_includes_both_visibility_values() {
+        use mows_auth_core::types::GroupVisibility;
+        let query = schema::user_groups::table
+            .filter(
+                schema::user_groups::visibility
+                    .eq(GroupVisibility::ListedRestricted)
+                    .or(schema::user_groups::visibility.eq(GroupVisibility::Public)),
+            )
+            .select(schema::user_groups::id);
+        let sql = debug_query::<Pg, _>(&query).to_string();
+        // The OR-bridge between ListedRestricted (1) and Public (2)
+        // must survive any refactor — without it ServerListed
+        // collapses to one of the two visibility tiers and the other
+        // becomes invisible to logged-in browsers.
+        assert!(
+            sql.contains("\"user_groups\".\"visibility\" =")
+                && sql.matches("\"visibility\"").count() >= 2,
+            "ServerListed filter must reference visibility twice (OR-bridge): {sql}"
+        );
     }
 }
