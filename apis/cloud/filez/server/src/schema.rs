@@ -387,6 +387,21 @@ diesel::table! {
     }
 }
 
+// Durable audit trail (migration 00000000000014). The metadata
+// JSONB carries event-specific fields; the schema is defined per
+// event_type in `models::audit_log::AuditEvent`.
+diesel::table! {
+    audit_log (id) {
+        id -> Uuid,
+        event_type -> Text,
+        actor_id -> Nullable<Uuid>,
+        resource_type -> SmallInt,
+        resource_id -> Nullable<Uuid>,
+        ts -> Timestamp,
+        metadata -> Jsonb,
+    }
+}
+
 diesel::table! {
     user_group_accessible_resources (user_group_id, resource_type, resource_id) {
         user_group_id -> Uuid,
@@ -511,4 +526,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     user_group_accessible_resources,
     user_user_group_join_requests,
     user_user_group_invitations,
+    audit_log,
 );

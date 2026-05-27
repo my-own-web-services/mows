@@ -10,6 +10,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        audit_log::{AuditEvent, AuditLog},
         user_groups::{UserGroup, UserGroupId},
     },
     state::ServerState,
@@ -71,12 +72,24 @@ pub async fn delete_user_group(
         "Database transaction: drop subject-targeted policies + delete user group",
         timing
     );
-    // TODO(audit-log): replace this tracing event with a durable
-    // audit_log row when Phase 5 lands the table. Tracing is
-    // ephemeral / sampled in prod; for spec §7.2 ("the deletion is
-    // logged in the audit table with the affected policy ids") we
-    // need (event_type, actor_id, resource_id, ts, metadata jsonb).
-    // phase4-review MAJ-7.
+    // Durable audit row per USER_GROUPS.md §7.2 ("the deletion is
+    // logged in the audit table with the affected policy ids so an
+    // admin can restore the shape if it was a mistake").
+    // phase4-review MAJ-7 — replaces the prior tracing::info!.
+    with_timing!(
+        AuditLog::insert(
+            &database,
+            AuditEvent::UserGroupDeleted {
+                dropped_subject_policies: dropped_policies,
+            },
+            authentication_information.requesting_user.as_ref().map(|u| &u.id),
+            AccessPolicyResourceType::UserGroup,
+            Some(user_group_id.into()),
+        )
+        .await?,
+        "Audit-log insert (USER_GROUPS.md §7.2)",
+        timing
+    );
     tracing::info!(
         user_group_id = %user_group_id,
         dropped_policies,

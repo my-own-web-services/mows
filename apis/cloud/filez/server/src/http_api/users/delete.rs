@@ -6,6 +6,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{AccessPolicy, AccessPolicyAction, AccessPolicyResourceType},
+        audit_log::{AuditEvent, AuditLog},
         users::{FilezUser, FilezUserId},
     },
     state::ServerState,
@@ -94,16 +95,29 @@ pub async fn delete_user(
     );
 
     if transferred_groups > 0 {
-        // Structured field carries the count — the message is
-        // static so log aggregators can group on it and
-        // `transferred_groups` doesn't appear twice in the
-        // rendered line (phase4-review CRIT-1).
-        //
-        // TODO(audit-log): the spec (USER_GROUPS.md §7.5) calls for
-        // "a notification … emitted to server admins; they can
-        // transfer the group manually". Phase 5 should replace this
-        // tracing event with a durable audit_log row + a feed an
-        // admin UI can subscribe to. phase4-review MAJ-7.
+        // Durable audit row per USER_GROUPS.md §7.5 ("a notification
+        // is emitted to server admins; they can transfer the group
+        // manually"). resource_type is User (the deleted user); the
+        // admin UI's "what changed about this user" query lands on
+        // it via the `audit_log_by_resource` index. Phase 7 admin
+        // UI subscribes to the audit_log via a separate feed.
+        // phase4-review MAJ-7 — replaces the prior tracing::info!.
+        with_timing!(
+            AuditLog::insert(
+                &database,
+                AuditEvent::UserGroupOwnerTransferredToNobody {
+                    transferred_groups,
+                },
+                authentication_information.requesting_user.as_ref().map(|u| &u.id),
+                AccessPolicyResourceType::User,
+                Some(user_id.into()),
+            )
+            .await?,
+            "Audit-log insert (USER_GROUPS.md §7.5)",
+            timing
+        );
+        // Keep the tracing line for live-ops visibility — it doesn't
+        // replace the durable audit row, just complements it.
         tracing::info!(
             user_id = %user_id,
             transferred_groups,
