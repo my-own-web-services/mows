@@ -40,7 +40,9 @@ pub mod user_groups {
     pub mod create;
     pub mod delete;
     pub mod get;
+    pub mod invitations;
     pub mod join_requests;
+    pub mod leave;
     pub mod list;
     pub mod list_users;
     pub mod update;

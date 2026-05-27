@@ -2432,6 +2432,134 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// Invite a user to a group. Idempotent — re-invites are a no-op.
+    #[tracing::instrument(level = "trace")]
+    pub async fn invite_to_user_group(
+        &self,
+        user_group_id: UserGroupId,
+        request_body: InviteToUserGroupRequestBody,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+        let full_url = format!(
+            "{}/api/user_groups/{user_group_id}/invitations",
+            self.base_url
+        );
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .json(&request_body)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
+    /// Accept the caller's pending invitation to the group.
+    #[tracing::instrument(level = "trace")]
+    pub async fn accept_invitation(
+        &self,
+        user_group_id: UserGroupId,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+        let full_url = format!(
+            "{}/api/user_groups/{user_group_id}/invitations/accept",
+            self.base_url
+        );
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
+    /// Decline the caller's pending invitation (idempotent).
+    #[tracing::instrument(level = "trace")]
+    pub async fn decline_invitation(
+        &self,
+        user_group_id: UserGroupId,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+        let full_url = format!(
+            "{}/api/user_groups/{user_group_id}/invitations/decline",
+            self.base_url
+        );
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
     /// Request to join a user group; direct-joins OpenJoin groups.
     #[tracing::instrument(level = "trace")]
     pub async fn request_to_join_user_group(
@@ -2530,6 +2658,45 @@ impl ApiClient {
             "{}/api/user_groups/{user_group_id}/join_requests/{user_id}/reject",
             self.base_url
         );
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
+    /// Leave a user group (caller removes their own membership).
+    #[tracing::instrument(level = "trace")]
+    pub async fn leave_user_group(
+        &self,
+        user_group_id: UserGroupId,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+        let full_url = format!("{}/api/user_groups/{user_group_id}/leave", self.base_url);
         let full_url = Url::parse(&full_url).unwrap();
 
         let response = self

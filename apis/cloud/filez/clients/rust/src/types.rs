@@ -1187,6 +1187,14 @@ pub struct HealthStatus {
     pub message: String,
 }
 
+// InviteToUserGroupRequestBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InviteToUserGroupRequestBody {
+    /// Optional message shown to the invitee. Capped at 1024 chars.
+    pub message: Option<String>,
+    pub user_id: FilezUserId,
+}
+
 // JobExecutionInformation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JobExecutionInformation {

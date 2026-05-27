@@ -2610,6 +2610,153 @@
         }
       }
     },
+    "/api/user_groups/{user_group_id}/invitations": {
+      "post": {
+        "description": "Invite a user to a group. Idempotent — re-invites are a no-op.",
+        "operationId": "invite_to_user_group",
+        "parameters": [
+          {
+            "name": "user_group_id",
+            "in": "path",
+            "description": "Target user group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserGroupId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteToUserGroupRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Invitation recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not the owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user_groups/{user_group_id}/invitations/accept": {
+      "post": {
+        "description": "Accept the caller's pending invitation to the group.",
+        "operationId": "accept_invitation",
+        "parameters": [
+          {
+            "name": "user_group_id",
+            "in": "path",
+            "description": "Target user group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserGroupId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation accepted; caller is now a member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No pending invitation for the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user_groups/{user_group_id}/invitations/decline": {
+      "post": {
+        "description": "Decline the caller's pending invitation (idempotent).",
+        "operationId": "decline_invitation",
+        "parameters": [
+          {
+            "name": "user_group_id",
+            "in": "path",
+            "description": "Target user group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserGroupId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation declined (or was already gone)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/user_groups/{user_group_id}/join_requests": {
       "post": {
         "description": "Request to join a user group; direct-joins OpenJoin groups.",
@@ -2754,6 +2901,55 @@
         "responses": {
           "200": {
             "description": "Request rejected (or was already gone)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user_groups/{user_group_id}/leave": {
+      "post": {
+        "description": "Leave a user group (caller removes their own membership).",
+        "operationId": "leave_user_group",
+        "parameters": [
+          {
+            "name": "user_group_id",
+            "in": "path",
+            "description": "Target user group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserGroupId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Left the group (or was already not a member)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is the group's owner",
             "content": {
               "application/json": {
                 "schema": {
@@ -6506,6 +6702,25 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "InviteToUserGroupRequestBody": {
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "properties": {
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional message shown to the invitee. Capped at 1024 chars.",
+            "maxLength": 1024
+          },
+          "user_id": {
+            "$ref": "#/components/schemas/FilezUserId"
           }
         }
       },

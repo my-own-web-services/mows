@@ -1422,6 +1422,15 @@ export interface HealthStatus {
   message: string;
 }
 
+export interface InviteToUserGroupRequestBody {
+  /**
+   * Optional message shown to the invitee. Capped at 1024 chars.
+   * @maxLength 1024
+   */
+  message?: string | null;
+  user_id: FilezUserId;
+}
+
 export interface JobExecutionInformation {
   job_type: JobType;
 }
@@ -3511,6 +3520,54 @@ export class Api<
       }),
 
     /**
+     * @description Invite a user to a group. Idempotent — re-invites are a no-op.
+     *
+     * @name InviteToUserGroup
+     * @request POST:/api/user_groups/{user_group_id}/invitations
+     */
+    inviteToUserGroup: (
+      userGroupId: UserGroupId,
+      data: InviteToUserGroupRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+        path: `/api/user_groups/${userGroupId}/invitations`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Accept the caller's pending invitation to the group.
+     *
+     * @name AcceptInvitation
+     * @request POST:/api/user_groups/{user_group_id}/invitations/accept
+     */
+    acceptInvitation: (userGroupId: UserGroupId, params: RequestParams = {}) =>
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+        path: `/api/user_groups/${userGroupId}/invitations/accept`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Decline the caller's pending invitation (idempotent).
+     *
+     * @name DeclineInvitation
+     * @request POST:/api/user_groups/{user_group_id}/invitations/decline
+     */
+    declineInvitation: (userGroupId: UserGroupId, params: RequestParams = {}) =>
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+        path: `/api/user_groups/${userGroupId}/invitations/decline`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description Request to join a user group; direct-joins OpenJoin groups.
      *
      * @name RequestToJoinUserGroup
@@ -3561,6 +3618,20 @@ export class Api<
     ) =>
       this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/user_groups/${userGroupId}/join_requests/${userId}/reject`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Leave a user group (caller removes their own membership).
+     *
+     * @name LeaveUserGroup
+     * @request POST:/api/user_groups/{user_group_id}/leave
+     */
+    leaveUserGroup: (userGroupId: UserGroupId, params: RequestParams = {}) =>
+      this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
+        path: `/api/user_groups/${userGroupId}/leave`,
         method: "POST",
         format: "json",
         ...params,
