@@ -18,8 +18,8 @@ export { default as ResourceTags } from "./components/tags/resourceTags/Resource
 
 export { default as Upload } from "./components/upload/upload/Upload";
 
-export * from "@mows/react-components/components/ui/sonner";
+export * from "@my-own-web-services/react-components/components/ui/sonner";
 export * from "./lib/filezContext/FilezContext";
-export { Logger, log } from "@mows/react-components/lib/logging";
+export { Logger, log } from "@my-own-web-services/react-components/lib/logging";
 
 import "./main.css";

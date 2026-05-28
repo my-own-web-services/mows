@@ -1,5 +1,5 @@
-import { Progress } from "@mows/react-components/components/ui/progress";
-import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
+import { Progress } from "@my-own-web-services/react-components/components/ui/progress";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
 import { PureComponent, type CSSProperties } from "react";

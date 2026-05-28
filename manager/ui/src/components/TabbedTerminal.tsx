@@ -1,6 +1,6 @@
-import { Input } from "@mows/react-components/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@mows/react-components/components/ui/tabs";
-import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
+import { Input } from "@my-own-web-services/react-components/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@my-own-web-services/react-components/components/ui/tabs";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { PureComponent, type CSSProperties } from "react";
 import { IoAdd, IoClose } from "react-icons/io5";
 import TerminalComponent from "./Terminal";

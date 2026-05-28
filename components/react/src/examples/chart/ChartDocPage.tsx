@@ -36,7 +36,7 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
 const USAGE_SNIPPET = `import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 import {
@@ -44,7 +44,7 @@ import {
     ChartTooltip,
     ChartTooltipContent,
     type ChartConfig
-} from "@mows/react-components";
+} from "@my-own-web-services/react-components";
 
 const config = {
     desktop: { label: "Desktop", color: "var(--chart-1)" },

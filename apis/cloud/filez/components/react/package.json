@@ -55,7 +55,7 @@
         "immutability-helper": "^3.1.1",
         "lodash": "^4.17.21",
         "lucide-react": "^0.544.0",
-        "@mows/react-components": "file:.yalc/@mows/react-components",
+        "@my-own-web-services/react-components": "file:.yalc/@my-own-web-services/react-components",
         "next-themes": "^0.4.6",
         "oidc-client-ts": "^3.2.1",
         "openseadragon": "^5.0.1",

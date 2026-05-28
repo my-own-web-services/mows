@@ -2,22 +2,22 @@ import { CSSProperties, PureComponent, createRef } from "react";
 
 import { FileGroupType, FilezFile, ListFilesSortBy } from "filez-client-typescript";
 
-import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { FilezActionIds as ActionIds } from "@/lib/filezActions";
-import { ActionHandler, ActionVisibility } from "@mows/react-components/lib/mowsContext/ActionManager";
-import { log } from "@mows/react-components/lib/logging";
+import { ActionHandler, ActionVisibility } from "@my-own-web-services/react-components/lib/mowsContext/ActionManager";
+import { log } from "@my-own-web-services/react-components/lib/logging";
 import { cn } from "@/lib/utils";
-import ResourceList from "@mows/react-components/components/list/ResourceList/ResourceList";
+import ResourceList from "@my-own-web-services/react-components/components/list/ResourceList/ResourceList";
 import {
     ListResourceRequestBody,
     ListResourceResponseBody,
     ResourceListHandlers,
     ResourceListRowHandlers,
     SortDirection
-} from "@mows/react-components/components/list/ResourceList/ResourceListTypes";
-import ColumnListRowHandler, { Column } from "@mows/react-components/components/list/ResourceList/rowHandlers/Column";
-import GridListRowHandler from "@mows/react-components/components/list/ResourceList/rowHandlers/Grid";
+} from "@my-own-web-services/react-components/components/list/ResourceList/ResourceListTypes";
+import ColumnListRowHandler, { Column } from "@my-own-web-services/react-components/components/list/ResourceList/rowHandlers/Column";
+import GridListRowHandler from "@my-own-web-services/react-components/components/list/ResourceList/rowHandlers/Grid";
 import FileViewer from "@/components/files/fileViewer/FileViewer";
 
 interface FileListProps {

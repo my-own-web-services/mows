@@ -1,10 +1,10 @@
-// Extends `@mows/react-components`'s `Translation` interface with web-UI
+// Extends `@my-own-web-services/react-components`'s `Translation` interface with web-UI
 // keys via TypeScript declaration merging. Every string the UI shows
 // flows through `useMows().t`.
 
-import type { Translation as MowsTranslation } from "@mows/react-components/lib/languages";
+import type { Translation as MowsTranslation } from "@my-own-web-services/react-components/lib/languages";
 
-declare module "@mows/react-components/lib/languages" {
+declare module "@my-own-web-services/react-components/lib/languages" {
     interface Translation {
         supervisor: {
             sidebar: {

@@ -31,9 +31,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
-const USAGE_SNIPPET = `import { Textarea } from "@mows/react-components";
+const USAGE_SNIPPET = `import { Textarea } from "@my-own-web-services/react-components";
 
 <Textarea placeholder="Write something longer…" />`;
 

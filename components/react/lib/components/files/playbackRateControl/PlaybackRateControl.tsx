@@ -123,8 +123,18 @@ export const PlaybackRateControl = ({
     return (
         <TooltipProvider delayDuration={400}>
             <Popover>
-                <PopoverTrigger asChild>
-                    <Tooltip>
+                {/*
+                 * Trigger composition: Tooltip wraps the Popover-trigger
+                 * chain so both Radix Slots end up on the same Button
+                 * (asChild composes through Slottable). The previous
+                 * shape `<PopoverTrigger asChild><Tooltip><TooltipTrigger
+                 * asChild><Button/></TooltipTrigger></Tooltip>` failed
+                 * silently because PopoverTrigger's Slot was cloning the
+                 * Tooltip state-wrapper instead of the Button — clicks
+                 * landed on a button with no popover wiring.
+                 */}
+                <Tooltip>
+                    <PopoverTrigger asChild>
                         <TooltipTrigger asChild>
                             <Button
                                 type={`button`}
@@ -143,9 +153,9 @@ export const PlaybackRateControl = ({
                                 )}
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>{t.label}</TooltipContent>
-                    </Tooltip>
-                </PopoverTrigger>
+                    </PopoverTrigger>
+                    <TooltipContent>{t.label}</TooltipContent>
+                </Tooltip>
                 <PopoverContent
                     align={align}
                     style={{ width: popoverWidth }}

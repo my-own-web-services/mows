@@ -72,7 +72,7 @@ export interface Language {
     import: () => Promise<{ default: Translation }>;
 }`;
 
-const PROVIDER_MOUNT_SNIPPET = `import { MowsProvider } from "@mows/react-components";
+const PROVIDER_MOUNT_SNIPPET = `import { MowsProvider } from "@my-own-web-services/react-components";
 import { languages, type Translation } from "./languages";
 
 const STORAGE_PREFIX = "my-app";
@@ -111,7 +111,7 @@ loadInitialTranslation().then((initialTranslation) => {
 });`;
 
 const LANGUAGE_LIST_SNIPPET = `// src/languages.ts — the Language[] you pass to <MowsProvider>
-import type { Language } from "@mows/react-components";
+import type { Language } from "@my-own-web-services/react-components";
 
 export const languages: Language[] = [
     {
@@ -133,7 +133,7 @@ export const languages: Language[] = [
     }
 ];`;
 
-const READ_HOOK_SNIPPET = `import { useMows } from "@mows/react-components";
+const READ_HOOK_SNIPPET = `import { useMows } from "@my-own-web-services/react-components";
 
 export const Greeting = () => {
     const { t } = useMows();
@@ -142,7 +142,7 @@ export const Greeting = () => {
 };`;
 
 const READ_CLASS_SNIPPET = `import { Component, type ContextType } from "react";
-import { MowsContext } from "@mows/react-components";
+import { MowsContext } from "@my-own-web-services/react-components";
 
 export class Greeting extends Component {
     static contextType = MowsContext;
@@ -178,10 +178,10 @@ const DECLARE_MERGE_SNIPPET = `// src/languages.ts in your app
 import {
     type Language as MowsLanguage,
     type Translation as MowsTranslation
-} from "@mows/react-components";
+} from "@my-own-web-services/react-components";
 
 // eslint-disable-next-line quotes
-declare module "@mows/react-components" {
+declare module "@my-own-web-services/react-components" {
     interface Translation {
         // Group by feature, not by component — these keys outlive
         // component renames.
@@ -202,7 +202,7 @@ export type Translation = MowsTranslation;
 export type Language = MowsLanguage;`;
 
 const LOCALE_FILE_SNIPPET = `// src/languages/en-US.ts
-import baseEn from "@mows/react-components/lib/languages/en-US/default";
+import baseEn from "@my-own-web-services/react-components/lib/languages/en-US/default";
 import type { Translation } from "../languages";
 
 // const annotation forces tsc to check every required key is present —
@@ -331,7 +331,7 @@ loadInitial().then((initial) => {
     );
 });`;
 
-const SWITCH_RUNTIME_SNIPPET = `import { useMows } from "@mows/react-components";
+const SWITCH_RUNTIME_SNIPPET = `import { useMows } from "@my-own-web-services/react-components";
 
 const LanguageButtons = () => {
     const { languages, setLanguage, currentLanguage } = useMows();

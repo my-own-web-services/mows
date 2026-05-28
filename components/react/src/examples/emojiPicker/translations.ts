@@ -13,7 +13,6 @@
 
 export interface EmojiPickerTranslation {
   default: { title: string; description: string };
-  compact: { title: string; description: string };
   inPopover: { title: string; description: string };
   rtl: { title: string; description: string };
   doc: {
@@ -30,7 +29,6 @@ export interface EmojiPickerTranslation {
     examples: {
       title: string;
       default: { title: string; description: string };
-      compact: { title: string; description: string };
       inPopover: { title: string; description: string };
     };
     definedBehaviour: {
@@ -62,10 +60,6 @@ export const emojiPickerEn: EmojiPickerTranslation = {
     title: `Default`,
     description: `Full picker with search, category tabs, recently-used row, and skin-tone toggle. Click any cell to fire onSelect with the final (skin-toned) emoji string.`,
   },
-  compact: {
-    title: `Compact`,
-    description: `Dense variant: no search, no skin-tone, no recents. Smaller height + a 7-column grid. Useful inside a tight surface where the user just needs to pick a glyph.`,
-  },
   inPopover: {
     title: `Inside a popover`,
     description: `The most common deployment: the picker lives in a popover anchored to a "smile" button. The picker collapses its own border/shadow when nested inside the popover.`,
@@ -96,10 +90,6 @@ export const emojiPickerEn: EmojiPickerTranslation = {
       default: {
         title: `Default`,
         description: `Full picker with search, categories, recents, and skin tone.`,
-      },
-      compact: {
-        title: `Compact`,
-        description: `Dense layout for tight surfaces — search/skin/recents hidden.`,
       },
       inPopover: {
         title: `Inside a popover`,
@@ -141,10 +131,6 @@ export const emojiPickerDe: EmojiPickerTranslation = {
     title: `Standard`,
     description: `Vollständiger Picker mit Suche, Kategorie-Tabs, „Zuletzt verwendet“-Zeile und Hauttyp-Umschalter. Ein Klick auf eine Zelle löst onSelect mit dem finalen (hauttypierten) Emoji-String aus.`,
   },
-  compact: {
-    title: `Kompakt`,
-    description: `Kompakte Variante: ohne Suche, ohne Hauttyp, ohne Zuletzt-Zeile. Geringere Höhe + 7-spaltige Grid. Geeignet für enge Bereiche, wo der Nutzer nur ein Zeichen auswählen muss.`,
-  },
   inPopover: {
     title: `In einem Popover`,
     description: `Die typische Einbettung: der Picker lebt in einem Popover, das an einem Smiley-Button hängt. Innerhalb des Popovers blendet der Picker seine eigene Umrandung/Schatten aus.`,
@@ -175,10 +161,6 @@ export const emojiPickerDe: EmojiPickerTranslation = {
       default: {
         title: `Standard`,
         description: `Vollständiger Picker mit Suche, Kategorien, Zuletzt-Zeile und Hauttyp.`,
-      },
-      compact: {
-        title: `Kompakt`,
-        description: `Kompaktes Layout für enge Bereiche — Suche/Hauttyp/Zuletzt versteckt.`,
       },
       inPopover: {
         title: `In einem Popover`,

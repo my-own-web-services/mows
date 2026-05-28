@@ -31,9 +31,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
-const USAGE_SNIPPET = `import { Timeline } from "@mows/react-components";
+const USAGE_SNIPPET = `import { Timeline } from "@my-own-web-services/react-components";
 
 const events = [
     { id: "build", timestamp: Date.UTC(2026, 0, 1, 9), title: "Build" },

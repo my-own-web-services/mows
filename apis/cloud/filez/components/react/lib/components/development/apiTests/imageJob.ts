@@ -1,5 +1,5 @@
 import {
-import { log } from "@mows/react-components/lib/logging";
+import { log } from "@my-own-web-services/react-components/lib/logging";
     Api,
     ContentType,
     createExampleUser,

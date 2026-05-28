@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the @mows/react-components docs SPA for static hosting.
+# Build the @my-own-web-services/react-components docs SPA for static hosting.
 #
 # Output goes to `components/react/dist-site/`. The same script runs locally
 # and in the publish workflow — CI must not invent its own build steps

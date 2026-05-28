@@ -31,13 +31,13 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
 const USAGE_SNIPPET = `import {
     ColorCurves,
     DEFAULT_COLOR_CURVES_VALUE,
     type ColorCurvesValue
-} from "@mows/react-components";
+} from "@my-own-web-services/react-components";
 
 const [value, setValue] = useState<ColorCurvesValue>(
     DEFAULT_COLOR_CURVES_VALUE
@@ -51,7 +51,7 @@ const COMPOSITION_SNIPPET = `import {
     computeColorCurvesHistogram,
     DEFAULT_COLOR_CURVES_VALUE,
     type ColorCurvesValue
-} from "@mows/react-components";
+} from "@my-own-web-services/react-components";
 
 // 1. Load the source image into an ImageData once.
 const source = await loadImageData("/photo.jpg");

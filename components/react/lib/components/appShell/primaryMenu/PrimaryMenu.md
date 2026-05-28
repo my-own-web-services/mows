@@ -48,8 +48,8 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarProvider
-} from "@mows/react-components/components/ui/sidebar";
-import PrimaryMenu from "@mows/react-components/components/appShell/primaryMenu/PrimaryMenu";
+} from "@my-own-web-services/react-components/components/ui/sidebar";
+import PrimaryMenu from "@my-own-web-services/react-components/components/appShell/primaryMenu/PrimaryMenu";
 
 <SidebarProvider>
     <Sidebar>

@@ -25,12 +25,12 @@
 import {
     Card,
     CardContent
-} from "@mows/react-components/components/ui/card";
-import InlineEdit from "@mows/react-components/components/input/inlineEdit/InlineEdit";
+} from "@my-own-web-services/react-components/components/ui/card";
+import InlineEdit from "@my-own-web-services/react-components/components/input/inlineEdit/InlineEdit";
 import ConsoleManager, {
     type ConsoleType
-} from "@mows/react-components/components/console/consoleManager/ConsoleManager";
-import { useMows } from "@mows/react-components/lib/mowsContext/MowsContext";
+} from "@my-own-web-services/react-components/components/console/consoleManager/ConsoleManager";
+import { useMows } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import {
     Bot,
     Clock,
@@ -40,7 +40,7 @@ import {
     Server,
     TerminalSquare
 } from "lucide-react";
-import VmSshConsole from "../components/VmSshConsole";
+import VmAgentConsole, { AgentKindName } from "../components/VmAgentConsole";
 import {
     useEffect,
     useMemo,
@@ -191,10 +191,14 @@ const VmDetail = () => {
     }, [startedAt, endAt, now]);
 
     // ConsoleManager `types`: each entry's `render` is invoked once per
-    // spawned terminal, so every tab gets a fresh `<VmSshConsole>` (own
-    // socket, own ssh subprocess on the supervisor). Pinning `vm.id`
-    // in the closure keeps the manager tied to this page's VM even if
-    // the user navigates between VMs while a session is open.
+    // spawned terminal. Every tab now flows through `<VmAgentConsole>`,
+    // which idempotently `PUT /v1/vms/{vmId}/agents/{agentId}` — the
+    // ConsoleManager `tabId` IS the agent id, so the same tab survives
+    // page reload (the manager re-hydrates it from
+    // `mows:console:vm:<id>:console`), re-PUTs, and the supervisor
+    // returns the existing row instead of spawning a duplicate. The
+    // agent also shows up in the sidebar's Agents list with the same
+    // id so stop/rename/delete from there hit the same row.
     //
     // Memoise so PureComponent's prop diff bails out across re-renders
     // — recreating `types` on every poll tick would otherwise reset the
@@ -210,16 +214,12 @@ const VmDetail = () => {
                           id: "ssh",
                           label: mowsContext.t.supervisor.vmDetail.console.ssh.typeLabel,
                           icon: TerminalSquare,
-                          // `ctx.tabId` is a stable ConsoleManager id
-                          // that survives reload via the
-                          // `persistenceKey` on the manager — passing
-                          // it as `sessionId` lets the supervisor
-                          // back the remote process with a tmux
-                          // session of the same name. A reload then
-                          // reattaches instead of spawning a fresh
-                          // shell.
                           render: (ctx) => (
-                              <VmSshConsole vmId={vmId} sessionId={ctx.tabId} />
+                              <VmAgentConsole
+                                  vmId={vmId}
+                                  agentId={ctx.tabId}
+                                  kind={AgentKindName.Shell}
+                              />
                           )
                       },
                       {
@@ -230,15 +230,12 @@ const VmDetail = () => {
                           // stages the host's ~/.claude from /creds and
                           // execs `claude --dangerously-skip-permissions`,
                           // so the user lands inside an authenticated
-                          // session with no onboarding prompts. Same
-                          // tmux-keyed sessionId pattern as `ssh` —
-                          // a page reload reattaches to the running
-                          // claude rather than restarting it.
+                          // session with no onboarding prompts.
                           render: (ctx) => (
-                              <VmSshConsole
+                              <VmAgentConsole
                                   vmId={vmId}
-                                  command="claude"
-                                  sessionId={ctx.tabId}
+                                  agentId={ctx.tabId}
+                                  kind={AgentKindName.Claude}
                               />
                           )
                       }

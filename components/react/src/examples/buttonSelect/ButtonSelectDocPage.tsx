@@ -32,9 +32,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
-const USAGE_SNIPPET = `import { ButtonSelect } from "@mows/react-components";
+const USAGE_SNIPPET = `import { ButtonSelect } from "@my-own-web-services/react-components";
 
 const [selected, setSelected] = useState("grid");
 

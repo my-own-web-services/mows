@@ -57,7 +57,7 @@ Findings:
   exist on `MowsProviderProps` (`MowsContext.tsx:433`, `:439`, `:440`). All
   three resolve correctly via `lib/main.ts:354 export * from
   "./lib/mowsContext/MowsContext"`, so the `import { MowsProvider } from
-  "@mows/react-components"` import on line 75 of the snippet is valid.
+  "@my-own-web-services/react-components"` import on line 75 of the snippet is valid.
 - **Mismatch between snippet and prose**: `setup.mountProvider.body`
   (en-US.ts:218 / de.ts:218) says "Pick it via `localStorage` first, then
   `navigator.language`, then a hardcoded English fallback — the example
@@ -97,7 +97,7 @@ Snippets: `READ_HOOK_SNIPPET` (lines 132-138), `READ_CLASS_SNIPPET` (lines
 140-152), `READ_ACTION_SNIPPET` (lines 154-171).
 
 Findings:
-- `useMows` and `MowsContext` are both exported from `@mows/react-components`
+- `useMows` and `MowsContext` are both exported from `@my-own-web-services/react-components`
   via the wildcard re-export at `lib/main.ts:354`. The class-component
   pattern (`static contextType = MowsContext; declare context:
   ContextType<typeof MowsContext>`) is exactly the pattern the library
@@ -122,20 +122,20 @@ Snippet: `DECLARE_MERGE_SNIPPET` (lines 173-198) + `LOCALE_FILE_SNIPPET`
 (lines 200-225).
 
 Findings:
-- `DECLARE_MERGE_SNIPPET` uses `declare module "@mows/react-components" {
+- `DECLARE_MERGE_SNIPPET` uses `declare module "@my-own-web-services/react-components" {
   interface Translation { … } }`. The in-repo example does the augmentation
   against the relative module path (`src/languages.ts:86 declare module
   "../lib/lib/languages"`). Declaration merging against the package
-  barrel `@mows/react-components` is valid because the `Translation`
+  barrel `@my-own-web-services/react-components` is valid because the `Translation`
   interface is exported through `lib/main.ts:349 export * from
-  "./lib/languages"`, and TypeScript treats `@mows/react-components` as
+  "./lib/languages"`, and TypeScript treats `@my-own-web-services/react-components` as
   the module that owns the interface for downstream consumers. This is
   the correct external-consumer pattern — flag it only if you want
   to additionally show the in-repo `../lib/lib/languages` variant for
   apps building inside the monorepo (which is what `src/languages.ts`
   actually uses).
 - `LOCALE_FILE_SNIPPET` imports `baseEn from
-  "@mows/react-components/lib/languages/en-US/default"`. The
+  "@my-own-web-services/react-components/lib/languages/en-US/default"`. The
   `package.json` exports map (`./*` → `./dist/*`) plus the built artefact
   at `dist/lib/languages/en-US/default.{js,d.ts}` confirms this path
   resolves correctly for external consumers. The in-repo equivalent is
@@ -167,7 +167,7 @@ Findings:
 - `SLICE_WIRING_SNIPPET` reproduces `src/languages.ts:86-87,234` and
   `src/languages/en-US.ts:2`. The `declare module "../lib/lib/languages"`
   string matches `src/languages.ts:86` verbatim, which differs from the
-  `@mows/react-components` form used in the Extending section — both are
+  `@my-own-web-services/react-components` form used in the Extending section — both are
   shown because they correspond to in-repo vs external-consumer wiring.
 - `SLICE_BUNDLE_SNIPPET` describes both approaches:
   - **Eager** variant: static imports both locales into the main chunk.

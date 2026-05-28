@@ -1,8 +1,8 @@
 import { effect } from "@preact/signals-react";
-import CodeViewer from "@mows/react-components/components/code/codeViewer/CodeViewer";
-import { Button } from "@mows/react-components/components/ui/button";
-import { Input } from "@mows/react-components/components/ui/input";
-import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
+import CodeViewer from "@my-own-web-services/react-components/components/code/codeViewer/CodeViewer";
+import { Button } from "@my-own-web-services/react-components/components/ui/button";
+import { Input } from "@my-own-web-services/react-components/components/ui/input";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { PureComponent } from "react";
 import { IoCloudDownload, IoCloudUpload } from "react-icons/io5";
 import {

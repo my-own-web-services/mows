@@ -38,13 +38,13 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
 const USAGE_SNIPPET = `import {
     ResourceList,
     ColumnListRowHandler,
     SortDirection
-} from "@mows/react-components";
+} from "@my-own-web-services/react-components";
 
 interface User {
     id: string;
@@ -186,10 +186,10 @@ const TEST_FILE = `lib/components/list/ResourceList/ResourceList.test.tsx`;
 const buildBehaviourEntries = (
     statements: Strings[`doc`][`definedBehaviour`][`statements`]
 ): BehaviourEntry[] => [
-    { statement: statements.callsFetcher, testFile: TEST_FILE, testName: `calls getResourcesList on mount`, testLine: 119 },
-    { statement: statements.firstWindow, testFile: TEST_FILE, testName: `first fetch passes fromIndex=0 + a finite limit`, testLine: 128 },
-    { statement: statements.forwardsSort, testFile: TEST_FILE, testName: `forwards a sortBy + sortDirection in the request body`, testLine: 141 },
-    { statement: statements.reorderFires, testFile: TEST_FILE, testName: `fires onReorder when a row is dropped onto another row`, testLine: 303 },
+    { statement: statements.callsFetcher, testFile: TEST_FILE, testName: `calls getResourcesList on mount`, testLine: 238 },
+    { statement: statements.firstWindow, testFile: TEST_FILE, testName: `first fetch passes fromIndex=0 + a finite limit`, testLine: 247 },
+    { statement: statements.forwardsSort, testFile: TEST_FILE, testName: `forwards a sortBy + sortDirection in the request body`, testLine: 260 },
+    { statement: statements.reorderFires, testFile: TEST_FILE, testName: `fires onReorder when a row is dropped onto another row`, testLine: 409 },
     { statement: statements.crossListAccept, testFile: TEST_FILE, testName: `accepts a drop from a list whose id is in reorderAcceptsFrom`, testLine: 756 }
 ];
 

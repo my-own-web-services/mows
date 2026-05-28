@@ -47,4 +47,16 @@ describe(`Slider`, () => {
         expect(root.className).toMatch(/my-cls/);
         expect(root.className).toMatch(/relative/);
     });
+
+    it(`insets the track by half the thumb width on each side so the thumb fully covers the rail at the extremes`, () => {
+        // The thumb's traversal context is the Root's padding box, which is
+        // unaffected by horizontal padding (no border). The Track is a flex
+        // child living in the content box, so `px-2` (= half the 16px thumb
+        // width) shrinks the visible rail without changing thumb positioning.
+        // Result: at min/max the thumb's center lands on the rail's end, so
+        // the thumb completely covers the rail's rounded cap.
+        const { container } = render(<Slider />);
+        const root = container.firstChild as HTMLElement;
+        expect(root.className).toMatch(/\bpx-2\b/);
+    });
 });

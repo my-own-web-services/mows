@@ -4,7 +4,7 @@ import type { NodeEditorProps } from "./types";
 
 // `@xyflow/react` plus its base CSS is heavy and only used by callers that
 // actually mount a node editor. Splitting the real implementation behind
-// `React.lazy` keeps the rest of `@mows/react-components` out of paying for
+// `React.lazy` keeps the rest of `@my-own-web-services/react-components` out of paying for
 // that bundle on initial load.
 const LazyNodeEditorImpl = React.lazy(() => import(`./NodeEditorImpl`));
 

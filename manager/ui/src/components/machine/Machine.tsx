@@ -1,5 +1,5 @@
-import { Button } from "@mows/react-components/components/ui/button";
-import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
+import { Button } from "@my-own-web-services/react-components/components/ui/button";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { PureComponent, type CSSProperties } from "react";
 import { GrResume } from "react-icons/gr";
 import { IoTerminal } from "react-icons/io5";

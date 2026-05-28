@@ -1,6 +1,6 @@
 import "@fontsource-variable/inter";
-import { type Language } from "@mows/react-components/lib/languages";
-import { MowsProvider } from "@mows/react-components/lib/mowsContext/MowsContext";
+import { type Language } from "@my-own-web-services/react-components/lib/languages";
+import { MowsProvider } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "sonner";
 import App from "./App";

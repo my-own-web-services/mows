@@ -30,9 +30,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components maplibre-gl`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components maplibre-gl`;
 
-const USAGE_SNIPPET = `import { LocationPicker, type PickedLocation } from "@mows/react-components";
+const USAGE_SNIPPET = `import { LocationPicker, type PickedLocation } from "@my-own-web-services/react-components";
 import { useState } from "react";
 
 const [point, setPoint] = useState<PickedLocation | null>(null);
@@ -93,11 +93,11 @@ const TEST_FILE = `lib/components/input/locationPicker/LocationPicker.test.tsx`;
 const buildBehaviourEntries = (
     statements: Strings[`doc`][`definedBehaviour`][`statements`]
 ): BehaviourEntry[] => [
-    { statement: statements.rendersMap, testFile: TEST_FILE, testName: `renders the map stub and the empty-state hint`, testLine: 111 },
-    { statement: statements.uncontrolledClickUpdates, testFile: TEST_FILE, testName: `uncontrolled: a map click updates the internal value and shows the readout`, testLine: 121 },
-    { statement: statements.controlledFiresOnChange, testFile: TEST_FILE, testName: `controlled: a map click fires onChange but leaves the visible value alone`, testLine: 130 },
-    { statement: statements.clearResets, testFile: TEST_FILE, testName: `the Clear button resets the picked value to null`, testLine: 143 },
-    { statement: statements.mountsMarker, testFile: TEST_FILE, testName: `mounts a pin marker on the map once the first value is set`, testLine: 158 }
+    { statement: statements.rendersMap, testFile: TEST_FILE, testName: `renders the map stub and the empty-state hint`, testLine: 123 },
+    { statement: statements.uncontrolledClickUpdates, testFile: TEST_FILE, testName: `uncontrolled: a map click updates the internal value and shows the readout`, testLine: 133 },
+    { statement: statements.controlledFiresOnChange, testFile: TEST_FILE, testName: `controlled: a map click fires onChange but leaves the visible value alone`, testLine: 142 },
+    { statement: statements.clearResets, testFile: TEST_FILE, testName: `the Clear button resets the picked value to null`, testLine: 155 },
+    { statement: statements.mountsMarker, testFile: TEST_FILE, testName: `mounts a pin marker on the map once the first value is set`, testLine: 170 }
 ];
 
 export const LocationPickerDocPage = () => {

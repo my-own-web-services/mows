@@ -47,6 +47,7 @@ import { locationPickerDe } from "../examples/locationPicker/translations";
 import { logViewDe } from "../examples/logView/translations";
 import { loggingConfigDe } from "../examples/loggingConfig/translations";
 import { lyricsDe } from "../examples/lyrics/translations";
+import { openingHoursDe } from "../examples/openingHours/translations";
 import { machineMonitorDe } from "../examples/machineMonitor/translations";
 import { mapDe } from "../examples/map/translations";
 import { mapStylePickerDe } from "../examples/mapStylePicker/translations";
@@ -386,6 +387,7 @@ const translation: Translation = {
             timePicker: timePickerDe,
             timezoneSelector: timezoneSelectorDe,
             dateTimeRangePicker: dateTimeRangePickerDe,
+            openingHours: openingHoursDe,
             loggingConfig: loggingConfigDe,
             inlineEdit: inlineEditDe,
             commandPalette: commandPaletteDe,

@@ -125,9 +125,20 @@ export const Waveform = ({
         if (!node || disabled) return;
         const rect = node.getBoundingClientRect();
         if (rect.width <= 0) return;
+        // Flexbox renders bars right-to-left when `direction: rtl`, so
+        // bar 0 (and therefore "progress = 0") sits at the right edge.
+        // The click ratio must be measured from the visually-leading edge
+        // — the right in RTL — otherwise clicks invert. The DOM-attribute
+        // fallback handles environments (jsdom in tests) where inherited
+        // `dir` doesn't propagate into computed style.
+        const isRtl =
+            getComputedStyle(node).direction === `rtl` ||
+            node.closest(`[dir="rtl"]`) !== null ||
+            document.dir === `rtl`;
+        const linearRatio = (clientX - rect.left) / rect.width;
         const ratio = Math.max(
             0,
-            Math.min(1, (clientX - rect.left) / rect.width)
+            Math.min(1, isRtl ? 1 - linearRatio : linearRatio)
         );
         onSeek?.(ratio);
     };

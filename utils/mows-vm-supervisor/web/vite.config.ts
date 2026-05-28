@@ -12,7 +12,7 @@ const SUPERVISOR_URL =
     process.env.MOWS_VM_SUPERVISOR_URL ?? "http://127.0.0.1:7878";
 
 /**
- * Copy @mows/react-components's pre-bundled Monaco worker chunks into our
+ * Copy @my-own-web-services/react-components's pre-bundled Monaco worker chunks into our
  * `public/assets/` before rollup starts.
  *
  * The lib ships Monaco language modes (json/css/html/ts/editor) that spawn
@@ -32,7 +32,7 @@ const stageMonacoWorkers = (): Plugin => ({
     buildStart() {
         const libAssets = resolve(
             dirname(new URL(import.meta.url).pathname),
-            "node_modules/@mows/react-components/dist/assets"
+            "node_modules/@my-own-web-services/react-components/dist/assets"
         );
         const dest = resolve(
             dirname(new URL(import.meta.url).pathname),

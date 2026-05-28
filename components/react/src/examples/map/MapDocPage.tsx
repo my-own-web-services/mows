@@ -30,9 +30,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components maplibre-gl`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components maplibre-gl`;
 
-const USAGE_SNIPPET = `import { Map } from "@mows/react-components";
+const USAGE_SNIPPET = `import { Map } from "@my-own-web-services/react-components";
 
 <div style={{ height: 400 }}>
     <Map
@@ -45,7 +45,7 @@ const COMPOSITION_SNIPPET = `// Without a mapStyle prop, <Map> subscribes to cur
 // MowsContext — picking a new style in the SettingsPanel reflows every
 // mounted Map. Pass an explicit MowsMapStyle to opt out per instance.
 
-import { Map, type MowsMapStyle } from "@mows/react-components";
+import { Map, type MowsMapStyle } from "@my-own-web-services/react-components";
 
 const customStyle: MowsMapStyle = {
     id: "company-dark",

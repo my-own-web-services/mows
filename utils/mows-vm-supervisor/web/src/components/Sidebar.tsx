@@ -9,13 +9,13 @@
 // `data-action-target-id` so the app-wide GlobalContextMenu can pick up
 // VM / Agent right-click actions registered in lib/actions.ts.
 
-import PrimaryMenu from "@mows/react-components/components/appShell/primaryMenu/PrimaryMenu";
-import { Button } from "@mows/react-components/components/ui/button";
+import PrimaryMenu from "@my-own-web-services/react-components/components/appShell/primaryMenu/PrimaryMenu";
+import { Button } from "@my-own-web-services/react-components/components/ui/button";
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger
-} from "@mows/react-components/components/ui/collapsible";
+} from "@my-own-web-services/react-components/components/ui/collapsible";
 import {
     SidebarContent,
     SidebarGroup,
@@ -25,8 +25,8 @@ import {
     SidebarMenuSub,
     SidebarMenuSubButton,
     SidebarMenuSubItem
-} from "@mows/react-components/components/ui/sidebar";
-import { useMows } from "@mows/react-components/lib/mowsContext/MowsContext";
+} from "@my-own-web-services/react-components/components/ui/sidebar";
+import { useMows } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { Bot, ChevronRight, Plus, Server, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useMatch, useNavigate } from "react-router-dom";

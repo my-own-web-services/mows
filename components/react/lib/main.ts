@@ -98,6 +98,26 @@ export {
 } from "./components/input/timeline/Timeline";
 
 export {
+    default as OpeningHours,
+    type OpeningHoursProps
+} from "./components/dateTime/openingHours/OpeningHours";
+export {
+    DEFAULT_OPENING_HOURS_STRINGS,
+    buildOpeningHoursStatus,
+    buildOpeningHoursWeek,
+    parseOsmOpeningHours,
+    parseOsmOpeningHoursSchedule,
+    type OpeningHoursDay,
+    type OpeningHoursInterval,
+    type OpeningHoursSchedule,
+    type OpeningHoursStatus,
+    type OpeningHoursStrings,
+    type OpeningHoursTone,
+    type OpeningHoursVariant,
+    type OpeningHoursWeek
+} from "./components/dateTime/openingHours/types";
+
+export {
     default as NodeEditor
 } from "./components/editor/nodeEditor/NodeEditor";
 export { default as TypedHandle, type TypedHandleProps } from "./components/editor/nodeEditor/TypedHandle";
@@ -112,6 +132,7 @@ export type {
 
 export {
     default as AudioPlayer,
+    type AudioPlayerHandle,
     type AudioPlayerProps
 } from "./components/files/audioPlayer/AudioPlayer";
 export {
@@ -226,6 +247,27 @@ export {
     default as SearchSelectPicker,
     type SearchSelectPickerProps
 } from "./components/input/searchSelectPicker/SearchSelectPicker";
+export {
+    default as EmojiPicker,
+    type EmojiPickerHandle
+} from "./components/input/emojiPicker/EmojiPicker";
+export {
+    DEFAULT_EMOJI_PICKER_STRINGS,
+    type EmojiPickerProps,
+    type EmojiPickerStrings
+} from "./components/input/emojiPicker/types";
+export {
+    applySkinTone,
+    emojisInCategory,
+    searchEmojis,
+    EMOJI_CATEGORIES,
+    EMOJI_DATA,
+    SKIN_TONE_MODIFIERS,
+    type EmojiCategoryDefinition,
+    type EmojiCategoryId,
+    type EmojiEntry,
+    type SkinToneIndex
+} from "./components/input/emojiPicker/emojiData";
 
 export { default as LanguagePicker } from "./components/settings/languagePicker/LanguagePicker";
 export { default as LoggingConfig } from "./components/settings/loggingConfig/LoggingConfig";
@@ -254,6 +296,23 @@ export {
     default as GridListRowHandler,
     type GridListRowHandlerProps
 } from "./components/list/ResourceList/rowHandlers/Grid";
+
+export {
+    default as Chat,
+    type ChatHandle
+} from "./components/chat/Chat/Chat";
+export {
+    DEFAULT_CHAT_STRINGS,
+    DEFAULT_AVAILABLE_REACTIONS,
+    type ChatAttachment,
+    type ChatLoadOlderResponse,
+    type ChatMessage,
+    type ChatProps,
+    type ChatReaction,
+    type ChatSendInput,
+    type ChatStrings,
+    type ChatUser
+} from "./components/chat/Chat/types";
 
 export {
     default as Compass,

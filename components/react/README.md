@@ -1,4 +1,4 @@
-# @mows/react-components
+# @my-own-web-services/react-components
 
 Generic React component, context, auth, theme, language, action, hotkey, and
 modal library shared by all MOWS frontend apps.
@@ -30,8 +30,8 @@ theme / language switching flow assume they are present.
 
 ```tsx
 import ReactDOM from "react-dom/client";
-import "@mows/react-components/main.css";
-import { MowsProvider } from "@mows/react-components/lib/mowsContext/MowsContext";
+import "@my-own-web-services/react-components/main.css";
+import { MowsProvider } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import App from "./App";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -58,10 +58,10 @@ the CSS theme class — that is fixed (`theme-light`, `theme-dark`,
 ### Minimal `App.tsx`
 
 ```tsx
-import CommandPalette from "@mows/react-components/components/appShell/commandPalette/CommandPalette";
-import GlobalContextMenu from "@mows/react-components/components/appShell/globalContextMenu/GlobalContextMenu";
-import ModalHandler from "@mows/react-components/components/appShell/modalHandler/ModalHandler";
-import PrimaryMenu from "@mows/react-components/components/appShell/primaryMenu/PrimaryMenu";
+import CommandPalette from "@my-own-web-services/react-components/components/appShell/commandPalette/CommandPalette";
+import GlobalContextMenu from "@my-own-web-services/react-components/components/appShell/globalContextMenu/GlobalContextMenu";
+import ModalHandler from "@my-own-web-services/react-components/components/appShell/modalHandler/ModalHandler";
+import PrimaryMenu from "@my-own-web-services/react-components/components/appShell/primaryMenu/PrimaryMenu";
 
 export default class App extends PureComponent {
     render = () => (
@@ -85,7 +85,7 @@ The four components are unconditional — render them once at the root, do
 via declaration merging:
 
 ```ts
-declare module "@mows/react-components/lib/languages" {
+declare module "@my-own-web-services/react-components/lib/languages" {
     interface Translation {
         myApp: { hello: string };
     }

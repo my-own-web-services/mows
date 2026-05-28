@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
-import { CodeViewer } from "@mows/react-components";
-import "@mows/react-components/main.css";
+import { CodeViewer } from "@my-own-web-services/react-components";
+import "@my-own-web-services/react-components/main.css";
 import "../../main.css";
 
 // CodeViewer is deliberately heavy (Monaco). It's also the canonical

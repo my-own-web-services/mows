@@ -8,25 +8,67 @@
 //   • Mount: PUT /v1/vms/{vmId}/agents/{agentId} with { kind } — idempotent
 //     create-or-attach. First call inserts the agent + spawns the tmux
 //     session; subsequent calls (page reload, tab restore) return the
-//     existing row.
+//     existing row. The supervisor verifies that the existing agent's
+//     vm_id, kind, and owner match the request — so a same-id reattach
+//     to the wrong VM, the wrong kind, or someone else's session fails
+//     with 409 / 404 rather than silently rebinding to the wrong row.
 //   • Then: open WS /v1/agents/{agentId}/io — every attach gets its own
 //     fresh ssh+`tmux attach` so multi-client works without echo bouncing.
 //   • Incoming frames: binary bytes from the tmux session → xterm.
 //   • Outgoing frames: binary keystrokes / pastes → tmux pane stdin.
+//
+// Multi-attach contract: tabId == agentId, persisted by ConsoleManager
+// under `mows:console:vm:<vmId>:console`. Two browser windows with the
+// same localStorage that both open this VM hydrate the same tabId and
+// thus the same agent — tmux multi-attach makes that safe (each WS
+// gets its own pty, no echo bouncing). Closing a tab only drops that
+// window's WS; the agent stays running until someone explicitly stops
+// or deletes it from the sidebar's Agents list.
 
 import Terminal, {
     type TerminalHandle
-} from "@mows/react-components/components/console/terminal/Terminal";
-import { useMows } from "@mows/react-components/lib/mowsContext/MowsContext";
+} from "@my-own-web-services/react-components/components/console/terminal/Terminal";
+import { useMows } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { PureComponent, createRef, type ReactNode } from "react";
 import { api, describeApiError } from "../lib/api";
+import { AgentKindName } from "../api/generated/api-client";
 
 const TOKEN_STORAGE_KEY = "mows-vm-supervisor:token";
 
+/** Hard cap on how long the idempotent PUT may take before we give up
+ *  and surface a timeout error. The supervisor's spawn flow involves
+ *  a real ssh + tmux setup inside the guest, so this is generous; a
+ *  hang past this point almost always means the supervisor or the VM
+ *  itself is wedged and the user should refresh rather than continue
+ *  waiting in silence. */
+const BOOTSTRAP_TIMEOUT_MS = 30_000;
+
+/** Promise.race helper that rejects with a typed error when the inner
+ *  promise hasn't settled by `ms` milliseconds. Keeps `bootstrap`
+ *  readable without a third-party dependency. */
+const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+    new Promise<T>((resolve, reject) => {
+        const timer = window.setTimeout(() => {
+            reject(new Error(`${label} timed out after ${ms}ms`));
+        }, ms);
+        promise.then(
+            (value) => {
+                window.clearTimeout(timer);
+                resolve(value);
+            },
+            (error) => {
+                window.clearTimeout(timer);
+                reject(error);
+            }
+        );
+    });
+
 /** Agent runtime: `"shell"` is a plain `/bin/sh` session, `"claude"` boots
- *  claude-code with credentials staged from `/creds`. Mirrors the kinds
- *  accepted by `PUT /v1/vms/{vmId}/agents/{agentId}`. */
-export type VmAgentKind = "shell" | "claude";
+ *  claude-code with credentials staged from `/creds`. Re-exports the
+ *  codegen enum so call sites that don't already import the API client
+ *  can stay in the component module. */
+export type VmAgentKind = AgentKindName;
+export { AgentKindName };
 
 interface VmAgentConsoleProps {
     readonly vmId: string;
@@ -71,12 +113,18 @@ class VmAgentConsoleInner extends PureComponent<VmAgentConsoleProps, State> {
 
     /** Idempotent PUT then WS attach. Surfacing PUT errors here keeps the
      *  status pill informative: a 409 from a VM that isn't running, a 404
-     *  if the VM was deleted from under us, etc. */
+     *  if the VM was deleted from under us, etc. Wrapped in a hard
+     *  timeout (MIN-11) so a wedged supervisor surfaces as a clear
+     *  error message rather than an indefinite "connecting" spinner. */
     private bootstrap = async () => {
         try {
-            await api.v1.putAgent(this.props.vmId, this.props.agentId, {
-                kind: this.props.kind
-            });
+            await withTimeout(
+                api.v1.putAgent(this.props.vmId, this.props.agentId, {
+                    kind: this.props.kind
+                }),
+                BOOTSTRAP_TIMEOUT_MS,
+                "agent bootstrap"
+            );
         } catch (error) {
             if (!this.alive) return;
             this.setState({

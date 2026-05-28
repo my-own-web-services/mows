@@ -48,6 +48,7 @@ import type { LocationPickerTranslation } from "./examples/locationPicker/transl
 import type { LogViewTranslation } from "./examples/logView/translations";
 import type { LoggingConfigTranslation } from "./examples/loggingConfig/translations";
 import type { LyricsTranslation } from "./examples/lyrics/translations";
+import type { OpeningHoursTranslation } from "./examples/openingHours/translations";
 import type { MachineMonitorTranslation } from "./examples/machineMonitor/translations";
 import type { MapStylePickerTranslation } from "./examples/mapStylePicker/translations";
 import type { MapTranslation } from "./examples/map/translations";
@@ -295,6 +296,7 @@ declare module "../lib/lib/languages" {
                 timePicker: TimePickerTranslation;
                 timezoneSelector: TimezoneSelectorTranslation;
                 dateTimeRangePicker: DateTimeRangePickerTranslation;
+                openingHours: OpeningHoursTranslation;
                 timeline: TimelineTranslation;
                 nodeEditor: NodeEditorTranslation;
                 loggingConfig: LoggingConfigTranslation;

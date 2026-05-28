@@ -8,6 +8,12 @@ describe(`languages registry`, () => {
         expect(codes).toEqual([`de`, `en-US`]);
     });
 
+    // Vite's first-time transform of the dynamic-import graph (250+
+    // chained translation modules per locale) can exceed the default
+    // 5s timeout when this file runs alongside the rest of the suite
+    // under parallel cold-start load. The assertions themselves take
+    // <1s in isolation — the timeout protects the orchestration, not
+    // the logic.
     it(`every Language entry exposes an import thunk that returns a Translation`, async () => {
         for (const lang of languages) {
             expect(typeof lang.import).toBe(`function`);
@@ -17,7 +23,7 @@ describe(`languages registry`, () => {
             expect(typeof t.primaryMenu.login).toBe(`string`);
             expect(typeof t.example.pageTitle).toBe(`string`);
         }
-    });
+    }, 30_000);
 
     it(`the de and en-US thunks resolve to different translation trees`, async () => {
         const en = await languages.find((l) => l.code === `en-US`)!.import();

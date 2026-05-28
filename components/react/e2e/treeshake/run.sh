@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # End-to-end tree-shake test runner.
 #
-# 1. Build @mows/react-components (skipped if `dist/` already exists and
+# 1. Build @my-own-web-services/react-components (skipped if `dist/` already exists and
 #    `--rebuild` was not passed)
 # 2. Pack the lib into a tarball
 # 3. Build the treeshake docker image (consumer skeleton + pnpm deps)
@@ -22,7 +22,7 @@ for arg in "$@"; do
 done
 
 if [[ ! -d "$LIB_ROOT/dist" || $REBUILD -eq 1 ]]; then
-    echo "treeshake: building @mows/react-components"
+    echo "treeshake: building @my-own-web-services/react-components"
     (cd "$LIB_ROOT" && pnpm run build)
 else
     echo "treeshake: reusing existing dist/ (pass --rebuild to force)"

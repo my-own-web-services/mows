@@ -1,5 +1,5 @@
 import "@fontsource-variable/inter";
-import { MowsProvider } from "@mows/react-components/lib/mowsContext/MowsContext";
+import { MowsProvider } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "sonner";
 import App from "./App";

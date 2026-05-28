@@ -45,7 +45,7 @@ The default mode. Preserves newlines and indentation; suitable for short
 illustrative snippets inside a `<div>` or card.
 
 ```tsx
-import CodeSnippet from "@mows/react-components/components/code/codeSnippet/CodeSnippet";
+import CodeSnippet from "@my-own-web-services/react-components/components/code/codeSnippet/CodeSnippet";
 
 const SAMPLE = `const greet = (name: string) => {
     console.log(\`Hello, \${name}!\`);
@@ -63,7 +63,7 @@ Whitespace is collapsed so the snippet stays on a single line regardless of
 the source.
 
 ```tsx
-import CodeSnippet from "@mows/react-components/components/code/codeSnippet/CodeSnippet";
+import CodeSnippet from "@my-own-web-services/react-components/components/code/codeSnippet/CodeSnippet";
 
 export const Inline = () => (
     <p>
@@ -90,7 +90,7 @@ Same component, different Monaco language ids. `text` falls back to
 monospaced text with no token coloring.
 
 ```tsx
-import CodeSnippet from "@mows/react-components/components/code/codeSnippet/CodeSnippet";
+import CodeSnippet from "@my-own-web-services/react-components/components/code/codeSnippet/CodeSnippet";
 
 export const Languages = () => (
     <div className="flex flex-col gap-4">

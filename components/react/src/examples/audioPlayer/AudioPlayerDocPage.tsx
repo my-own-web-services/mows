@@ -33,9 +33,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
-const USAGE_SNIPPET = `import { AudioPlayer } from "@mows/react-components";
+const USAGE_SNIPPET = `import { AudioPlayer } from "@my-own-web-services/react-components";
 
 <AudioPlayer src="https://cdn.example.com/track.mp3" />`;
 
@@ -211,55 +211,55 @@ const buildBehaviourEntries = (
         statement: statements.defaultBar,
         testFile: TEST_FILE,
         testName: `renders the bar variant by default`,
-        testLine: 61
+        testLine: 62
     },
     {
         statement: statements.cardVariant,
         testFile: TEST_FILE,
         testName: `renders the card variant when variant="card"`,
-        testLine: 68
+        testLine: 69
     },
     {
         statement: statements.playPauseToggle,
         testFile: TEST_FILE,
         testName: `shows Play when paused and Pause when playing`,
-        testLine: 78
+        testLine: 79
     },
     {
         statement: statements.muteToggle,
         testFile: TEST_FILE,
         testName: `clicking mute toggles the audio element's muted flag`,
-        testLine: 102
+        testLine: 103
     },
     {
         statement: statements.durationLoad,
         testFile: TEST_FILE,
         testName: `renders the duration once metadata is loaded`,
-        testLine: 114
+        testLine: 115
     },
     {
         statement: statements.keyboardSpace,
         testFile: TEST_FILE,
         testName: `Space key on the root toggles playback`,
-        testLine: 124
+        testLine: 125
     },
     {
         statement: statements.keyboardSkip,
         testFile: TEST_FILE,
         testName: `ArrowRight skips forward by the seek step`,
-        testLine: 140
+        testLine: 141
     },
     {
         statement: statements.errorAlert,
         testFile: TEST_FILE,
         testName: `surfaces an error row when the media element emits error`,
-        testLine: 194
+        testLine: 195
     },
     {
         statement: statements.peaksOverride,
         testFile: TEST_FILE,
         testName: `uses provided peaks instead of the procedural waveform`,
-        testLine: 207
+        testLine: 208
     }
 ];
 

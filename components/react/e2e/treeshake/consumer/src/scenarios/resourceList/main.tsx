@@ -3,8 +3,8 @@ import {
     ColumnListRowHandler,
     ResourceList,
     type ListResourceResponseBody
-} from "@mows/react-components";
-import "@mows/react-components/main.css";
+} from "@my-own-web-services/react-components";
+import "@my-own-web-services/react-components/main.css";
 import "../../main.css";
 
 // ResourceList is the heaviest "data display" component in the lib —

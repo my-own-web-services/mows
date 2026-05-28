@@ -2,17 +2,17 @@
 // (react-resizable-panels): sidebar on the left, main content on the right,
 // resizable divider in between. Persistence + double-click-reset come
 // from `<ResizablePanelGroup autoSaveId>` and the wrapper in
-// @mows/react-components's `ResizableHandle`.
+// @my-own-web-services/react-components's `ResizableHandle`.
 
-import CommandPalette from "@mows/react-components/components/appShell/commandPalette/CommandPalette";
-import GlobalContextMenu from "@mows/react-components/components/appShell/globalContextMenu/GlobalContextMenu";
-import ModalHandler from "@mows/react-components/components/appShell/modalHandler/ModalHandler";
+import CommandPalette from "@my-own-web-services/react-components/components/appShell/commandPalette/CommandPalette";
+import GlobalContextMenu from "@my-own-web-services/react-components/components/appShell/globalContextMenu/GlobalContextMenu";
+import ModalHandler from "@my-own-web-services/react-components/components/appShell/modalHandler/ModalHandler";
 import {
     ResizableHandle,
     ResizablePanel,
     ResizablePanelGroup
-} from "@mows/react-components/components/ui/resizable";
-import { SidebarProvider } from "@mows/react-components/components/ui/sidebar";
+} from "@my-own-web-services/react-components/components/ui/resizable";
+import { SidebarProvider } from "@my-own-web-services/react-components/components/ui/sidebar";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import ModalHost from "./components/ModalHost";
 import Sidebar from "./components/Sidebar";

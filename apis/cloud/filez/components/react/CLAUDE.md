@@ -5,7 +5,7 @@
 - Typescript
 - React
 - Mostly react class components
-- shadcn and radixui (consumed from `@mows/react-components` via yalc)
+- shadcn and radixui (consumed from `@my-own-web-services/react-components` via yalc)
 - vitest
 
 # Architecture
@@ -13,7 +13,7 @@
 This is the **filez-specific** React component library. Generic primitives,
 auth, theme, language, action/hotkey machinery, modal handling, and the
 generic `ResourceList` (with `ColumnListRowHandler` / `GridListRowHandler`)
-live in `@mows/react-components` at `/home/paul/projects/mows/components/react/`,
+live in `@my-own-web-services/react-components` at `/home/paul/projects/mows/components/react/`,
 linked here via yalc. Filez consumes it and adds:
 
 - Filez API client wiring (`FilezClientManager` inside `FilezContext.tsx`)
@@ -22,7 +22,7 @@ linked here via yalc. Filez consumes it and adds:
 ## Component taxonomy
 
 Components are grouped by purpose under `lib/components/` — the same semantic
-layout used by `@mows/react-components`. There is no `atoms/` bucket.
+layout used by `@my-own-web-services/react-components`. There is no `atoms/` bucket.
 
 - `appShell/` — top-level chrome (`PrimaryMenu`, a thin filez wrapper around
   the mows `PrimaryMenu` that adds a "Developer Tools" entry and wires the
@@ -31,10 +31,10 @@ layout used by `@mows/react-components`. There is no `atoms/` bucket.
   DevPanel dynamically imports modules from those two subfolders.
 - `fileGroups/` — `FileGroupCreate`, `FileGroupPicker`.
 - `files/` — filez-specific file UI: `fileList` plus the thin filez wrapper
-  around `@mows/react-components`'s `FileViewer` (resolves a `FilezFile` to
+  around `@my-own-web-services/react-components`'s `FileViewer` (resolves a `FilezFile` to
   the right thumbnail URL, detects 360 panoramas). `FileIcon` and the
   generic `FileViewer`/`ImageViewer`/`Image360Viewer` live in
-  `@mows/react-components`.
+  `@my-own-web-services/react-components`.
 - `jobs/` — `JobsProgress`, `JobList`.
 - `storage/` — `StorageLocationPicker`, `StorageQuotaPicker`.
 - `tags/` — `ResourceTags`.
@@ -43,7 +43,7 @@ layout used by `@mows/react-components`. There is no `atoms/` bucket.
 - `list/ResourceList/` — only integration tests for the mows-side
   `ResourceList` running under `FilezProvider` (`ResourceList.test.tsx`
   + `rowHandlers/Column.test.tsx`). No filez `ResourceList`
-  implementation; the component itself ships from `@mows/react-components`.
+  implementation; the component itself ships from `@my-own-web-services/react-components`.
   **Never put filez-side source here** — if you need a filez-specific
   list helper, give it its own group (or add to `files/fileList/`).
 
@@ -63,7 +63,7 @@ consumes it.
 Class components that need both contexts:
 
 ```ts
-import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 
 interface FooProps {
@@ -92,7 +92,7 @@ For mows-only or filez-only components, use only one of the contexts.
 
 - All components should be exported from main
 
-- Generic primitives belong in `@mows/react-components`. Only filez-specific
+- Generic primitives belong in `@my-own-web-services/react-components`. Only filez-specific
   components live here.
 
 # Style
@@ -107,19 +107,19 @@ For mows-only or filez-only components, use only one of the contexts.
 - Use `pnpm build` to build the project. Note: Vite/esbuild does NOT
   full type-check. Run `npx tsc --noEmit -p tsconfig.app.json` to
   catch TypeScript errors that the build silently lets through.
-- After changes to `@mows/react-components`, run `pnpm build && yalc push`
+- After changes to `@my-own-web-services/react-components`, run `pnpm build && yalc push`
   in that package to refresh the link here.
 
 # Translations
 
 - Generic translation keys (primaryMenu, languagePicker, themePicker,
   keyboardShortcuts, commandPalette, devPanel, loggingConfig, devTools,
-  resourceList, generic actions) live in `@mows/react-components`.
+  resourceList, generic actions) live in `@my-own-web-services/react-components`.
 - Filez-specific keys (resourceTags, upload, fileGroup*, storage*,
   jobsProgress, jobList, common, filez actions) are added here via
   TypeScript declaration merging in `lib/lib/languages.ts`:
   ```ts
-  declare module "@mows/react-components/lib/languages" {
+  declare module "@my-own-web-services/react-components/lib/languages" {
       interface Translation {
           // filez keys here
       }

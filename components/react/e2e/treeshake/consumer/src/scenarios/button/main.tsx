@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
-import { Button } from "@mows/react-components";
-import "@mows/react-components/main.css";
+import { Button } from "@my-own-web-services/react-components";
+import "@my-own-web-services/react-components/main.css";
 import "../../main.css";
 
 // Imports ONE small primitive from the main entry — the canonical

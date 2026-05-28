@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { Plugin } from "vite";
 
 // Anchor the icon-package lookup to THIS file's location instead of
-// `process.cwd()` (DEVOPS-58). Running `pnpm --filter @mows/react-components
+// `process.cwd()` (DEVOPS-58). Running `pnpm --filter @my-own-web-services/react-components
 // build` from the monorepo root used to resolve `vscode-material-icons`
 // against the wrong cwd; now the resolve walks up from the plugin source.
 const PLUGIN_DIR = dirname(fileURLToPath(import.meta.url));

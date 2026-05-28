@@ -1,9 +1,9 @@
 import {
     type Language as MowsLanguage,
     type Translation as MowsTranslation
-} from "@mows/react-components/lib/languages";
+} from "@my-own-web-services/react-components/lib/languages";
 
-declare module "@mows/react-components/lib/languages" {
+declare module "@my-own-web-services/react-components/lib/languages" {
     interface Translation {
         manager: {
             nav: {

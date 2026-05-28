@@ -2,7 +2,58 @@ import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import Lyrics from "./Lyrics";
-import { findActiveLineIndex, findActiveWordIndex, parseLrc } from "./types";
+import {
+    findActiveLineIndex,
+    findActiveWordIndex,
+    formatLrcTime,
+    parseLrc
+} from "./types";
+
+// Shared helpers for the active/inactive layout-stability suite.
+const sizeClasses = (el: Element): string[] =>
+    Array.from(el.classList).filter((c) =>
+        /^(sm:)?text-(xs|sm|base|lg|xl|2xl|3xl)$/.test(c)
+    );
+
+// Explicit safe-list of classes that may differ between the active and
+// any inactive line. Anything outside this list — including padding,
+// leading, size, width, height, gap — would shift the row's layout
+// signature when a line becomes active, which is exactly the
+// regression these tests defend against.
+const ALLOWED_ACTIVE_CLASSES = new Set([
+    `text-foreground`,
+    `text-muted-foreground`,
+    `text-primary`,
+    `text-accent-foreground`,
+    `font-semibold`,
+    `font-bold`,
+    `font-medium`,
+    `font-normal`,
+    `cursor-pointer`
+]);
+const ALLOWED_ACTIVE_PREFIX_REGEX = /^(opacity-|hover:|focus-visible:)/;
+// Patterns explicitly forbidden as deltas. A new class added under one
+// of these prefixes can grow or shrink the row.
+const LAYOUT_SHIFTING_PATTERNS: ReadonlyArray<RegExp> = [
+    /^(sm:)?text-(xs|sm|base|lg|xl|2xl|3xl|4xl)$/,
+    /^leading-/,
+    /^px-/,
+    /^py-/,
+    /^p-/,
+    /^space-/,
+    /^h-/,
+    /^min-h-/,
+    /^max-h-/,
+    /^w-/,
+    /^min-w-/,
+    /^max-w-/,
+    /^gap-/
+];
+const isAllowedActiveDelta = (cls: string): boolean => {
+    if (LAYOUT_SHIFTING_PATTERNS.some((p) => p.test(cls))) return false;
+    if (ALLOWED_ACTIVE_CLASSES.has(cls)) return true;
+    return ALLOWED_ACTIVE_PREFIX_REGEX.test(cls);
+};
 
 beforeAll(() => {
     // jsdom doesn't implement scrollTo; stub it so the auto-scroll path
@@ -250,5 +301,193 @@ describe(`<Lyrics>`, () => {
         expect(lines).toHaveLength(6);
         const active = lines.find((l) => l.getAttribute(`data-active`) === `true`);
         expect(active).toHaveTextContent(`It's easy if you try`);
+    });
+
+    // Regression: in the compact variant, the active line was bumped to
+    // `text-base sm:text-lg` while inactive lines stayed at `text-sm`,
+    // so highlighting a line visibly resized its row and shoved the
+    // following lines down. Pin the font-size classes so active +
+    // inactive share the same vertical metric.
+    it.each([[`scrolling`], [`compact`]] as const)(
+        `keeps font-size stable between active and inactive lines (%s)`,
+        (variant) => {
+            render(<Lyrics source={SAMPLE_LRC} currentTime={6} variant={variant} />);
+            const lines = screen.getAllByTestId(`lyrics-line`);
+            const active = lines.find((l) => l.getAttribute(`data-active`) === `true`)!;
+            const inactive = lines.find((l) => l.getAttribute(`data-active`) !== `true`)!;
+            expect(sizeClasses(active).sort()).toEqual(sizeClasses(inactive).sort());
+        }
+    );
+
+    // Defends a stricter contract: an active line never has a different
+    // *layout* signature than inactive. The class delta between them is
+    // restricted to an explicit safe-list (weight/colour/opacity/hover/
+    // focus) and explicitly rejects anything matching a known
+    // layout-shifting prefix (text-size, leading, padding, width, …) so
+    // a future "make the active line bigger" change is forced to opt
+    // out of these tests explicitly.
+    it.each([[`scrolling`], [`compact`]] as const)(
+        `active line only differs from inactive in weight/colour/opacity (%s)`,
+        (variant) => {
+            render(<Lyrics source={SAMPLE_LRC} currentTime={6} variant={variant} />);
+            const lines = screen.getAllByTestId(`lyrics-line`);
+            const active = lines.find((l) => l.getAttribute(`data-active`) === `true`)!;
+            const inactive = lines.find((l) => l.getAttribute(`data-active`) !== `true`)!;
+            const activeSet = new Set(active.classList);
+            const inactiveSet = new Set(inactive.classList);
+            const onlyOnActive = [...activeSet].filter((c) => !inactiveSet.has(c));
+            const onlyOnInactive = [...inactiveSet].filter((c) => !activeSet.has(c));
+            for (const cls of [...onlyOnActive, ...onlyOnInactive]) {
+                expect(
+                    isAllowedActiveDelta(cls),
+                    `unexpected class delta between active and inactive: ${cls}`
+                ).toBe(true);
+            }
+        }
+    );
+
+    // The line uses `transition-colors` (not `transition-all`). The
+    // previous `transition-all` setting also animated layout shifts when
+    // a different size class was applied, which visibly jumped the row.
+    // Pin `transition-colors` so the animation can never grow back into
+    // layout properties.
+    it(`uses transition-colors (not transition-all) on lines`, () => {
+        render(<Lyrics source={SAMPLE_LRC} currentTime={0} />);
+        const line = screen.getAllByTestId(`lyrics-line`)[0];
+        expect(line).toHaveClass(`transition-colors`);
+        for (const cls of line.classList) {
+            expect(cls).not.toBe(`transition-all`);
+        }
+    });
+
+    // Long content must wrap inside the existing row — not extend the
+    // row horizontally past the container. We can't measure pixels in
+    // jsdom but we can verify the structural primitives that allow
+    // wrapping survive: the row is a block, the karaoke inline-flex
+    // container declares `flex-wrap`, and nothing on the row pins a
+    // fixed width or whitespace-nowrap.
+    it(`renders a plain-text line as a block-level <li> so the browser can wrap it`, () => {
+        const longLrc = `[00:00.00]${`hold steady, breathe slow, the river keeps going onward and onward `.repeat(8)}`;
+        render(<Lyrics source={longLrc} currentTime={0} />);
+        const line = screen.getAllByTestId(`lyrics-line`)[0];
+        // <li> defaults to block display; we never set whitespace-nowrap
+        // or a fixed inline width that would prevent wrap.
+        expect(line.tagName).toBe(`LI`);
+        for (const cls of line.classList) {
+            expect(cls).not.toMatch(/^whitespace-nowrap$/);
+            expect(cls).not.toMatch(/^w-\[/);
+            expect(cls).not.toMatch(/^min-w-\[/);
+        }
+    });
+
+    it(`wraps very long karaoke content via flex-wrap on the inline word container`, () => {
+        // Long enhanced LRC line — many word markers so the line is much
+        // wider than any reasonable container. The wrap primitive must
+        // be present so the layout never forces horizontal overflow.
+        const markers = Array.from(
+            { length: 30 },
+            (_, i) => `<${formatLrcTime(i * 0.4)}>word${i}`
+        ).join(` `);
+        const longEnhanced = `[00:00.00]${markers}`;
+        render(<Lyrics source={longEnhanced} currentTime={0} />);
+        const words = screen.getAllByTestId(`lyrics-word`);
+        expect(words.length).toBeGreaterThanOrEqual(30);
+        const wordContainer = words[0].parentElement!;
+        const classes = Array.from(wordContainer.classList);
+        expect(classes).toContain(`flex-wrap`);
+        // No whitespace-nowrap anywhere up the chain — otherwise the
+        // karaoke row would refuse to wrap.
+        let walker: HTMLElement | null = wordContainer;
+        while (walker && walker.getAttribute(`data-testid`) !== `lyrics`) {
+            for (const cls of walker.classList) {
+                expect(cls).not.toMatch(/^whitespace-nowrap$/);
+            }
+            walker = walker.parentElement;
+        }
+    });
+
+    it(`renders consistent typography regardless of the line's text length`, () => {
+        // Two lines: one trivial, one extreme. Both must end up with the
+        // same set of size + leading + display classes so neither row
+        // can grow disproportionately.
+        const longText = `the river keeps going, onward, onward, `.repeat(20);
+        const source = `[00:00.00]a\n[00:10.00]${longText}`;
+        render(<Lyrics source={source} currentTime={0} />);
+        const [shortLine, longLine] = screen.getAllByTestId(`lyrics-line`);
+        const structural = (el: Element): string[] =>
+            Array.from(el.classList)
+                .filter((c) =>
+                    /^(sm:)?text-(xs|sm|base|lg|xl|2xl)$|^leading-|^px-|^py-|^rounded/.test(c)
+                )
+                .sort();
+        expect(structural(shortLine)).toEqual(structural(longLine));
+    });
+
+    it(`does not impose a fixed width on the scroll viewport`, () => {
+        // Pin the scrolling container's overflow direction so a row that
+        // happens to be wider than the viewport still wraps rather than
+        // forcing horizontal overflow.
+        render(<Lyrics source={SAMPLE_LRC} currentTime={0} />);
+        const scroll = screen.getByTestId(`lyrics-scroll`);
+        const classes = Array.from(scroll.classList);
+        // overflow-y-auto is fine; the row should never request
+        // horizontal scroll, so we explicitly forbid overflow-x-*.
+        for (const cls of classes) {
+            expect(cls).not.toMatch(/^overflow-x-/);
+        }
+    });
+
+    it(`shows the empty state for a whitespace-only source`, () => {
+        render(<Lyrics source={`   \n   \n`} currentTime={0} />);
+        expect(screen.getByTestId(`lyrics`)).toHaveAttribute(`data-state`, `empty`);
+    });
+
+    it(`shows the empty state for a source with only metadata`, () => {
+        // Title + artist tags but no timed lines — the component must
+        // still show the empty state, since there's nothing to sync.
+        render(<Lyrics source={`[ti:Only metadata]\n[ar:Nobody]`} currentTime={0} />);
+        expect(screen.getByTestId(`lyrics`)).toHaveAttribute(`data-state`, `empty`);
+    });
+
+    it(`shows the empty state when given a pre-parsed value with no lines`, () => {
+        render(
+            <Lyrics
+                source={{ lines: [], metadata: {} }}
+                currentTime={0}
+            />
+        );
+        expect(screen.getByTestId(`lyrics`)).toHaveAttribute(`data-state`, `empty`);
+    });
+
+    it(`marks the last line active when currentTime exceeds the final timestamp`, () => {
+        // Integration mirror of the findActiveLineIndex(lines, 999)
+        // boundary unit test. A regression in the component's active-
+        // index wiring (e.g. swapping `<=` for `<`) would let the last
+        // line silently fall out of "active" past its timestamp.
+        render(<Lyrics source={SAMPLE_LRC} currentTime={999} />);
+        const lines = screen.getAllByTestId(`lyrics-line`);
+        const active = lines.find((l) => l.getAttribute(`data-active`) === `true`);
+        expect(active).toHaveTextContent(`Living for today`);
+    });
+});
+
+describe(`formatLrcTime`, () => {
+    it(`formats whole seconds with two fractional digits and a 5-char ss`, () => {
+        expect(formatLrcTime(0)).toBe(`00:00.00`);
+        expect(formatLrcTime(5.5)).toBe(`00:05.50`);
+        expect(formatLrcTime(63.25)).toBe(`01:03.25`);
+    });
+
+    it(`round-trips through parseLrc as a line timestamp`, () => {
+        const original = 42.75;
+        const parsed = parseLrc(`[${formatLrcTime(original)}]hi`);
+        expect(parsed.lines).toHaveLength(1);
+        expect(parsed.lines[0].time).toBeCloseTo(original, 2);
+    });
+
+    it(`clamps negatives and non-finite values to 00:00.00`, () => {
+        expect(formatLrcTime(-1)).toBe(`00:00.00`);
+        expect(formatLrcTime(Number.NaN)).toBe(`00:00.00`);
+        expect(formatLrcTime(Number.POSITIVE_INFINITY)).toBe(`00:00.00`);
     });
 });

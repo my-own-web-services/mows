@@ -30,9 +30,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
-const USAGE_SNIPPET = `import { OptionPicker, type OptionItem } from "@mows/react-components";
+const USAGE_SNIPPET = `import { OptionPicker, type OptionItem } from "@my-own-web-services/react-components";
 
 const [opts, setOpts] = useState<OptionItem[]>([
     { id: "compact", label: "Compact rows", enabled: true },

@@ -257,7 +257,18 @@ export default class App extends PureComponent<AppProps, AppState> {
     select = (selection: Selection) => {
         const cur = this.state.selected;
         if (selection.kind === cur.kind && selection.id === cur.id) return;
-        window.history.pushState({}, ``, pathForSelection(selection));
+        // Sidebar navigation must NOT carry the previous page's anchor
+        // (`#defined-behaviour`, `#examples-default`, …) onto the next
+        // page — every DocPage shares the same anchor namespace, so the
+        // hash would silently survive cross-page jumps and trick the
+        // next page's PageIndex mount-effect into scrolling away from
+        // the top. We assemble an absolute URL, force the hash to empty,
+        // and push that so the new page opens at its installation
+        // section. (pushState with a path-only URL strips the hash in
+        // most browsers, but we make the contract explicit here.)
+        const target = new URL(pathForSelection(selection), window.location.origin);
+        target.hash = ``;
+        window.history.pushState({}, ``, target.pathname + target.search);
         this.setState({ selected: selection });
     };
 

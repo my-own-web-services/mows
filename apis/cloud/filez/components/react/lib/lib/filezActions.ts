@@ -1,9 +1,9 @@
 import {
     Action,
     ActionVisibility
-} from "@mows/react-components/lib/mowsContext/ActionManager";
-import type { HotkeyConfig } from "@mows/react-components/lib/mowsContext/HotkeyManager";
-import { useMows } from "@mows/react-components/lib/mowsContext/MowsContext";
+} from "@my-own-web-services/react-components/lib/mowsContext/ActionManager";
+import type { HotkeyConfig } from "@my-own-web-services/react-components/lib/mowsContext/HotkeyManager";
+import { useMows } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { useEffect } from "react";
 
 export enum FilezActionIds {

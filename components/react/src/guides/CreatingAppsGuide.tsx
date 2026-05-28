@@ -32,7 +32,7 @@ const ANCHOR = {
     actionsVariants: `actions-variants`
 } as const;
 
-const PROVIDER_SNIPPET = `import { MowsProvider } from "@mows/react-components";
+const PROVIDER_SNIPPET = `import { MowsProvider } from "@my-own-web-services/react-components";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 
@@ -48,7 +48,7 @@ const APP_SHELL_SNIPPET = `import {
     ModalHandler,
     MowsProvider,
     Toaster
-} from "@mows/react-components";
+} from "@my-own-web-services/react-components";
 
 export const Root = () => (
     <MowsProvider storagePrefix="my-app">
@@ -67,7 +67,7 @@ export const Root = () => (
 const DEFINE_ACTION_SNIPPET = `import {
     Action,
     ActionVisibility
-} from "@mows/react-components/lib/mowsContext/ActionManager";
+} from "@my-own-web-services/react-components/lib/mowsContext/ActionManager";
 import { Plus } from "lucide-react";
 
 // Stable, namespaced ids — they show up in localStorage (recents,
@@ -106,7 +106,7 @@ export const buildAppActions = (): Action[] => [
     })
 ];`;
 
-const REGISTER_ACTIONS_SNIPPET = `import { MowsProvider } from "@mows/react-components";
+const REGISTER_ACTIONS_SNIPPET = `import { MowsProvider } from "@my-own-web-services/react-components";
 import { buildAppActions } from "./actions";
 
 createRoot(document.getElementById("root")!).render(
@@ -212,7 +212,7 @@ const SIDEBAR_LAYOUT_SNIPPET = `import {
     SidebarHeader,
     SidebarInset,
     SidebarProvider
-} from "@mows/react-components";
+} from "@my-own-web-services/react-components";
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => (
     <SidebarProvider>

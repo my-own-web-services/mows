@@ -33,9 +33,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
-const USAGE_SNIPPET = `import { Lyrics } from "@mows/react-components";
+const USAGE_SNIPPET = `import { Lyrics } from "@my-own-web-services/react-components";
 
 <Lyrics
     source={lrcString}
@@ -43,8 +43,38 @@ const USAGE_SNIPPET = `import { Lyrics } from "@mows/react-components";
     onSeek={(s) => { audio.currentTime = s; }}
 />`;
 
-const COMPOSITION_SNIPPET = `// Drive the lyrics directly from an HTMLAudioElement.
+const COMPOSITION_SNIPPET = `// Recommended: pair Lyrics with the library's <AudioPlayer>. The
+// imperative AudioPlayerHandle.seekTo() drives the audio when a line
+// is clicked, and onTimeUpdate feeds the active-line tracking.
+import {
+    AudioPlayer,
+    Lyrics,
+    type AudioPlayerHandle
+} from "@my-own-web-services/react-components";
+
 const Player = () => {
+    const playerRef = useRef<AudioPlayerHandle>(null);
+    const [time, setTime] = useState(0);
+
+    return (
+        <>
+            <AudioPlayer
+                ref={playerRef}
+                src={url}
+                onTimeUpdate={setTime}
+            />
+            <Lyrics
+                source={lrc}
+                currentTime={time}
+                onSeek={(s) => playerRef.current?.seekTo(s)}
+            />
+        </>
+    );
+};
+
+// Alternative: drive Lyrics from a raw <audio> element if you don't
+// need the <AudioPlayer> chrome.
+const RawAudioPlayer = () => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const [time, setTime] = useState(0);
 
@@ -56,13 +86,15 @@ const Player = () => {
         return () => el.removeEventListener("timeupdate", onTime);
     }, []);
 
-    const handleSeek = (s: number) => {
-        if (audioRef.current) audioRef.current.currentTime = s;
-    };
-
     return (
         <>
-            <Lyrics source={lrc} currentTime={time} onSeek={handleSeek} />
+            <Lyrics
+                source={lrc}
+                currentTime={time}
+                onSeek={(s) => {
+                    if (audioRef.current) audioRef.current.currentTime = s;
+                }}
+            />
             <audio ref={audioRef} src={url} />
         </>
     );
@@ -70,7 +102,7 @@ const Player = () => {
 
 // Pre-parse once when the same lyrics render in many places — avoids
 // rerunning the parser on every render.
-import { parseLrc } from "@mows/react-components";
+import { parseLrc } from "@my-own-web-services/react-components";
 const parsed = parseLrc(lrc);
 <Lyrics source={parsed} currentTime={time} />`;
 
@@ -85,7 +117,7 @@ const LYRICS_PROPS: PropRow[] = [
         name: `currentTime`,
         type: `number`,
         default: `—`,
-        description: `Required. Playback time in seconds. Drive from your audio element's \`timeupdate\` handler, an external scrubber, or any clock.`
+        description: `Required. Playback time in seconds. Recommended: wire it to \`<AudioPlayer>\`'s \`onTimeUpdate\` callback. Alternatively drive from a raw \`<audio>\` element's \`timeupdate\` handler, an external scrubber, or any clock.`
     },
     {
         name: `variant`,
@@ -97,7 +129,7 @@ const LYRICS_PROPS: PropRow[] = [
         name: `onSeek`,
         type: `(seconds: number) => void`,
         default: `—`,
-        description: `When provided, lines become click targets that call back with the line's start time. Wire this to your audio element's \`currentTime\`.`
+        description: `When provided, lines become click targets that call back with the line's start time. Recommended: forward to \`AudioPlayerHandle.seekTo()\` via a ref on \`<AudioPlayer>\`. Alternatively assign to a raw \`<audio>\` element's \`currentTime\`.`
     },
     {
         name: `autoScroll`,
@@ -184,61 +216,61 @@ const buildBehaviourEntries = (
         statement: statements.parsesMetadata,
         testFile: TEST_FILE,
         testName: `parses metadata tags`,
-        testLine: 30
+        testLine: 81
     },
     {
         statement: statements.expandsRepeats,
         testFile: TEST_FILE,
         testName: `expands repeated timestamps into separate lines`,
-        testLine: 52
+        testLine: 103
     },
     {
         statement: statements.karaokeWords,
         testFile: TEST_FILE,
         testName: `parses enhanced LRC karaoke timings into words`,
-        testLine: 59
+        testLine: 110
     },
     {
         statement: statements.appliesOffset,
         testFile: TEST_FILE,
         testName: `applies the [offset:ms] correction`,
-        testLine: 72
+        testLine: 123
     },
     {
         statement: statements.activeIndex,
         testFile: TEST_FILE,
         testName: `returns the line whose start is the largest <= time`,
-        testLine: 97
+        testLine: 148
     },
     {
         statement: statements.seekOnClick,
         testFile: TEST_FILE,
         testName: `fires onSeek when a line is clicked`,
-        testLine: 205
+        testLine: 256
     },
     {
         statement: statements.seekOnEnter,
         testFile: TEST_FILE,
         testName: `fires onSeek on Enter when focused`,
-        testLine: 225
+        testLine: 276
     },
     {
         statement: statements.emptySource,
         testFile: TEST_FILE,
         testName: `shows the empty state when the source has no lines`,
-        testLine: 187
+        testLine: 238
     },
     {
         statement: statements.noClickWithoutSeek,
         testFile: TEST_FILE,
         testName: `does not wire click handlers when onSeek is omitted`,
-        testLine: 216
+        testLine: 267
     },
     {
         statement: statements.preparsed,
         testFile: TEST_FILE,
         testName: `accepts a pre-parsed ParsedLyrics value`,
-        testLine: 246
+        testLine: 297
     }
 ];
 

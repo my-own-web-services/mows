@@ -534,4 +534,33 @@ describe(`Timeline`, () => {
         expect(last.from).toBe(FROM);
         expect(TO - last.to).toBeCloseTo(2 * 3600_000, -2);
     });
+
+    // Pin the scrubber color tokens so semantic-token regressions
+    // (e.g. someone reverting to bg-foreground/* and breaking the
+    // single-family contrast progression for the thumb body + handles)
+    // surface here rather than visually in production.
+    it(`uses one token family across the scrubber thumb and handles`, () => {
+        const { container } = render(<Timeline from={FROM} to={TO} />);
+        const scrubber = getScrubber(container) as HTMLElement;
+        expect(scrubber).toHaveClass(`bg-muted`);
+        const thumb = getThumb(container) as HTMLElement;
+        expect(thumb).toHaveClass(`bg-muted-foreground/60`);
+        expect(thumb).toHaveClass(`hover:bg-muted-foreground/80`);
+        const handleLeft = container.querySelector(
+            `[data-slot="handle-left"]`
+        ) as HTMLElement;
+        const handleRight = container.querySelector(
+            `[data-slot="handle-right"]`
+        ) as HTMLElement;
+        for (const handle of [handleLeft, handleRight]) {
+            expect(handle).toHaveClass(`bg-muted-foreground/70`);
+            expect(handle).toHaveClass(`hover:bg-muted-foreground/90`);
+            // Reject any leakage of the foreground/* family that the
+            // single-family unification deliberately replaced.
+            for (const cls of handle.classList) {
+                expect(cls).not.toMatch(/^bg-foreground\//);
+                expect(cls).not.toMatch(/^hover:bg-foreground\//);
+            }
+        }
+    });
 });

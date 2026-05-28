@@ -30,11 +30,11 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
 const USAGE_SNIPPET = `import { useState, useCallback } from "react";
 import { addEdge, applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
-import { NodeEditor } from "@mows/react-components";
+import { NodeEditor } from "@my-own-web-services/react-components";
 
 const initialNodes = [
     {
@@ -77,7 +77,7 @@ const COMPOSITION_SNIPPET = `// TypedHandle declares a strict-equality port type
 // two TypedHandles are only allowed when their portTypes are equal.
 // Mixing a TypedHandle with a bare <Handle> is rejected.
 
-import { TypedHandle } from "@mows/react-components";
+import { TypedHandle } from "@my-own-web-services/react-components";
 import { Position } from "@xyflow/react";
 
 const MyCustomNode = ({ data }) => (

@@ -22,10 +22,29 @@ const NODE_IDS = {
 
 type TypedRFNode = RFNode<TypedNodeData, `typed`>;
 
+// Initial node-box hints. xyflow's `fitView` reads these before its
+// `ResizeObserver` has had a chance to measure the actual DOM box, and
+// when the editor lives behind a `React.lazy` boundary the observer
+// sometimes never fires — see `NodeMeasurementGuard` in
+// `lib/components/editor/nodeEditor/NodeEditorImpl.tsx`. Carrying these
+// declarative dimensions on each node is a strictly safer fallback.
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 120;
+
 const Example = () => {
     const [sliderValue, setSliderValue] = useState(7);
     const [textValue, setTextValue] = useState(`hello`);
-    const [edges, setEdges] = useState<Edge[]>([]);
+    const [edges, setEdges] = useState<Edge[]>([
+        {
+            // Namespaced id so an `onConnect`-produced edge can never
+            // collide with this initial wiring.
+            id: `initial-slider-doubler`,
+            source: NODE_IDS.slider,
+            sourceHandle: `out`,
+            target: NODE_IDS.doubler,
+            targetHandle: `in`
+        }
+    ]);
     const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({
         [NODE_IDS.slider]: { x: 0, y: 0 },
         [NODE_IDS.text]: { x: 0, y: 220 },
@@ -56,24 +75,14 @@ const Example = () => {
         outputValue: outputValue ?? null
     });
 
-    // Declare width/height on every node so React Flow can compute the
-    // initial viewport without waiting on ResizeObserver — measurement is
-    // unreliable when the editor lives behind a React.lazy boundary, and
-    // unmeasured nodes stay `visibility: hidden`.
-    const NODE_W = 220;
-    const NODE_H_SLIDER = 140;
-    const NODE_H_TEXT = 110;
-    const NODE_H_DOUBLER = 130;
-    const NODE_H_OUTPUT = 110;
-
     const nodes = useMemo<TypedRFNode[]>(
         () => [
             {
                 id: NODE_IDS.slider,
                 type: `typed`,
                 position: positions[NODE_IDS.slider]!,
-                width: NODE_W,
-                height: NODE_H_SLIDER,
+                width: NODE_WIDTH,
+                height: NODE_HEIGHT,
                 data: {
                     label: `Slider`,
                     outputs: [{ id: `out`, type: `number`, label: `value: number` }],
@@ -98,8 +107,8 @@ const Example = () => {
                 id: NODE_IDS.text,
                 type: `typed`,
                 position: positions[NODE_IDS.text]!,
-                width: NODE_W,
-                height: NODE_H_TEXT,
+                width: NODE_WIDTH,
+                height: NODE_HEIGHT,
                 data: {
                     label: `Text`,
                     outputs: [{ id: `out`, type: `string`, label: `text: string` }],
@@ -117,8 +126,8 @@ const Example = () => {
                 id: NODE_IDS.doubler,
                 type: `typed`,
                 position: positions[NODE_IDS.doubler]!,
-                width: NODE_W,
-                height: NODE_H_DOUBLER,
+                width: NODE_WIDTH,
+                height: NODE_HEIGHT,
                 data: {
                     label: `Doubler`,
                     inputs: [{ id: `in`, type: `number`, label: `in: number` }],
@@ -134,8 +143,8 @@ const Example = () => {
                 id: NODE_IDS.output,
                 type: `typed`,
                 position: positions[NODE_IDS.output]!,
-                width: NODE_W,
-                height: NODE_H_OUTPUT,
+                width: NODE_WIDTH,
+                height: NODE_HEIGHT,
                 data: {
                     label: `Output`,
                     inputs: [{ id: `in`, type: `number`, label: `value: number` }],

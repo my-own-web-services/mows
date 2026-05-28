@@ -969,7 +969,7 @@ const Timeline = React.forwardRef<HTMLDivElement, TimelineProps>(
                             (activeRange.from + activeRange.to) / 2
                         )}
                         onPointerDown={handleScrubberTrackClick}
-                        className={`relative h-full w-full cursor-pointer rounded-full bg-muted/30`}
+                        className={`relative h-full w-full cursor-pointer rounded-full bg-muted`}
                     >
                         {/* mini event markers — kept subtle so they don't
                              compete with the thumb visually */}
@@ -986,12 +986,17 @@ const Timeline = React.forwardRef<HTMLDivElement, TimelineProps>(
                             />
                         ) : null}
 
-                        {/* thumb */}
+                        {/* thumb — single token family across body + handles
+                             so light/dark themes stay coherent. Opacity
+                             ramps: track 100 (bg-muted) → thumb body 60→80
+                             → handles 70→90, giving the handles a small
+                             constant contrast lead over the body in both
+                             rest and hover states. */}
                         <div
                             data-slot={`thumb`}
                             role={`presentation`}
                             onPointerDown={handleScrubberThumbPointerDown}
-                            className={`absolute inset-y-0 flex cursor-grab items-stretch rounded-full bg-border transition-colors hover:bg-foreground/40 active:cursor-grabbing`}
+                            className={`absolute inset-y-0 flex cursor-grab items-stretch rounded-full bg-muted-foreground/60 transition-colors hover:bg-muted-foreground/80 active:cursor-grabbing`}
                             style={{ left: thumbLeft, width: thumbWidth }}
                         >
                             <div
@@ -1000,7 +1005,7 @@ const Timeline = React.forwardRef<HTMLDivElement, TimelineProps>(
                                 aria-orientation={`vertical`}
                                 aria-label={mergedLabels.leftHandle}
                                 onPointerDown={handleResizePointerDown(`left`)}
-                                className={`relative w-1.5 shrink-0 cursor-ew-resize rounded-l-full bg-foreground/20 transition-colors hover:bg-foreground/50`}
+                                className={`relative w-1.5 shrink-0 cursor-ew-resize rounded-l-full bg-muted-foreground/70 transition-colors hover:bg-muted-foreground/90`}
                             >
                                 {/* widen the hit zone past the visible rail */}
                                 <span
@@ -1015,7 +1020,7 @@ const Timeline = React.forwardRef<HTMLDivElement, TimelineProps>(
                                 aria-orientation={`vertical`}
                                 aria-label={mergedLabels.rightHandle}
                                 onPointerDown={handleResizePointerDown(`right`)}
-                                className={`relative w-1.5 shrink-0 cursor-ew-resize rounded-r-full bg-foreground/20 transition-colors hover:bg-foreground/50`}
+                                className={`relative w-1.5 shrink-0 cursor-ew-resize rounded-r-full bg-muted-foreground/70 transition-colors hover:bg-muted-foreground/90`}
                             >
                                 <span
                                     aria-hidden

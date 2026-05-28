@@ -112,6 +112,13 @@ export default class Map extends PureComponent<MapProps, MapState> {
     private appliedStyleId: string | null = null;
     private watchId: number | null = null;
     private userMarker: MapLibre.Marker | null = null;
+    // Bumped in componentWillUnmount so an in-flight initialise() still
+    // awaiting the lazy maplibre chunk knows to bail. React 18 StrictMode
+    // calls cDM → cWU → cDM on the SAME class instance in dev — without
+    // per-call tokening, the first cDM's Map would be created after its
+    // own cWU and leak beneath the second mount's Map. Symptom: compass
+    // / zoom controls act on an off-screen map.
+    private initToken = 0;
 
     state: MapState = {
         status: `loading`,
@@ -142,6 +149,7 @@ export default class Map extends PureComponent<MapProps, MapState> {
     };
 
     componentWillUnmount = () => {
+        this.initToken++;
         this.stopTracking();
         if (this.userMarker) {
             this.userMarker.remove();
@@ -178,6 +186,8 @@ export default class Map extends PureComponent<MapProps, MapState> {
             return;
         }
 
+        const myToken = this.initToken;
+
         let mapboxNs: MapboxNamespace;
         try {
             mapboxNs = await loadMapbox();
@@ -190,8 +200,11 @@ export default class Map extends PureComponent<MapProps, MapState> {
             return;
         }
 
-        // Component may have unmounted while the chunk was downloading.
-        if (!this.containerRef.current) return;
+        // Bail if componentWillUnmount ran (and bumped initToken) while
+        // the maplibre chunk was loading — checking the ref alone is not
+        // enough because React 18 StrictMode reuses the same class
+        // instance (and its ref) across the dev-only double-mount cycle.
+        if (myToken !== this.initToken || !this.containerRef.current) return;
 
         this.mapboxNs = mapboxNs;
 

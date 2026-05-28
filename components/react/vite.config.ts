@@ -53,7 +53,17 @@ const libraryConfig: UserConfig = {
             entry: Object.fromEntries(
                 glob
                     .sync(`lib/**/*.{ts,tsx}`, {
-                        ignore: [`lib/**/*.d.ts`, `lib/**/*.test.{ts,tsx}`]
+                        // Exclude type-declarations, tests, and any
+                        // colocated docs / fixtures that get added under
+                        // `lib/` in the future. Anything bundled into
+                        // `dist/` becomes part of the published surface.
+                        ignore: [
+                            `lib/**/*.d.ts`,
+                            `lib/**/*.test.{ts,tsx}`,
+                            `lib/**/*.md`,
+                            `lib/**/__fixtures__/**`,
+                            `lib/**/fixtures/**`
+                        ]
                     })
                     .map((file) => [
                         relative(`lib`, file.slice(0, file.length - extname(file).length)),

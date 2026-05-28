@@ -1,0 +1,2479 @@
+diff --git a/components/react/lib/components/editor/nodeEditor/NodeEditorImpl.tsx b/components/react/lib/components/editor/nodeEditor/NodeEditorImpl.tsx
+index 2757d935..ffa266b1 100644
+--- a/components/react/lib/components/editor/nodeEditor/NodeEditorImpl.tsx
++++ b/components/react/lib/components/editor/nodeEditor/NodeEditorImpl.tsx
+@@ -5,6 +5,8 @@ import {
+     MiniMap,
+     ReactFlow,
+     ReactFlowProvider,
++    useStore,
++    useUpdateNodeInternals,
+     type NodeProps,
+     type ReactFlowInstance
+ } from "@xyflow/react";
+@@ -20,6 +22,57 @@ const DEFAULT_NODE_TYPES: Record<string, React.ComponentType<NodeProps>> = {
+     typed: TypedNode as React.ComponentType<NodeProps>
+ };
+ 
++/**
++ * Force xyflow to (re)measure every node after mount.
++ *
++ * When `<NodeEditor>` lives behind a `React.lazy` boundary, xyflow's
++ * internal `ResizeObserver` sometimes never fires its initial callback,
++ * so `nodesInitialized` stays `false`, `measured.{width,height}` is
++ * empty, handle bounds are uncomputed, and the edge layer renders
++ * nothing because it cannot resolve edge endpoint geometry.
++ *
++ * Reading `offsetWidth`/`offsetHeight` directly off the rendered node
++ * DOM and writing it into the store via `setNodes` populates `measured`
++ * unconditionally. `updateNodeInternals` is then called to refresh the
++ * handle-bounds cache from the same DOM. Both run only while
++ * `nodesInitialized === false`.
++ */
++const NodeMeasurementGuard: React.FC = () => {
++    const updateNodeInternals = useUpdateNodeInternals();
++    const setNodes = useStore((s) => s.setNodes);
++    const getNodes = useStore((s) => s.nodes);
++    const nodesInitialized = useStore((s) => s.nodesInitialized);
++    const domNode = useStore((s) => s.domNode);
++
++    React.useEffect(() => {
++        if (nodesInitialized || !domNode || getNodes.length === 0) return;
++        const ids: string[] = [];
++        const measurements = new Map<string, { width: number; height: number }>();
++        for (const n of getNodes) {
++            const el = domNode.querySelector(
++                `.react-flow__node[data-id="${CSS.escape(n.id)}"]`
++            ) as HTMLElement | null;
++            if (!el) continue;
++            const w = el.offsetWidth;
++            const h = el.offsetHeight;
++            if (w === 0 || h === 0) continue;
++            measurements.set(n.id, { width: w, height: h });
++            ids.push(n.id);
++        }
++        if (ids.length === 0) return;
++        setNodes(
++            getNodes.map((n) => {
++                const m = measurements.get(n.id);
++                if (!m) return n;
++                return { ...n, measured: m, width: m.width, height: m.height };
++            })
++        );
++        updateNodeInternals(ids);
++    }, [nodesInitialized, getNodes, domNode, setNodes, updateNodeInternals]);
++
++    return null;
++};
++
+ const InnerNodeEditor: React.FC<NodeEditorProps> = ({
+     nodes,
+     edges,
+@@ -57,10 +110,29 @@ const InnerNodeEditor: React.FC<NodeEditorProps> = ({
+         [onInit]
+     );
+ 
++    // Override xyflow's default stroke colours — its dark-mode `#3e3e3e` is
++    // near-invisible against the canvas background. Map everything to the
++    // lib's semantic foreground tokens so edges + the in-flight connection
++    // line stay legible in both themes. The overrides must land on the
++    // `.react-flow` element itself because xyflow's own dark-mode rules
++    // (`.react-flow.dark`) outrank a parent's inline style.
++    const rfStyle: React.CSSProperties = {
++        ["--xy-edge-stroke-default" as never]: `currentColor`,
++        ["--xy-edge-stroke-width-default" as never]: `1.5`,
++        ["--xy-edge-stroke-selected-default" as never]: `var(--primary)`,
++        ["--xy-connectionline-stroke-default" as never]: `currentColor`,
++        ["--xy-connectionline-stroke-width-default" as never]: `2`,
++        ["--xy-handle-background-color-default" as never]: `var(--primary)`,
++        ["--xy-handle-border-color-default" as never]: `var(--background)`
++    };
++
+     return (
+         <PortRegistryContext.Provider value={registryRef}>
+             <div
+-                className={cn(`relative h-full min-h-[400px] w-full`, className)}
++                className={cn(
++                    `text-foreground/70 relative h-full min-h-[400px] w-full`,
++                    className
++                )}
+                 style={style}
+             >
+                 <ReactFlow
+@@ -75,10 +147,12 @@ const InnerNodeEditor: React.FC<NodeEditorProps> = ({
+                     onInit={handleInit}
+                     proOptions={proOptions}
+                     colorMode={`system`}
++                    style={rfStyle}
+                 >
+                     {showBackground ? <Background variant={backgroundVariant} /> : null}
+                     {showControls ? <Controls /> : null}
+                     {showMiniMap ? <MiniMap pannable zoomable /> : null}
++                    <NodeMeasurementGuard />
+                 </ReactFlow>
+             </div>
+         </PortRegistryContext.Provider>
+diff --git a/components/react/lib/components/files/audioPlayer/AudioPlayer.test.tsx b/components/react/lib/components/files/audioPlayer/AudioPlayer.test.tsx
+index 6c1c9b3b..ad085cb3 100644
+--- a/components/react/lib/components/files/audioPlayer/AudioPlayer.test.tsx
++++ b/components/react/lib/components/files/audioPlayer/AudioPlayer.test.tsx
+@@ -305,4 +305,56 @@ describe(`AudioPlayer`, () => {
+         // End jumps to max — should map to ratio 1 → duration 200.
+         expect(audio.currentTime).toBeCloseTo(200, 1);
+     });
++
++    it(`forwards an imperative handle that can seek the audio element`, () => {
++        // External callers (e.g. the Lyrics demo) need to drive the
++        // audio element without touching it directly. The ref exposes
++        // a `seekTo` that mirrors the internal seek path.
++        const handleRef = { current: null as null | import("./AudioPlayer").AudioPlayerHandle };
++        const { container } = render(
++            <AudioPlayer
++                ref={(h) => {
++                    handleRef.current = h;
++                }}
++                src={TEST_SRC}
++            />
++        );
++        const audio = container.querySelector(`audio`);
++        if (!audio) throw new Error(`audio element missing`);
++        fakeAudioWithDuration(audio, 240);
++
++        expect(handleRef.current).not.toBeNull();
++        act(() => {
++            handleRef.current!.seekTo(96);
++        });
++        expect(audio.currentTime).toBeCloseTo(96, 1);
++        // Handle also exposes the underlying element for advanced
++        // consumers that need to read currentTime/duration directly.
++        expect(handleRef.current!.getElement()).toBe(audio);
++        expect(handleRef.current!.getDuration()).toBeCloseTo(240, 1);
++    });
++
++    it(`imperative seek clamps within [0, duration]`, () => {
++        const handleRef = { current: null as null | import("./AudioPlayer").AudioPlayerHandle };
++        const { container } = render(
++            <AudioPlayer
++                ref={(h) => {
++                    handleRef.current = h;
++                }}
++                src={TEST_SRC}
++            />
++        );
++        const audio = container.querySelector(`audio`);
++        if (!audio) throw new Error(`audio element missing`);
++        fakeAudioWithDuration(audio, 60);
++
++        act(() => {
++            handleRef.current!.seekTo(-100);
++        });
++        expect(audio.currentTime).toBe(0);
++        act(() => {
++            handleRef.current!.seekTo(1e6);
++        });
++        expect(audio.currentTime).toBeCloseTo(60, 1);
++    });
+ });
+diff --git a/components/react/lib/components/files/audioPlayer/AudioPlayer.tsx b/components/react/lib/components/files/audioPlayer/AudioPlayer.tsx
+index c422e4af..319fcfe7 100644
+--- a/components/react/lib/components/files/audioPlayer/AudioPlayer.tsx
++++ b/components/react/lib/components/files/audioPlayer/AudioPlayer.tsx
+@@ -10,9 +10,11 @@ import {
+     VolumeX,
+     FastForward
+ } from "lucide-react";
++import * as React from "react";
+ import {
+     useCallback,
+     useEffect,
++    useImperativeHandle,
+     useMemo,
+     useRef,
+     useState,
+@@ -42,6 +44,26 @@ const SEEK_STEP_SECONDS = 5;
+ const VOLUME_STEP = 0.1;
+ const VOLUME_SLIDER_MAX = 1;
+ 
++/**
++ * Imperative handle exposed via `forwardRef`. Wire a ref to an
++ * `<AudioPlayer>` to drive playback from outside the component — for
++ * instance, to seek the audio when a synced lyric line is clicked.
++ *
++ * Methods are no-ops when the underlying `<audio>` element hasn't
++ * mounted yet, so callers can safely fire them without guarding.
++ */
++export interface AudioPlayerHandle {
++    /** Move playback to `seconds`. Clamped to `[0, duration]`. */
++    readonly seekTo: (seconds: number) => void;
++    /** Start playback. Returns the underlying play() promise so callers
++     * can observe browser autoplay rejection. */
++    readonly play: () => Promise<void>;
++    readonly pause: () => void;
++    readonly getCurrentTime: () => number;
++    readonly getDuration: () => number;
++    readonly getElement: () => HTMLAudioElement | null;
++}
++
+ export interface AudioPlayerProps {
+     /** Resolved audio URL. Consumers are responsible for any token / signed
+      * URL resolution before passing this in. */
+@@ -111,31 +133,64 @@ const INITIAL_STATUS: PlayerStatus = {
+     error: null
+ };
+ 
+-export const AudioPlayer = ({
+-    src,
+-    title,
+-    subtitle,
+-    artwork,
+-    peaks,
+-    variant = `bar`,
+-    className,
+-    style,
+-    autoPlay = false,
+-    loop = false,
+-    crossOrigin,
+-    preload = `metadata`,
+-    downloadable = true,
+-    downloadName,
+-    strings,
+-    trailing,
+-    onPlay,
+-    onPause,
+-    onEnded,
+-    onTimeUpdate,
+-    onError
+-}: AudioPlayerProps) => {
++export const AudioPlayer = React.forwardRef<AudioPlayerHandle, AudioPlayerProps>(
++    (
++        {
++            src,
++            title,
++            subtitle,
++            artwork,
++            peaks,
++            variant = `bar`,
++            className,
++            style,
++            autoPlay = false,
++            loop = false,
++            crossOrigin,
++            preload = `metadata`,
++            downloadable = true,
++            downloadName,
++            strings,
++            trailing,
++            onPlay,
++            onPause,
++            onEnded,
++            onTimeUpdate,
++            onError
++        },
++        ref
++    ) => {
+     const t = { ...DEFAULT_AUDIO_PLAYER_STRINGS, ...strings };
+     const audioRef = useRef<HTMLAudioElement>(null);
++
++    // Expose a stable imperative handle. Each method guards on the
++    // audio element being mounted so consumers don't have to.
++    useImperativeHandle(
++        ref,
++        () => ({
++            seekTo: (seconds: number): void => {
++                const el = audioRef.current;
++                if (!el || !Number.isFinite(seconds)) return;
++                const target = Math.max(0, Math.min(el.duration || seconds, seconds));
++                el.currentTime = target;
++                // Mirror the internal `seekTo` side-effect so the visible
++                // play-head doesn't lag a frame behind the imperative call.
++                setStatus((s) => ({ ...s, currentTime: target }));
++            },
++            play: async (): Promise<void> => {
++                const el = audioRef.current;
++                if (!el) return;
++                await el.play();
++            },
++            pause: (): void => {
++                audioRef.current?.pause();
++            },
++            getCurrentTime: (): number => audioRef.current?.currentTime ?? 0,
++            getDuration: (): number => audioRef.current?.duration ?? 0,
++            getElement: (): HTMLAudioElement | null => audioRef.current
++        }),
++        []
++    );
+     const [status, setStatus] = useState<PlayerStatus>(INITIAL_STATUS);
+     // While the user is mid-drag on the waveform, hold the seek value
+     // locally and only commit to the audio element on release. Writing
+@@ -729,6 +784,8 @@ export const AudioPlayer = ({
+             </div>
+         </TooltipProvider>
+     );
+-};
++});
++
++AudioPlayer.displayName = `AudioPlayer`;
+ 
+ export default AudioPlayer;
+diff --git a/components/react/lib/components/files/lyrics/Lyrics.test.tsx b/components/react/lib/components/files/lyrics/Lyrics.test.tsx
+index 747499dc..e7b065d2 100644
+--- a/components/react/lib/components/files/lyrics/Lyrics.test.tsx
++++ b/components/react/lib/components/files/lyrics/Lyrics.test.tsx
+@@ -251,4 +251,149 @@ describe(`<Lyrics>`, () => {
+         const active = lines.find((l) => l.getAttribute(`data-active`) === `true`);
+         expect(active).toHaveTextContent(`It's easy if you try`);
+     });
++
++    // Regression: in the compact variant, the active line was bumped to
++    // `text-base sm:text-lg` while inactive lines stayed at `text-sm`,
++    // so highlighting a line visibly resized its row and shoved the
++    // following lines down. Pin the font-size classes so active +
++    // inactive share the same vertical metric.
++    it(`keeps font-size stable between active and inactive lines (compact)`, () => {
++        render(<Lyrics source={SAMPLE_LRC} currentTime={6} variant={`compact`} />);
++        const lines = screen.getAllByTestId(`lyrics-line`);
++        const active = lines.find((l) => l.getAttribute(`data-active`) === `true`)!;
++        const inactive = lines.find((l) => l.getAttribute(`data-active`) !== `true`)!;
++        const sizeClasses = (el: Element): string[] =>
++            Array.from(el.classList).filter((c) => /^(sm:)?text-(xs|sm|base|lg|xl|2xl)$/.test(c));
++        expect(sizeClasses(active).sort()).toEqual(sizeClasses(inactive).sort());
++    });
++
++    it(`keeps font-size stable between active and inactive lines (scrolling)`, () => {
++        render(<Lyrics source={SAMPLE_LRC} currentTime={6} />);
++        const lines = screen.getAllByTestId(`lyrics-line`);
++        const active = lines.find((l) => l.getAttribute(`data-active`) === `true`)!;
++        const inactive = lines.find((l) => l.getAttribute(`data-active`) !== `true`)!;
++        const sizeClasses = (el: Element): string[] =>
++            Array.from(el.classList).filter((c) => /^(sm:)?text-(xs|sm|base|lg|xl|2xl)$/.test(c));
++        expect(sizeClasses(active).sort()).toEqual(sizeClasses(inactive).sort());
++    });
++
++    // The size-stability guarantee is "active never has a different
++    // *layout* signature than inactive". jsdom doesn't compute layout so
++    // we approximate by asserting that the only class deltas between an
++    // active and an inactive line are font-weight / colour / opacity —
++    // everything else (sizing, padding, leading, display) must be
++    // identical so the row can't grow or wrap differently when the
++    // playhead crosses it.
++    const ALLOWED_ACTIVE_PREFIXES = [
++        `font-`,
++        `text-foreground`,
++        `text-muted-foreground`,
++        `text-primary`,
++        `text-accent-foreground`,
++        `opacity-`,
++        `hover:`,
++        `focus-visible:`,
++        `cursor-`
++    ];
++    const isAllowedActiveDelta = (cls: string): boolean =>
++        ALLOWED_ACTIVE_PREFIXES.some((p) => cls.startsWith(p));
++
++    it.each([[`scrolling`], [`compact`]] as const)(
++        `active line only differs from inactive in weight/colour/opacity (%s)`,
++        (variant) => {
++            render(<Lyrics source={SAMPLE_LRC} currentTime={6} variant={variant} />);
++            const lines = screen.getAllByTestId(`lyrics-line`);
++            const active = lines.find((l) => l.getAttribute(`data-active`) === `true`)!;
++            const inactive = lines.find((l) => l.getAttribute(`data-active`) !== `true`)!;
++            const activeSet = new Set(active.classList);
++            const inactiveSet = new Set(inactive.classList);
++            const onlyOnActive = [...activeSet].filter((c) => !inactiveSet.has(c));
++            const onlyOnInactive = [...inactiveSet].filter((c) => !activeSet.has(c));
++            for (const cls of [...onlyOnActive, ...onlyOnInactive]) {
++                expect(
++                    isAllowedActiveDelta(cls),
++                    `unexpected class delta between active and inactive: ${cls}`
++                ).toBe(true);
++            }
++        }
++    );
++
++    // Long content must wrap inside the existing row — not extend the
++    // row horizontally past the container. We can't measure pixels in
++    // jsdom but we can verify the structural primitives that allow
++    // wrapping survive: the row is a block, the karaoke inline-flex
++    // container declares `flex-wrap`, and nothing on the row pins a
++    // fixed width or whitespace-nowrap.
++    it(`renders a plain-text line as a block-level <li> so the browser can wrap it`, () => {
++        const longLrc = `[00:00.00]${`hold steady, breathe slow, the river keeps going onward and onward `.repeat(8)}`;
++        render(<Lyrics source={longLrc} currentTime={0} />);
++        const line = screen.getAllByTestId(`lyrics-line`)[0];
++        // <li> defaults to block display; we never set whitespace-nowrap
++        // or a fixed inline width that would prevent wrap.
++        expect(line.tagName).toBe(`LI`);
++        for (const cls of line.classList) {
++            expect(cls).not.toMatch(/^whitespace-nowrap$/);
++            expect(cls).not.toMatch(/^w-\[/);
++            expect(cls).not.toMatch(/^min-w-\[/);
++        }
++    });
++
++    it(`wraps very long karaoke content via flex-wrap on the inline word container`, () => {
++        // Long enhanced LRC line — many word markers so the line is much
++        // wider than any reasonable container. The wrap primitive must
++        // be present so the layout never forces horizontal overflow.
++        const markers = Array.from({ length: 30 }, (_, i) => {
++            const time = (i * 0.4).toFixed(2);
++            const mm = Math.floor(Number(time) / 60).toString().padStart(2, `0`);
++            const ss = (Number(time) % 60).toFixed(2).padStart(5, `0`);
++            return `<${mm}:${ss}>word${i}`;
++        }).join(` `);
++        const longEnhanced = `[00:00.00]${markers}`;
++        render(<Lyrics source={longEnhanced} currentTime={0} />);
++        const words = screen.getAllByTestId(`lyrics-word`);
++        expect(words.length).toBeGreaterThanOrEqual(30);
++        const wordContainer = words[0].parentElement!;
++        const classes = Array.from(wordContainer.classList);
++        expect(classes).toContain(`flex-wrap`);
++        // No whitespace-nowrap anywhere up the chain — otherwise the
++        // karaoke row would refuse to wrap.
++        let walker: HTMLElement | null = wordContainer;
++        while (walker && walker.getAttribute(`data-testid`) !== `lyrics`) {
++            for (const cls of walker.classList) {
++                expect(cls).not.toMatch(/^whitespace-nowrap$/);
++            }
++            walker = walker.parentElement;
++        }
++    });
++
++    it(`renders consistent typography regardless of the line's text length`, () => {
++        // Two lines: one trivial, one extreme. Both must end up with the
++        // same set of size + leading + display classes so neither row
++        // can grow disproportionately.
++        const longText = `the river keeps going, onward, onward, `.repeat(20);
++        const source = `[00:00.00]a\n[00:10.00]${longText}`;
++        render(<Lyrics source={source} currentTime={0} />);
++        const [shortLine, longLine] = screen.getAllByTestId(`lyrics-line`);
++        const structural = (el: Element): string[] =>
++            Array.from(el.classList)
++                .filter((c) =>
++                    /^(sm:)?text-(xs|sm|base|lg|xl|2xl)$|^leading-|^px-|^py-|^rounded/.test(c)
++                )
++                .sort();
++        expect(structural(shortLine)).toEqual(structural(longLine));
++    });
++
++    it(`does not impose a fixed width on the scroll viewport`, () => {
++        // Pin the scrolling container's overflow direction so a row that
++        // happens to be wider than the viewport still wraps rather than
++        // forcing horizontal overflow.
++        render(<Lyrics source={SAMPLE_LRC} currentTime={0} />);
++        const scroll = screen.getByTestId(`lyrics-scroll`);
++        const classes = Array.from(scroll.classList);
++        // overflow-y-auto is fine; the row should never request
++        // horizontal scroll, so we explicitly forbid overflow-x-*.
++        for (const cls of classes) {
++            expect(cls).not.toMatch(/^overflow-x-/);
++        }
++    });
+ });
+diff --git a/components/react/lib/components/files/lyrics/Lyrics.tsx b/components/react/lib/components/files/lyrics/Lyrics.tsx
+index 0d538e7a..df035e68 100644
+--- a/components/react/lib/components/files/lyrics/Lyrics.tsx
++++ b/components/react/lib/components/files/lyrics/Lyrics.tsx
+@@ -199,11 +199,16 @@ export const Lyrics = ({
+                                 line.text || ` `
+                             );
+ 
++                        // Keep typography stable across active/inactive
++                        // states — only weight + colour + opacity may
++                        // differ. Changing the font-size on the active
++                        // line resizes its row and visibly pushes the
++                        // surrounding lines, which makes the layout jump
++                        // every time the playhead advances or a line is
++                        // clicked.
+                         const lineClasses = cn(
+-                            `rounded-sm px-2 py-1 transition-all duration-200`,
+-                            isActive
+-                                ? `text-base font-semibold text-foreground sm:text-lg`
+-                                : `text-sm`,
++                            `rounded-sm px-2 py-1 text-sm leading-snug transition-colors duration-200 sm:text-base`,
++                            isActive && `font-semibold text-foreground`,
+                             !isActive && isScrolling && (isPast ? `opacity-40` : `opacity-60`),
+                             !isActive && !isScrolling && `text-muted-foreground`,
+                             isInteractive && hasAnyTimings && `cursor-pointer hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none`
+diff --git a/components/react/lib/components/input/timeline/Timeline.tsx b/components/react/lib/components/input/timeline/Timeline.tsx
+index cc127a97..16810cd3 100644
+--- a/components/react/lib/components/input/timeline/Timeline.tsx
++++ b/components/react/lib/components/input/timeline/Timeline.tsx
+@@ -969,7 +969,7 @@ const Timeline = React.forwardRef<HTMLDivElement, TimelineProps>(
+                             (activeRange.from + activeRange.to) / 2
+                         )}
+                         onPointerDown={handleScrubberTrackClick}
+-                        className={`relative h-full w-full cursor-pointer rounded-full bg-muted/30`}
++                        className={`relative h-full w-full cursor-pointer rounded-full bg-muted`}
+                     >
+                         {/* mini event markers — kept subtle so they don't
+                              compete with the thumb visually */}
+@@ -991,7 +991,7 @@ const Timeline = React.forwardRef<HTMLDivElement, TimelineProps>(
+                             data-slot={`thumb`}
+                             role={`presentation`}
+                             onPointerDown={handleScrubberThumbPointerDown}
+-                            className={`absolute inset-y-0 flex cursor-grab items-stretch rounded-full bg-border transition-colors hover:bg-foreground/40 active:cursor-grabbing`}
++                            className={`absolute inset-y-0 flex cursor-grab items-stretch rounded-full bg-muted-foreground/60 transition-colors hover:bg-muted-foreground/80 active:cursor-grabbing`}
+                             style={{ left: thumbLeft, width: thumbWidth }}
+                         >
+                             <div
+@@ -1000,7 +1000,7 @@ const Timeline = React.forwardRef<HTMLDivElement, TimelineProps>(
+                                 aria-orientation={`vertical`}
+                                 aria-label={mergedLabels.leftHandle}
+                                 onPointerDown={handleResizePointerDown(`left`)}
+-                                className={`relative w-1.5 shrink-0 cursor-ew-resize rounded-l-full bg-foreground/20 transition-colors hover:bg-foreground/50`}
++                                className={`relative w-1.5 shrink-0 cursor-ew-resize rounded-l-full bg-foreground/40 transition-colors hover:bg-foreground/70`}
+                             >
+                                 {/* widen the hit zone past the visible rail */}
+                                 <span
+@@ -1015,7 +1015,7 @@ const Timeline = React.forwardRef<HTMLDivElement, TimelineProps>(
+                                 aria-orientation={`vertical`}
+                                 aria-label={mergedLabels.rightHandle}
+                                 onPointerDown={handleResizePointerDown(`right`)}
+-                                className={`relative w-1.5 shrink-0 cursor-ew-resize rounded-r-full bg-foreground/20 transition-colors hover:bg-foreground/50`}
++                                className={`relative w-1.5 shrink-0 cursor-ew-resize rounded-r-full bg-foreground/40 transition-colors hover:bg-foreground/70`}
+                             >
+                                 <span
+                                     aria-hidden
+diff --git a/components/react/lib/main.ts b/components/react/lib/main.ts
+index a6f12241..0859bc6c 100644
+--- a/components/react/lib/main.ts
++++ b/components/react/lib/main.ts
+@@ -112,6 +112,7 @@ export type {
+ 
+ export {
+     default as AudioPlayer,
++    type AudioPlayerHandle,
+     type AudioPlayerProps
+ } from "./components/files/audioPlayer/AudioPlayer";
+ export {
+diff --git a/components/react/src/App.tsx b/components/react/src/App.tsx
+index 7c4e9dd9..a5f203c3 100644
+--- a/components/react/src/App.tsx
++++ b/components/react/src/App.tsx
+@@ -451,6 +451,7 @@ export default class App extends PureComponent<AppProps, AppState> {
+                                             const isActive =
+                                                 isGuide &&
+                                                 this.state.selected.id === guide.id;
++                                            const GuideIcon = guide.icon;
+                                             return (
+                                                 <SidebarMenuItem key={guide.id}>
+                                                     <SidebarMenuButton
+@@ -473,7 +474,7 @@ export default class App extends PureComponent<AppProps, AppState> {
+                                                                 this.select(sel);
+                                                             }}
+                                                         >
+-                                                            <BookOpen
++                                                            <GuideIcon
+                                                                 className={`h-3.5 w-3.5`}
+                                                                 aria-hidden
+                                                             />
+@@ -608,6 +609,9 @@ export default class App extends PureComponent<AppProps, AppState> {
+                                                                     aria-label={label}
+                                                                     title={label}
+                                                                     className={cn(
++                                                                        // Scale the star up so it visually matches the 36px heading,
++                                                                        // and enlarge the click target to fit.
++                                                                        `h-10 w-10 [&_svg]:size-7`,
+                                                                         isFav
+                                                                             ? `text-primary hover:text-primary/80`
+                                                                             : `text-muted-foreground hover:text-foreground`
+@@ -615,7 +619,6 @@ export default class App extends PureComponent<AppProps, AppState> {
+                                                                 >
+                                                                     <Star
+                                                                         className={cn(
+-                                                                            `h-6 w-6`,
+                                                                             isFav && `fill-current`
+                                                                         )}
+                                                                         aria-hidden
+diff --git a/components/react/src/examples/lyrics/Synced.tsx b/components/react/src/examples/lyrics/Synced.tsx
+index 8ec4aa39..60cadd46 100644
+--- a/components/react/src/examples/lyrics/Synced.tsx
++++ b/components/react/src/examples/lyrics/Synced.tsx
+@@ -1,88 +1,136 @@
+-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+-import { Pause, Play } from "lucide-react";
++import { useCallback, useRef, useState } from "react";
++import AudioPlayer, {
++    type AudioPlayerHandle
++} from "../../../lib/components/files/audioPlayer/AudioPlayer";
+ import Lyrics from "../../../lib/components/files/lyrics/Lyrics";
+-import { Button } from "../../../lib/components/ui/button";
+-import { MowsContext } from "../../../lib/lib/mowsContext/MowsContext";
+ import { useExampleState } from "../harness/useExampleState";
+ import type { ExampleModule } from "../harness/types";
+ 
+-const SAMPLE_LRC = `[ti:Travel Light]
+-[ar:MOWS Demo Choir]
+-[00:00.00]We packed the morning into a single bag
+-[00:04.20]Counted every footstep across the bridge
+-[00:08.80]Roads we'd never seen sang us their name
+-[00:13.30]A wind picked up and held us in the light
+-[00:18.00]Hold steady, breathe slow, the river keeps going
+-[00:22.40]Hold steady, breathe slow, the river keeps going
+-[00:27.10]We'll find a quiet place by morning
+-[00:31.80]Where the world remembers our name`;
++// Audio: Brad Sucks — "Bad Sign" (track 4 of "Out of It", 3:52).
++//   License: CC-BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0/
++//   Source:  https://archive.org/details/jamendo-031187 (Jamendo album
++//   #31187, mirrored on the Internet Archive). Hotlinked MP3 supports
++//   range requests with `access-control-allow-origin: *`.
++//
++// LRC: community-authored synced lyrics from LRCLIB.net (CC0 lyric
++//   metadata), keyed to this exact 232-second recording. Verified
++//   matching duration between the LRC source (232.0s) and the
++//   archive.org MP3 (232.2s). Lyrics text is Brad Sucks' own work,
++//   covered by the same CC-BY-SA 3.0 license as the recording, so
++//   attribution propagates to any consumer of this demo.
++const BAD_SIGN_MP3 = `https://archive.org/download/jamendo-031187/04.mp3`;
+ 
+-const AUDIO_SRC = `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3`;
++const BAD_SIGN_LRC = `[ti:Bad Sign]
++[ar:Brad Sucks]
++[al:Out of It · CC-BY-SA 3.0]
++[length:03:52]
++[00:17.64]I was laying on the floor when you were gone
++[00:22.45]Like it was something i could die from
++[00:25.61]Now my head aches and your friends all think i'm dumb
++[00:30.15]You said it's just a bit of bad blood
++[00:33.99]I don't feel great but it doesn't bother me
++[00:38.73]Because i don't have the energy
++[00:42.76]And the x-ray doesn't tell me anything
++[00:47.26]Or show me what the hell you see in me
++[00:52.40]All my time has turned to days
++[00:56.62]That i will waste till my dying day
++[01:00.66]And all my bones have realigned
++[01:06.08]And now i guess it was a bad sign
++[01:09.76]I was praying to the lord for some fun
++[01:31.77]But i guess he didn't have some
++[01:36.00]And betraying everything that i'd become
++[01:39.28]Just to prove it wasn't true love
++[01:43.24]If i'm too late will you come and hurry me
++[01:48.81]Like a kid among the dying leaves
++[01:54.27]If my heart breaks will you drug and carry me
++[01:57.45]Where we can talk about our chemistry
++[02:02.22]All my time has turned to days
++[02:06.51]That i will waste till my dying day
++[02:09.96]And all my bones have realigned
++[02:15.31]And now i guess it was a bad sign
++[02:20.17]And now i guess it was a bad sign
++[02:24.11]All my time has turned to days
++[03:03.46]That i will waste till my dying day
++[03:06.99]And when i tried i was ashamed
++[03:12.10]And said i don't believe in saving face
++[03:16.08]And all my clothes are still inside
++[03:21.30]And broken up into little piles
++[03:30.23]And all my bones have realigned
++[03:32.12]And now i guess it was a bad sign
++[03:34.51]Now i guess it was a bad sign
++[03:39.09]And now i guess it was a bad sign`;
+ 
+ const Example = () => {
+-    const mows = useContext(MowsContext);
+-    const t = mows?.t.example.examples.lyrics.syncedDemo;
+-    const audioRef = useRef<HTMLAudioElement>(null);
++    const playerRef = useRef<AudioPlayerHandle>(null);
+     const [time, setTime] = useState<number>(0);
+-    const [playing, setPlaying] = useState<boolean>(false);
+-    useExampleState({ playing, currentTime: time });
++    useExampleState({ currentTime: time });
+ 
+-    useEffect(() => {
+-        const el = audioRef.current;
+-        if (!el) return;
+-        const onTime = (): void => setTime(el.currentTime);
+-        const onPlay = (): void => setPlaying(true);
+-        const onPause = (): void => setPlaying(false);
+-        el.addEventListener(`timeupdate`, onTime);
+-        el.addEventListener(`play`, onPlay);
+-        el.addEventListener(`pause`, onPause);
+-        return () => {
+-            el.removeEventListener(`timeupdate`, onTime);
+-            el.removeEventListener(`play`, onPlay);
+-            el.removeEventListener(`pause`, onPause);
+-        };
+-    }, []);
+-
+-    const togglePlay = useCallback((): void => {
+-        const el = audioRef.current;
+-        if (!el) return;
+-        if (el.paused) void el.play().catch(() => undefined);
+-        else el.pause();
++    // AudioPlayer fires onTimeUpdate while the audio plays — pipe
++    // those ticks into the lyrics' `currentTime` so the active line
++    // tracks the playhead.
++    const handleTimeUpdate = useCallback((currentTime: number): void => {
++        setTime(currentTime);
+     }, []);
+ 
+     const handleSeek = useCallback((seconds: number): void => {
+-        const el = audioRef.current;
+-        if (!el) return;
+-        el.currentTime = seconds;
++        // Drive the audio via the imperative ref. The optimistic
++        // local update makes the highlight jump on click instead of
++        // waiting for the next timeupdate.
++        playerRef.current?.seekTo(seconds);
+         setTime(seconds);
+     }, []);
+ 
++    // Attribution links rendered into the AudioPlayer's `trailing`
++    // slot. The library's CC-BY-SA 3.0 license requires audible /
++    // visible credit to the original artist + the license itself; the
++    // LRC source on LRCLIB is also credited here for completeness.
++    const credits = (
++        <p className={`text-xs text-muted-foreground`}>
++            Audio:{` `}
++            <a
++                href={`https://archive.org/details/jamendo-031187`}
++                target={`_blank`}
++                rel={`noreferrer`}
++                className={`underline underline-offset-2 hover:text-foreground`}
++            >
++                Brad Sucks — "Bad Sign" on archive.org
++            </a>
++            {` `}·{` `}
++            <a
++                href={`https://creativecommons.org/licenses/by-sa/3.0/`}
++                target={`_blank`}
++                rel={`noreferrer license`}
++                className={`underline underline-offset-2 hover:text-foreground`}
++            >
++                CC-BY-SA 3.0
++            </a>
++            {` `}·{` `}LRC sync from{` `}
++            <a
++                href={`https://lrclib.net/api/get/1562006`}
++                target={`_blank`}
++                rel={`noreferrer`}
++                className={`underline underline-offset-2 hover:text-foreground`}
++            >
++                LRCLIB
++            </a>
++        </p>
++    );
++
+     return (
+-        <div className={`flex w-full max-w-xl flex-col gap-3`}>
+-            <div className={`flex items-center gap-3`}>
+-                <Button
+-                    type={`button`}
+-                    onClick={togglePlay}
+-                    size={`icon`}
+-                    variant={`default`}
+-                    aria-label={t?.toggleAriaLabel ?? `Toggle playback`}
+-                    className={`rounded-full`}
+-                >
+-                    {playing ? <Pause /> : <Play className={`translate-x-[1px]`} />}
+-                </Button>
+-                <p className={`text-sm text-muted-foreground`}>
+-                    {t?.instructions ??
+-                        `Press play and watch the active line follow the playhead. Click any line to seek the audio back.`}
+-                </p>
+-            </div>
+-            <Lyrics source={SAMPLE_LRC} currentTime={time} onSeek={handleSeek} />
+-            <audio
+-                ref={audioRef}
+-                src={AUDIO_SRC}
++        <div className={`flex w-full max-w-2xl flex-col gap-4`}>
++            <AudioPlayer
++                ref={playerRef}
++                src={BAD_SIGN_MP3}
++                variant={`card`}
++                title={`Bad Sign`}
++                subtitle={`Brad Sucks`}
+                 preload={`metadata`}
+                 crossOrigin={`anonymous`}
+-                className={`sr-only`}
++                downloadable={false}
++                onTimeUpdate={handleTimeUpdate}
++                trailing={credits}
+             />
++            <Lyrics source={BAD_SIGN_LRC} currentTime={time} onSeek={handleSeek} />
+         </div>
+     );
+ };
+diff --git a/components/react/src/examples/nodeEditor/Default.tsx b/components/react/src/examples/nodeEditor/Default.tsx
+index 9784a758..1b1ffc36 100644
+--- a/components/react/src/examples/nodeEditor/Default.tsx
++++ b/components/react/src/examples/nodeEditor/Default.tsx
+@@ -25,7 +25,18 @@ type TypedRFNode = RFNode<TypedNodeData, `typed`>;
+ const Example = () => {
+     const [sliderValue, setSliderValue] = useState(7);
+     const [textValue, setTextValue] = useState(`hello`);
+-    const [edges, setEdges] = useState<Edge[]>([]);
++    const [edges, setEdges] = useState<Edge[]>([
++        // Pre-wire Slider → Doubler so the user sees a connection immediately.
++        // Drag from any other handle to create additional edges; mismatched
++        // typed ports (string → number) are rejected by the typed validator.
++        {
++            id: `slider-doubler`,
++            source: NODE_IDS.slider,
++            sourceHandle: `out`,
++            target: NODE_IDS.doubler,
++            targetHandle: `in`
++        }
++    ]);
+     const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({
+         [NODE_IDS.slider]: { x: 0, y: 0 },
+         [NODE_IDS.text]: { x: 0, y: 220 },
+@@ -56,24 +67,12 @@ const Example = () => {
+         outputValue: outputValue ?? null
+     });
+ 
+-    // Declare width/height on every node so React Flow can compute the
+-    // initial viewport without waiting on ResizeObserver — measurement is
+-    // unreliable when the editor lives behind a React.lazy boundary, and
+-    // unmeasured nodes stay `visibility: hidden`.
+-    const NODE_W = 220;
+-    const NODE_H_SLIDER = 140;
+-    const NODE_H_TEXT = 110;
+-    const NODE_H_DOUBLER = 130;
+-    const NODE_H_OUTPUT = 110;
+-
+     const nodes = useMemo<TypedRFNode[]>(
+         () => [
+             {
+                 id: NODE_IDS.slider,
+                 type: `typed`,
+                 position: positions[NODE_IDS.slider]!,
+-                width: NODE_W,
+-                height: NODE_H_SLIDER,
+                 data: {
+                     label: `Slider`,
+                     outputs: [{ id: `out`, type: `number`, label: `value: number` }],
+@@ -98,8 +97,6 @@ const Example = () => {
+                 id: NODE_IDS.text,
+                 type: `typed`,
+                 position: positions[NODE_IDS.text]!,
+-                width: NODE_W,
+-                height: NODE_H_TEXT,
+                 data: {
+                     label: `Text`,
+                     outputs: [{ id: `out`, type: `string`, label: `text: string` }],
+@@ -117,8 +114,6 @@ const Example = () => {
+                 id: NODE_IDS.doubler,
+                 type: `typed`,
+                 position: positions[NODE_IDS.doubler]!,
+-                width: NODE_W,
+-                height: NODE_H_DOUBLER,
+                 data: {
+                     label: `Doubler`,
+                     inputs: [{ id: `in`, type: `number`, label: `in: number` }],
+@@ -134,8 +129,6 @@ const Example = () => {
+                 id: NODE_IDS.output,
+                 type: `typed`,
+                 position: positions[NODE_IDS.output]!,
+-                width: NODE_W,
+-                height: NODE_H_OUTPUT,
+                 data: {
+                     label: `Output`,
+                     inputs: [{ id: `in`, type: `number`, label: `value: number` }],
+diff --git a/components/react/src/guides/index.tsx b/components/react/src/guides/index.tsx
+index bbb9931d..70027c61 100644
+--- a/components/react/src/guides/index.tsx
++++ b/components/react/src/guides/index.tsx
+@@ -1,6 +1,8 @@
++import { BookOpen, Languages, type LucideIcon } from "lucide-react";
+ import { type ReactNode } from "react";
+ import type { Translation } from "../languages";
+ import { CreatingAppsGuide } from "./CreatingAppsGuide";
++import { TranslationsGuide } from "./TranslationsGuide";
+ import { registerGuideLinks } from "../componentLinkRegistry";
+ 
+ export interface GuideEntry {
+@@ -9,6 +11,8 @@ export interface GuideEntry {
+     readonly name: string;
+     /** Resolve the user-facing label from the active translation tree. */
+     readonly label: (t: Translation) => string;
++    /** Icon shown next to the guide's entry in the sidebar nav. */
++    readonly icon: LucideIcon;
+     readonly render: () => ReactNode;
+ }
+ 
+@@ -17,7 +21,15 @@ export const guides: ReadonlyArray<GuideEntry> = [
+         id: `creating-apps`,
+         name: `CreatingApps`,
+         label: (t) => t.example.sidebar.creatingAppsLabel,
++        icon: BookOpen,
+         render: () => <CreatingAppsGuide />
++    },
++    {
++        id: `translations`,
++        name: `Translations`,
++        label: (t) => t.example.sidebar.translationsLabel,
++        icon: Languages,
++        render: () => <TranslationsGuide />
+     }
+ ];
+ 
+diff --git a/components/react/src/languages.ts b/components/react/src/languages.ts
+index 8f9f55c9..0b0c36ca 100644
+--- a/components/react/src/languages.ts
++++ b/components/react/src/languages.ts
+@@ -2,6 +2,7 @@ import {
+     type Language as MowsLanguage,
+     type Translation as MowsTranslation
+ } from "../lib/lib/languages";
++import type { StepsTranslation } from "./examples/steps/translations";
+ 
+ // eslint-disable-next-line quotes
+ declare module "../lib/lib/languages" {
+@@ -51,6 +52,7 @@ declare module "../lib/lib/languages" {
+                 removeFromFavoritesAriaLabel: string;
+                 guidesLabel: string;
+                 creatingAppsLabel: string;
++                translationsLabel: string;
+             };
+             guides: {
+                 creatingApps: {
+@@ -85,6 +87,57 @@ declare module "../lib/lib/languages" {
+                         variants: { title: string; body: string };
+                     };
+                 };
++                translations: {
++                    title: string;
++                    overview: {
++                        title: string;
++                        intro: string;
++                        baseTranslation: { title: string; body: string };
++                        translationInterface: { title: string; body: string };
++                        language: { title: string; body: string };
++                        provider: { title: string; body: string };
++                    };
++                    setup: {
++                        title: string;
++                        intro: string;
++                        mountProvider: { title: string; body: string };
++                        defaultLanguages: { title: string; body: string };
++                    };
++                    reading: {
++                        title: string;
++                        intro: string;
++                        hooks: { title: string; body: string };
++                        classComponents: { title: string; body: string };
++                        actions: { title: string; body: string };
++                    };
++                    extending: {
++                        title: string;
++                        intro: string;
++                        declareMerge: { title: string; body: string };
++                        perLocaleFile: { title: string; body: string };
++                        consumeOwnKeys: { title: string; body: string };
++                    };
++                    switching: {
++                        title: string;
++                        intro: string;
++                        runtime: { title: string; body: string };
++                        chunks: { title: string; body: string };
++                    };
++                    safety: {
++                        title: string;
++                        intro: string;
++                        compileCheck: { title: string; body: string };
++                        complianceTest: { title: string; body: string };
++                    };
++                    conventions: {
++                        title: string;
++                        intro: string;
++                        namespacing: { title: string; body: string };
++                        flatKeys: { title: string; body: string };
++                        actionIds: { title: string; body: string };
++                        spreadBase: { title: string; body: string };
++                    };
++                };
+             };
+             examples: {
+                 _harness: {
+@@ -92,60 +145,7 @@ declare module "../lib/lib/languages" {
+                     stateTab: string;
+                     noStateReported: string;
+                 };
+-                steps: {
+-                    horizontal: { title: string; description: string };
+-                    endAlignment: { title: string; description: string };
+-                    vertical: { title: string; description: string };
+-                    statusOverride: { title: string; description: string };
+-                    wizard: { title: string; description: string };
+-                    loading: { title: string; description: string };
+-                    disabled: { title: string; description: string };
+-                    icons: { title: string; description: string };
+-                    rtl: { title: string; description: string };
+-                    selection: { title: string; description: string };
+-                    doc: {
+-                        installation: {
+-                            title: string;
+-                            commandTab: string;
+-                            manualTab: string;
+-                            manualStep1: string;
+-                            manualStep2: string;
+-                            manualStep3: string;
+-                        };
+-                        usage: { title: string; body: string };
+-                        composition: { title: string; body: string };
+-                        examples: {
+-                            title: string;
+-                            line: { title: string; description: string };
+-                            endAlignment: { title: string; description: string };
+-                            vertical: { title: string; description: string };
+-                            loading: { title: string; description: string };
+-                            disabled: { title: string; description: string };
+-                            icons: { title: string; description: string };
+-                        };
+-                        definedBehaviour: {
+-                            title: string;
+-                            intro: string;
+-                            verifiedBy: string;
+-                            statements: {
+-                                derivesStatuses: string;
+-                                ariaCurrent: string;
+-                                rendersTitleDescription: string;
+-                                orientationAttr: string;
+-                                statusOverride: string;
+-                                selectionNoCompleted: string;
+-                                selectionShowsNumbers: string;
+-                                throwsOutsideSteps: string;
+-                                endAlignmentSide: string;
+-                                endAlignmentCenter: string;
+-                                loadingIndeterminate: string;
+-                                loadingDeterminate: string;
+-                            };
+-                        };
+-                        rtl: { title: string; body: string };
+-                        apiReference: { title: string; intro: string };
+-                    };
+-                };
++                steps: StepsTranslation;
+                 sectionHeading: {
+                     default: { title: string; description: string };
+                     levels: { title: string; description: string };
+@@ -272,10 +272,6 @@ declare module "../lib/lib/languages" {
+                     karaoke: { title: string; description: string };
+                     synced: { title: string; description: string };
+                     rtl: { title: string; description: string };
+-                    syncedDemo: {
+-                        instructions: string;
+-                        toggleAriaLabel: string;
+-                    };
+                     doc: {
+                         installation: {
+                             title: string;
+diff --git a/components/react/src/languages/de.ts b/components/react/src/languages/de.ts
+index b0acf924..e431a680 100644
+--- a/components/react/src/languages/de.ts
++++ b/components/react/src/languages/de.ts
+@@ -60,7 +60,8 @@ const translation: Translation = {
+             addToFavoritesAriaLabel: `Zu Favoriten hinzufügen`,
+             removeFromFavoritesAriaLabel: `Aus Favoriten entfernen`,
+             guidesLabel: `Anleitungen`,
+-            creatingAppsLabel: `Apps erstellen`
++            creatingAppsLabel: `Apps erstellen`,
++            translationsLabel: `Übersetzungen`
+         },
+         guides: {
+             creatingApps: {
+@@ -106,6 +107,117 @@ const translation: Translation = {
+                         body: `Eine Aktion kann ihr Label, Icon und ihren Handler unter einer Modifier-Tasten-Kombination via \`variants\` morphen. Der Klassiker: eine Zeile „In den Papierkorb verschieben“ wird zu „Endgültig löschen“, während Shift gehalten wird — das Menü rendert live neu, sobald der Nutzer den Modifier hält oder loslässt. Varianten werden in Reihenfolge gegen die Live-Modifier-Maske aufgelöst; das erste passende Prädikat gewinnt, also packe die spezifischsten Varianten zuerst. Der Auflösungs- und Dispatch-Pfad wird mit dem Rechtsklick-Menü und der Command Palette geteilt, sodass das Verhalten über alle Oberflächen hinweg konsistent bleibt.`
+                     }
+                 }
++            },
++            translations: {
++                title: `Übersetzungen`,
++                overview: {
++                    title: `Überblick`,
++                    intro: `Jeder übersetzbare String in der Bibliothek und in deiner eigenen App fließt durch ein typisiertes Objekt: \`t\`. Die Bibliothek besitzt ihren Anteil (\`BaseTranslation\`), deine App erweitert die Form über TypeScript Declaration Merging, und \`<MowsProvider>\` führt den aufgelösten Baum der aktiven Sprache unter \`useMows().t\`.`,
++                    baseTranslation: {
++                        title: `BaseTranslation`,
++                        body: `Definiert in \`lib/lib/languages.ts\`. Listet jeden String auf, den die Bibliothek selbst rendert — \`<PrimaryMenu>\`, \`<CommandPalette>\`, \`<SettingsPanel>\`, \`<VideoViewer>\`, Tastenlabels und so weiter. Apps bearbeiten dieses Interface nicht; es ist der Vertrag, den jede aus der Bibliothek ausgelieferte Locale erfüllen muss.`
++                    },
++                    translationInterface: {
++                        title: `Translation`,
++                        body: `Ebenfalls in \`lib/lib/languages.ts\`. Beginnt als reine Erweiterung von \`BaseTranslation\` und ist der Typ, auf den jeder Konsument zugreift. Deine App ergänzt ihn via \`declare module ".../languages" { interface Translation { … } }\`, um eigene Schlüssel hinzuzufügen — so liefert dasselbe \`t\`-Objekt sowohl Bibliotheks- als auch App-Strings.`
++                    },
++                    language: {
++                        title: `Language`,
++                        body: `Ein kleiner Record mit Sprachcode (\`en-US\`, \`de\`), Anzeigename, Emoji und einem \`import()\`-Thunk, der die aufgelöste \`Translation\` für diese Locale zurückgibt. Die vollständigen Daten jeder Locale leben in einem eigenen Modul, sodass der Sprachumschalter dynamisch nur die vom Nutzer gewählte Locale lädt.`
++                    },
++                    provider: {
++                        title: `Verdrahtung im MowsProvider`,
++                        body: `\`<MowsProvider>\` nimmt \`languages\` (die verfügbaren \`Language[]\`) und \`initialTranslation\` (den eager gebundelten Baum für das erste Rendering). Er nimmt die gespeicherte Wahl des Nutzers via \`storagePrefix\` + Browsersprache auf, ruft beim Mount das passende \`Language.import()\` und rendert die Konsumenten beim Wechsel über \`setLanguage()\` mit dem neuen Baum neu. Der aktive Baum ist über Context stets als \`t\` erreichbar.`
++                    }
++                },
++                setup: {
++                    title: `Einrichtung`,
++                    intro: `Übersetzungen werden einmal am Root verdrahtet. Alles weitere — Sprachumschaltung, Persistenz, automatische Browserspracherkennung — übernimmt der Provider.`,
++                    mountProvider: {
++                        title: `Mit languages + initialem Baum mounten`,
++                        body: `Übergib \`languages\` und \`initialTranslation\` an \`<MowsProvider>\`. Der initiale Baum ist mit dem Entry-Chunk gebundelt, damit das erste Rendering nicht kurz auf Englisch aufflackert, während ein Locale-Chunk lädt. Wähle ihn zuerst über \`localStorage\`, dann \`navigator.language\`, dann ein hartcodiertes englisches Fallback — die \`main.tsx\` der Beispiel-App zeigt das exakte Muster.`
++                    },
++                    defaultLanguages: {
++                        title: `Ohne languages-Prop reichen Englisch + Deutsch`,
++                        body: `Lässt du \`languages\` weg, fällt \`<MowsProvider>\` auf \`baseLanguages\` zurück (von der Bibliothek ausgeliefertes Englisch + Deutsch). Das genügt Apps, die keine eigenen Übersetzungsschlüssel anlegen. Sobald deine App \`Translation\` erweitert, liefere ein eigenes \`Language[]\` mit, damit das \`import()\` jedes Eintrags den erweiterten Baum zurückgibt — nicht den Basisbaum.`
++                    }
++                },
++                reading: {
++                    title: `Übersetzungen auslesen`,
++                    intro: `\`t\` aus dem Context holen und den typisierten Pfad dereferenzieren. Keine String-Schlüssel, keine Lookup-Fehler — wenn der Punkt-Pfad nicht typisiert, ist der Wert nicht vorhanden.`,
++                    hooks: {
++                        title: `Funktionskomponenten — useMows()`,
++                        body: `Rufe \`useMows()\` für den vollen Context auf und lies \`t.<pfad>\`. Derselbe Hook liefert alles andere mit (Theme, Action Manager, Modal-State, …), sodass die meisten Komponenten nur einen Context-Call brauchen.`
++                    },
++                    classComponents: {
++                        title: `Klassenkomponenten — contextType`,
++                        body: `Die meisten Komponenten dieser Bibliothek sind Klassenkomponenten. Setze \`static contextType = MowsContext\` und deklariere \`context: ContextType<typeof MowsContext>\`, dann lies \`this.context!.t.<pfad>\` in \`render()\`. \`this.context\` ist gegen \`MowsContextType\` typisiert, sodass dieselbe Punkt-Pfad-Vervollständigung greift.`
++                    },
++                    actions: {
++                        title: `Action-Labels — der einzige dynamische Schlüssel`,
++                        body: `Action-Labels leben unter \`t.actions[ActionId]\`. Das ist die einzige Stelle, an der der Schlüssel dynamisch statt statisch typisiert ist — Action-IDs sind namensbereinigte Strings (\`myapp.document.create\`), die der Aufrufer wählt, der Typ ist \`Record<string, string>\`. Schlage via \`t.actions[CoreActionIds.OpenCommandPalette]\` (oder dein eigenes Enum) nach und der Action Manager rendert das aufgelöste Label in der Command Palette, im Tastenkürzel-Editor und im Kontextmenü.`
++                    }
++                },
++                extending: {
++                    title: `Eigene Übersetzungsschlüssel ergänzen`,
++                    intro: `Wenn deine App Strings über das hinaus braucht, was die Bibliothek mitbringt, erweitere das \`Translation\`-Interface via TypeScript Declaration Merging und stelle pro Locale eine Datei bereit. Die Erweiterung ist rein typischer Natur — zur Laufzeit werden die Strings einfach zu zusätzlichen Feldern desselben \`t\`-Objekts.`,
++                    declareMerge: {
++                        title: `Translation-Interface erweitern`,
++                        body: `Schreibe in deiner App einen \`declare module ".../languages" { interface Translation { … } }\`-Block, der deinen Namespace hinzufügt. Verwende einen Top-Level-Schlüssel pro Feature-Bereich (\`dashboard\`, \`settings\`, \`onboarding\`), damit mehrere Teams ihre Anteile ohne Kollisionen wachsen lassen können. Die Schlüssel der Bibliothek bleiben unberührt; deine Ergänzungen erscheinen daneben auf \`t\`.`
++                    },
++                    perLocaleFile: {
++                        title: `Eine Datei pro Locale, mit Spread der Basis`,
++                        body: `Baue für jede Locale ein Modul, das die Basislokale der Bibliothek (\`baseEn\`, \`baseDe\`) importiert, spreaded und deine eigenen Schlüssel auffüllt. \`const translation: Translation = { ...baseEn, … }\` typisiert gegen das erweiterte Interface — jeder Bibliotheksschlüssel behält seinen Standardwert, und jeder App-Schlüssel, den du angelegt hast, wird zur Compile-Zeit eingefordert.`
++                    },
++                    consumeOwnKeys: {
++                        title: `Konsumenten lesen eigene Schlüssel genauso`,
++                        body: `Innerhalb der App ist \`useMows().t.dashboard.greeting\` ebenso typisiert wie \`useMows().t.primaryMenu.login\` — es gibt keinen zweiten \`useAppT()\`-Hook zu merken und keinerlei Gefahr, dass eine Bibliotheksübersetzung gegen eine App-Übersetzung divergiert, weil es nur einen Baum gibt.`
++                    }
++                },
++                switching: {
++                    title: `Sprache zur Laufzeit wechseln`,
++                    intro: `\`setLanguage(language)\` tauscht die aktive Locale. Der Provider ruft \`language.import()\` auf, wartet auf den Chunk, persistiert die Auswahl unter \`storagePrefix_language\` und rendert mit dem neuen \`t\` neu.`,
++                    runtime: {
++                        title: `Wechsel auslösen`,
++                        body: `Rufe \`setLanguage\` aus \`useMows()\` mit dem Ziel-\`Language\`-Record auf. Der mitgelieferte \`<LanguagePicker>\` macht genau das — derselbe Aufruf funktioniert aus deiner eigenen UI, wenn du einen eigenen Einstiegspunkt brauchst. Die persistierte Wahl überlebt Reloads; Löschen des Storage-Eintrags fällt auf die Browsersprache zurück.`
++                    },
++                    chunks: {
++                        title: `Code-Chunks pro Locale`,
++                        body: `Jedes \`Language.import\` ist ein dynamisches \`import()\`. Vite gibt pro Locale einen eigenen Chunk aus, sodass Nutzer nur die Locales herunterladen, zu denen sie tatsächlich wechseln. Das erste Rendering nutzt \`initialTranslation\` (eager gebundelt), spätere Wechsel kommen aus dem Netz oder dem HTTP-Cache.`
++                    }
++                },
++                safety: {
++                    title: `Compile-Zeit-Garantien`,
++                    intro: `Der Sinn der Typisierung des Übersetzungsbaums ist, dass der Compiler keiner Locale erlaubt, auseinanderzulaufen. Füg einen Schlüssel hinzu, ohne ihn überall einzutragen, und \`tsc\` schlägt Alarm; der Testsuite hält die Eigenschaft fest.`,
++                    compileCheck: {
++                        title: `Jede Locale-Datei ist ein Translation`,
++                        body: `Jedes Per-Locale-Modul deklariert \`const translation: Translation = { … }\`. Füg einen neuen Schlüssel zu \`Translation\` hinzu (in der Bibliothek oder via App-seitiger Erweiterung), und jede Locale-Datei scheitert bei der Compilierung, bis der Schlüssel ausgefüllt ist. Keine stillen Fallbacks, kein unübersetzter String, der durchrutscht.`
++                    },
++                    complianceTest: {
++                        title: `localesAreCompliant.test.ts`,
++                        body: `\`lib/lib/languages/localesAreCompliant.test.ts\` importiert jede ausgelieferte Locale und prüft ihren Typ erneut gegen \`BaseTranslation\`. \`pnpm test\` (oder \`pnpm build\`) deckt einen fehlenden Locale-Slot genauso auf wie ein CI-Lauf — es gibt keinen Pfad, auf dem eine Übersetzungslücke unbemerkt in Produktion gerät.`
++                    }
++                },
++                conventions: {
++                    title: `Konventionen & Stolperfallen`,
++                    intro: `Muster, die den Baum mit Wachstum wartbar halten.`,
++                    namespacing: {
++                        title: `Nach Feature, nicht nach Komponente benennen`,
++                        body: `Gruppiere Strings nach nutzerseitigem Konzept (\`onboarding.welcome\`, \`settings.appearance\`) statt nach Komponentenname. Die Bibliothek macht das Gegenteil — sie ordnet nach Komponente (\`primaryMenu\`, \`commandPalette\`), weil ihre Oberflächen ihre Komponenten SIND. App-Schlüssel überleben Komponentenumbenennungen; ein Feature-Namespace ist die stabilere Grundlage.`
++                    },
++                    flatKeys: {
++                        title: `Den Baum nicht flach klopfen`,
++                        body: `Widerstehe der Versuchung, \`t["settings.theme.title"]\` zu schreiben. Verschachtelte Objekte sind durchgehend typisiert und refaktorierbar; klammerindizierte flache Schlüssel zerstören Autovervollständigung, brechen Refactoring-Werkzeuge und machen Missing-Key-Bugs zu Laufzeitfehlern. Die einzige unvermeidliche Stelle sind Action-Labels (siehe „Übersetzungen auslesen“) — und selbst dort kommen die Schlüssel aus einem Enum.`
++                    },
++                    actionIds: {
++                        title: `Action-Labels sind der einzige dynamische Slot`,
++                        body: `\`t.actions[id]\` ist ein \`Record<string, string>\`, weil Action-IDs offen sind. Bezieh die ID immer aus einem Enum oder einer Konstanten, damit ein Tippfehler an der Aufrufstelle ein Tippfehler an der Lookup-Stelle bleibt. Die Übersetzungsdatei ist der Ort, an dem das Label gerendert wird — halte beide Hälften nah beieinander, wenn du eine neue Action hinzufügst.`
++                    },
++                    spreadBase: {
++                        title: `Immer die Basis-Locale spreaden`,
++                        body: `Per-Locale-App-Dateien starten mit \`...baseEn\` (oder \`...baseDe\`), damit die Strings der Bibliothek ihre Werte behalten, ohne dupliziert zu werden. Vergisst du den Spread, typisieren deine App-seitigen Schlüssel zwar einzeln, aber die zusammengeführte \`Translation\` fehlt jeder Bibliotheksschlüssel — und der Compile-Fehler taucht erst an der Zuweisungsstelle auf, weit weg vom fehlenden Feld.`
++                    }
++                }
+             }
+         },
+         examples: {
+@@ -451,17 +563,13 @@ const translation: Translation = {
+                     description: `Enhanced-LRC-Quellen verteilen \`<mm:ss.xx>\`-Marker zwischen den Wörtern. Die Komponente hebt das aktive Wort hervor, sobald die Zeitachse weiterläuft.`
+                 },
+                 synced: {
+-                    title: `Synchron mit Audio`,
+-                    description: `Verbunden mit einem HTML-\`<audio>\`-Element — drücke Play und beobachte, wie die aktive Zeile dem Abspielkopf folgt. Ein Klick auf eine Zeile springt im Audio zurück.`
++                    title: `Synchron mit AudioPlayer`,
++                    description: `Verbunden mit dem \`<AudioPlayer>\` der Library über dessen imperative Ref — drücke Play, und die aktive Zeile folgt dem Abspielkopf. Ein Klick auf eine Liedzeile springt im Player zurück. Audio: Brad Sucks — "Bad Sign" (CC-BY-SA 3.0, archive.org). LRC: Community-erstellter, zeitsynchroner Liedtext aus LRCLIB, exakt auf diese 232 s lange Aufnahme abgestimmt.`
+                 },
+                 rtl: {
+                     title: `Rechts-nach-links`,
+                     description: `Mit \`dir="rtl"\` umschlossen. Die Zeilen bleiben mittig und in zeitlicher Reihenfolge, aber die umgebende Schreibrichtung kehrt sich um.`
+                 },
+-                syncedDemo: {
+-                    instructions: `Drücke Play und beobachte, wie die aktive Zeile dem Abspielkopf folgt. Klick auf eine Zeile springt im Audio zurück.`,
+-                    toggleAriaLabel: `Wiedergabe umschalten`
+-                },
+                 doc: {
+                     installation: {
+                         title: `Installation`,
+@@ -494,8 +602,8 @@ const translation: Translation = {
+                             description: `Enhanced LRC mit \`<mm:ss.xx>\`-Markern pro Wort. Das aktive Wort übernimmt im Verlauf die Primärfarbe.`
+                         },
+                         synced: {
+-                            title: `Verbunden mit <audio>`,
+-                            description: `Drücke Play, um den Liedtext aus einem echten HTML-Audio-Element zu treiben. Klick auf eine Zeile springt im Audio zurück.`
++                            title: `Verbunden mit AudioPlayer`,
++                            description: `Drücke Play am \`<AudioPlayer>\`, um den Liedtext zu treiben. Ein Klick auf eine Zeile springt über die imperative Ref im Player zurück. Audio: Brad Sucks — "Bad Sign" (CC-BY-SA 3.0). LRC: Community-Sync aus LRCLIB.`
+                         }
+                     },
+                     definedBehaviour: {
+diff --git a/components/react/src/languages/en-US.ts b/components/react/src/languages/en-US.ts
+index 0cdc562a..2c9ed714 100644
+--- a/components/react/src/languages/en-US.ts
++++ b/components/react/src/languages/en-US.ts
+@@ -1,4 +1,5 @@
+ import baseEn from "../../lib/lib/languages/en-US/default";
++import { stepsEn } from "../examples/steps/translations";
+ import type { Translation } from "../languages";
+ import { ExampleActionIds } from "../exampleActions";
+ 
+@@ -60,7 +61,8 @@ const translation: Translation = {
+             addToFavoritesAriaLabel: `Add to favorites`,
+             removeFromFavoritesAriaLabel: `Remove from favorites`,
+             guidesLabel: `Guides`,
+-            creatingAppsLabel: `Creating Apps`
++            creatingAppsLabel: `Creating Apps`,
++            translationsLabel: `Translations`
+         },
+         guides: {
+             creatingApps: {
+@@ -106,128 +108,126 @@ const translation: Translation = {
+                         body: `An action can morph its label, icon, and handler under a modifier-key combination via \`variants\`. The classic case is a "Move to bin" row that becomes "Delete permanently" while Shift is held — the menu re-renders live as the user holds and releases the modifier. Variants resolve in order against the live modifier mask; the first matching predicate wins, so put the most specific variants first. The handler resolution and dispatch path is shared with the right-click menu and the command palette, so the behaviour stays consistent across surfaces.`
+                     }
+                 }
+-            }
+-        },
+-        examples: {
+-            _harness: {
+-                codeTab: `Code`,
+-                stateTab: `State`,
+-                noStateReported: `This example does not report state.`
+             },
+-            steps: {
+-                horizontal: {
+-                    title: `Horizontal stepper`,
+-                    description: `Default horizontal layout. Status is derived from the controlled "current" index.`
+-                },
+-                endAlignment: {
+-                    title: `End alignment`,
+-                    description: `endAlignment toggles how the first and last steps anchor along the row. "side" (default) pushes them to the row edges with left/right label alignment; "center" centers every label under its indicator. In both modes the indicators stay evenly spaced.`
+-                },
+-                vertical: {
+-                    title: `Vertical stepper`,
+-                    description: `Stack the steps vertically, with the connector running between indicators.`
+-                },
+-                statusOverride: {
+-                    title: `Per-step status override`,
+-                    description: `Pass "status" on an individual <Step> to force its rendering, ignoring the derived state.`
+-                },
+-                wizard: {
+-                    title: `Wizard (preview + content)`,
+-                    description: `Pair <Steps> with content panels and Back/Next buttons for a real-world flow.`
+-                },
+-                selection: {
+-                    title: `Selection mode`,
+-                    description: `mode="selection" turns the stepper into a step picker: every circle shows its number, the active step is filled with the primary color, and there is no notion of completion.`
+-                },
+-                loading: {
+-                    title: `Loading`,
+-                    description: `Per-step loading state. Pass loading={true} for an indeterminate spinner around the indicator, or loading={n} (0–100) for a determinate progress ring driven by your own state.`
+-                },
+-                disabled: {
+-                    title: `Disabled`,
+-                    description: `The whole stepper rendered in a disabled state — muted and non-interactive — using a wrapping container with aria-disabled and pointer-events-none.`
++            translations: {
++                title: `Translations`,
++                overview: {
++                    title: `Overview`,
++                    intro: `Every translatable string in the library and in your own app flows through one typed object: \`t\`. The library owns its slice (\`BaseTranslation\`), your app extends the shape via TypeScript declaration merging, and \`<MowsProvider>\` carries the active locale's resolved tree on \`useMows().t\`.`,
++                    baseTranslation: {
++                        title: `BaseTranslation`,
++                        body: `Defined in \`lib/lib/languages.ts\`. Lists every string the library itself renders — \`<PrimaryMenu>\`, \`<CommandPalette>\`, \`<SettingsPanel>\`, \`<VideoViewer>\`, key labels, and so on. Apps never edit this interface; it's the contract every locale shipped from the library must satisfy.`
++                    },
++                    translationInterface: {
++                        title: `Translation`,
++                        body: `Also in \`lib/lib/languages.ts\`. Starts out as a bare extension of \`BaseTranslation\` and is the type every consumer references. Your app augments it via \`declare module ".../languages" { interface Translation { … } }\` to add its own keys, so the very same \`t\` object exposes both library strings and app strings.`
++                    },
++                    language: {
++                        title: `Language`,
++                        body: `A small record holding the language \`code\` (\`en-US\`, \`de\`), display name, emoji, and an \`import()\` thunk that returns the resolved \`Translation\` for that locale. Each locale's full data lives in its own module, so the language switcher dynamically loads only the locale the user picks.`
++                    },
++                    provider: {
++                        title: `MowsProvider wiring`,
++                        body: `\`<MowsProvider>\` takes \`languages\` (the available \`Language[]\`) and \`initialTranslation\` (the eagerly-bundled tree for first paint). It picks up the user's stored choice via \`storagePrefix\` + browser language, runs the matching \`Language.import()\` on mount, and re-renders consumers with the new tree when \`setLanguage()\` is called. The active tree is always reachable on context as \`t\`.`
++                    }
+                 },
+-                icons: {
+-                    title: `Icons`,
+-                    description: `Step titles accept any ReactNode, so you can prefix each label with an icon without modifying the <Steps> primitive itself.`
++                setup: {
++                    title: `Setup`,
++                    intro: `Wire translations once at the root. Everything else — language switching, persistence, automatic browser-language detection — is handled by the provider.`,
++                    mountProvider: {
++                        title: `Mount with languages + initial tree`,
++                        body: `Pass \`languages\` and \`initialTranslation\` to \`<MowsProvider>\`. The initial tree is bundled with the entry chunk so the first paint never flashes English while a locale chunk loads. Pick it via \`localStorage\` first, then \`navigator.language\`, then a hardcoded English fallback — the example app's \`main.tsx\` shows the exact pattern.`
++                    },
++                    defaultLanguages: {
++                        title: `Skip the languages prop for English + German`,
++                        body: `When you omit \`languages\`, \`<MowsProvider>\` falls back to \`baseLanguages\` (English + German shipped by the library). That's enough for apps that don't add their own translation keys. Once your app augments \`Translation\`, ship your own \`Language[]\` so each entry's \`import()\` returns the extended tree, not the base.`
++                    }
+                 },
+-                rtl: {
+-                    title: `RTL`,
+-                    description: `Wrapping <Steps> in dir="rtl" flips the layout for right-to-left scripts. Both horizontal and vertical orientations follow.`
++                reading: {
++                    title: `Reading translations`,
++                    intro: `Pull \`t\` off context and dereference the typed path. No string keys, no lookup misses — if the dot path doesn't typecheck, the value isn't there.`,
++                    hooks: {
++                        title: `Function components — useMows()`,
++                        body: `Call \`useMows()\` to get the full context, then read \`t.<path>\`. The same hook gives you everything else (theme, action manager, modal state, …) so most components only need one context call.`
++                    },
++                    classComponents: {
++                        title: `Class components — contextType`,
++                        body: `Most components in this library are class components. Attach \`static contextType = MowsContext\` and declare \`context: ContextType<typeof MowsContext>\`, then read \`this.context!.t.<path>\` inside \`render()\`. \`this.context\` is typed against \`MowsContextType\` so the same dot-path completion works.`
++                    },
++                    actions: {
++                        title: `Action labels — the one dynamic key`,
++                        body: `Action labels live under \`t.actions[ActionId]\`. This is the only place where the key is dynamic instead of statically typed — action ids are namespaced strings (\`myapp.document.create\`) chosen by callers, so the type is \`Record<string, string>\`. Look up via \`t.actions[CoreActionIds.OpenCommandPalette]\` (or your own enum) and the action manager renders the resolved label in the command palette, the keyboard-shortcut editor, and the context menu.`
++                    }
+                 },
+-                doc: {
+-                    installation: {
+-                        title: `Installation`,
+-                        commandTab: `Command`,
+-                        manualTab: `Manual`,
+-                        manualStep1: `Install the following dependencies:`,
+-                        manualStep2: `Copy and paste the following code into your project.`,
+-                        manualStep3: `Update the import paths to match your project setup.`
++                extending: {
++                    title: `Adding your own translation keys`,
++                    intro: `When your app needs strings beyond what the library ships, augment the \`Translation\` interface via TypeScript declaration merging and provide one file per locale. The augmentation is purely a type-level concern — at runtime the strings just become extra fields on the same \`t\` object.`,
++                    declareMerge: {
++                        title: `Augment the Translation interface`,
++                        body: `In your app, write a \`declare module ".../languages" { interface Translation { … } }\` block that adds your namespace. Use one top-level key per feature area (\`dashboard\`, \`settings\`, \`onboarding\`) so multiple teams can grow their slices without colliding. The library's keys stay untouched; your additions appear alongside them on \`t\`.`
+                     },
+-                    usage: {
+-                        title: `Usage`,
+-                        body: `Import <Steps> and <Step> from the package and render them with a controlled "current" prop. <Step> reads orientation and current from the surrounding <Steps> via context, so its children must be direct <Step> elements.`
++                    perLocaleFile: {
++                        title: `One file per locale, spreading the base`,
++                        body: `For each locale build a module that imports the library's base locale (\`baseEn\`, \`baseDe\`), spreads it, and fills in your own keys. \`const translation: Translation = { ...baseEn, … }\` typechecks against the augmented interface, so every library key keeps its baseline value while every app key you added is required at compile time.`
+                     },
+-                    composition: {
+-                        title: `Composition`,
+-                        body: `<Steps> is a thin layout that wires context to its children. Each <Step> renders an indicator circle and a label. The status of each step (completed / current / upcoming) is derived from its index relative to "current", but can be overridden per-step via the "status" prop for error or skipped states.`
++                    consumeOwnKeys: {
++                        title: `Consumers read their own keys the same way`,
++                        body: `Inside the app, \`useMows().t.dashboard.greeting\` is just as typed as \`useMows().t.primaryMenu.login\` — there's no second \`useAppT()\` hook to remember, and no risk of a library translation drifting out of sync with an app translation because there's only one tree.`
++                    }
++                },
++                switching: {
++                    title: `Switching languages at runtime`,
++                    intro: `\`setLanguage(language)\` swaps the active locale. The provider invokes \`language.import()\`, awaits the chunk, persists the selection under \`storagePrefix_language\`, and re-renders with the new \`t\`.`,
++                    runtime: {
++                        title: `Triggering a switch`,
++                        body: `Call \`setLanguage\` from \`useMows()\` with the target \`Language\` record. The bundled \`<LanguagePicker>\` already does this — the same call works from your own UI when you need a bespoke entry point. Persisted choice survives reloads; deleting the storage entry falls back to browser-language detection.`
+                     },
+-                    examples: {
+-                        title: `Examples`,
+-                        line: {
+-                            title: `Line`,
+-                            description: `The default horizontal layout: a numbered indicator per step, joined by a connector line.`
+-                        },
+-                        endAlignment: {
+-                            title: `End alignment`,
+-                            description: `Side-by-side comparison of endAlignment="side" (first/last labels at the row edges) and endAlignment="center" (every label centered). Indicators stay evenly spaced in both.`
+-                        },
+-                        vertical: {
+-                            title: `Vertical`,
+-                            description: `Stack the steps vertically with the connector running between indicators.`
+-                        },
+-                        loading: {
+-                            title: `Loading`,
+-                            description: `Side-by-side comparison of loading={true} (indeterminate spinner) and loading={n} (determinate progress ring driven by component state).`
+-                        },
+-                        disabled: {
+-                            title: `Disabled`,
+-                            description: `The stepper rendered as fully disabled — muted and non-interactive.`
+-                        },
+-                        icons: {
+-                            title: `Icons`,
+-                            description: `Use a ReactNode title to put an icon next to each step's label.`
+-                        }
++                    chunks: {
++                        title: `Per-locale code chunks`,
++                        body: `Each \`Language.import\` is a dynamic \`import()\`. Vite emits a separate chunk per locale, so users only download the locales they actually switch to. The initial paint uses \`initialTranslation\` (eagerly bundled), and subsequent switches stream from the network or the HTTP cache.`
++                    }
++                },
++                safety: {
++                    title: `Compile-time guarantees`,
++                    intro: `The point of typing the translation tree is that the compiler refuses to let a locale drift out of sync. Add a key without filling it everywhere and \`tsc\` lights up; the test suite locks the property in.`,
++                    compileCheck: {
++                        title: `Every locale file is a Translation`,
++                        body: `Each per-locale module declares \`const translation: Translation = { … }\`. Add a new key to \`Translation\` (in the library or via app-side augmentation) and every locale file fails to compile until the key is filled. No silent fallbacks, no untranslated string slipping through.`
+                     },
+-                    definedBehaviour: {
+-                        title: `Defined behaviour`,
+-                        intro: `Statements describing how <Steps> is expected to behave, each linked to the test that verifies it. The path/line points at lib/components/ui/steps.test.tsx in this package.`,
+-                        verifiedBy: `verified by`,
+-                        statements: {
+-                            derivesStatuses: `Index < current renders as completed, == current renders as current, > current renders as upcoming.`,
+-                            ariaCurrent: `The step at "current" carries aria-current="step".`,
+-                            rendersTitleDescription: `<Step> renders its title and optional description as written.`,
+-                            orientationAttr: `The <ol> reflects orientation via the aria-orientation attribute.`,
+-                            statusOverride: `Passing "status" on a <Step> overrides the index-derived status.`,
+-                            selectionNoCompleted: `In mode="selection", indices before "current" are never marked completed.`,
+-                            selectionShowsNumbers: `In mode="selection", every indicator shows its step number; no check icons.`,
+-                            throwsOutsideSteps: `Rendering <Step> outside a <Steps> throws a descriptive error.`,
+-                            endAlignmentSide: `With endAlignment="side" the first step's label is left-aligned and the last step's label is right-aligned, while middle labels stay centered.`,
+-                            endAlignmentCenter: `With endAlignment="center" every step's label is centered under its indicator, including the first and last.`,
+-                            loadingIndeterminate: `Passing loading on a <Step> wraps the indicator in an indeterminate spinner ring.`,
+-                            loadingDeterminate: `Passing loading={n} (0–100, clamped) wraps the indicator in a determinate progress ring exposed as role="progressbar" with aria-valuenow.`
+-                        }
++                    complianceTest: {
++                        title: `localesAreCompliant.test.ts`,
++                        body: `\`lib/lib/languages/localesAreCompliant.test.ts\` imports every shipped locale and re-asserts its type against \`BaseTranslation\`. Running \`pnpm test\` (or \`pnpm build\`) surfaces a missing locale slot the same way a CI run does — there's no path where a translation gap reaches production undetected.`
++                    }
++                },
++                conventions: {
++                    title: `Conventions & gotchas`,
++                    intro: `Patterns that keep the tree maintainable as it grows.`,
++                    namespacing: {
++                        title: `Namespace by feature, not by component`,
++                        body: `Group strings by user-facing concept (\`onboarding.welcome\`, \`settings.appearance\`) rather than by component name. The library does the opposite — it namespaces by component (\`primaryMenu\`, \`commandPalette\`) — because its surfaces ARE its components. App keys outlive component renames, so a feature namespace is steadier ground.`
+                     },
+-                    rtl: {
+-                        title: `RTL`,
+-                        body: `The stepper inherits direction from its DOM ancestor: wrap it in dir="rtl" and the indicator order, label alignment, and connector all reverse without any prop changes.`
++                    flatKeys: {
++                        title: `Don't flatten the tree`,
++                        body: `Resist the urge to write \`t["settings.theme.title"]\`. Nested objects are typed end-to-end and refactorable; bracket-indexed flat keys defeat completion, drop refactor support, and make missing-key bugs runtime-only. The one place this is unavoidable is action labels (see "Reading translations" above) — and even there the keys come from an enum.`
+                     },
+-                    apiReference: {
+-                        title: `API Reference`,
+-                        intro: `Props accepted by <Steps> and <Step>.`
++                    actionIds: {
++                        title: `Action labels are the lone dynamic slot`,
++                        body: `\`t.actions[id]\` is a \`Record<string, string>\` because action ids are open-ended. Always source the id from an enum or const so a typo at the call site stays a typo at the lookup site. The translation file is where the label is rendered — keep both halves close together when you add a new action.`
++                    },
++                    spreadBase: {
++                        title: `Always spread the base locale`,
++                        body: `Per-locale app files start with \`...baseEn\` (or \`...baseDe\`) so the library's strings keep their values without being duplicated. Forgetting the spread leaves your app-side keys typechecking individually but the merged \`Translation\` missing every library key — and the compile error surfaces only at the assignment site, far from the missing field.`
+                     }
+                 }
++            }
++        },
++        examples: {
++            _harness: {
++                codeTab: `Code`,
++                stateTab: `State`,
++                noStateReported: `This example does not report state.`
+             },
++            steps: stepsEn,
+             sectionHeading: {
+                 default: {
+                     title: `Default`,
+@@ -451,17 +451,13 @@ const translation: Translation = {
+                     description: `Enhanced LRC sources sprinkle \`<mm:ss.xx>\` markers between words. The component highlights the active word as the timeline advances.`
+                 },
+                 synced: {
+-                    title: `Synced with audio`,
+-                    description: `Wired to an HTML \`<audio>\` element — press play to watch the active line follow the playhead. Clicking a line seeks the audio back.`
++                    title: `Synced with AudioPlayer`,
++                    description: `Wired to the lib's \`<AudioPlayer>\` via its imperative ref — press play and the active line follows the playhead. Clicking a lyric line seeks the player back. Audio: Brad Sucks — "Bad Sign" (CC-BY-SA 3.0, archive.org). LRC: community-authored synced lyrics from LRCLIB, keyed to this exact 232 s recording.`
+                 },
+                 rtl: {
+                     title: `Right-to-left`,
+                     description: `Wrapped in \`dir="rtl"\`. Lines remain centred and time-ordered, but the surrounding text direction flips.`
+                 },
+-                syncedDemo: {
+-                    instructions: `Press play and watch the active line follow the playhead. Click any line to seek the audio back.`,
+-                    toggleAriaLabel: `Toggle playback`
+-                },
+                 doc: {
+                     installation: {
+                         title: `Installation`,
+@@ -494,8 +490,8 @@ const translation: Translation = {
+                             description: `Enhanced LRC with per-word \`<mm:ss.xx>\` markers. The active word picks up the primary colour as time advances.`
+                         },
+                         synced: {
+-                            title: `Wired to <audio>`,
+-                            description: `Press play to drive the lyrics from a real HTML audio element. Clicking a line seeks the audio back.`
++                            title: `Wired to AudioPlayer`,
++                            description: `Press play on the \`<AudioPlayer>\` to drive the lyrics. Clicking a line seeks the player back via its imperative ref. Audio: Brad Sucks — "Bad Sign" (CC-BY-SA 3.0). LRC: community-authored sync from LRCLIB.`
+                         }
+                     },
+                     definedBehaviour: {
+=== NEW FILE: components/react/src/examples/steps/translations.ts ===
+/**
+ * Translation slice for the Steps component (examples + DocPage).
+ *
+ * Owning the type AND both locale literals in one place keeps every
+ * string for a feature reviewable in a single file. The top-level
+ * Translation interface in src/languages.ts references the type
+ * exported here, and the top-level locale files (en-US.ts / de.ts)
+ * spread the value exports — so adding a key here forces both
+ * languages to fill it (tsc + the : Translation annotation in the
+ * locale files do the work).
+ */
+
+interface ExampleEntry {
+    title: string;
+    description: string;
+}
+
+interface DocInstallation {
+    title: string;
+    commandTab: string;
+    manualTab: string;
+    manualStep1: string;
+    manualStep2: string;
+    manualStep3: string;
+}
+
+interface DocSectionBody {
+    title: string;
+    body: string;
+}
+
+export interface StepsTranslation {
+    horizontal: ExampleEntry;
+    endAlignment: ExampleEntry;
+    vertical: ExampleEntry;
+    statusOverride: ExampleEntry;
+    wizard: ExampleEntry;
+    loading: ExampleEntry;
+    disabled: ExampleEntry;
+    icons: ExampleEntry;
+    rtl: ExampleEntry;
+    selection: ExampleEntry;
+    doc: {
+        installation: DocInstallation;
+        usage: DocSectionBody;
+        composition: DocSectionBody;
+        examples: {
+            title: string;
+            line: ExampleEntry;
+            endAlignment: ExampleEntry;
+            vertical: ExampleEntry;
+            loading: ExampleEntry;
+            disabled: ExampleEntry;
+            icons: ExampleEntry;
+        };
+        definedBehaviour: {
+            title: string;
+            intro: string;
+            verifiedBy: string;
+            statements: {
+                derivesStatuses: string;
+                ariaCurrent: string;
+                rendersTitleDescription: string;
+                orientationAttr: string;
+                statusOverride: string;
+                selectionNoCompleted: string;
+                selectionShowsNumbers: string;
+                throwsOutsideSteps: string;
+                endAlignmentSide: string;
+                endAlignmentCenter: string;
+                loadingIndeterminate: string;
+                loadingDeterminate: string;
+            };
+        };
+        rtl: DocSectionBody;
+        apiReference: { title: string; intro: string };
+    };
+}
+
+export const stepsEn: StepsTranslation = {
+    horizontal: {
+        title: `Horizontal stepper`,
+        description: `Default horizontal layout. Status is derived from the controlled "current" index.`
+    },
+    endAlignment: {
+        title: `End alignment`,
+        description: `endAlignment toggles how the first and last steps anchor along the row. "side" (default) pushes them to the row edges with left/right label alignment; "center" centers every label under its indicator. In both modes the indicators stay evenly spaced.`
+    },
+    vertical: {
+        title: `Vertical stepper`,
+        description: `Stack the steps vertically, with the connector running between indicators.`
+    },
+    statusOverride: {
+        title: `Per-step status override`,
+        description: `Pass "status" on an individual <Step> to force its rendering, ignoring the derived state.`
+    },
+    wizard: {
+        title: `Wizard (preview + content)`,
+        description: `Pair <Steps> with content panels and Back/Next buttons for a real-world flow.`
+    },
+    selection: {
+        title: `Selection mode`,
+        description: `mode="selection" turns the stepper into a step picker: every circle shows its number, the active step is filled with the primary color, and there is no notion of completion.`
+    },
+    loading: {
+        title: `Loading`,
+        description: `Per-step loading state. Pass loading={true} for an indeterminate spinner around the indicator, or loading={n} (0–100) for a determinate progress ring driven by your own state.`
+    },
+    disabled: {
+        title: `Disabled`,
+        description: `The whole stepper rendered in a disabled state — muted and non-interactive — using a wrapping container with aria-disabled and pointer-events-none.`
+    },
+    icons: {
+        title: `Icons`,
+        description: `Step titles accept any ReactNode, so you can prefix each label with an icon without modifying the <Steps> primitive itself.`
+    },
+    rtl: {
+        title: `RTL`,
+        description: `Wrapping <Steps> in dir="rtl" flips the layout for right-to-left scripts. Both horizontal and vertical orientations follow.`
+    },
+    doc: {
+        installation: {
+            title: `Installation`,
+            commandTab: `Command`,
+            manualTab: `Manual`,
+            manualStep1: `Install the following dependencies:`,
+            manualStep2: `Copy and paste the following code into your project.`,
+            manualStep3: `Update the import paths to match your project setup.`
+        },
+        usage: {
+            title: `Usage`,
+            body: `Import <Steps> and <Step> from the package and render them with a controlled "current" prop. <Step> reads orientation and current from the surrounding <Steps> via context, so its children must be direct <Step> elements.`
+        },
+        composition: {
+            title: `Composition`,
+            body: `<Steps> is a thin layout that wires context to its children. Each <Step> renders an indicator circle and a label. The status of each step (completed / current / upcoming) is derived from its index relative to "current", but can be overridden per-step via the "status" prop for error or skipped states.`
+        },
+        examples: {
+            title: `Examples`,
+            line: {
+                title: `Line`,
+                description: `The default horizontal layout: a numbered indicator per step, joined by a connector line.`
+            },
+            endAlignment: {
+                title: `End alignment`,
+                description: `Side-by-side comparison of endAlignment="side" (first/last labels at the row edges) and endAlignment="center" (every label centered). Indicators stay evenly spaced in both.`
+            },
+            vertical: {
+                title: `Vertical`,
+                description: `Stack the steps vertically with the connector running between indicators.`
+            },
+            loading: {
+                title: `Loading`,
+                description: `Side-by-side comparison of loading={true} (indeterminate spinner) and loading={n} (determinate progress ring driven by component state).`
+            },
+            disabled: {
+                title: `Disabled`,
+                description: `The stepper rendered as fully disabled — muted and non-interactive.`
+            },
+            icons: {
+                title: `Icons`,
+                description: `Use a ReactNode title to put an icon next to each step's label.`
+            }
+        },
+        definedBehaviour: {
+            title: `Defined behaviour`,
+            intro: `Statements describing how <Steps> is expected to behave, each linked to the test that verifies it. The path/line points at lib/components/ui/steps.test.tsx in this package.`,
+            verifiedBy: `verified by`,
+            statements: {
+                derivesStatuses: `Index < current renders as completed, == current renders as current, > current renders as upcoming.`,
+                ariaCurrent: `The step at "current" carries aria-current="step".`,
+                rendersTitleDescription: `<Step> renders its title and optional description as written.`,
+                orientationAttr: `The <ol> reflects orientation via the aria-orientation attribute.`,
+                statusOverride: `Passing "status" on a <Step> overrides the index-derived status.`,
+                selectionNoCompleted: `In mode="selection", indices before "current" are never marked completed.`,
+                selectionShowsNumbers: `In mode="selection", every indicator shows its step number; no check icons.`,
+                throwsOutsideSteps: `Rendering <Step> outside a <Steps> throws a descriptive error.`,
+                endAlignmentSide: `With endAlignment="side" the first step's label is left-aligned and the last step's label is right-aligned, while middle labels stay centered.`,
+                endAlignmentCenter: `With endAlignment="center" every step's label is centered under its indicator, including the first and last.`,
+                loadingIndeterminate: `Passing loading on a <Step> wraps the indicator in an indeterminate spinner ring.`,
+                loadingDeterminate: `Passing loading={n} (0–100, clamped) wraps the indicator in a determinate progress ring exposed as role="progressbar" with aria-valuenow.`
+            }
+        },
+        rtl: {
+            title: `RTL`,
+            body: `The stepper inherits direction from its DOM ancestor: wrap it in dir="rtl" and the indicator order, label alignment, and connector all reverse without any prop changes.`
+        },
+        apiReference: {
+            title: `API Reference`,
+            intro: `Props accepted by <Steps> and <Step>.`
+        }
+    }
+};
+
+export const stepsDe: StepsTranslation = {
+    horizontal: {
+        title: `Horizontale Schrittanzeige`,
+        description: `Standardmäßige horizontale Anordnung. Der Status wird aus dem kontrollierten „current“-Index abgeleitet.`
+    },
+    endAlignment: {
+        title: `End-Ausrichtung`,
+        description: `endAlignment steuert, wie sich der erste und letzte Schritt entlang der Reihe verankern. „side“ (Standard) drückt sie an die Reihenränder mit links-/rechtsbündigem Label; „center“ zentriert jedes Label unter seinem Indikator. In beiden Modi bleiben die Indikatoren gleichmäßig verteilt.`
+    },
+    vertical: {
+        title: `Vertikale Schrittanzeige`,
+        description: `Schritte vertikal stapeln, mit der Verbindungslinie zwischen den Indikatoren.`
+    },
+    statusOverride: {
+        title: `Status pro Schritt überschreiben`,
+        description: `Übergib „status“ an einen einzelnen <Step>, um seine Darstellung unabhängig vom abgeleiteten Zustand zu erzwingen.`
+    },
+    wizard: {
+        title: `Assistent (Vorschau + Inhalt)`,
+        description: `<Steps> mit Inhaltsbereich und Zurück/Weiter-Schaltflächen für einen realen Ablauf kombinieren.`
+    },
+    selection: {
+        title: `Auswahlmodus`,
+        description: `mode="selection" macht aus der Schrittanzeige eine Schrittauswahl: jeder Kreis zeigt seine Nummer, der aktive Schritt ist mit der Primärfarbe gefüllt, und es gibt kein Konzept von „abgeschlossen“.`
+    },
+    loading: {
+        title: `Ladezustand`,
+        description: `Ladezustand pro Schritt. loading={true} ergibt einen unbestimmten Spinner um den Indikator; loading={n} (0–100) ergibt einen Fortschrittsring, den du aus eigenem State speist.`
+    },
+    disabled: {
+        title: `Deaktiviert`,
+        description: `Die gesamte Schrittanzeige im deaktivierten Zustand — gedämpft und nicht interaktiv — mittels eines Containers mit aria-disabled und pointer-events-none.`
+    },
+    icons: {
+        title: `Icons`,
+        description: `Step-Titel akzeptieren beliebige ReactNode-Werte, sodass jedem Label ein Icon vorangestellt werden kann, ohne das <Steps>-Primitiv anzupassen.`
+    },
+    rtl: {
+        title: `RTL`,
+        description: `<Steps> in dir="rtl" einzuschließen dreht das Layout für rechtsläufige Schriften. Horizontale und vertikale Ausrichtung folgen beide.`
+    },
+    doc: {
+        installation: {
+            title: `Installation`,
+            commandTab: `Befehl`,
+            manualTab: `Manuell`,
+            manualStep1: `Installiere die folgenden Abhängigkeiten:`,
+            manualStep2: `Kopiere den folgenden Code in dein Projekt.`,
+            manualStep3: `Passe die Importpfade an dein Projekt an.`
+        },
+        usage: {
+            title: `Verwendung`,
+            body: `Importiere <Steps> und <Step> aus dem Paket und rendere sie mit einer kontrollierten „current“-Prop. <Step> liest Ausrichtung und current über Context aus dem umgebenden <Steps>; die Kinder müssen daher direkte <Step>-Elemente sein.`
+        },
+        composition: {
+            title: `Komposition`,
+            body: `<Steps> ist ein schlankes Layout, das Context an seine Kinder weiterleitet. Jeder <Step> rendert einen Indikatorkreis und ein Label. Der Status pro Schritt (completed / current / upcoming) wird aus dem Index relativ zu „current“ abgeleitet, lässt sich aber per „status“-Prop überschreiben, etwa für Fehler- oder Übersprungszustände.`
+        },
+        examples: {
+            title: `Beispiele`,
+            line: {
+                title: `Linie`,
+                description: `Das voreingestellte horizontale Layout: ein nummerierter Indikator pro Schritt, verbunden durch eine Linie.`
+            },
+            endAlignment: {
+                title: `End-Ausrichtung`,
+                description: `Direkter Vergleich von endAlignment="side" (erstes/letztes Label an den Reihenrändern) und endAlignment="center" (jedes Label zentriert). In beiden bleiben die Indikatoren gleichmäßig verteilt.`
+            },
+            vertical: {
+                title: `Vertikal`,
+                description: `Schritte vertikal stapeln, mit der Verbindungslinie zwischen den Indikatoren.`
+            },
+            loading: {
+                title: `Ladezustand`,
+                description: `Direkter Vergleich von loading={true} (unbestimmter Spinner) und loading={n} (bestimmter Fortschrittsring, gespeist aus Komponentenstate).`
+            },
+            disabled: {
+                title: `Deaktiviert`,
+                description: `Die Schrittanzeige vollständig deaktiviert dargestellt — gedämpft und nicht interaktiv.`
+            },
+            icons: {
+                title: `Icons`,
+                description: `Ein ReactNode-Titel ermöglicht es, jedem Step-Label ein Icon voranzustellen.`
+            }
+        },
+        definedBehaviour: {
+            title: `Festgelegtes Verhalten`,
+            intro: `Aussagen darüber, wie sich <Steps> verhalten soll, jeweils mit Verweis auf den Test, der das Verhalten absichert. Die Pfade verweisen auf lib/components/ui/steps.test.tsx in diesem Paket.`,
+            verifiedBy: `geprüft durch`,
+            statements: {
+                derivesStatuses: `Index < current ergibt completed, == current ergibt current, > current ergibt upcoming.`,
+                ariaCurrent: `Der Schritt bei „current“ trägt aria-current="step".`,
+                rendersTitleDescription: `<Step> rendert Titel und optionale Beschreibung wie angegeben.`,
+                orientationAttr: `Die <ol> spiegelt die Ausrichtung über das Attribut aria-orientation wider.`,
+                statusOverride: `Ein „status“-Prop auf einem <Step> überschreibt den aus dem Index abgeleiteten Status.`,
+                selectionNoCompleted: `Im mode="selection" werden Indizes vor „current“ niemals als completed markiert.`,
+                selectionShowsNumbers: `Im mode="selection" zeigt jeder Indikator seine Schrittnummer; keine Check-Icons.`,
+                throwsOutsideSteps: `<Step> außerhalb von <Steps> zu rendern wirft einen aussagekräftigen Fehler.`,
+                endAlignmentSide: `Mit endAlignment="side" ist das Label des ersten Schritts linksbündig und das des letzten rechtsbündig; mittlere Labels bleiben zentriert.`,
+                endAlignmentCenter: `Mit endAlignment="center" ist das Label jedes Schritts unter seinem Indikator zentriert — auch das erste und das letzte.`,
+                loadingIndeterminate: `loading auf einem <Step> umrahmt den Indikator mit einem unbestimmten Spinner-Ring.`,
+                loadingDeterminate: `loading={n} (0–100, geklemmt) umrahmt den Indikator mit einem Fortschrittsring, der als role="progressbar" mit aria-valuenow exponiert wird.`
+            }
+        },
+        rtl: {
+            title: `RTL`,
+            body: `Die Schrittanzeige erbt die Richtung von ihrem DOM-Vorfahren: ein umgebendes dir="rtl" kehrt Indikatorreihenfolge, Label-Ausrichtung und Verbindungslinien um — ohne Prop-Änderungen.`
+        },
+        apiReference: {
+            title: `API-Referenz`,
+            intro: `Props, die <Steps> und <Step> akzeptieren.`
+        }
+    }
+};
+=== NEW FILE: components/react/src/guides/TranslationsGuide.test.tsx ===
+import "@testing-library/jest-dom/vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { defaultCodeThemes } from "../../lib/lib/codeThemes";
+import { ActionManager } from "../../lib/lib/mowsContext/ActionManager";
+import { HotkeyManager } from "../../lib/lib/mowsContext/HotkeyManager";
+import {
+    defaultCodeEditorSettings,
+    defaultToastSettings,
+    MowsContext,
+    type MowsContextType
+} from "../../lib/lib/mowsContext/MowsContext";
+import enTranslation from "../languages/en-US";
+import deTranslation from "../languages/de";
+import { TranslationsGuide } from "./TranslationsGuide";
+
+const buildContext = (t: typeof enTranslation): MowsContextType => {
+    const am = new ActionManager({ recentActionsStorageKey: `t`, maxRecentActions: 5 });
+    const hm = new HotkeyManager(am, { configStorageKey: `t-hk`, defaultHotkeys: {} });
+    return {
+        auth: {} as never,
+        authConfigured: false,
+        mowsUser: null,
+        storagePrefix: `test`,
+        setTheme: async () => undefined,
+        currentTheme: { id: `light`, name: `Light` },
+        setLanguage: () => undefined,
+        t,
+        currentLanguage: undefined,
+        themes: [],
+        languages: [],
+        actionManager: am,
+        hotkeyManager: hm,
+        currentlyOpenModal: undefined,
+        changeActiveModal: () => undefined,
+        codeThemes: defaultCodeThemes,
+        currentCodeTheme: defaultCodeThemes[0],
+        setCodeTheme: () => undefined,
+        codeEditorSettings: defaultCodeEditorSettings,
+        setCodeEditorSettings: () => undefined,
+        toastSettings: defaultToastSettings,
+        setToastSettings: () => undefined
+    } as unknown as MowsContextType;
+};
+
+const renderGuide = (t: typeof enTranslation) =>
+    render(
+        <MowsContext.Provider value={buildContext(t)}>
+            <TranslationsGuide />
+        </MowsContext.Provider>
+    );
+
+describe(`TranslationsGuide`, () => {
+    it(`renders every top-level section heading from the English tree`, () => {
+        renderGuide(enTranslation);
+        const t = enTranslation.example.guides.translations;
+        for (const section of [
+            t.overview.title,
+            t.setup.title,
+            t.reading.title,
+            t.extending.title,
+            t.switching.title,
+            t.safety.title,
+            t.conventions.title
+        ]) {
+            expect(
+                screen.queryAllByText(section).length,
+                `expected section heading "${section}" to render`
+            ).toBeGreaterThan(0);
+        }
+    });
+
+    it(`renders every top-level section heading from the German tree`, () => {
+        renderGuide(deTranslation);
+        const t = deTranslation.example.guides.translations;
+        for (const section of [
+            t.overview.title,
+            t.setup.title,
+            t.reading.title,
+            t.extending.title,
+            t.switching.title,
+            t.safety.title,
+            t.conventions.title
+        ]) {
+            expect(
+                screen.queryAllByText(section).length,
+                `expected section heading "${section}" to render`
+            ).toBeGreaterThan(0);
+        }
+    });
+
+    it(`throws when rendered outside <MowsProvider>`, () => {
+        const consoleError = vi.spyOn(console, `error`).mockImplementation(() => undefined);
+        expect(() => render(<TranslationsGuide />)).toThrow(/must be rendered inside/);
+        consoleError.mockRestore();
+    });
+});
+=== NEW FILE: components/react/src/guides/TranslationsGuide.tsx ===
+import * as React from "react";
+import CodeViewer from "../../lib/components/code/codeViewer/CodeViewer";
+import ExpandableCode from "../../lib/components/code/expandableCode/ExpandableCode";
+import { type PageIndexItem } from "../../lib/components/navigation/pageIndex/PageIndex";
+import { MowsContext } from "../../lib/lib/mowsContext/MowsContext";
+import { DocPage, DocSection, DocSubsection } from "../examples/harness/docPage";
+
+const ANCHOR = {
+    overview: `overview`,
+    overviewBase: `overview-base`,
+    overviewTranslation: `overview-translation`,
+    overviewLanguage: `overview-language`,
+    overviewProvider: `overview-provider`,
+    setup: `setup`,
+    setupMount: `setup-mount`,
+    setupDefaults: `setup-defaults`,
+    reading: `reading`,
+    readingHooks: `reading-hooks`,
+    readingClass: `reading-class`,
+    readingActions: `reading-actions`,
+    extending: `extending`,
+    extendingDeclare: `extending-declare`,
+    extendingLocale: `extending-locale`,
+    extendingConsume: `extending-consume`,
+    switching: `switching`,
+    switchingRuntime: `switching-runtime`,
+    switchingChunks: `switching-chunks`,
+    safety: `safety`,
+    safetyCompile: `safety-compile`,
+    safetyTest: `safety-test`,
+    conventions: `conventions`,
+    conventionsNamespace: `conventions-namespace`,
+    conventionsFlat: `conventions-flat`,
+    conventionsActions: `conventions-actions`,
+    conventionsSpread: `conventions-spread`
+} as const;
+
+const BASE_TRANSLATION_SNIPPET = `// lib/lib/languages.ts — the library's own contract
+export interface BaseTranslation {
+    primaryMenu: {
+        login: string;
+        logout: string;
+        // …
+    };
+    commandPalette: {
+        placeholder: string;
+        noResults: string;
+        // …
+    };
+    actions: {
+        // Action labels are the one open-ended slot — keys are namespaced
+        // strings chosen by the caller (e.g. "myapp.document.create").
+        [key: string]: string;
+    };
+    // …
+}
+
+// Apps extend this — declaration merging adds their keys to the same tree.
+export interface Translation extends BaseTranslation {}`;
+
+const LANGUAGE_SNIPPET = `// lib/lib/languages.ts
+export interface Language {
+    code: string;            // "en-US", "de"
+    originalName: string;    // "English (US)", "Deutsch"
+    englishName: string;
+    emoji: string;
+    // Dynamic import: Vite splits this into a separate chunk per locale.
+    import: () => Promise<{ default: Translation }>;
+}`;
+
+const PROVIDER_MOUNT_SNIPPET = `import { MowsProvider } from "@mows/react-components";
+import { languages, type Translation } from "./languages";
+import enTranslation from "./languages/en-US";
+import deTranslation from "./languages/de";
+
+const STORAGE_PREFIX = "my-app";
+
+// Bundle the picked initial locale eagerly so the first paint never
+// flashes English while the chunk loads.
+const eagerTranslations: Record<string, Translation> = {
+    "en-US": enTranslation,
+    de: deTranslation
+};
+
+const pickInitialTranslation = (): Translation => {
+    const stored = localStorage.getItem(\`\${STORAGE_PREFIX}_language\`);
+    if (stored && eagerTranslations[stored]) return eagerTranslations[stored];
+    const browser = navigator.language;
+    if (eagerTranslations[browser]) return eagerTranslations[browser];
+    const base = browser.split("-")[0];
+    if (eagerTranslations[base]) return eagerTranslations[base];
+    return enTranslation;
+};
+
+createRoot(document.getElementById("root")!).render(
+    <MowsProvider
+        storagePrefix={STORAGE_PREFIX}
+        languages={languages}
+        initialTranslation={pickInitialTranslation()}
+    >
+        <App />
+    </MowsProvider>
+);`;
+
+const LANGUAGE_LIST_SNIPPET = `// src/languages.ts — the Language[] you pass to <MowsProvider>
+import type { Language } from "@mows/react-components";
+
+export const languages: Language[] = [
+    {
+        code: "en-US",
+        originalName: "English (US)",
+        englishName: "English (US)",
+        emoji: "🇺🇸",
+        // Each import() resolves to YOUR extended Translation, not the
+        // library's bare BaseTranslation. That's why you can't just reuse
+        // baseLanguages once you've added app-side keys.
+        import: () => import("./languages/en-US").then((m) => ({ default: m.default }))
+    },
+    {
+        code: "de",
+        originalName: "Deutsch",
+        englishName: "German",
+        emoji: "🇩🇪",
+        import: () => import("./languages/de").then((m) => ({ default: m.default }))
+    }
+];`;
+
+const READ_HOOK_SNIPPET = `import { useMows } from "@mows/react-components";
+
+export const Greeting = () => {
+    const { t } = useMows();
+    // Typed end-to-end: tsc errors if t.dashboard.greeting doesn't exist.
+    return <h1>{t.dashboard.greeting}</h1>;
+};`;
+
+const READ_CLASS_SNIPPET = `import { Component, type ContextType } from "react";
+import { MowsContext } from "@mows/react-components";
+
+export class Greeting extends Component {
+    static contextType = MowsContext;
+    declare context: ContextType<typeof MowsContext>;
+
+    render = () => {
+        // this.context is typed against MowsContextType — the same dot-path
+        // completion you get from useMows().
+        return <h1>{this.context!.t.dashboard.greeting}</h1>;
+    };
+}`;
+
+const READ_ACTION_SNIPPET = `// Define your action ids in one place — namespaced strings, ideally an enum.
+export enum AppActionIds {
+    CREATE_DOCUMENT = "myapp.document.create"
+}
+
+// In each locale file, fill the label under \`actions\`:
+const translation: Translation = {
+    ...baseEn,
+    actions: {
+        ...baseEn.actions,
+        [AppActionIds.CREATE_DOCUMENT]: "Create document"
+    },
+    // …
+};
+
+// Read at call sites the same way — looked up dynamically, but the id
+// comes from the enum so a typo stays a typo at both ends.
+const label = t.actions[AppActionIds.CREATE_DOCUMENT];`;
+
+const DECLARE_MERGE_SNIPPET = `// src/languages.ts in your app
+import {
+    type Language as MowsLanguage,
+    type Translation as MowsTranslation
+} from "@mows/react-components";
+
+// eslint-disable-next-line quotes
+declare module "@mows/react-components" {
+    interface Translation {
+        // Group by feature, not by component — these keys outlive
+        // component renames.
+        dashboard: {
+            greeting: string;
+            empty: string;
+        };
+        settings: {
+            appearance: {
+                title: string;
+                description: string;
+            };
+        };
+    }
+}
+
+export type Translation = MowsTranslation;
+export type Language = MowsLanguage;`;
+
+const LOCALE_FILE_SNIPPET = `// src/languages/en-US.ts
+import baseEn from "@mows/react-components/lib/languages/en-US/default";
+import type { Translation } from "../languages";
+
+// const annotation forces tsc to check every required key is present —
+// add a key to Translation without filling it here and this assignment
+// fails to compile.
+const translation: Translation = {
+    ...baseEn,          // every library string keeps its baseline value
+    actions: {
+        ...baseEn.actions
+        // app actions go here
+    },
+    dashboard: {
+        greeting: "Welcome back",
+        empty: "Nothing to show yet."
+    },
+    settings: {
+        appearance: {
+            title: "Appearance",
+            description: "Theme and density."
+        }
+    }
+};
+
+export default translation;`;
+
+const SWITCH_RUNTIME_SNIPPET = `import { useMows } from "@mows/react-components";
+
+const LanguageButtons = () => {
+    const { languages, setLanguage, currentLanguage } = useMows();
+    return (
+        <div>
+            {languages.map((lang) => (
+                <button
+                    key={lang.code}
+                    onClick={() => setLanguage(lang)}
+                    aria-pressed={currentLanguage?.code === lang.code}
+                >
+                    {lang.emoji} {lang.originalName}
+                </button>
+            ))}
+        </div>
+    );
+};
+
+// In most cases you don't need this — the bundled <LanguagePicker>
+// component does the same thing with built-in keyboard navigation.`;
+
+const COMPLIANCE_TEST_SNIPPET = `// lib/lib/languages/localesAreCompliant.test.ts (mirror this pattern
+// in your app to lock the property in for your own locales)
+import type { BaseTranslation } from "./languages";
+import enUsDefault from "./en-US/default";
+import deDefault from "./de/default";
+
+// The annotations alone do the compile-time work — vitest runs the
+// type-check by virtue of the test file being part of the test suite.
+const enUs: BaseTranslation = enUsDefault;
+const de: BaseTranslation = deDefault;
+
+describe("locale files satisfy BaseTranslation", () => {
+    it("en-US/default exports a non-empty translation tree", () => {
+        expect(Object.keys(enUs).length).toBeGreaterThan(0);
+    });
+    it("de/default exports a non-empty translation tree", () => {
+        expect(Object.keys(de).length).toBeGreaterThan(0);
+    });
+});`;
+
+const useTranslationsStrings = () => {
+    const mowsContext = React.useContext(MowsContext);
+    if (!mowsContext)
+        throw new Error(`<TranslationsGuide> must be rendered inside <MowsProvider>`);
+    return mowsContext.t.example.guides.translations;
+};
+
+export const TranslationsGuide = () => {
+    const t = useTranslationsStrings();
+
+    const indexItems: PageIndexItem[] = React.useMemo(
+        () => [
+            {
+                id: ANCHOR.overview,
+                label: t.overview.title,
+                children: [
+                    { id: ANCHOR.overviewBase, label: t.overview.baseTranslation.title },
+                    {
+                        id: ANCHOR.overviewTranslation,
+                        label: t.overview.translationInterface.title
+                    },
+                    { id: ANCHOR.overviewLanguage, label: t.overview.language.title },
+                    { id: ANCHOR.overviewProvider, label: t.overview.provider.title }
+                ]
+            },
+            {
+                id: ANCHOR.setup,
+                label: t.setup.title,
+                children: [
+                    { id: ANCHOR.setupMount, label: t.setup.mountProvider.title },
+                    { id: ANCHOR.setupDefaults, label: t.setup.defaultLanguages.title }
+                ]
+            },
+            {
+                id: ANCHOR.reading,
+                label: t.reading.title,
+                children: [
+                    { id: ANCHOR.readingHooks, label: t.reading.hooks.title },
+                    { id: ANCHOR.readingClass, label: t.reading.classComponents.title },
+                    { id: ANCHOR.readingActions, label: t.reading.actions.title }
+                ]
+            },
+            {
+                id: ANCHOR.extending,
+                label: t.extending.title,
+                children: [
+                    { id: ANCHOR.extendingDeclare, label: t.extending.declareMerge.title },
+                    { id: ANCHOR.extendingLocale, label: t.extending.perLocaleFile.title },
+                    {
+                        id: ANCHOR.extendingConsume,
+                        label: t.extending.consumeOwnKeys.title
+                    }
+                ]
+            },
+            {
+                id: ANCHOR.switching,
+                label: t.switching.title,
+                children: [
+                    { id: ANCHOR.switchingRuntime, label: t.switching.runtime.title },
+                    { id: ANCHOR.switchingChunks, label: t.switching.chunks.title }
+                ]
+            },
+            {
+                id: ANCHOR.safety,
+                label: t.safety.title,
+                children: [
+                    { id: ANCHOR.safetyCompile, label: t.safety.compileCheck.title },
+                    { id: ANCHOR.safetyTest, label: t.safety.complianceTest.title }
+                ]
+            },
+            {
+                id: ANCHOR.conventions,
+                label: t.conventions.title,
+                children: [
+                    {
+                        id: ANCHOR.conventionsNamespace,
+                        label: t.conventions.namespacing.title
+                    },
+                    { id: ANCHOR.conventionsFlat, label: t.conventions.flatKeys.title },
+                    {
+                        id: ANCHOR.conventionsActions,
+                        label: t.conventions.actionIds.title
+                    },
+                    {
+                        id: ANCHOR.conventionsSpread,
+                        label: t.conventions.spreadBase.title
+                    }
+                ]
+            }
+        ],
+        [t.overview, t.setup, t.reading, t.extending, t.switching, t.safety, t.conventions]
+    );
+
+    return (
+        <DocPage indexItems={indexItems}>
+            <DocSection
+                id={ANCHOR.overview}
+                title={t.overview.title}
+                description={t.overview.intro}
+            >
+                <DocSubsection
+                    id={ANCHOR.overviewBase}
+                    title={t.overview.baseTranslation.title}
+                    description={t.overview.baseTranslation.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={BASE_TRANSLATION_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.overviewTranslation}
+                    title={t.overview.translationInterface.title}
+                    description={t.overview.translationInterface.body}
+                />
+
+                <DocSubsection
+                    id={ANCHOR.overviewLanguage}
+                    title={t.overview.language.title}
+                    description={t.overview.language.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={LANGUAGE_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.overviewProvider}
+                    title={t.overview.provider.title}
+                    description={t.overview.provider.body}
+                />
+            </DocSection>
+
+            <DocSection id={ANCHOR.setup} title={t.setup.title} description={t.setup.intro}>
+                <DocSubsection
+                    id={ANCHOR.setupMount}
+                    title={t.setup.mountProvider.title}
+                    description={t.setup.mountProvider.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={PROVIDER_MOUNT_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.setupDefaults}
+                    title={t.setup.defaultLanguages.title}
+                    description={t.setup.defaultLanguages.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={LANGUAGE_LIST_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.reading}
+                title={t.reading.title}
+                description={t.reading.intro}
+            >
+                <DocSubsection
+                    id={ANCHOR.readingHooks}
+                    title={t.reading.hooks.title}
+                    description={t.reading.hooks.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={READ_HOOK_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.readingClass}
+                    title={t.reading.classComponents.title}
+                    description={t.reading.classComponents.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={READ_CLASS_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.readingActions}
+                    title={t.reading.actions.title}
+                    description={t.reading.actions.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={READ_ACTION_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.extending}
+                title={t.extending.title}
+                description={t.extending.intro}
+            >
+                <DocSubsection
+                    id={ANCHOR.extendingDeclare}
+                    title={t.extending.declareMerge.title}
+                    description={t.extending.declareMerge.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={DECLARE_MERGE_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.extendingLocale}
+                    title={t.extending.perLocaleFile.title}
+                    description={t.extending.perLocaleFile.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={LOCALE_FILE_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.extendingConsume}
+                    title={t.extending.consumeOwnKeys.title}
+                    description={t.extending.consumeOwnKeys.body}
+                />
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.switching}
+                title={t.switching.title}
+                description={t.switching.intro}
+            >
+                <DocSubsection
+                    id={ANCHOR.switchingRuntime}
+                    title={t.switching.runtime.title}
+                    description={t.switching.runtime.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={SWITCH_RUNTIME_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+
+                <DocSubsection
+                    id={ANCHOR.switchingChunks}
+                    title={t.switching.chunks.title}
+                    description={t.switching.chunks.body}
+                />
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.safety}
+                title={t.safety.title}
+                description={t.safety.intro}
+            >
+                <DocSubsection
+                    id={ANCHOR.safetyCompile}
+                    title={t.safety.compileCheck.title}
+                    description={t.safety.compileCheck.body}
+                />
+
+                <DocSubsection
+                    id={ANCHOR.safetyTest}
+                    title={t.safety.complianceTest.title}
+                    description={t.safety.complianceTest.body}
+                >
+                    <ExpandableCode>
+                        <CodeViewer code={COMPLIANCE_TEST_SNIPPET} language={`tsx`} fitContent />
+                    </ExpandableCode>
+                </DocSubsection>
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.conventions}
+                title={t.conventions.title}
+                description={t.conventions.intro}
+            >
+                <DocSubsection
+                    id={ANCHOR.conventionsNamespace}
+                    title={t.conventions.namespacing.title}
+                    description={t.conventions.namespacing.body}
+                />
+                <DocSubsection
+                    id={ANCHOR.conventionsFlat}
+                    title={t.conventions.flatKeys.title}
+                    description={t.conventions.flatKeys.body}
+                />
+                <DocSubsection
+                    id={ANCHOR.conventionsActions}
+                    title={t.conventions.actionIds.title}
+                    description={t.conventions.actionIds.body}
+                />
+                <DocSubsection
+                    id={ANCHOR.conventionsSpread}
+                    title={t.conventions.spreadBase.title}
+                    description={t.conventions.spreadBase.body}
+                />
+            </DocSection>
+        </DocPage>
+    );
+};
+
+export default TranslationsGuide;

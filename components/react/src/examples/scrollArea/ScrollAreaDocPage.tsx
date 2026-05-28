@@ -31,9 +31,9 @@ const ANCHOR = {
     apiReference: `api-reference`
 } as const;
 
-const PACKAGE_INSTALL = `add @mows/react-components`;
+const PACKAGE_INSTALL = `add @my-own-web-services/react-components`;
 
-const USAGE_SNIPPET = `import { ScrollArea } from "@mows/react-components";
+const USAGE_SNIPPET = `import { ScrollArea } from "@my-own-web-services/react-components";
 
 <ScrollArea className="h-48 w-full max-w-md rounded-md border p-4">
     {items.map(...)}

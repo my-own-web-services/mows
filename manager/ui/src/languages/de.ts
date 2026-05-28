@@ -1,4 +1,4 @@
-import baseDe from "@mows/react-components/lib/languages/de/default";
+import baseDe from "@my-own-web-services/react-components/lib/languages/de/default";
 import type { Translation } from "../languages";
 
 const translation: Translation = {

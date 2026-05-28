@@ -2,7 +2,7 @@ import { type FilezFile } from "filez-client-typescript";
 import type { SigninRedirectArgs } from "oidc-client-ts";
 import { FILEZ_POST_LOGIN_REDIRECT_PATH_LOCAL_STORAGE_KEY } from "./constants";
 
-export { cn, formatFileSizeToHumanReadable, generateRandomId } from "@mows/react-components/lib/utils";
+export { cn, formatFileSizeToHumanReadable, generateRandomId } from "@my-own-web-services/react-components/lib/utils";
 
 export const rawFileEndings = [
     `3fr`,

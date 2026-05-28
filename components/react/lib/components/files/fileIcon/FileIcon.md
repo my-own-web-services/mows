@@ -59,7 +59,7 @@ Resolution by exact filename (`Dockerfile`, `package.json`, `.gitignore`,
 `.pdf`).
 
 ```tsx
-import FileIcon from "@mows/react-components/components/files/fileIcon/FileIcon";
+import FileIcon from "@my-own-web-services/react-components/components/files/fileIcon/FileIcon";
 
 const FILES = [
     "app.ts",
@@ -95,7 +95,7 @@ The `size` prop sets both width and height; the underlying SVG scales
 without quality loss.
 
 ```tsx
-import FileIcon from "@mows/react-components/components/files/fileIcon/FileIcon";
+import FileIcon from "@my-own-web-services/react-components/components/files/fileIcon/FileIcon";
 
 const SIZES = [16, 24, 32, 48, 64, 96];
 
@@ -118,7 +118,7 @@ extensions resolve to the generic `file` icon. The lucide `File` glyph
 fallback only fires if the SVG asset itself fails to load.
 
 ```tsx
-import FileIcon from "@mows/react-components/components/files/fileIcon/FileIcon";
+import FileIcon from "@my-own-web-services/react-components/components/files/fileIcon/FileIcon";
 
 const UNKNOWN = ["thing.unknownext", "noext", "weirdfile.zzz"];
 

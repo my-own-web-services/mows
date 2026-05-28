@@ -1,8 +1,12 @@
 // e2e regression for the VM SSH console.
 //
 // Scope: clicking a running VM in the sidebar opens VmDetail, the
-// `<VmSshConsole>` upgrades a websocket to /v1/vms/{id}/ssh-io, the
-// supervisor shells into the guest, and bytes flow both ways.
+// console tab spawns through `PUT /v1/vms/{id}/agents/{tabId}`, the
+// supervisor shells into the guest via `agent_runtime` + tmux, and
+// bytes flow both ways through `/v1/agents/{id}/io`. (The legacy
+// direct-ssh `/v1/vms/{id}/ssh-io` path is still served by the
+// supervisor for direct consumers, but the web UI no longer uses it
+// — the agent endpoint is the unified path through `VmAgentConsole`.)
 //
 // What we cover:
 //   1. Auth: bearer token from the supervisor's `api_token` file is

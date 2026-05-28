@@ -40,6 +40,7 @@ import DateTimePickerDocPage from "./examples/dateTimePicker/DateTimePickerDocPa
 import TimePickerDocPage from "./examples/timePicker/TimePickerDocPage";
 import TimezoneSelectorDocPage from "./examples/timezoneSelector/TimezoneSelectorDocPage";
 import DateTimeRangePickerDocPage from "./examples/dateTimeRangePicker/DateTimeRangePickerDocPage";
+import OpeningHoursDocPage from "./examples/openingHours/OpeningHoursDocPage";
 import TimelineDocPage from "./examples/timeline/TimelineDocPage";
 import LoggingConfigDocPage from "./examples/loggingConfig/LoggingConfigDocPage";
 import CommandPaletteDocPage from "./examples/commandPalette/CommandPaletteDocPage";
@@ -47,6 +48,8 @@ import ModalHandlerDocPage from "./examples/modalHandler/ModalHandlerDocPage";
 import FileViewerDocPage from "./examples/fileViewer/FileViewerDocPage";
 import Image360ViewerDocPage from "./examples/image360Viewer/Image360ViewerDocPage";
 import ResourceListDocPage from "./examples/resourceList/ResourceListDocPage";
+import ChatDocPage from "./examples/chat/ChatDocPage";
+import EmojiPickerDocPage from "./examples/emojiPicker/EmojiPickerDocPage";
 import ConsoleManagerDocPage from "./examples/consoleManager/ConsoleManagerDocPage";
 import DateTimeDisplayDocPage from "./examples/dateTimeDisplay/DateTimeDisplayDocPage";
 import KeyComboRecorderDocPage from "./examples/keyComboRecorder/KeyComboRecorderDocPage";
@@ -108,6 +111,7 @@ export const demos: DemoEntry[] = [
     { id: `timePicker`, name: `TimePicker`, groupKey: `dateTime`, render: () => <TimePickerDocPage /> },
     { id: `timezoneSelector`, name: `TimezoneSelector`, groupKey: `dateTime`, render: () => <TimezoneSelectorDocPage /> },
     { id: `dateTimeRangePicker`, name: `DateTimeRangePicker`, groupKey: `dateTime`, render: () => <DateTimeRangePickerDocPage /> },
+    { id: `openingHours`, name: `OpeningHours`, groupKey: `dateTime`, render: () => <OpeningHoursDocPage />, searchTags: [`opening`, `hours`, `osm`, `openstreetmap`, `schedule`, `place`, `business`, `open`, `closed`] },
     { id: `timeline`, name: `Timeline`, groupKey: `input`, render: () => <TimelineDocPage />, searchTags: [`scrubber`, `playhead`, `video`, `axis`, `zoom`, `time`] },
     { id: `nodeEditor`, name: `NodeEditor`, groupKey: `editor`, render: () => <NodeEditorDocPage />, searchTags: [`graph`, `flow`, `dag`, `node`, `pipeline`, `react-flow`, `xyflow`, `dataflow`, `visual`] },
     {
@@ -148,6 +152,7 @@ export const demos: DemoEntry[] = [
     { id: `inlineEdit`, name: `InlineEdit`, groupKey: `input`, render: () => <InlineEditDocPage />, searchTags: [`edit`, `rename`, `contenteditable`, `inplace`] },
     { id: `numberInput`, name: `NumberInput`, groupKey: `input`, render: () => <NumberInputDocPage />, searchTags: [`number`, `numeric`, `stepper`] },
     { id: `searchSelectPicker`, name: `SearchSelectPicker`, groupKey: `input`, render: () => <SearchSelectPickerDocPage />, searchTags: [`combobox`, `command`, `autocomplete`] },
+    { id: `emojiPicker`, name: `EmojiPicker`, groupKey: `input`, render: () => <EmojiPickerDocPage />, searchTags: [`emoji`, `picker`, `smiley`, `emoticon`, `unicode`, `reactions`, `keyboard`] },
     { id: `locationPicker`, name: `LocationPicker`, groupKey: `input`, render: () => <LocationPickerDocPage />, searchTags: [`map`, `coordinates`, `lat`, `lng`, `geo`, `place`] },
     { id: `settingsPanel`, name: `SettingsPanel`, groupKey: `settings`, render: () => <SettingsPanelDocPage /> },
     { id: `languagePicker`, name: `LanguagePicker`, groupKey: `settings`, render: () => <LanguagePickerDocPage /> },
@@ -156,6 +161,7 @@ export const demos: DemoEntry[] = [
     { id: `loggingConfig`, name: `LoggingConfig`, groupKey: `settings`, render: () => <LoggingConfigDocPage /> },
     { id: `map`, name: `Map`, groupKey: `map`, render: () => <MapDocPage />, searchTags: [`map`, `mapbox`, `mapbox-gl`, `maplibre`, `tiles`, `geo`] },
     { id: `resourceList`, name: `ResourceList`, groupKey: `list`, render: () => <ResourceListDocPage /> },
+    { id: `chat`, name: `Chat`, groupKey: `chat`, render: () => <ChatDocPage />, searchTags: [`messages`, `messaging`, `conversation`, `reactions`, `threads`, `reply`, `inbox`, `dm`] },
     { id: `compass`, name: `Compass`, groupKey: `navigation`, render: () => <CompassDocPage />, searchTags: [`heading`, `bearing`, `yaw`, `direction`] },
     {
         id: `pageIndex`,

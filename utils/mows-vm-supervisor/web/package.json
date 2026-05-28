@@ -15,7 +15,7 @@
     },
     "dependencies": {
         "@fontsource-variable/inter": "^5.0.18",
-        "@mows/react-components": "file:.yalc/@mows/react-components",
+        "@my-own-web-services/react-components": "file:.yalc/@my-own-web-services/react-components",
         "@xterm/addon-fit": "^0.10.0",
         "@xterm/xterm": "^5.5.0",
         "class-variance-authority": "0.7.1",

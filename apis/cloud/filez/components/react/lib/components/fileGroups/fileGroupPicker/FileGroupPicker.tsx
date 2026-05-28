@@ -5,9 +5,9 @@ import {
     CommandInput,
     CommandItem,
     CommandList
-} from "@mows/react-components/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@mows/react-components/components/ui/popover";
-import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
+} from "@my-own-web-services/react-components/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@my-own-web-services/react-components/components/ui/popover";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, Folder } from "lucide-react";

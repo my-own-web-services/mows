@@ -11,8 +11,10 @@ import {
     FastForward
 } from "lucide-react";
 import {
+    forwardRef,
     useCallback,
     useEffect,
+    useImperativeHandle,
     useMemo,
     useRef,
     useState,
@@ -41,6 +43,58 @@ import {
 const SEEK_STEP_SECONDS = 5;
 const VOLUME_STEP = 0.1;
 const VOLUME_SLIDER_MAX = 1;
+
+// Negatives → 0. Above duration → clamp to duration once it is known.
+// When duration is unknown (NaN/0 before `loadedmetadata`) the value passes
+// through; the browser will clamp it itself once metadata arrives, and we
+// don't want to artificially pin the request to 0 in the meantime.
+const clampSeekSeconds = (
+    audioElement: HTMLAudioElement,
+    seconds: number
+): number => {
+    const duration = audioElement.duration;
+    const upper =
+        Number.isFinite(duration) && duration > 0 ? duration : Infinity;
+    return Math.max(0, Math.min(seconds, upper));
+};
+
+/**
+ * Imperative handle exposed via `forwardRef`. Wire a ref to an
+ * `<AudioPlayer>` to drive playback from outside the component — for
+ * instance, to seek the audio when a synced lyric line is clicked.
+ *
+ * Before the underlying `<audio>` element mounts, mutating methods
+ * (`seekTo`, `play`, `pause`) are no-ops, and accessor methods return
+ * safe defaults (`getCurrentTime` / `getDuration` → `0`, `getElement`
+ * → `null`), so callers can fire them without guarding.
+ */
+export interface AudioPlayerHandle {
+    /**
+     * Move playback to `seconds`. Negatives clamp to `0`; values above
+     * `duration` clamp to `duration` once metadata is loaded. Non-finite
+     * inputs (`NaN`, `Infinity`) are ignored.
+     */
+    readonly seekTo: (seconds: number) => void;
+    /**
+     * Start playback. Returns the underlying `HTMLAudioElement.play()`
+     * promise so callers can observe browser autoplay rejection via
+     * `.catch()`. Resolves immediately when the element hasn't mounted yet.
+     */
+    readonly play: () => Promise<void>;
+    /** Pause playback. */
+    readonly pause: () => void;
+    /** Current playback position in seconds. */
+    readonly getCurrentTime: () => number;
+    /** Total media duration in seconds. `0` before metadata loads. */
+    readonly getDuration: () => number;
+    /**
+     * Escape hatch returning the underlying `<audio>` element. Prefer
+     * the typed methods above; reach for this only when you need APIs
+     * the typed surface doesn't cover (Web Audio pipelines,
+     * media-source extensions, etc.).
+     */
+    readonly getElement: () => HTMLAudioElement | null;
+}
 
 export interface AudioPlayerProps {
     /** Resolved audio URL. Consumers are responsible for any token / signed
@@ -111,36 +165,51 @@ const INITIAL_STATUS: PlayerStatus = {
     error: null
 };
 
-export const AudioPlayer = ({
-    src,
-    title,
-    subtitle,
-    artwork,
-    peaks,
-    variant = `bar`,
-    className,
-    style,
-    autoPlay = false,
-    loop = false,
-    crossOrigin,
-    preload = `metadata`,
-    downloadable = true,
-    downloadName,
-    strings,
-    trailing,
-    onPlay,
-    onPause,
-    onEnded,
-    onTimeUpdate,
-    onError
-}: AudioPlayerProps) => {
-    const t = { ...DEFAULT_AUDIO_PLAYER_STRINGS, ...strings };
+export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
+    (
+        {
+            src,
+            title,
+            subtitle,
+            artwork,
+            peaks,
+            variant = `bar`,
+            className,
+            style,
+            autoPlay = false,
+            loop = false,
+            crossOrigin,
+            preload = `metadata`,
+            downloadable = true,
+            downloadName,
+            strings,
+            trailing,
+            onPlay,
+            onPause,
+            onEnded,
+            onTimeUpdate,
+            onError
+        },
+        ref
+    ) => {
+    const t = useMemo(
+        () => ({ ...DEFAULT_AUDIO_PLAYER_STRINGS, ...strings }),
+        [strings]
+    );
     const audioRef = useRef<HTMLAudioElement>(null);
     const [status, setStatus] = useState<PlayerStatus>(INITIAL_STATUS);
     // While the user is mid-drag on the waveform, hold the seek value
     // locally and only commit to the audio element on release. Writing
     // through on every tick causes seek thrash on slow sources.
     const [scrubProgress, setScrubProgress] = useState<number | null>(null);
+
+    // Stash the callback props in a ref so the event-listener effect can
+    // depend on `[]` and stay attached for the component's lifetime.
+    // Without this, an inline `onTimeUpdate={(t) => …}` on the parent
+    // would tear down + reinstall all 11 listeners on every render and
+    // race the user's volume drag during the re-sync block below.
+    const callbacksRef = useRef({ onPlay, onPause, onEnded, onTimeUpdate, onError });
+    callbacksRef.current = { onPlay, onPause, onEnded, onTimeUpdate, onError };
 
     // Side-effect: wire audio element events to local status. We keep this
     // logic in one effect so the listeners share a single closure over
@@ -159,15 +228,15 @@ export const AudioPlayer = ({
         };
         const onTime = () => {
             setStatus((s) => ({ ...s, currentTime: el.currentTime }));
-            onTimeUpdate?.(el.currentTime, el.duration);
+            callbacksRef.current.onTimeUpdate?.(el.currentTime, el.duration);
         };
         const onPlayEvt = () => {
             setStatus((s) => ({ ...s, playing: true, buffering: false }));
-            onPlay?.();
+            callbacksRef.current.onPlay?.();
         };
         const onPauseEvt = () => {
             setStatus((s) => ({ ...s, playing: false }));
-            onPause?.();
+            callbacksRef.current.onPause?.();
         };
         const onWaiting = () => setStatus((s) => ({ ...s, buffering: true }));
         const onPlaying = () => setStatus((s) => ({ ...s, buffering: false }));
@@ -177,7 +246,7 @@ export const AudioPlayer = ({
             setStatus((s) => ({ ...s, playbackRate: el.playbackRate }));
         const onEndedEvt = () => {
             setStatus((s) => ({ ...s, playing: false }));
-            onEnded?.();
+            callbacksRef.current.onEnded?.();
         };
         const onErr = () => {
             setStatus((s) => ({
@@ -186,7 +255,7 @@ export const AudioPlayer = ({
                 playing: false,
                 buffering: false
             }));
-            onError?.(el.error);
+            callbacksRef.current.onError?.(el.error);
         };
 
         el.addEventListener(`loadedmetadata`, onLoaded);
@@ -223,7 +292,7 @@ export const AudioPlayer = ({
             el.removeEventListener(`ended`, onEndedEvt);
             el.removeEventListener(`error`, onErr);
         };
-    }, [onPlay, onPause, onEnded, onTimeUpdate, onError]);
+    }, []);
 
     const togglePlay = useCallback((): void => {
         const el = audioRef.current;
@@ -242,10 +311,56 @@ export const AudioPlayer = ({
     const seekTo = useCallback((seconds: number): void => {
         const el = audioRef.current;
         if (!el || !Number.isFinite(seconds)) return;
-        const target = Math.max(0, Math.min(el.duration || seconds, seconds));
+        const target = clampSeekSeconds(el, seconds);
         el.currentTime = target;
+        // Optimistic local mirror so the visible play-head doesn't lag a
+        // frame behind. The subsequent `timeupdate` event will overwrite
+        // with whatever value the element actually settled on (browsers
+        // may snap to a keyframe).
         setStatus((s) => ({ ...s, currentTime: target }));
     }, []);
+
+    const playMedia = useCallback((): Promise<void> => {
+        const el = audioRef.current;
+        if (!el) return Promise.resolve();
+        return el.play();
+    }, []);
+
+    const pauseMedia = useCallback((): void => {
+        audioRef.current?.pause();
+    }, []);
+
+    const getCurrentTime = useCallback(
+        (): number => audioRef.current?.currentTime ?? 0,
+        []
+    );
+
+    const getDuration = useCallback((): number => {
+        const duration = audioRef.current?.duration;
+        return Number.isFinite(duration) ? (duration as number) : 0;
+    }, []);
+
+    const getElement = useCallback(
+        (): HTMLAudioElement | null => audioRef.current,
+        []
+    );
+
+    // Imperative handle is built from the internal callbacks above so
+    // the public ref path and the slider/keyboard paths share a single
+    // implementation. Deps list the stable `useCallback` values
+    // explicitly so any future capture changes are caught.
+    useImperativeHandle(
+        ref,
+        () => ({
+            seekTo,
+            play: playMedia,
+            pause: pauseMedia,
+            getCurrentTime,
+            getDuration,
+            getElement
+        }),
+        [seekTo, playMedia, pauseMedia, getCurrentTime, getDuration, getElement]
+    );
 
     const skipBy = useCallback(
         (delta: number): void => {
@@ -464,6 +579,7 @@ export const AudioPlayer = ({
                 step={0.01}
                 onValueChange={(v) => setVolume(v[0])}
                 className={`w-20`}
+                data-testid={`audio-volume-slider`}
             />
         </div>
     );
@@ -571,6 +687,7 @@ export const AudioPlayer = ({
                             disabled={Boolean(status.error) || !status.duration}
                             onValueChange={handleMinimalSliderChange}
                             className={`min-w-0 flex-1`}
+                            data-testid={`audio-seek-slider`}
                         />
                         {timestamp}
                     </div>
@@ -729,6 +846,8 @@ export const AudioPlayer = ({
             </div>
         </TooltipProvider>
     );
-};
+});
+
+AudioPlayer.displayName = `AudioPlayer`;
 
 export default AudioPlayer;

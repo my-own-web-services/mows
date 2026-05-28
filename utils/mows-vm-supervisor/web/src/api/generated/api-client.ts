@@ -47,6 +47,18 @@ export enum VmDisplayMode {
   Desktop = "desktop",
 }
 
+/**
+ * Wire-level agent kind. Mapped to a builtin manifest by
+ * [`AgentKindName::to_kind`]. Adding a value here lights up serde's
+ * validation (unknown variants → 400 with a descriptive error before the
+ * handler runs), eliminates the stringly-typed match in `spawn_agent`,
+ * and gives the TypeScript codegen a real union literal.
+ */
+export enum AgentKindName {
+  Shell = "shell",
+  Claude = "claude",
+}
+
 export interface AgentSummary {
   /** @format int64 */
   exit_code?: number | null;
@@ -54,13 +66,25 @@ export interface AgentSummary {
   id: string;
   kind: string;
   name: string;
+  /**
+   * `users.id` of the caller who created the agent. `None` for legacy
+   * rows written before owner tracking was plumbed; admins can still
+   * see them, non-admin users cannot.
+   */
+  owner_user_id?: string | null;
   started_at: string;
   status: string;
   vm_id: string;
 }
 
 export interface CreateAgentRequest {
-  kind?: string | null;
+  /**
+   * Agent kind. Omit (or pass `null`) to fall back to the built-in
+   * `shell` kind — a plain `/bin/sh` session. Unknown variants are
+   * rejected by serde before the handler runs (400 Bad Request).
+   */
+  kind?: null | AgentKindName;
+  /** Display name. Auto-generated from `kind` + UTC timestamp when omitted. */
   name?: string | null;
 }
 
@@ -77,9 +101,18 @@ export interface CreateVmRequest {
    */
   cpus?: number | null;
   cwd?: string | null;
-  /** Whether the guest exposes a graphical surface. Defaults to `headless`. */
+  /**
+   * Whether the guest exposes a graphical surface. Defaults to
+   * `headless` when omitted; the default is logged at `INFO` level
+   * for the same reason as `image`.
+   */
   display_mode?: null | VmDisplayMode;
-  /** Guest base image. Defaults to `alpine`. */
+  /**
+   * Guest base image. Defaults to `alpine` when omitted, but the
+   * default is logged at `INFO` level so silently-defaulted requests
+   * don't hide misspelled image names (SLOP-36). Pass an explicit
+   * value (`alpine` | `ubuntu` | `debian` | `nixos`) to record intent.
+   */
   image?: null | VmImage;
   /**
    * @format int32
@@ -191,6 +224,12 @@ export interface VmSummary {
   /** @format int64 */
   memory_mb?: number | null;
   name: string;
+  /**
+   * `users.id` of the caller who created the VM. `None` for legacy
+   * rows written before owner tracking landed (admins still see
+   * them; non-admin users do not).
+   */
+  owner_user_id?: string | null;
   started_at: string;
   /**
    * VM lifecycle status as exposed over the API. Mirrors the SQL CHECK
@@ -463,7 +502,7 @@ export class Api<
 > extends HttpClient<SecurityDataType> {
   v1 = {
     /**
-     * @description List every agent across all VMs, newest first.
+     * @description List agents the caller can see (own agents only for non-admin users).
      *
      * @tags agents
      * @name ListAllAgents
@@ -732,14 +771,14 @@ export class Api<
       }),
 
     /**
-     * @description List agents inside a single VM.
+     * @description List agents inside a single VM that the caller is allowed to see.
      *
      * @tags agents
      * @name ListVmAgents
      * @request GET:/v1/vms/{vm_id}/agents
      */
     listVmAgents: (vmId: string, params: RequestParams = {}) =>
-      this.request<AgentSummary[], any>({
+      this.request<AgentSummary[], ErrorResponse>({
         path: `/v1/vms/${vmId}/agents`,
         method: "GET",
         format: "json",
@@ -747,7 +786,7 @@ export class Api<
       }),
 
     /**
-     * @description Spawn an agent inside a running VM.
+     * @description Spawn an agent inside a running VM. The server picks the agent id.
      *
      * @tags agents
      * @name CreateAgent
@@ -761,6 +800,28 @@ export class Api<
       this.request<AgentSummary, ErrorResponse>({
         path: `/v1/vms/${vmId}/agents`,
         method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Create-or-return an agent with the caller-supplied id. Used by the web UI's ConsoleManager so a tab's persisted id round-trips to a single agent row across reloads. If the agent already exists, its `vm_id`, `kind`, and owner MUST match the request, otherwise 409 — preventing silent cross-VM or cross-tenant reattachment.
+     *
+     * @tags agents
+     * @name PutAgent
+     * @request PUT:/v1/vms/{vm_id}/agents/{agent_id}
+     */
+    putAgent: (
+      vmId: string,
+      agentId: string,
+      data: CreateAgentRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<AgentSummary, ErrorResponse>({
+        path: `/v1/vms/${vmId}/agents/${agentId}`,
+        method: "PUT",
         body: data,
         type: ContentType.Json,
         format: "json",

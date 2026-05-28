@@ -1,7 +1,7 @@
-name: Publish @mows/react-components
+name: Publish @my-own-web-services/react-components
 
 # Publishes the React component library at components/react to npm as
-# @mows/react-components.
+# @my-own-web-services/react-components.
 #
 # How to release a new version:
 #   1. Bump "version" in components/react/package.json
@@ -16,11 +16,11 @@ name: Publish @mows/react-components
 #
 # Required repository secrets:
 #   NPM_TOKEN — an "Automation" or "Granular" npm access token with
-#               publish rights on the @mows scope.
+#               publish rights on the @my-own-web-services scope.
 # Required repository setup:
-#   The @mows org must exist on npmjs.org and the publishing user/org
-#   token must have permission to publish scoped packages with public
-#   access.
+#   The @my-own-web-services org must exist on npmjs.org and the
+#   publishing user/org token must have permission to publish scoped
+#   packages with public access.
 
 on:
   push:
@@ -118,7 +118,7 @@ jobs:
           # `registry-url` makes `setup-node` write an .npmrc that
           # references NODE_AUTH_TOKEN — required for `npm publish`.
           registry-url: 'https://registry.npmjs.org/'
-          scope: '@mows'
+          scope: '@my-own-web-services'
 
       - name: Verify tag matches package.json version
         working-directory: components/react
@@ -159,7 +159,7 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org/'
-          scope: '@mows'
+          scope: '@my-own-web-services'
 
       - name: Set up pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4

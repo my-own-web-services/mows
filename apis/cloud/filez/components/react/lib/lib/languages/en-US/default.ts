@@ -1,5 +1,5 @@
-import baseEn from "@mows/react-components/lib/languages/en-US/default";
-import { CoreActionIds } from "@mows/react-components/lib/mowsContext/coreActions";
+import baseEn from "@my-own-web-services/react-components/lib/languages/en-US/default";
+import { CoreActionIds } from "@my-own-web-services/react-components/lib/mowsContext/coreActions";
 import { FilezActionIds } from "@/lib/filezActions";
 import type { Translation } from "@/lib/languages";
 

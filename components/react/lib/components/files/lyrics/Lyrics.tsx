@@ -199,11 +199,16 @@ export const Lyrics = ({
                                 line.text || ` `
                             );
 
+                        // Keep typography stable across active/inactive
+                        // states — only weight + colour + opacity may
+                        // differ. Changing the font-size on the active
+                        // line resizes its row and visibly pushes the
+                        // surrounding lines, which makes the layout jump
+                        // every time the playhead advances or a line is
+                        // clicked.
                         const lineClasses = cn(
-                            `rounded-sm px-2 py-1 transition-all duration-200`,
-                            isActive
-                                ? `text-base font-semibold text-foreground sm:text-lg`
-                                : `text-sm`,
+                            `rounded-sm px-2 py-1 text-sm leading-snug transition-colors duration-200 sm:text-base`,
+                            isActive && `font-semibold text-foreground`,
                             !isActive && isScrolling && (isPast ? `opacity-40` : `opacity-60`),
                             !isActive && !isScrolling && `text-muted-foreground`,
                             isInteractive && hasAnyTimings && `cursor-pointer hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none`

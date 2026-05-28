@@ -1,7 +1,7 @@
 # Tree-shake e2e
 
 End-to-end verification that consuming a single component from
-`@mows/react-components` produces a bundle containing **only** that
+`@my-own-web-services/react-components` produces a bundle containing **only** that
 component plus its real dependencies — no Monaco when you import Button,
 no react-dnd when you import Avatar.
 
@@ -14,7 +14,7 @@ no react-dnd when you import Avatar.
 4. Runs the container, bind-mounting the tarball. The container installs
    the tarball, then builds each scenario in isolation:
    - `empty` — imports nothing from the lib (baseline cost: React + Vite)
-   - `button` — `import { Button } from "@mows/react-components"`
+   - `button` — `import { Button } from "@my-own-web-services/react-components"`
    - `codeViewer` — heavy scenario with Monaco
    - `resourceList` — heavy scenario with react-dnd / virtualizer
 5. Writes per-scenario raw and gzip byte counts to `sizes.json`.

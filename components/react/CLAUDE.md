@@ -1,4 +1,4 @@
-# @mows/react-components
+# @my-own-web-services/react-components
 
 Generic React component + context library shared by all MOWS frontend apps.
 Filez and any other MOWS app consumes this package; it must remain free of

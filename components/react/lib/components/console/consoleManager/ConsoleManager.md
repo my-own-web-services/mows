@@ -121,7 +121,7 @@ interface ConsoleType {
 ## Wiring example
 
 ```tsx
-import { ConsoleManager, LogView, Terminal } from "@mows/react-components";
+import { ConsoleManager, LogView, Terminal } from "@my-own-web-services/react-components";
 import { ScrollText, TerminalSquare } from "lucide-react";
 
 <ConsoleManager

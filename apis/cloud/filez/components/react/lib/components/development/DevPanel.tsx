@@ -1,16 +1,16 @@
-import { Badge } from "@mows/react-components/components/ui/badge";
-import { Button } from "@mows/react-components/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@mows/react-components/components/ui/card";
-import { Input } from "@mows/react-components/components/ui/input";
-import { Label } from "@mows/react-components/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@mows/react-components/components/ui/radio-group";
-import { MowsContext } from "@mows/react-components/lib/mowsContext/MowsContext";
+import { Badge } from "@my-own-web-services/react-components/components/ui/badge";
+import { Button } from "@my-own-web-services/react-components/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@my-own-web-services/react-components/components/ui/card";
+import { Input } from "@my-own-web-services/react-components/components/ui/input";
+import { Label } from "@my-own-web-services/react-components/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@my-own-web-services/react-components/components/ui/radio-group";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
 import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
-import { log } from "@mows/react-components/lib/logging";
+import { log } from "@my-own-web-services/react-components/lib/logging";
 import { cn } from "@/lib/utils";
 import { Check, Loader2, Play, Search, X } from "lucide-react";
 import { PureComponent, type CSSProperties } from "react";
-import LoggingConfig from "@mows/react-components/components/settings/loggingConfig/LoggingConfig";
+import LoggingConfig from "@my-own-web-services/react-components/components/settings/loggingConfig/LoggingConfig";
 
 interface DevPanelProps {
     readonly className?: string;

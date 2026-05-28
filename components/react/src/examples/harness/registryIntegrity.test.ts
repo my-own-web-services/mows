@@ -8,6 +8,8 @@ import { buttonExamples } from "../button";
 import { buttonSelectExamples } from "../buttonSelect";
 import { calendarExamples } from "../calendar";
 import { cardExamples } from "../card";
+import { chatExamples } from "../chat";
+import { emojiPickerExamples } from "../emojiPicker";
 import { chartExamples } from "../chart";
 import { checkboxExamples } from "../checkbox";
 import { codeSnippetExamples } from "../codeSnippet";
@@ -40,6 +42,7 @@ import { languagePickerExamples } from "../languagePicker";
 import { logViewExamples } from "../logView";
 import { loggingConfigExamples } from "../loggingConfig";
 import { lyricsExamples } from "../lyrics";
+import { openingHoursExamples } from "../openingHours";
 import { machineMonitorExamples } from "../machineMonitor";
 import { modalHandlerExamples } from "../modalHandler";
 import { nodeEditorExamples } from "../nodeEditor";
@@ -148,12 +151,15 @@ const ALL_REGISTRIES: ReadonlyArray<{
     { name: `timePicker`, examples: timePickerExamples },
     { name: `timezoneSelector`, examples: timezoneSelectorExamples },
     { name: `dateTimeRangePicker`, examples: dateTimeRangePickerExamples },
+    { name: `openingHours`, examples: openingHoursExamples },
     { name: `loggingConfig`, examples: loggingConfigExamples },
     { name: `commandPalette`, examples: commandPaletteExamples },
     { name: `modalHandler`, examples: modalHandlerExamples },
     { name: `fileViewer`, examples: fileViewerExamples },
     { name: `image360Viewer`, examples: image360ViewerExamples },
     { name: `resourceList`, examples: resourceListExamples },
+    { name: `chat`, examples: chatExamples },
+    { name: `emojiPicker`, examples: emojiPickerExamples },
     { name: `consoleManager`, examples: consoleManagerExamples },
     { name: `dateTimeDisplay`, examples: dateTimeDisplayExamples },
     { name: `timeline`, examples: timelineExamples },

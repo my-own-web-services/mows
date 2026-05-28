@@ -247,3 +247,18 @@ export const findActiveWordIndex = (
     }
     return active;
 };
+
+/**
+ * Format a duration in seconds as the `[mm:ss.xx]` (or `<mm:ss.xx>`)
+ * timestamp shape used by the LRC grammar. Useful for tests, generators,
+ * and any tooling that emits LRC. The fractional part is rounded to two
+ * decimals to match the most common LRC dialect.
+ */
+export const formatLrcTime = (seconds: number): string => {
+    const safe = Number.isFinite(seconds) && seconds >= 0 ? seconds : 0;
+    const minutes = Math.floor(safe / 60);
+    const remainder = safe - minutes * 60;
+    return `${minutes.toString().padStart(2, `0`)}:${remainder
+        .toFixed(2)
+        .padStart(5, `0`)}`;
+};

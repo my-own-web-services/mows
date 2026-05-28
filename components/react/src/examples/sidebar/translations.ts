@@ -134,7 +134,7 @@ export const sidebarEn: SidebarTranslation = {
     },
     apiReference: {
       title: `API Reference`,
-      intro: `Props accepted by the most common Sidebar surfaces. The full set (Header / Footer / Group / Menu …) is exported from @mows/react-components.`,
+      intro: `Props accepted by the most common Sidebar surfaces. The full set (Header / Footer / Group / Menu …) is exported from @my-own-web-services/react-components.`,
     },
   },
 };
@@ -216,7 +216,7 @@ export const sidebarDe: SidebarTranslation = {
     },
     apiReference: {
       title: `API-Referenz`,
-      intro: `Props der wichtigsten Sidebar-Oberflächen. Die volle Menge (Header / Footer / Group / Menu …) wird aus @mows/react-components exportiert.`,
+      intro: `Props der wichtigsten Sidebar-Oberflächen. Die volle Menge (Header / Footer / Group / Menu …) wird aus @my-own-web-services/react-components exportiert.`,
     },
   },
 };

@@ -1,5 +1,5 @@
 import { Api, StorageQuotaSubjectType } from "filez-client-typescript";
-import { log } from "@mows/react-components/lib/logging";
+import { log } from "@my-own-web-services/react-components/lib/logging";
 
 export default async (filezClient: Api<unknown>) => {
     const ownUser = (await filezClient.api.getOwnUser({})).data?.data?.user;
