@@ -840,6 +840,198 @@ impl<'a> PolicyStore for FilezPolicyStore<'a> {
             .collect())
     }
 
+    /// Phase 3 P3-6 — `fetch_accessible_resource_group_ids`.
+    /// Resource-groups (e.g. file_groups) the caller can list
+    /// resources through. One SELECT against access_policies
+    /// filtered to the registry's resource_group_type, subject
+    /// matches (User+caller / UserGroup IN caller's groups /
+    /// ServerMember / Public), action match, lifecycle filter.
+    /// Returns the distinct policy.resource_id values — these are
+    /// the resource-group ids whose member resources show up in
+    /// the listing.
+    ///
+    /// Returns empty when the resource type has no
+    /// resource_group_type (the registry entry's flag).
+    async fn fetch_accessible_resource_group_ids(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        subject: &Subject,
+        app: AppView,
+        action: u32,
+    ) -> Result<Vec<Uuid>, AuthError> {
+        let Some(rg_type_u32) = auth_info.resource_group_type else {
+            return Ok(vec![]);
+        };
+        let rg_type = AccessPolicyResourceType::from_u32(rg_type_u32)
+            .expect("resource_group_type registered");
+        let action_enum =
+            action_from_u32(action).expect("AccessPolicyAction value out of range");
+
+        let pool = self
+            .database
+            .pool
+            .as_ref()
+            .ok_or_else(|| AuthError::Evaluation("database pool not initialized".to_string()))?;
+        let mut connection = pool.get().await?;
+
+        // phase3-final-review A1: build the SQL once with the
+        // subject filter pre-decided, then bind the matching set
+        // of params. The prior shape compiled three SQL templates
+        // and discarded two via `let _ = sql;` — refactor cleanup.
+        #[derive(QueryableByName, Debug)]
+        struct Row {
+            #[diesel(sql_type = sql_types::Uuid)]
+            resource_id: Uuid,
+        }
+        const COMMON_PREFIX: &str = "SELECT DISTINCT resource_id \
+             FROM   access_policies \
+             WHERE  resource_type   = $1 \
+               AND  resource_id    IS NOT NULL \
+               AND  effect         = 1 \
+               AND  actions       @> ARRAY[$2]::SMALLINT[] \
+               AND  context_app_ids && ARRAY[$3, '00000000-0000-0000-0000-000000000000']::UUID[] \
+               AND  NOT revoked \
+               AND  (expires_at IS NULL OR expires_at > now())";
+        let rg_type_i16 = rg_type as i16;
+        let action_i16 = action_enum as i16;
+        let rows: Vec<Row> = match subject {
+            Subject::Anonymous => {
+                let sql = format!("{COMMON_PREFIX} AND subject_type = 3");
+                diesel::sql_query(sql)
+                    .bind::<diesel::sql_types::SmallInt, _>(rg_type_i16)
+                    .bind::<diesel::sql_types::SmallInt, _>(action_i16)
+                    .bind::<sql_types::Uuid, _>(app.id)
+                    .load(&mut connection)
+                    .await?
+            }
+            Subject::User {
+                user_id, groups, ..
+            } => {
+                let sql = format!(
+                    "{COMMON_PREFIX} AND ( \
+                        subject_type = 3 \
+                        OR subject_type = 2 \
+                        OR (subject_type = 0 AND subject_id = $4) \
+                        OR (subject_type = 1 AND subject_id = ANY($5)) \
+                     )"
+                );
+                diesel::sql_query(sql)
+                    .bind::<diesel::sql_types::SmallInt, _>(rg_type_i16)
+                    .bind::<diesel::sql_types::SmallInt, _>(action_i16)
+                    .bind::<sql_types::Uuid, _>(app.id)
+                    .bind::<sql_types::Uuid, _>(*user_id)
+                    .bind::<sql_types::Array<sql_types::Uuid>, _>(groups.clone())
+                    .load(&mut connection)
+                    .await?
+            }
+        };
+
+        Ok(rows.into_iter().map(|r| r.resource_id).collect())
+    }
+
+    /// Phase 3 P3-6 — `stream_via_resource_group_resources`.
+    /// JOIN resource_table → membership_table on
+    /// `(resource_id_col, group_id_col)`; filter by
+    /// `group_id_col = ANY($resource_group_ids)`; keyset sort on
+    /// resource `(created_time, id) DESC`. Identifiers from
+    /// auth_info, all SAFE_IDENTIFIER_REGEX-validated at
+    /// registry-build time.
+    async fn stream_via_resource_group_resources(
+        &self,
+        auth_info: &ResourceAuthInfo,
+        resource_group_ids: &[Uuid],
+        cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Result<Vec<StreamItem>, AuthError> {
+        if resource_group_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        let (Some(membership_table), Some(rid_col), Some(gid_col)) = (
+            auth_info.group_membership_table,
+            auth_info.group_membership_resource_id_column,
+            auth_info.group_membership_group_id_column,
+        ) else {
+            // Resource type without resource-group semantics
+            // (e.g. user_groups itself).
+            return Ok(vec![]);
+        };
+        let table = auth_info.resource_table;
+        let id_col = auth_info.resource_table_id_column;
+
+        let pool = self
+            .database
+            .pool
+            .as_ref()
+            .ok_or_else(|| AuthError::Evaluation("database pool not initialized".to_string()))?;
+        let mut connection = pool.get().await?;
+
+        let (sql, has_cursor) = if cursor.is_some() {
+            (
+                format!(
+                    "SELECT r.{id_col} AS resource_id, \
+                            r.created_time AS sort_key \
+                     FROM   {table} r \
+                     JOIN   {membership_table} m ON m.{rid_col} = r.{id_col} \
+                     WHERE  m.{gid_col} = ANY($1) \
+                       AND  (r.created_time, r.{id_col}) < ($2, $3) \
+                     ORDER BY r.created_time DESC, r.{id_col} DESC \
+                     LIMIT  $4"
+                ),
+                true,
+            )
+        } else {
+            (
+                format!(
+                    "SELECT r.{id_col} AS resource_id, \
+                            r.created_time AS sort_key \
+                     FROM   {table} r \
+                     JOIN   {membership_table} m ON m.{rid_col} = r.{id_col} \
+                     WHERE  m.{gid_col} = ANY($1) \
+                     ORDER BY r.created_time DESC, r.{id_col} DESC \
+                     LIMIT  $2"
+                ),
+                false,
+            )
+        };
+
+        #[derive(QueryableByName, Debug)]
+        struct Row {
+            #[diesel(sql_type = sql_types::Uuid)]
+            resource_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Timestamp)]
+            sort_key: chrono::NaiveDateTime,
+        }
+
+        let batch_size_i64 = i64::try_from(batch_size)
+            .map_err(|e| AuthError::Evaluation(format!("batch_size overflow: {e}")))?;
+        let group_ids_owned: Vec<Uuid> = resource_group_ids.to_vec();
+
+        let rows: Vec<Row> = if has_cursor {
+            let c = cursor.expect("cursor present");
+            diesel::sql_query(sql)
+                .bind::<sql_types::Array<sql_types::Uuid>, _>(group_ids_owned)
+                .bind::<diesel::sql_types::Timestamp, _>(c.sort_key)
+                .bind::<sql_types::Uuid, _>(c.resource_id)
+                .bind::<diesel::sql_types::BigInt, _>(batch_size_i64)
+                .load(&mut connection)
+                .await?
+        } else {
+            diesel::sql_query(sql)
+                .bind::<sql_types::Array<sql_types::Uuid>, _>(group_ids_owned)
+                .bind::<diesel::sql_types::BigInt, _>(batch_size_i64)
+                .load(&mut connection)
+                .await?
+        };
+
+        Ok(rows
+            .into_iter()
+            .map(|r| StreamItem {
+                sort_key: r.sort_key,
+                resource_id: r.resource_id,
+            })
+            .collect())
+    }
+
     /// Phase 3 P3-5 — per-candidate Deny lookup (LISTING.md §5.3).
     /// Single indexed lookup against `ap_lookup_idx (resource_type,
     /// resource_id, subject_type, subject_id) WHERE NOT revoked`

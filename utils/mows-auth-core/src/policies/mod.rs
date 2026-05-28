@@ -468,6 +468,101 @@ pub trait PolicyStore: Send + Sync {
         ))
     }
 
+    /// Phase 3 P3-7 — keyset-paginated stream for resources
+    /// reachable via `resource_scope = AccessibleByOwner`
+    /// policies (LISTING.md §7 / POLICY_SEMANTICS.md §4).
+    ///
+    /// For each active `AccessibleByOwner` policy whose subject
+    /// matches the caller, the source walks every resource the
+    /// policy's owner has access to — except recursion is
+    /// broken at depth 1: the policy owner's OWN
+    /// `AccessibleByOwner` policies are NOT chased
+    /// (POLICY_SEMANTICS.md §4 "the owner cannot escalate
+    /// themselves … this row only grants what is already granted
+    /// to them, but channels it through one more (subject, app)
+    /// pair").
+    ///
+    /// Default returns `Ok(vec![])` — matches the check-side
+    /// guard in `check.rs` that emits a `tracing::warn!` for
+    /// `AccessibleByOwner` policies today. When the recursive
+    /// expansion ships, stores override this method. The stream
+    /// + trait method shape is final, only the body changes.
+    async fn stream_accessible_by_owner_resources(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _subject: &Subject,
+        _app: AppView,
+        _action: u32,
+        _cursor: Option<crate::list::ListingCursor>,
+        _batch_size: usize,
+    ) -> Result<Vec<crate::list::StreamItem>, AuthError> {
+        Ok(vec![])
+    }
+
+    /// Phase 3 P3-6 — keyset-paginated stream for resources
+    /// whose containing resource-group is shared with the caller
+    /// (LISTING.md §5 row 3, `via_resource_group`).
+    ///
+    /// `resource_group_ids` is the closed set of resource-groups
+    /// the caller can access — typically computed once per page
+    /// request by the planner (LISTING.md §5.2 "RG_acc"). Empty
+    /// short-circuits to an empty stream without touching the DB.
+    ///
+    /// Single bitmap-or JOIN query:
+    /// `SELECT r.id, r.created_time FROM {resource_table} r
+    /// JOIN {membership_table} m ON m.{resource_id_col} = r.id
+    /// WHERE m.{group_id_col} = ANY($group_ids)
+    ///   AND (r.created_time, r.id) < $cursor
+    /// ORDER BY r.created_time DESC, r.id DESC LIMIT $batch_size;`
+    ///
+    /// Auth_info must carry the membership-table identifiers
+    /// (`group_membership_table` + `_resource_id_column` +
+    /// `_group_id_column`). Resource types without resource-group
+    /// membership (e.g. user_groups themselves) return empty.
+    ///
+    /// Default fails loud per phase3-review A1.
+    async fn stream_via_resource_group_resources(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _resource_group_ids: &[Uuid],
+        _cursor: Option<crate::list::ListingCursor>,
+        _batch_size: usize,
+    ) -> Result<Vec<crate::list::StreamItem>, AuthError> {
+        // Default Ok(vec![]) — resource-group sharing is a feature
+        // some resource types simply don't have (e.g. user_groups,
+        // tags). Stores that DO support it override; everyone else
+        // silently yields no items via this stream. The engine's
+        // planner constructs the stream unconditionally; the
+        // empty-default makes it a no-op for opted-out stores
+        // (phase3-final-review A2 / TECH-9).
+        Ok(vec![])
+    }
+
+    /// Phase 3 P3-6 — small helper the planner uses to compute
+    /// the `resource_group_ids` set passed into
+    /// `stream_via_resource_group_resources` (LISTING.md §5.2,
+    /// "RG_acc"). Returns the resource-group ids the caller has
+    /// any access policy on (subject = User+caller / UserGroup IN
+    /// caller's groups / ServerMember / Public, action @>
+    /// $action, effect = Allow, lifecycle filter applies, resource
+    /// type = the registry's resource_group_type).
+    ///
+    /// Typically returns 10s to low 100s of ids per call. Empty
+    /// for callers with no resource-group shares — the stream
+    /// then short-circuits.
+    ///
+    /// Default returns empty; stores without resource-group
+    /// semantics keep working.
+    async fn fetch_accessible_resource_group_ids(
+        &self,
+        _auth_info: &ResourceAuthInfo,
+        _subject: &Subject,
+        _app: AppView,
+        _action: u32,
+    ) -> Result<Vec<Uuid>, AuthError> {
+        Ok(vec![])
+    }
+
     /// Phase 3 P3-5 — per-candidate Deny lookup for the listing
     /// engine (LISTING.md §5.3). Given a (subject, app, action,
     /// resource_type, resource_id) tuple, returns true iff an

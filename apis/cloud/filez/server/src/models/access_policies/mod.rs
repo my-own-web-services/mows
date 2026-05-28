@@ -480,6 +480,92 @@ impl AccessPolicy {
         Ok(allowed)
     }
 
+    /// Phase 3 P3-8 — keyset-paginated listing for the new
+    /// listing engine. Each call returns one
+    /// [`mows_auth_core::ListingPage`] of resource ids in
+    /// (created_time DESC, id DESC) order with a `next_cursor`
+    /// the caller threads back through for subsequent pages.
+    ///
+    /// Plumbing: same subject/app/store construction as
+    /// `get_all_resources_with_user_access`; delegates to
+    /// `mows_auth_core::list_visible_paginated` (the planner)
+    /// which picks streams + Deny checker + OwnerOnly fast path
+    /// based on the subject + app.trusted flag.
+    ///
+    /// The legacy `get_all_resources_with_user_access` (Phase-1
+    /// fold) stays in place for callers that don't yet thread
+    /// cursors; handlers migrate to this method as their UI
+    /// adopts keyset pagination. Both can coexist indefinitely —
+    /// they share the underlying PolicyStore impl.
+    ///
+    /// `batch_size` is NOT a caller parameter — it's derived
+    /// internally as `(page_size * 4).max(50)` per LISTING.md §5.1
+    /// ("small enough that no single stream materialises more than
+    /// O(page_size) rows; large enough to amortise round trips").
+    /// Exposing it at the HTTP boundary leaked an implementation
+    /// detail callers got wrong (phase3-final-review A3 / TECH-6 /
+    /// SLOP-4).
+    #[tracing::instrument(level = "trace", skip(database))]
+    pub async fn list_paginated(
+        database: &Database,
+        maybe_requesting_user: Option<&FilezUser>,
+        requesting_app: &MowsApp,
+        resource_type: AccessPolicyResourceType,
+        action_to_perform: AccessPolicyAction,
+        cursor: Option<mows_auth_core::ListingCursor>,
+        page_size: usize,
+    ) -> Result<mows_auth_core::ListingPage, FilezError> {
+        // LISTING.md §5.1 batch_size derivation. `.max(50)` keeps
+        // pages of e.g. page_size=5 from forcing batch_size=20 —
+        // 50 is a sane minimum that still bounds memory per
+        // stream.
+        let batch_size = page_size.saturating_mul(4).max(50);
+        use mows_auth_core::ResourceTypeRegistry;
+        let resource_auth_info = check::engine_resource_registry()
+            .lookup(resource_type as u32)
+            .expect("resource type registered in engine registry");
+
+        let maybe_user_group_ids = match maybe_requesting_user {
+            Some(requesting_user) => {
+                Some(UserGroup::get_all_ids_by_user_id(database, &requesting_user.id).await?)
+            }
+            None => None,
+        };
+
+        let subject = match maybe_requesting_user {
+            Some(user) => mows_auth_core::Subject::user(
+                user.id.0,
+                maybe_user_group_ids
+                    .as_ref()
+                    .map(|gids| gids.iter().map(|g| g.0).collect())
+                    .unwrap_or_default(),
+            ),
+            None => mows_auth_core::Subject::Anonymous,
+        };
+        let app_view = mows_auth_core::AppView {
+            id: requesting_app.id.into(),
+            trusted: requesting_app.trusted,
+        };
+        let store = crate::models::access_policies::store::FilezPolicyStore::new(
+            database,
+            maybe_requesting_user,
+            maybe_user_group_ids.as_ref(),
+        );
+
+        let page = mows_auth_core::list_visible_paginated(
+            &store,
+            &resource_auth_info,
+            &subject,
+            app_view,
+            action_to_perform as u32,
+            cursor,
+            page_size,
+            batch_size,
+        )
+        .await?;
+        Ok(page)
+    }
+
     #[tracing::instrument(level = "trace", skip(database))]
     pub async fn list_access_policies_with_user_access(
         database: &Database,

@@ -865,6 +865,340 @@ impl<'a, S: PolicyStore + ?Sized> SortedStream for DirectUserGroupStream<'a, S> 
     }
 }
 
+/// LISTING.md §4 + §3 high-level entry point: takes a subject +
+/// app + action + cursor + page_size, picks the right combination
+/// of streams, runs the merge, returns a [`ListingPage`].
+///
+/// Two paths today:
+///
+///   * **OwnerOnly fast path** (LISTING.md §4): no merge, no
+///     Deny check, no policy lookups — direct indexed scan of
+///     resources where `owner_id = $caller`. Engages when the
+///     caller is the resource owner and the app is `trusted`
+///     (POLICY_SEMANTICS.md §2.2). Phase-3 entry point: just
+///     [`OwnedStream`] yielding from
+///     [`PolicyStore::stream_owned_resources`].
+///
+///   * **AuthMediated merge** (LISTING.md §3 + §5): the k-way
+///     stream merge over every applicable source. Picks streams
+///     based on the subject's authentication state and group
+///     memberships; runs through
+///     [`merge_streams_with_deny_check`] with a
+///     [`PolicyStoreDenyChecker`].
+///
+/// The planner does NOT consult `materialize_uga` flags to pick
+/// `LargeUserGroupCoverStream` vs `DirectUserGroupStream` per
+/// group yet — that decision lands when the engine grows a way
+/// to fetch the flag (today the flag is filez-side state). For
+/// now the planner uses `DirectUserGroupStream` for all of the
+/// caller's groups; the cover-backed alternative is a future
+/// optimisation.
+///
+/// `accessible_resource_group_ids` is pre-computed (Once per
+/// call via [`PolicyStore::fetch_accessible_resource_group_ids`])
+/// to avoid the planner needing to issue that query itself.
+pub async fn list_visible_paginated<S: PolicyStore + ?Sized>(
+    store: &S,
+    auth_info: &ResourceAuthInfo,
+    subject: &Subject,
+    app: AppView,
+    action: u32,
+    cursor: Option<ListingCursor>,
+    page_size: usize,
+    batch_size: usize,
+) -> Result<ListingPage, AuthError> {
+    // OwnerOnly fast path: trusted-app + authenticated caller =>
+    // direct scan of owned resources. No Deny check (owner-grant
+    // is unilateral per POLICY_SEMANTICS.md §3 step 4); no policy
+    // lookups; no merge.
+    if app.trusted {
+        if let Some(user_id) = subject.user_id() {
+            let mut stream = OwnedStream::new(
+                store,
+                auth_info,
+                user_id,
+                cursor,
+                batch_size.max(page_size),
+            );
+            let mut streams: Vec<Box<dyn SortedStream + '_>> =
+                vec![Box::new(boxable_stream_ref(&mut stream))];
+            return merge_streams(&mut streams, cursor, page_size).await;
+        }
+    }
+
+    // AuthMediated path: build the full stream set + Deny checker
+    // + run the k-way merge. The stream set depends on subject
+    // shape (anonymous vs user) and the caller's group memberships.
+    let resource_group_ids = store
+        .fetch_accessible_resource_group_ids(auth_info, subject, app, action)
+        .await?;
+
+    // Each Box<dyn SortedStream + '_> in the vec borrows
+    // {store, auth_info, subject, app}; explicit lifetime works
+    // because they all share the function-level 'caller lifetime.
+    let user_groups: Vec<Uuid> = match subject {
+        Subject::User { groups, .. } => groups.clone(),
+        Subject::Anonymous => Vec::new(),
+    };
+
+    // User-specific streams: only built when the caller is
+    // authenticated. Anonymous callers participate only in the
+    // Public + group + resource-group + AccessibleByOwner paths.
+    let mut owned_stream: Option<OwnedStream<'_, S>> = subject.user_id().map(|uid| {
+        OwnedStream::new(store, auth_info, uid, cursor, batch_size)
+    });
+    let mut direct_user_stream: Option<DirectUserStream<'_, S>> =
+        subject.user_id().map(|uid| {
+            DirectUserStream::new(
+                store, auth_info, uid, app, action, cursor, batch_size,
+            )
+        });
+    let mut sm_cover: Option<ServerMemberCoverStream<'_, S>> = subject.user_id().map(|_| {
+        ServerMemberCoverStream::new(store, auth_info, app, action, cursor, batch_size)
+    });
+
+    // Subject-independent streams: built unconditionally. Empty
+    // group_ids → DirectUserGroupStream short-circuits; empty
+    // resource_group_ids → ViaResourceGroupStream short-circuits.
+    let mut direct_group_stream = DirectUserGroupStream::new(
+        store, auth_info, &user_groups, app, action, cursor, batch_size,
+    );
+    let mut via_rg_stream = ViaResourceGroupStream::new(
+        store, auth_info, &resource_group_ids, cursor, batch_size,
+    );
+    let mut public_cover = PublicCoverStream::new(
+        store, auth_info, app, action, cursor, batch_size,
+    );
+    let mut abo_stream = AccessibleByOwnerStream::new(
+        store, auth_info, subject, app, action, cursor, batch_size,
+    );
+
+    // ## Stream order — load-bearing invariant
+    //
+    // The merge dedups by `resource_id`. When the same resource
+    // appears in MULTIPLE streams at the same `(sort_key,
+    // resource_id)` tuple, the FIRST stream in this vec wins the
+    // emit. Reordering this list silently changes which audit-tag
+    // surfaces for a multi-source resource (Phase 7 admin UI will
+    // surface `StreamSource`).
+    //
+    // Order rationale, strongest grant first:
+    //   1. Owned                      — direct ownership; never Denied.
+    //   2. DirectUser                 — user-specific Allow.
+    //   3. DirectUserGroup            — group-specific Allow.
+    //   4. ViaResourceGroup           — indirect via shared resource-group.
+    //   5. PublicCover                — broad share.
+    //   6. ServerMemberCover          — broad share (logged-in only).
+    //   7. AccessibleByOwner          — recursive (stub today).
+    //
+    // phase3-final-review A6 / SLOP-5.
+    let mut streams: Vec<Box<dyn SortedStream + '_>> = Vec::new();
+    if let Some(s) = owned_stream.as_mut() {
+        streams.push(Box::new(boxable_stream_ref(s)));
+    }
+    if let Some(s) = direct_user_stream.as_mut() {
+        streams.push(Box::new(boxable_stream_ref(s)));
+    }
+    streams.push(Box::new(boxable_stream_ref(&mut direct_group_stream)));
+    streams.push(Box::new(boxable_stream_ref(&mut via_rg_stream)));
+    streams.push(Box::new(boxable_stream_ref(&mut public_cover)));
+    if let Some(s) = sm_cover.as_mut() {
+        streams.push(Box::new(boxable_stream_ref(s)));
+    }
+    streams.push(Box::new(boxable_stream_ref(&mut abo_stream)));
+
+    let checker = PolicyStoreDenyChecker::new(store, auth_info, subject, app, action);
+    merge_streams_with_deny_check(&mut streams, cursor, page_size, Some(&checker)).await
+}
+
+/// Wrap a `&mut dyn SortedStream` as a fresh `Box<dyn SortedStream>`
+/// without taking ownership. Used by the planner to assemble the
+/// stream vec from locally-owned stream instances.
+fn boxable_stream_ref<'a, T: SortedStream + 'a>(
+    s: &'a mut T,
+) -> impl SortedStream + 'a {
+    struct StreamRef<'a, T: SortedStream + ?Sized>(&'a mut T);
+    #[async_trait]
+    impl<'a, T: SortedStream + ?Sized + 'a> SortedStream for StreamRef<'a, T> {
+        fn source(&self) -> StreamSource {
+            self.0.source()
+        }
+        async fn next(&mut self) -> Result<Option<StreamItem>, AuthError> {
+            self.0.next().await
+        }
+    }
+    StreamRef(s)
+}
+
+/// PolicyStore-backed stream for resources shared with the caller
+/// via their containing resource-group (LISTING.md §5 row 3 /
+/// §5.2 `via_resource_group`). Caller pre-computes the closed set
+/// of accessible resource-group ids (typically via
+/// [`PolicyStore::fetch_accessible_resource_group_ids`]); the
+/// stream then walks the resource table JOIN membership table for
+/// those groups in `(created_time, id) DESC` order.
+///
+/// Empty `resource_group_ids` short-circuits to an exhausted
+/// stream — same shape as `DirectUserGroupStream` for empty
+/// user-groups.
+pub struct ViaResourceGroupStream<'a, S: PolicyStore + ?Sized> {
+    store: &'a S,
+    auth_info: &'a ResourceAuthInfo,
+    resource_group_ids: &'a [Uuid],
+    buffer: std::collections::VecDeque<StreamItem>,
+    cursor: Option<ListingCursor>,
+    batch_size: usize,
+    exhausted: bool,
+}
+
+impl<'a, S: PolicyStore + ?Sized> ViaResourceGroupStream<'a, S> {
+    pub fn new(
+        store: &'a S,
+        auth_info: &'a ResourceAuthInfo,
+        resource_group_ids: &'a [Uuid],
+        initial_cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Self {
+        debug_assert!(batch_size > 0, "batch_size must be > 0");
+        Self {
+            store,
+            auth_info,
+            resource_group_ids,
+            buffer: std::collections::VecDeque::with_capacity(batch_size),
+            cursor: initial_cursor,
+            batch_size,
+            exhausted: resource_group_ids.is_empty(),
+        }
+    }
+}
+
+#[async_trait]
+impl<'a, S: PolicyStore + ?Sized> SortedStream for ViaResourceGroupStream<'a, S> {
+    fn source(&self) -> StreamSource {
+        StreamSource::ViaResourceGroup
+    }
+
+    async fn next(&mut self) -> Result<Option<StreamItem>, AuthError> {
+        if self.buffer.is_empty() && !self.exhausted {
+            let batch = self
+                .store
+                .stream_via_resource_group_resources(
+                    self.auth_info,
+                    self.resource_group_ids,
+                    self.cursor,
+                    self.batch_size,
+                )
+                .await?;
+            if batch.len() < self.batch_size {
+                self.exhausted = true;
+            }
+            if let Some(last) = batch.last() {
+                self.cursor = Some(ListingCursor {
+                    sort_key: last.sort_key,
+                    resource_id: last.resource_id,
+                });
+            }
+            self.buffer.extend(batch);
+        }
+        Ok(self.buffer.pop_front())
+    }
+}
+
+/// Recursive `AccessibleByOwner` stream (LISTING.md §7 /
+/// POLICY_SEMANTICS.md §4 "AccessibleByOwner"). For each
+/// active `resource_scope = AccessibleByOwner` policy whose
+/// subject matches the caller, the stream walks every resource
+/// the *policy's owner* has access to — except recursion is
+/// broken at depth 1 (the policy owner's OWN
+/// `AccessibleByOwner` policies do NOT chain). The cycle break
+/// is the only thing keeping the source from being unbounded.
+///
+/// Today's shape: returns an empty stream. POLICY_SEMANTICS.md
+/// §4 + check.rs both defer the recursive expansion to a future
+/// phase, and ship a `tracing::warn!` when an `AccessibleByOwner`
+/// policy reaches the engine. The stream lands now so the
+/// planner can include it in the merge — when the recursive
+/// expansion is wired up, only the body of
+/// `stream_accessible_by_owner_resources` changes; planner +
+/// merge are untouched.
+///
+/// The cycle-break invariant the future implementation MUST
+/// honor: when expanding an `AccessibleByOwner` policy whose
+/// owner is `O`, only `Single` and `OwnedByOwner` scopes count
+/// — `O`'s own `AccessibleByOwner` policies are NOT chased,
+/// matching the engine's check-side guard. The stream's
+/// PolicyStore method is signed for exactly that contract.
+pub struct AccessibleByOwnerStream<'a, S: PolicyStore + ?Sized> {
+    store: &'a S,
+    auth_info: &'a ResourceAuthInfo,
+    subject: &'a Subject,
+    app: AppView,
+    action: u32,
+    buffer: std::collections::VecDeque<StreamItem>,
+    cursor: Option<ListingCursor>,
+    batch_size: usize,
+    exhausted: bool,
+}
+
+impl<'a, S: PolicyStore + ?Sized> AccessibleByOwnerStream<'a, S> {
+    pub fn new(
+        store: &'a S,
+        auth_info: &'a ResourceAuthInfo,
+        subject: &'a Subject,
+        app: AppView,
+        action: u32,
+        initial_cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Self {
+        debug_assert!(batch_size > 0, "batch_size must be > 0");
+        Self {
+            store,
+            auth_info,
+            subject,
+            app,
+            action,
+            buffer: std::collections::VecDeque::with_capacity(batch_size),
+            cursor: initial_cursor,
+            batch_size,
+            exhausted: false,
+        }
+    }
+}
+
+#[async_trait]
+impl<'a, S: PolicyStore + ?Sized> SortedStream for AccessibleByOwnerStream<'a, S> {
+    fn source(&self) -> StreamSource {
+        StreamSource::AccessibleByOwner
+    }
+
+    async fn next(&mut self) -> Result<Option<StreamItem>, AuthError> {
+        if self.buffer.is_empty() && !self.exhausted {
+            let batch = self
+                .store
+                .stream_accessible_by_owner_resources(
+                    self.auth_info,
+                    self.subject,
+                    self.app,
+                    self.action,
+                    self.cursor,
+                    self.batch_size,
+                )
+                .await?;
+            if batch.len() < self.batch_size {
+                self.exhausted = true;
+            }
+            if let Some(last) = batch.last() {
+                self.cursor = Some(ListingCursor {
+                    sort_key: last.sort_key,
+                    resource_id: last.resource_id,
+                });
+            }
+            self.buffer.extend(batch);
+        }
+        Ok(self.buffer.pop_front())
+    }
+}
+
 /// Macro to declare a cover-backed stream wrapper. The three
 /// cover sources (Public, ServerMember, LargeUserGroup) all share
 /// the same lazy-refill skeleton — only the store method and
@@ -1034,6 +1368,894 @@ impl<'a, S: PolicyStore + ?Sized> SortedStream for LargeUserGroupCoverStream<'a,
             self.buffer.extend(batch);
         }
         Ok(self.buffer.pop_front())
+    }
+}
+
+#[cfg(test)]
+mod planner_tests {
+    //! Integration-style tests for `list_visible_paginated`. Use a
+    //! single mock store that implements every stream method;
+    //! verifies the planner constructs the right merge, applies
+    //! the Deny checker, honors the OwnerOnly fast path, and
+    //! paginates correctly across multiple sources.
+    use super::*;
+    use crate::registry::ResourceAuthInfo;
+    use async_trait::async_trait;
+
+    #[derive(Default, Debug)]
+    struct PlannerStore {
+        owned: std::collections::HashMap<Uuid, Vec<StreamItem>>,
+        direct_user: std::collections::HashMap<Uuid, Vec<StreamItem>>,
+        direct_group: std::collections::HashMap<Uuid, Vec<StreamItem>>,
+        public: Vec<StreamItem>,
+        server_member: Vec<StreamItem>,
+        resource_group_ids: std::collections::HashMap<Uuid, Vec<Uuid>>,
+        via_rg: std::collections::HashMap<Uuid, Vec<StreamItem>>,
+        denied: std::collections::HashSet<Uuid>,
+    }
+
+    #[async_trait]
+    impl PolicyStore for PlannerStore {
+        async fn fetch_owners(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Uuid>, AuthError> {
+            Ok(Default::default())
+        }
+        async fn fetch_direct_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+            _: &[Uuid],
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn fetch_resource_group_memberships(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>, AuthError> {
+            Ok(Default::default())
+        }
+        async fn fetch_resource_group_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+            _: &[Uuid],
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn fetch_type_level_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn stream_owned_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            user_id: &Uuid,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            Ok(slice_after_cursor(
+                self.owned.get(user_id).cloned().unwrap_or_default().as_slice(),
+                cursor,
+                batch_size,
+            ))
+        }
+        async fn stream_direct_user_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            user_id: &Uuid,
+            _: AppView,
+            _: u32,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            Ok(slice_after_cursor(
+                self.direct_user.get(user_id).cloned().unwrap_or_default().as_slice(),
+                cursor,
+                batch_size,
+            ))
+        }
+        async fn stream_direct_user_group_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            group_ids: &[Uuid],
+            _: AppView,
+            _: u32,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            let mut all: Vec<StreamItem> = group_ids
+                .iter()
+                .flat_map(|g| {
+                    self.direct_group.get(g).cloned().unwrap_or_default()
+                })
+                .collect();
+            all.sort_by(|a, b| {
+                b.sort_key
+                    .cmp(&a.sort_key)
+                    .then_with(|| b.resource_id.cmp(&a.resource_id))
+            });
+            all.dedup_by_key(|i| i.resource_id);
+            Ok(slice_after_cursor(&all, cursor, batch_size))
+        }
+        async fn stream_public_cover_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            _: AppView,
+            _: u32,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            Ok(slice_after_cursor(&self.public, cursor, batch_size))
+        }
+        async fn stream_server_member_cover_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            _: AppView,
+            _: u32,
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            Ok(slice_after_cursor(&self.server_member, cursor, batch_size))
+        }
+        async fn fetch_accessible_resource_group_ids(
+            &self,
+            _: &ResourceAuthInfo,
+            subject: &Subject,
+            _: AppView,
+            _: u32,
+        ) -> Result<Vec<Uuid>, AuthError> {
+            Ok(subject
+                .user_id()
+                .and_then(|uid| self.resource_group_ids.get(&uid).cloned())
+                .unwrap_or_default())
+        }
+        async fn stream_via_resource_group_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            resource_group_ids: &[Uuid],
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            let mut all: Vec<StreamItem> = resource_group_ids
+                .iter()
+                .flat_map(|g| self.via_rg.get(g).cloned().unwrap_or_default())
+                .collect();
+            all.sort_by(|a, b| {
+                b.sort_key
+                    .cmp(&a.sort_key)
+                    .then_with(|| b.resource_id.cmp(&a.resource_id))
+            });
+            all.dedup_by_key(|i| i.resource_id);
+            Ok(slice_after_cursor(&all, cursor, batch_size))
+        }
+        async fn is_denied(
+            &self,
+            _: &ResourceAuthInfo,
+            subject: &Subject,
+            _: AppView,
+            _: u32,
+            resource_id: Uuid,
+        ) -> Result<bool, AuthError> {
+            // Honor the SuperAdmin escape per
+            // POLICY_SEMANTICS.md §2.1 — same shape as filez's
+            // real FilezPolicyStore::is_denied. Without this the
+            // mock store's behaviour drifts from production.
+            if matches!(
+                subject,
+                Subject::User {
+                    is_super_admin: true,
+                    ..
+                }
+            ) {
+                return Ok(false);
+            }
+            Ok(self.denied.contains(&resource_id))
+        }
+    }
+
+    fn slice_after_cursor(
+        items: &[StreamItem],
+        cursor: Option<ListingCursor>,
+        batch_size: usize,
+    ) -> Vec<StreamItem> {
+        let mut sorted: Vec<StreamItem> = items.iter().cloned().collect();
+        sorted.sort_by(|a, b| {
+            b.sort_key
+                .cmp(&a.sort_key)
+                .then_with(|| b.resource_id.cmp(&a.resource_id))
+        });
+        let mut filtered: Vec<StreamItem> = sorted
+            .into_iter()
+            .filter(|it| match cursor {
+                Some(c) => {
+                    let cmp = it
+                        .sort_key
+                        .cmp(&c.sort_key)
+                        .then_with(|| it.resource_id.cmp(&c.resource_id));
+                    cmp == std::cmp::Ordering::Less
+                }
+                None => true,
+            })
+            .collect();
+        filtered.truncate(batch_size);
+        filtered
+    }
+
+    fn ts(s: i64) -> chrono::NaiveDateTime {
+        chrono::DateTime::from_timestamp(s, 0).unwrap().naive_utc()
+    }
+    fn uuid(n: u128) -> Uuid {
+        Uuid::from_u128(n)
+    }
+    fn auth_info() -> ResourceAuthInfo {
+        ResourceAuthInfo {
+            resource_table: "files",
+            resource_table_id_column: "id",
+            resource_table_owner_column: Some("owner_id"),
+            resource_type: 0,
+            group_membership_table: Some("file_file_group_members"),
+            group_membership_resource_id_column: Some("file_id"),
+            group_membership_group_id_column: Some("file_group_id"),
+            resource_group_type: Some(1),
+        }
+    }
+    fn untrusted_app() -> AppView {
+        AppView { id: uuid(99), trusted: false }
+    }
+    fn trusted_app() -> AppView {
+        AppView { id: uuid(99), trusted: true }
+    }
+    fn item(t: i64, id: u128) -> StreamItem {
+        StreamItem {
+            sort_key: ts(t),
+            resource_id: uuid(id),
+        }
+    }
+
+    #[tokio::test]
+    async fn planner_anonymous_only_sees_public_and_via_rg() {
+        let store = PlannerStore {
+            public: vec![item(100, 1), item(90, 2)],
+            server_member: vec![item(80, 999)], // anonymous MUST NOT see
+            ..Default::default()
+        };
+        let page = list_visible_paginated(
+            &store,
+            &auth_info(),
+            &Subject::Anonymous,
+            untrusted_app(),
+            0,
+            None,
+            50,
+            10,
+        )
+        .await
+        .unwrap();
+        assert_eq!(page.resource_ids, vec![uuid(1), uuid(2)]);
+        assert!(
+            !page.resource_ids.contains(&uuid(999)),
+            "anonymous must not see ServerMember-cover items"
+        );
+    }
+
+    #[tokio::test]
+    async fn planner_authenticated_merges_all_sources() {
+        let alice = uuid(1);
+        let g1 = uuid(11);
+        let rg1 = uuid(21);
+        let store = PlannerStore {
+            owned: [(alice, vec![item(100, 10)])].into(),
+            direct_user: [(alice, vec![item(95, 20)])].into(),
+            direct_group: [(g1, vec![item(90, 30)])].into(),
+            public: vec![item(85, 40)],
+            server_member: vec![item(80, 50)],
+            resource_group_ids: [(alice, vec![rg1])].into(),
+            via_rg: [(rg1, vec![item(75, 60)])].into(),
+            ..Default::default()
+        };
+        let subject = Subject::user(alice, vec![g1]);
+        let page = list_visible_paginated(
+            &store,
+            &auth_info(),
+            &subject,
+            untrusted_app(),
+            0,
+            None,
+            100,
+            10,
+        )
+        .await
+        .unwrap();
+        // All six sources should contribute, interleaved DESC.
+        assert_eq!(
+            page.resource_ids,
+            vec![uuid(10), uuid(20), uuid(30), uuid(40), uuid(50), uuid(60)]
+        );
+    }
+
+    #[tokio::test]
+    async fn planner_owner_only_fast_path_under_trusted_app() {
+        // Trusted-app + authenticated caller → OwnerOnly fast path.
+        // The planner constructs only the OwnedStream; even if
+        // other sources have items, they're skipped.
+        let alice = uuid(1);
+        let store = PlannerStore {
+            owned: [(alice, vec![item(100, 10), item(90, 20)])].into(),
+            direct_user: [(alice, vec![item(95, 999)])].into(), // not yielded
+            public: vec![item(80, 998)], // not yielded
+            ..Default::default()
+        };
+        let subject = Subject::user(alice, vec![]);
+        let page = list_visible_paginated(
+            &store,
+            &auth_info(),
+            &subject,
+            trusted_app(), // trusted!
+            0,
+            None,
+            10,
+            10,
+        )
+        .await
+        .unwrap();
+        assert_eq!(page.resource_ids, vec![uuid(10), uuid(20)]);
+        assert!(
+            !page.resource_ids.contains(&uuid(999)),
+            "OwnerOnly fast path must skip DirectUser source"
+        );
+        assert!(
+            !page.resource_ids.contains(&uuid(998)),
+            "OwnerOnly fast path must skip Public source"
+        );
+    }
+
+    #[tokio::test]
+    async fn planner_applies_deny_check() {
+        let alice = uuid(1);
+        let store = PlannerStore {
+            owned: [(alice, vec![item(100, 10), item(90, 20)])].into(),
+            public: vec![item(80, 30)],
+            // Item 20 is Denied. Owner-source skips Deny per
+            // POLICY_SEMANTICS.md §3 step 4 → 20 stays.
+            // Item 30 is Public → Deny applies → filtered.
+            denied: [uuid(20), uuid(30)].into(),
+            ..Default::default()
+        };
+        let subject = Subject::user(alice, vec![]);
+        let page = list_visible_paginated(
+            &store,
+            &auth_info(),
+            &subject,
+            untrusted_app(),
+            0,
+            None,
+            10,
+            10,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            page.resource_ids,
+            vec![uuid(10), uuid(20)],
+            "owner-source items skip Deny; non-owner Denied items filtered"
+        );
+    }
+
+    // phase3-final-review A4 / SECURITY-1 / QA-1: SuperAdmin
+    // doesn't take a special path through the planner — it goes
+    // through the AuthMediated merge with the standard Deny
+    // checker. `is_denied` early-returns Ok(false) for
+    // SuperAdmin per POLICY_SEMANTICS.md §2.1, so the merge
+    // still surfaces every Allow without filtering. Pin that
+    // observable behaviour so a future refactor that adds a
+    // separate SuperAdmin path doesn't silently change semantics.
+    #[tokio::test]
+    async fn planner_super_admin_goes_through_auth_mediated_path_no_deny_filter() {
+        let admin = uuid(1);
+        let store = PlannerStore {
+            owned: [(admin, vec![item(100, 10)])].into(),
+            direct_user: [(admin, vec![item(95, 20)])].into(),
+            public: vec![item(80, 30)],
+            // Mark item 30 as Denied — SuperAdmin must see it
+            // anyway because is_denied returns Ok(false).
+            denied: [uuid(30)].into(),
+            ..Default::default()
+        };
+        let subject = Subject::User {
+            user_id: admin,
+            groups: vec![],
+            is_super_admin: true,
+        };
+        let page = list_visible_paginated(
+            &store,
+            &auth_info(),
+            &subject,
+            untrusted_app(),
+            0,
+            None,
+            10,
+            10,
+        )
+        .await
+        .unwrap();
+        assert!(
+            page.resource_ids.contains(&uuid(30)),
+            "SuperAdmin must see the Denied item; is_denied early-returns Ok(false)"
+        );
+        // Sanity-check: all three sources surfaced.
+        assert!(page.resource_ids.contains(&uuid(10)));
+        assert!(page.resource_ids.contains(&uuid(20)));
+    }
+
+    // phase3-final-review A5 / SLOP-8: ViaResourceGroup actually
+    // exercised — populate resource_group_ids + via_rg in the
+    // store and assert items appear via that stream.
+    #[tokio::test]
+    async fn planner_via_resource_group_stream_merges() {
+        let alice = uuid(1);
+        let rg1 = uuid(21);
+        let rg2 = uuid(22);
+        let store = PlannerStore {
+            resource_group_ids: [(alice, vec![rg1, rg2])].into(),
+            via_rg: [
+                (rg1, vec![item(100, 100), item(80, 102)]),
+                (rg2, vec![item(90, 101)]),
+            ]
+            .into(),
+            ..Default::default()
+        };
+        let subject = Subject::user(alice, vec![]);
+        let page = list_visible_paginated(
+            &store,
+            &auth_info(),
+            &subject,
+            untrusted_app(),
+            0,
+            None,
+            10,
+            10,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            page.resource_ids,
+            vec![uuid(100), uuid(101), uuid(102)],
+            "ViaResourceGroupStream must yield items from RG_acc"
+        );
+    }
+
+    // phase3-final-review A9 / QA-7: cursor past every yielded
+    // item must produce an empty page + None next_cursor.
+    #[tokio::test]
+    async fn planner_future_cursor_yields_empty_page() {
+        let alice = uuid(1);
+        let store = PlannerStore {
+            owned: [(alice, vec![item(100, 1), item(90, 2)])].into(),
+            ..Default::default()
+        };
+        let subject = Subject::user(alice, vec![]);
+        let future_cursor = ListingCursor {
+            sort_key: ts(50), // earlier than every item (DESC: 100 > 90 > 50)
+            resource_id: uuid(0),
+        };
+        let page = list_visible_paginated(
+            &store,
+            &auth_info(),
+            &subject,
+            untrusted_app(),
+            0,
+            Some(future_cursor),
+            10,
+            10,
+        )
+        .await
+        .unwrap();
+        assert!(page.resource_ids.is_empty());
+        assert_eq!(page.next_cursor, None);
+    }
+
+    // phase3-final-review A10 / QA-9: stream error propagates
+    // through the planner's merge.
+    #[tokio::test]
+    async fn planner_propagates_stream_error() {
+        #[derive(Default, Debug)]
+        struct ErrorOnPublic;
+        #[async_trait]
+        impl PolicyStore for ErrorOnPublic {
+            async fn fetch_owners(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &[Uuid],
+            ) -> Result<std::collections::HashMap<Uuid, Uuid>, AuthError> {
+                Ok(Default::default())
+            }
+            async fn fetch_direct_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+                _: &[Uuid],
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn fetch_resource_group_memberships(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &[Uuid],
+            ) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>, AuthError>
+            {
+                Ok(Default::default())
+            }
+            async fn fetch_resource_group_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+                _: &[Uuid],
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn fetch_type_level_policies(
+                &self,
+                _: &ResourceAuthInfo,
+                _: &Subject,
+                _: AppView,
+                _: u32,
+            ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+                Ok(vec![])
+            }
+            async fn stream_public_cover_resources(
+                &self,
+                _: &ResourceAuthInfo,
+                _: AppView,
+                _: u32,
+                _: Option<ListingCursor>,
+                _: usize,
+            ) -> Result<Vec<StreamItem>, AuthError> {
+                Err(AuthError::Evaluation("public stream boom".into()))
+            }
+        }
+        let store = ErrorOnPublic;
+        let result = list_visible_paginated(
+            &store,
+            &auth_info(),
+            &Subject::Anonymous,
+            untrusted_app(),
+            0,
+            None,
+            10,
+            10,
+        )
+        .await;
+        assert!(
+            result.is_err(),
+            "planner must propagate the Public stream's error"
+        );
+    }
+
+    // phase3-final-review A11 / TECH-1 / QA-4: OwnerOnly fast
+    // path (trusted app + authenticated caller) must paginate
+    // with the cursor too — the test
+    // planner_owner_only_fast_path_under_trusted_app only
+    // exercises the no-cursor case.
+    //
+    // Cursor semantics: a FULL page returns Some(cursor)
+    // unconditionally (the merge doesn't know whether more items
+    // exist after the page). The caller's next request returns
+    // an empty page + None when the underlying stream is exhausted.
+    #[tokio::test]
+    async fn planner_owner_only_fast_path_paginates_with_cursor() {
+        let alice = uuid(1);
+        let store = PlannerStore {
+            owned: [(
+                alice,
+                vec![item(100, 1), item(90, 2), item(80, 3), item(70, 4)],
+            )]
+            .into(),
+            ..Default::default()
+        };
+        let subject = Subject::user(alice, vec![]);
+        let info = auth_info();
+
+        let page1 = list_visible_paginated(
+            &store, &info, &subject, trusted_app(), 0, None, 2, 10,
+        )
+        .await
+        .unwrap();
+        assert_eq!(page1.resource_ids, vec![uuid(1), uuid(2)]);
+        assert!(page1.next_cursor.is_some());
+
+        let page2 = list_visible_paginated(
+            &store,
+            &info,
+            &subject,
+            trusted_app(),
+            0,
+            page1.next_cursor,
+            2,
+            10,
+        )
+        .await
+        .unwrap();
+        assert_eq!(page2.resource_ids, vec![uuid(3), uuid(4)]);
+        // Full page → cursor returned even though the underlying
+        // OwnedStream happens to be exhausted; the merge can't
+        // tell. Third call confirms exhaustion.
+        assert!(page2.next_cursor.is_some());
+
+        let page3 = list_visible_paginated(
+            &store,
+            &info,
+            &subject,
+            trusted_app(),
+            0,
+            page2.next_cursor,
+            2,
+            10,
+        )
+        .await
+        .unwrap();
+        assert!(page3.resource_ids.is_empty());
+        assert_eq!(page3.next_cursor, None);
+    }
+
+    #[tokio::test]
+    async fn planner_paginates_with_cursor() {
+        let alice = uuid(1);
+        let store = PlannerStore {
+            owned: [(
+                alice,
+                vec![
+                    item(100, 1),
+                    item(90, 2),
+                    item(80, 3),
+                    item(70, 4),
+                    item(60, 5),
+                ],
+            )]
+            .into(),
+            ..Default::default()
+        };
+        let subject = Subject::user(alice, vec![]);
+        let info = auth_info();
+
+        let page1 = list_visible_paginated(
+            &store, &info, &subject, untrusted_app(), 0, None, 2, 10,
+        )
+        .await
+        .unwrap();
+        assert_eq!(page1.resource_ids, vec![uuid(1), uuid(2)]);
+
+        let page2 = list_visible_paginated(
+            &store,
+            &info,
+            &subject,
+            untrusted_app(),
+            0,
+            page1.next_cursor,
+            2,
+            10,
+        )
+        .await
+        .unwrap();
+        assert_eq!(page2.resource_ids, vec![uuid(3), uuid(4)]);
+
+        let page3 = list_visible_paginated(
+            &store,
+            &info,
+            &subject,
+            untrusted_app(),
+            0,
+            page2.next_cursor,
+            2,
+            10,
+        )
+        .await
+        .unwrap();
+        assert_eq!(page3.resource_ids, vec![uuid(5)]);
+        assert_eq!(page3.next_cursor, None);
+    }
+}
+
+#[cfg(test)]
+mod via_resource_group_stream_tests {
+    //! Validate ViaResourceGroupStream behaves like the other
+    //! resource-id paginated streams: DESC walk, refill on drain,
+    //! short-circuit on empty group list, store-error propagation.
+    use super::*;
+    use crate::registry::ResourceAuthInfo;
+    use async_trait::async_trait;
+
+    #[derive(Default, Debug)]
+    struct VRGStore {
+        /// (resource_group_id, list of resources in that group)
+        items_by_group: std::collections::HashMap<Uuid, Vec<StreamItem>>,
+    }
+
+    #[async_trait]
+    impl PolicyStore for VRGStore {
+        async fn fetch_owners(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Uuid>, AuthError> {
+            Ok(Default::default())
+        }
+        async fn fetch_direct_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+            _: &[Uuid],
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn fetch_resource_group_memberships(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &[Uuid],
+        ) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>, AuthError> {
+            Ok(Default::default())
+        }
+        async fn fetch_resource_group_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+            _: &[Uuid],
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn fetch_type_level_policies(
+            &self,
+            _: &ResourceAuthInfo,
+            _: &Subject,
+            _: AppView,
+            _: u32,
+        ) -> Result<Vec<crate::policies::PolicyView>, AuthError> {
+            Ok(vec![])
+        }
+        async fn stream_via_resource_group_resources(
+            &self,
+            _: &ResourceAuthInfo,
+            resource_group_ids: &[Uuid],
+            cursor: Option<ListingCursor>,
+            batch_size: usize,
+        ) -> Result<Vec<StreamItem>, AuthError> {
+            // Union over every group the caller passes; dedup by
+            // resource_id (a resource may live in multiple groups).
+            let mut all: Vec<StreamItem> = resource_group_ids
+                .iter()
+                .flat_map(|g| {
+                    self.items_by_group.get(g).cloned().unwrap_or_default()
+                })
+                .collect();
+            all.sort_by(|a, b| {
+                b.sort_key
+                    .cmp(&a.sort_key)
+                    .then_with(|| b.resource_id.cmp(&a.resource_id))
+            });
+            all.dedup_by_key(|i| i.resource_id);
+            let mut filtered: Vec<StreamItem> = all
+                .into_iter()
+                .filter(|it| match cursor {
+                    Some(c) => {
+                        let cmp = it
+                            .sort_key
+                            .cmp(&c.sort_key)
+                            .then_with(|| it.resource_id.cmp(&c.resource_id));
+                        cmp == std::cmp::Ordering::Less
+                    }
+                    None => true,
+                })
+                .collect();
+            filtered.truncate(batch_size);
+            Ok(filtered)
+        }
+    }
+
+    fn ts(s: i64) -> chrono::NaiveDateTime {
+        chrono::DateTime::from_timestamp(s, 0).unwrap().naive_utc()
+    }
+    fn uuid(n: u128) -> Uuid {
+        Uuid::from_u128(n)
+    }
+    fn auth_info() -> ResourceAuthInfo {
+        ResourceAuthInfo {
+            resource_table: "files",
+            resource_table_id_column: "id",
+            resource_table_owner_column: Some("owner_id"),
+            resource_type: 0,
+            group_membership_table: Some("file_file_group_members"),
+            group_membership_resource_id_column: Some("file_id"),
+            group_membership_group_id_column: Some("file_group_id"),
+            resource_group_type: Some(1),
+        }
+    }
+    async fn drain<S: SortedStream + ?Sized>(stream: &mut S) -> Vec<Uuid> {
+        let mut out = Vec::new();
+        while let Some(it) = stream.next().await.unwrap() {
+            out.push(it.resource_id);
+        }
+        out
+    }
+
+    #[tokio::test]
+    async fn via_rg_stream_walks_desc_across_groups() {
+        let g1 = uuid(11);
+        let g2 = uuid(12);
+        let mut store = VRGStore::default();
+        store.items_by_group.insert(
+            g1,
+            vec![
+                StreamItem { sort_key: ts(100), resource_id: uuid(1) },
+                StreamItem { sort_key: ts(80),  resource_id: uuid(3) },
+            ],
+        );
+        store.items_by_group.insert(
+            g2,
+            vec![
+                StreamItem { sort_key: ts(90), resource_id: uuid(2) },
+                StreamItem { sort_key: ts(70), resource_id: uuid(4) },
+            ],
+        );
+        let info = auth_info();
+        let groups = [g1, g2];
+        let mut s =
+            ViaResourceGroupStream::new(&store, &info, &groups, None, 100);
+        assert_eq!(
+            drain(&mut s).await,
+            vec![uuid(1), uuid(2), uuid(3), uuid(4)]
+        );
+        assert_eq!(s.source(), StreamSource::ViaResourceGroup);
+    }
+
+    #[tokio::test]
+    async fn via_rg_stream_empty_groups_short_circuits() {
+        let store = VRGStore::default();
+        let info = auth_info();
+        let groups: [Uuid; 0] = [];
+        let mut s =
+            ViaResourceGroupStream::new(&store, &info, &groups, None, 10);
+        assert!(s.next().await.unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn via_rg_stream_dedups_resource_in_multiple_groups() {
+        // Resource 1 is in both g1 and g2 → must yield once.
+        let g1 = uuid(11);
+        let g2 = uuid(12);
+        let mut store = VRGStore::default();
+        store.items_by_group.insert(
+            g1,
+            vec![StreamItem { sort_key: ts(100), resource_id: uuid(1) }],
+        );
+        store.items_by_group.insert(
+            g2,
+            vec![StreamItem { sort_key: ts(100), resource_id: uuid(1) }],
+        );
+        let info = auth_info();
+        let groups = [g1, g2];
+        let mut s =
+            ViaResourceGroupStream::new(&store, &info, &groups, None, 10);
+        assert_eq!(drain(&mut s).await, vec![uuid(1)]);
     }
 }
 
