@@ -151,6 +151,35 @@ pub fn vm_build_image(rebuild: bool) -> Result<()> {
         });
     }
     println!("image written to {}/dist", builder_dir.display());
+
+    // Stage the freshly-built artefacts into the supervisor's image_dir
+    // so the next `mows vms run` actually boots them. Without this,
+    // `ensure_guest_image_built` short-circuits on the stale qcow2 the
+    // image_dir already has from a previous build, and operators stare
+    // at "image rebuilt" output while the supervisor keeps spawning the
+    // old image — exactly the bug that delayed the chromium rollout.
+    let dist = builder_dir.join("dist");
+    let image_dir = super::bootstrap::state_dir_path()?.join("images");
+    std::fs::create_dir_all(&image_dir)
+        .map_err(|e| MowsError::io(format!("creating {}", image_dir.display()), e))?;
+    let mut staged = 0usize;
+    for entry in std::fs::read_dir(&dist)
+        .map_err(|e| MowsError::io(format!("reading {}", dist.display()), e))?
+    {
+        let entry = entry
+            .map_err(|e| MowsError::io(format!("reading {}", dist.display()), e))?;
+        let path = entry.path();
+        if path.is_file() {
+            if let Some(name) = path.file_name() {
+                let dest = image_dir.join(name);
+                std::fs::copy(&path, &dest).map_err(|e| {
+                    MowsError::io(format!("staging to {}", dest.display()), e)
+                })?;
+                staged += 1;
+            }
+        }
+    }
+    println!("staged {staged} artefact(s) into {}", image_dir.display());
     Ok(())
 }
 

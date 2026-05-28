@@ -301,7 +301,7 @@ fn ensure_guest_image_built(image_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn state_dir_path() -> Result<PathBuf> {
+pub(crate) fn state_dir_path() -> Result<PathBuf> {
     let home = std::env::var("HOME")
         .map_err(|_| MowsError::Config("HOME is not set".into()))?;
     let p = PathBuf::from(home).join(".local/state/mows-agent");
@@ -364,6 +364,25 @@ fn docker_run(state_dir: &Path, home: &str) -> Result<()> {
         "MOWS_AGENT_HOST_CREDS_PATH=/host-creds".into(),
         "-e".into(),
         format!("RUST_LOG={}", std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into())),
+    ];
+
+    // Pass-through env vars: forward selected supervisor knobs from the
+    // host environment so a dev who sets e.g.
+    // `MOWS_VM_SUPERVISOR_AUTH_DISABLE=true` once doesn't lose it when
+    // mows-cli silently recreates the container (build-image, manual
+    // stop, host reboot). Each is appended only when set on the host
+    // so the absence-default of the supervisor's own config still wins.
+    for key in [
+        "MOWS_VM_SUPERVISOR_AUTH_DISABLE",
+        "MOWS_VM_SUPERVISOR_API_TOKEN",
+    ] {
+        if let Ok(value) = std::env::var(key) {
+            args.push("-e".into());
+            args.push(format!("{key}={value}"));
+        }
+    }
+
+    args.extend::<Vec<String>>(vec![
         "-v".into(),
         format!("{state_str}:/var/lib/mows-agent"),
         "-v".into(),
@@ -378,7 +397,7 @@ fn docker_run(state_dir: &Path, home: &str) -> Result<()> {
         // open the path inside the container and the VM never boots.
         "-v".into(),
         "/tmp:/tmp".into(),
-    ];
+    ]);
     if claude_dir.exists() {
         args.push("-v".into());
         args.push(format!("{}:/host-creds:ro", claude_dir.display()));
