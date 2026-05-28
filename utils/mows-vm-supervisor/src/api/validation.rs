@@ -35,6 +35,16 @@ pub(super) fn validate_resource_name(field: &str, raw: &str) -> Result<String> {
             "{field} may only contain ASCII letters, digits, `.`, `-` and `_`"
         )));
     }
+    // Reject names that consist exclusively of `.` characters
+    // (i.e. `.` and `..`). These flow into `Path::join`, where `.`
+    // collapses to "current directory" and `..` ascends — a literal
+    // path-traversal vector for the `agent_id` callsite that uses the
+    // returned string to compose `state_dir/agents/<id>/agent.log`.
+    if trimmed.chars().all(|c| c == '.') {
+        return Err(SupervisorError::BadRequest(format!(
+            "{field} must not consist exclusively of `.` characters (rejected: {trimmed:?})"
+        )));
+    }
     Ok(trimmed.to_string())
 }
 
@@ -63,6 +73,26 @@ mod tests {
                 "should reject {bad:?}"
             );
         }
+    }
+
+    #[test]
+    fn rejects_path_traversal_names() {
+        // MAJ-1 follow-up: `.` and `..` would otherwise pass the
+        // charset check (their bytes are all in the allowed set) but
+        // collapse to traversal when used in `Path::join`. The check
+        // is independent of length so future "..." etc. are also
+        // rejected.
+        for bad in [".", "..", "...", "....."] {
+            assert!(
+                validate_resource_name("agent_id", bad).is_err(),
+                "should reject all-dot name {bad:?}"
+            );
+        }
+        // `.foo`, `foo.bar`, `f.b.` still pass because they have at
+        // least one non-dot character.
+        assert!(validate_resource_name("agent_id", ".foo").is_ok());
+        assert!(validate_resource_name("agent_id", "foo.bar").is_ok());
+        assert!(validate_resource_name("agent_id", "f.b.").is_ok());
     }
 
     #[test]

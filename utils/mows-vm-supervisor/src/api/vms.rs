@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::extract::{Path, State};
+use axum::extract::{Extension, Path, State};
 use axum::routing::get;
 use axum::{Json, Router};
 use chrono::Utc;
@@ -17,6 +17,7 @@ use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 
+use crate::api::auth_middleware::AuthContext;
 use crate::api::types::{ErrorResponse, OperationResult};
 use crate::api::validation::validate_resource_name;
 use crate::error::{Result, SupervisorError};
@@ -173,6 +174,10 @@ pub struct VmSummary {
     pub started_at: String,
     pub exited_at: Option<String>,
     pub exit_code: Option<i64>,
+    /// `users.id` of the caller who created the VM. `None` for legacy
+    /// rows written before owner tracking landed (admins still see
+    /// them; non-admin users do not).
+    pub owner_user_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -185,7 +190,29 @@ pub struct VmSshInfo {
 }
 
 const VM_COLUMNS: &str =
-    "id, name, status, cwd, cpus, memory_mb, image, display_mode, host_ssh_port, host_docker_port, started_at, exited_at, exit_code";
+    "id, name, status, cwd, cpus, memory_mb, image, display_mode, host_ssh_port, host_docker_port, started_at, exited_at, exit_code, owner_user_id";
+
+/// Confirm the caller may see `vm_id`. Used by every cross-module
+/// agent handler before a path-bound `vm_id` is read — keeps the
+/// "non-admin can't even discover that someone else's VM exists"
+/// invariant in one place.
+pub(super) async fn ensure_vm_visible(
+    state: &SharedState,
+    actor: &AuthContext,
+    vm_id: &str,
+) -> Result<()> {
+    let owner: Option<Option<String>> =
+        sqlx::query_scalar("SELECT owner_user_id FROM vms WHERE id = ?1")
+            .bind(vm_id)
+            .fetch_optional(&state.db)
+            .await?;
+    let owner = owner
+        .ok_or_else(|| SupervisorError::NotFound(format!("vm {vm_id} not found")))?;
+    if !actor.may_access(owner.as_deref()) {
+        return Err(SupervisorError::NotFound(format!("vm {vm_id} not found")));
+    }
+    Ok(())
+}
 
 #[utoipa::path(
     get,
@@ -197,10 +224,24 @@ const VM_COLUMNS: &str =
         (status = 500, description = "Internal error", body = ErrorResponse),
     )
 )]
-async fn list_vms(State(state): State<SharedState>) -> Result<Json<Vec<VmSummary>>> {
-    let sql = format!("SELECT {VM_COLUMNS} FROM vms ORDER BY started_at DESC");
-    let rows: Vec<VmSummary> = sqlx::query_as(&sql).fetch_all(&state.db).await?;
-    Ok(Json(rows))
+async fn list_vms(
+    State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
+) -> Result<Json<Vec<VmSummary>>> {
+    if actor.is_admin() {
+        let sql = format!("SELECT {VM_COLUMNS} FROM vms ORDER BY started_at DESC");
+        let rows: Vec<VmSummary> = sqlx::query_as(&sql).fetch_all(&state.db).await?;
+        Ok(Json(rows))
+    } else {
+        let sql = format!(
+            "SELECT {VM_COLUMNS} FROM vms WHERE owner_user_id = ?1 ORDER BY started_at DESC"
+        );
+        let rows: Vec<VmSummary> = sqlx::query_as(&sql)
+            .bind(actor.user_id.as_deref().unwrap_or(""))
+            .fetch_all(&state.db)
+            .await?;
+        Ok(Json(rows))
+    }
 }
 
 #[utoipa::path(
@@ -234,9 +275,14 @@ async fn get_vm_defaults(
 )]
 async fn get_vm(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
 ) -> Result<Json<VmSummary>> {
-    Ok(Json(load_vm(&state, &id).await?))
+    let vm = load_vm(&state, &id).await?;
+    if !actor.may_access(vm.owner_user_id.as_deref()) {
+        return Err(SupervisorError::NotFound(format!("vm {id} not found")));
+    }
+    Ok(Json(vm))
 }
 
 pub(super) async fn load_vm(state: &SharedState, id: &str) -> Result<VmSummary> {
@@ -262,9 +308,11 @@ pub(super) async fn load_vm(state: &SharedState, id: &str) -> Result<VmSummary> 
 )]
 async fn create_vm(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Json(request): Json<CreateVmRequest>,
 ) -> Result<Json<VmSummary>> {
     let id = uuid::Uuid::new_v4().to_string();
+    let owner_user_id = actor.user_id.clone();
 
     // Validate workspace path BEFORE any side effect. Rejects relative paths,
     // missing directories, and embedded commas/newlines that would inject
@@ -329,8 +377,8 @@ async fn create_vm(
     let (ssh_port, docker_port) = state.port_allocator.allocate_pair()?;
 
     sqlx::query(
-        "INSERT INTO vms (id, name, status, cwd, cpus, memory_mb, image, display_mode, host_ssh_port, host_docker_port, started_at) \
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        "INSERT INTO vms (id, name, status, cwd, cpus, memory_mb, image, display_mode, host_ssh_port, host_docker_port, started_at, owner_user_id) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
     )
     .bind(&id)
     .bind(&name)
@@ -343,6 +391,7 @@ async fn create_vm(
     .bind(i64::from(ssh_port))
     .bind(i64::from(docker_port))
     .bind(&started_at)
+    .bind(&owner_user_id)
     .execute(&state.db)
     .await?;
 
@@ -445,6 +494,7 @@ async fn create_vm(
         started_at,
         exited_at: None,
         exit_code: None,
+        owner_user_id,
     }))
 }
 
@@ -511,8 +561,10 @@ async fn probe_until_ready(port: u16) -> Result<()> {
 )]
 async fn stop_vm(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
 ) -> Result<Json<OperationResult>> {
+    ensure_vm_visible(&state, &actor, &id).await?;
     // Read the port pair BEFORE we mark the VM stopped so we can release
     // them back to the allocator.
     let ports: Option<(Option<i64>, Option<i64>)> = sqlx::query_as(
@@ -588,9 +640,11 @@ async fn stop_vm(
 )]
 async fn update_vm(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
     Json(request): Json<UpdateVmRequest>,
 ) -> Result<Json<VmSummary>> {
+    ensure_vm_visible(&state, &actor, &id).await?;
     let trimmed = validate_resource_name("name", &request.name)?;
     let query_result = sqlx::query("UPDATE vms SET name = ?1 WHERE id = ?2")
         .bind(&trimmed)
@@ -617,8 +671,10 @@ async fn update_vm(
 )]
 async fn delete_vm(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
 ) -> Result<Json<OperationResult>> {
+    ensure_vm_visible(&state, &actor, &id).await?;
     // Capture port assignments before deletion so we can release them.
     let ports: Option<(Option<i64>, Option<i64>)> =
         sqlx::query_as("SELECT host_ssh_port, host_docker_port FROM vms WHERE id = ?1")
@@ -712,9 +768,13 @@ async fn delete_vm(
 )]
 async fn get_vm_ssh(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
 ) -> Result<Json<VmSshInfo>> {
     let summary = load_vm(&state, &id).await?;
+    if !actor.may_access(summary.owner_user_id.as_deref()) {
+        return Err(SupervisorError::NotFound(format!("vm {id} not found")));
+    }
     let port = summary.host_ssh_port.ok_or_else(|| {
         SupervisorError::NotFound(format!("vm {id} has no allocated ssh port"))
     })?;
@@ -746,11 +806,12 @@ async fn get_vm_ssh(
 
 async fn get_vm_display(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
     ws: WebSocketUpgrade,
 ) -> std::result::Result<axum::response::Response, SupervisorError> {
-    // Confirm the VM exists before upgrading; the loaded summary is unused.
-    load_vm(&state, &id).await?;
+    // Confirm the caller may see this VM before upgrading the connection.
+    ensure_vm_visible(&state, &actor, &id).await?;
     let socket_path = display_socket_for(&state.config.state_dir, &id);
     Ok(ws
         .protocols(["binary"])
@@ -765,11 +826,12 @@ async fn get_vm_display(
 
 async fn get_vm_console(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
     ws: WebSocketUpgrade,
 ) -> std::result::Result<axum::response::Response, SupervisorError> {
-    // Confirm the VM exists before upgrading; the loaded summary is unused.
-    load_vm(&state, &id).await?;
+    // Confirm the caller may see this VM before upgrading the connection.
+    ensure_vm_visible(&state, &actor, &id).await?;
     let socket_path = console_socket_for(&state.config.state_dir, &id);
     let log_path = state
         .config
@@ -807,11 +869,15 @@ async fn get_vm_console(
 /// reflow will close + reopen the socket on resize.
 async fn get_vm_ssh_io(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
     axum::extract::Query(query): axum::extract::Query<VmSshIoQuery>,
     ws: WebSocketUpgrade,
 ) -> std::result::Result<axum::response::Response, SupervisorError> {
     let summary = load_vm(&state, &id).await?;
+    if !actor.may_access(summary.owner_user_id.as_deref()) {
+        return Err(SupervisorError::NotFound(format!("vm {id} not found")));
+    }
     if summary.status != VmStatus::Running {
         return Err(SupervisorError::Conflict(format!(
             "vm {id} is in status `{}`; ssh sessions require a running vm",
@@ -896,9 +962,11 @@ struct VmSshIoQuery {
     /// Which remote command to exec inside the guest. Defaults to `shell`
     /// (interactive login shell). `claude` stages the host's `~/.claude`
     /// credentials from the read-only `/creds` mount into a writable
-    /// per-VM copy and execs `claude --permission-mode acceptEdits`
-    /// with the auto-updater disabled, matching what the agent kind
-    /// does when spawned via `/v1/agents`.
+    /// per-VM copy and execs `claude --dangerously-skip-permissions`
+    /// with the auto-updater disabled — the per-VM qcow2 overlay
+    /// bounds the blast radius of full tool permissions to one guest.
+    /// Mirrors what the `claude` agent kind does when spawned via
+    /// `PUT /v1/vms/{vm_id}/agents/{agent_id}`.
     command: Option<String>,
     /// Stable per-tab session id. When present the supervisor keeps
     /// the spawned ssh subprocess alive across attach/detach;
@@ -936,9 +1004,14 @@ async fn proxy_vm_ssh(ws: WebSocket, spec: VmSshSpec) -> std::io::Result<()> {
 
     // Per `command` query param: either an interactive login shell or the
     // claude bootstrap that stages `/creds` into `/home/agent/.claude` and
-    // execs `claude --permission-mode acceptEdits`. The bootstrap source
-    // of truth is `kinds::builtin_claude()` (third element of `argv`) so
-    // both `/v1/agents` and the click-to-launch ssh-io tab stay aligned.
+    // execs `claude --dangerously-skip-permissions` (justified at the
+    // call site by the per-VM qcow2 overlay sandbox). The bootstrap
+    // source of truth is `kinds::builtin_claude()` (third element of
+    // `argv`); this ssh-io path is the legacy direct-attach surface, kept
+    // around so existing UIs that don't go through the agent endpoint
+    // still work. New consumers should bootstrap via
+    // `PUT /v1/vms/{vm_id}/agents/{agent_id}` then attach the
+    // `/v1/agents/{id}/io` WebSocket instead.
     let inner_command = match spec.command_kind {
         SshCommandKind::Shell => "exec $SHELL -l".to_string(),
         SshCommandKind::Claude => match crate::kinds::builtin_claude().argv.get(2) {

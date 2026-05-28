@@ -363,11 +363,13 @@ fn ssh_endpoint_returns_keypair_and_port() {
 }
 
 #[test]
-fn unknown_agent_kind_returns_400() {
+fn unknown_agent_kind_returns_client_error() {
     // VMs are kindless — kind moved to agents. POST /v1/vms/:id/agents with
-    // an unknown kind is the new failure surface; it gates on the VM being
-    // running, but the kind validation runs first so even before the VM is
-    // ready we get a 400 here. We hit a bogus VM id to avoid bringing one up.
+    // an unknown kind is the new failure surface. Since `AgentKindName`
+    // became a typed serde enum (MAJ-7), schema rejection happens inside
+    // axum's `Json` extractor, which surfaces as 422 Unprocessable Entity
+    // — the correct HTTP semantic for "well-formed JSON, wrong shape".
+    // We assert the request is rejected without distinguishing 400 / 422.
     let h = Harness::start(next_port());
     let resp = h
         .client()
@@ -375,7 +377,12 @@ fn unknown_agent_kind_returns_400() {
         .json(&json!({"kind": "definitely-not-a-real-agent-kind"}))
         .send()
         .unwrap();
-    assert_eq!(resp.status(), reqwest::StatusCode::BAD_REQUEST);
+    let status = resp.status();
+    assert!(
+        status == reqwest::StatusCode::BAD_REQUEST
+            || status == reqwest::StatusCode::UNPROCESSABLE_ENTITY,
+        "unknown kind on POST must surface a 4xx client error, got {status}"
+    );
 }
 
 /// QA-21: agent-create against an unknown VM with a VALID kind must 404,
@@ -493,6 +500,290 @@ fn delete_agent_removes_row() {
         .send()
         .unwrap();
     assert_eq!(after.status(), reqwest::StatusCode::NOT_FOUND);
+}
+
+/// MAJ-1 regression: `PUT /v1/vms/{vm_id}/agents/{agent_id}` must reject
+/// caller-supplied ids that fail `validate_resource_name`. Path traversal
+/// (`../etc`), shell metacharacters, whitespace, etc. all flow into the
+/// DB primary key, tmux session name, and log file path, so the check
+/// has to happen before any of that work runs.
+#[test]
+fn put_agent_rejects_invalid_agent_id() {
+    let h = Harness::start(next_port());
+    // VM id can be bogus — validate_resource_name runs first, and
+    // there's no chance to reach the VM lookup with these inputs.
+    let bogus_vm = "00000000-0000-0000-0000-000000000000";
+    // Every case must (a) survive axum's URL routing into the
+    // `{agent_id}` slot AND (b) fail `validate_resource_name`. Bare
+    // `.` / `..` segments are normalized away by URL routing before
+    // the handler ever sees them; the dedicated unit test in
+    // `api::validation::tests::rejects_path_traversal_names` covers
+    // those at the function level. Here we exercise the wire surface
+    // for length, charset, and whitespace rejections.
+    let too_long = "a".repeat(65);
+    let cases = [
+        "a%20b",    // "a b" → space reject
+        "a%2Cb",    // "a,b" → comma reject
+        "a%3Bb",    // "a;b" → semicolon reject
+        "a%21b",    // "a!b" → exclamation reject
+        too_long.as_str(),
+    ];
+    for bad_id in cases {
+        let url = h.url(&format!("/v1/vms/{bogus_vm}/agents/{bad_id}"));
+        let resp = h
+            .client()
+            .put(url)
+            .json(&json!({"kind": "shell"}))
+            .send()
+            .unwrap();
+        assert_eq!(
+            resp.status(),
+            reqwest::StatusCode::BAD_REQUEST,
+            "PUT with agent_id={bad_id} must 400, got {}: {}",
+            resp.status(),
+            resp.text().unwrap_or_default()
+        );
+    }
+}
+
+/// CRIT-2/3 surface: `PUT` against an unknown VM with a valid agent_id and
+/// a known kind must 404 (VM gating), not 500. Proves the explicit
+/// `match` on `load_agent` doesn't swallow the NotFound and fabricate an
+/// agent row anyway.
+#[test]
+fn put_agent_on_unknown_vm_returns_404() {
+    let h = Harness::start(next_port());
+    let resp = h
+        .client()
+        .put(h.url(
+            "/v1/vms/00000000-0000-0000-0000-000000000000/agents/console_main",
+        ))
+        .json(&json!({"kind": "shell"}))
+        .send()
+        .unwrap();
+    assert_eq!(resp.status(), reqwest::StatusCode::NOT_FOUND);
+}
+
+/// `PUT` against a VM that hasn't reached `running` (the stub qcow2
+/// keeps the VM permanently in `starting`) must 409, not 500 — and the
+/// row must not be inserted (a subsequent attempt sees the same state).
+#[test]
+fn put_agent_on_non_running_vm_returns_409_twice() {
+    let h = Harness::start(next_port());
+    let vm: serde_json::Value = h
+        .client()
+        .post(h.url("/v1/vms"))
+        .json(&json!({}))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let vm_id = vm["id"].as_str().unwrap();
+    let put_url = h.url(&format!("/v1/vms/{vm_id}/agents/persisted_tab"));
+
+    let first = h
+        .client()
+        .put(put_url.clone())
+        .json(&json!({"kind": "shell"}))
+        .send()
+        .unwrap();
+    assert_eq!(
+        first.status(),
+        reqwest::StatusCode::CONFLICT,
+        "stub VM is permanently `starting`, first PUT must 409"
+    );
+
+    // Second PUT must also 409 — proving that the first PUT did NOT
+    // create a row that the idempotency branch then silently returned.
+    let second = h
+        .client()
+        .put(put_url)
+        .json(&json!({"kind": "shell"}))
+        .send()
+        .unwrap();
+    assert_eq!(
+        second.status(),
+        reqwest::StatusCode::CONFLICT,
+        "second PUT must observe the same `starting` state, not a stale row"
+    );
+}
+
+/// Unknown kind values are rejected by serde before the handler runs
+/// (the `AgentKindName` enum is `#[serde(rename_all = "lowercase")]`
+/// over a closed set). Axum's `Json` extractor returns 422 Unprocessable
+/// Entity for schema-mismatch errors, which is the correct HTTP
+/// semantic (JSON is well-formed but doesn't fit the schema). Older
+/// clients/docs sometimes expected 400 — assert the request is rejected
+/// without distinguishing the exact 4xx code.
+#[test]
+fn put_agent_unknown_kind_returns_client_error() {
+    let h = Harness::start(next_port());
+    let resp = h
+        .client()
+        .put(h.url(
+            "/v1/vms/00000000-0000-0000-0000-000000000000/agents/console_main",
+        ))
+        .json(&json!({"kind": "not-a-real-kind"}))
+        .send()
+        .unwrap();
+    let status = resp.status();
+    assert!(
+        status == reqwest::StatusCode::BAD_REQUEST
+            || status == reqwest::StatusCode::UNPROCESSABLE_ENTITY,
+        "unknown kind must surface a 4xx client error, got {status}: {}",
+        resp.text().unwrap_or_default()
+    );
+}
+
+/// CRIT-1 regression: a user with `role=user` cannot list, fetch, stop,
+/// or delete a VM owned by a different user. The auth disabled / admin
+/// path remains unchanged (`admin` sees everything) — we exercise the
+/// non-admin path explicitly here so the scoping behaviour stays under
+/// test even when local-dev runs with auth disabled.
+#[test]
+fn non_admin_user_cannot_see_other_users_vms() {
+    let h = Harness::start(next_port());
+
+    // alice (admin) is provisioned via the harness's bootstrap token.
+    // Create a VM owned by the harness admin and capture its id.
+    let admin_vm: serde_json::Value = h
+        .client()
+        .post(h.url("/v1/vms"))
+        .json(&json!({}))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let admin_vm_id = admin_vm["id"].as_str().unwrap();
+
+    // Create a regular user and obtain a session token for them.
+    h.client()
+        .post(h.url("/v1/users"))
+        .json(&json!({"username": "bob", "password": "correcthorsebatterystaple", "role": "user"}))
+        .send()
+        .unwrap();
+    let login: serde_json::Value = h
+        .client()
+        .post(h.url("/v1/auth/login"))
+        .json(&json!({"username": "bob", "password": "correcthorsebatterystaple"}))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let bob_token = login["token"].as_str().unwrap().to_string();
+
+    let bob = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .unwrap();
+    let with_bob = |b: reqwest::blocking::RequestBuilder| {
+        b.header("Authorization", format!("Bearer {bob_token}"))
+    };
+
+    // bob sees no VMs — alice's admin-owned VM is invisible.
+    let list_resp = with_bob(bob.get(h.url("/v1/vms"))).send().unwrap();
+    assert!(list_resp.status().is_success());
+    let list: Vec<serde_json::Value> = list_resp.json().unwrap();
+    assert!(
+        list.is_empty(),
+        "non-admin must not see VMs owned by anyone else, got {list:?}"
+    );
+
+    // bob's targeted GET on alice's VM returns 404 (existence is not leaked).
+    let get_resp =
+        with_bob(bob.get(h.url(&format!("/v1/vms/{admin_vm_id}")))).send().unwrap();
+    assert_eq!(get_resp.status(), reqwest::StatusCode::NOT_FOUND);
+
+    // bob's PUT-agent against alice's VM also 404s before any
+    // ownership-bypass mistake can happen.
+    let put_resp = with_bob(
+        bob.put(h.url(&format!(
+            "/v1/vms/{admin_vm_id}/agents/tabid_cross_tenant"
+        )))
+        .json(&json!({"kind": "shell"})),
+    )
+    .send()
+    .unwrap();
+    assert_eq!(put_resp.status(), reqwest::StatusCode::NOT_FOUND);
+
+    // bob's stop call must also 404.
+    let stop_resp = with_bob(
+        bob.post(h.url(&format!("/v1/vms/{admin_vm_id}/stop"))),
+    )
+    .send()
+    .unwrap();
+    assert_eq!(stop_resp.status(), reqwest::StatusCode::NOT_FOUND);
+
+    // and delete.
+    let delete_resp =
+        with_bob(bob.delete(h.url(&format!("/v1/vms/{admin_vm_id}")))).send().unwrap();
+    assert_eq!(delete_resp.status(), reqwest::StatusCode::NOT_FOUND);
+
+    // alice (admin) still sees her VM — proves we didn't accidentally
+    // also hide it from its rightful owner.
+    let admin_list: Vec<serde_json::Value> = h
+        .client()
+        .get(h.url("/v1/vms"))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    assert!(admin_list.iter().any(|v| v["id"] == admin_vm_id));
+}
+
+/// VM ownership populated by `create_vm` is exposed on the row so the
+/// UI can render it. Admin-created VMs carry `owner_user_id: null`
+/// (admin token has no user_id), user-created VMs carry the creator's
+/// `users.id`.
+#[test]
+fn create_vm_records_owner_user_id() {
+    let h = Harness::start(next_port());
+
+    let admin_vm: serde_json::Value = h
+        .client()
+        .post(h.url("/v1/vms"))
+        .json(&json!({}))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    assert!(
+        admin_vm["owner_user_id"].is_null(),
+        "admin-created VM must record owner_user_id = null, got {admin_vm:?}"
+    );
+
+    h.client()
+        .post(h.url("/v1/users"))
+        .json(&json!({"username": "carol", "password": "correcthorsebatterystaple", "role": "user"}))
+        .send()
+        .unwrap();
+    let login: serde_json::Value = h
+        .client()
+        .post(h.url("/v1/auth/login"))
+        .json(&json!({"username": "carol", "password": "correcthorsebatterystaple"}))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let carol_token = login["token"].as_str().unwrap().to_string();
+
+    let carol = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .unwrap();
+    let user_vm: serde_json::Value = carol
+        .post(h.url("/v1/vms"))
+        .header("Authorization", format!("Bearer {carol_token}"))
+        .json(&json!({}))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let owner = user_vm["owner_user_id"].as_str().unwrap_or("");
+    assert!(
+        !owner.is_empty(),
+        "user-created VM must record a non-empty owner_user_id, got {user_vm:?}"
+    );
 }
 
 /// Open the display websocket and verify QEMU's VNC server greets us with

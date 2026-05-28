@@ -16,12 +16,13 @@
 #   4. rustup toolchain
 #   5. independent dockerd
 #   6. claude CLI + plugin manifest
-#   7. mows-agent-init service + sshd config
-#   8. (desktop only) xfce4 + VNC autostart
+#   7. chromium runtime + chrome-devtools MCP (pinned by `apk` version)
+#   8. mows-agent-init service + sshd config
+#   9. (desktop only) xfce4 + VNC autostart
 #
 # Reproducibility caveats:
 #  * `apk add` calls run against `dl-cdn.alpinelinux.org` for the major
-#    version pinned by `ALPINE_DIGEST` (currently alpine:3.20). Alpine does
+#    version pinned by `ALPINE_DIGEST` (currently alpine:3.21). Alpine does
 #    not run an official dated-snapshot service, so security backports do
 #    land in-place and identical builds are guaranteed only within a
 #    ~24-48h window of the original build. The base image digest above
@@ -31,11 +32,13 @@
 #  * pnpm + claude-code + rustup toolchain are version-pinned via ARGs
 #    further down (SECURITY-23/24 + DEVOPS-10/11/12).
 
-ARG ALPINE_VERSION=3.20
-# Digest of `alpine:3.20` at the time of pinning. Re-resolve with
-# `docker buildx imagetools inspect alpine:3.20 --format '{{json .Manifest.Digest}}'`
+ARG ALPINE_VERSION=3.21
+# Digest of `alpine:3.21` at the time of pinning. Re-resolve with
+# `docker buildx imagetools inspect alpine:3.21 --format '{{json .Manifest.Digest}}'`
 # and refresh in lock-step with the unpinned tag if you bump ALPINE_VERSION.
-ARG ALPINE_DIGEST=sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+# Bumped from 3.20 → 3.21 because chrome-devtools-mcp@>=0.5.1 requires
+# Node ≥ 20.19; alpine 3.20 ships Node 20.15, alpine 3.21 ships Node 22.x.
+ARG ALPINE_DIGEST=sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
 ARG SOURCE_DATE_EPOCH=1735689600
 ARG TARGETARCH=amd64
 ARG FLAVOR=headless
@@ -107,6 +110,41 @@ RUN npm install -g --no-audit --no-fund "@anthropic-ai/claude-code@${CLAUDE_CODE
     && command -v claude >/dev/null \
     && claude --version
 
+# Chromium + chrome-devtools MCP server. Inside the per-agent qcow2 the
+# browser only ever runs headless (no graphical surface in the guest),
+# so we pull just the runtime libs Puppeteer needs. Versions are pinned
+# explicitly because chromium ships security backports under the same
+# alpine 3.21 tag — without the `=…` pin a rebuild a week later would
+# produce a different chromium binary (MAJ-5). Re-pin with:
+#   docker run --rm alpine@${ALPINE_DIGEST} apk policy <pkg>
+# The MCP server is a small npm package; pin it the same way as
+# claude-code. Telling puppeteer to skip its bundled-chromium download
+# (set in the kind bootstrap via PUPPETEER_SKIP_DOWNLOAD=1 +
+# PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser) keeps the image
+# reproducible — otherwise the npm postinstall would fetch a different
+# binary per build.
+ARG CHROMIUM_VERSION=136.0.7103.113-r0
+ARG NSS_VERSION=3.109-r0
+ARG FREETYPE_VERSION=2.13.3-r0
+ARG HARFBUZZ_VERSION=9.0.0-r1
+# `ttf-freefont` is the legacy alias; the real package is `font-freefont`
+# on alpine 3.21. Pinning the real name avoids `apk` quietly resolving
+# the alias to whatever version backports later.
+ARG FONT_FREEFONT_VERSION=20120503-r4
+ARG FONT_NOTO_EMOJI_VERSION=2.047-r0
+ARG CHROME_DEVTOOLS_MCP_VERSION=1.1.0
+RUN apk add --no-cache \
+        "chromium=${CHROMIUM_VERSION}" \
+        "nss=${NSS_VERSION}" \
+        "freetype=${FREETYPE_VERSION}" \
+        "harfbuzz=${HARFBUZZ_VERSION}" \
+        "font-freefont=${FONT_FREEFONT_VERSION}" \
+        "font-noto-emoji=${FONT_NOTO_EMOJI_VERSION}" \
+    && command -v chromium-browser >/dev/null \
+    && PUPPETEER_SKIP_DOWNLOAD=1 npm install -g --no-audit --no-fund \
+        "chrome-devtools-mcp@${CHROME_DEVTOOLS_MCP_VERSION}" \
+    && command -v chrome-devtools-mcp >/dev/null
+
 # mows + mpm — installed natively in the guest so agents can use the same
 # tooling the host has. Built statically by image-builder/build.sh.
 COPY --from=mows-bin --chmod=755 /mows /usr/local/bin/mows
@@ -153,15 +191,20 @@ RUN if [ "${FLAVOR}" = "desktop" ]; then \
     fi
 
 # Reproducibility: pin file mtimes to SOURCE_DATE_EPOCH on the final rootfs.
-# Explicitly exclude pseudo-FS roots and proxy-cache dirs that legitimately
-# need live mtimes. We deliberately do NOT swallow `2>/dev/null || true` —
-# a touch failure is the most dangerous "silent reproducibility break"
-# class of bug. If a new untouchable path appears, add it to the excludes
-# list rather than masking the error.
+# `-prune` skips the pseudo-FS mountpoints themselves AND their children —
+# the previous `-not -path '/sys/*'` form only excluded the children, so
+# `touch /sys` would still fire and fail on the read-only sysfs mount.
+# /etc/hosts /etc/resolv.conf /etc/hostname are docker-build-time bind
+# mounts (read-only) whose mtimes are meaningless in the final qcow2
+# (alpine's own versions overlay them at VM boot). We deliberately do
+# NOT swallow `2>/dev/null || true` — a touch failure is the most
+# dangerous "silent reproducibility break" class of bug. If a new
+# untouchable path appears, add it to the prune list rather than
+# masking the error.
 RUN find / -xdev \
-        -not -path '/proc/*' -not -path '/sys/*' \
-        -not -path '/dev/*' -not -path '/run/*' \
-        -exec touch -hcd "@${SOURCE_DATE_EPOCH}" {} +
+        \( -path '/proc' -o -path '/sys' -o -path '/dev' -o -path '/run' \
+           -o -path '/etc/hosts' -o -path '/etc/resolv.conf' -o -path '/etc/hostname' \) -prune \
+        -o -exec touch -hcd "@${SOURCE_DATE_EPOCH}" {} +
 
 # Stage 2: pack rootfs into a qcow2 disk image.
 FROM alpine@${ALPINE_DIGEST} AS packer
@@ -169,7 +212,12 @@ ARG ALPINE_DIGEST
 ARG SOURCE_DATE_EPOCH
 ARG TARGETARCH
 ARG FLAVOR
-RUN apk add --no-cache qemu-img e2fsprogs util-linux tar coreutils
+# `bash` is required because `pack.sh` uses `#!/bin/bash` for
+# `set -o pipefail` (commit f70a3796). Without the apk, the RUN below
+# fails with `/work/pack.sh: not found` — busybox `sh` is alpine's
+# default and doesn't support `pipefail`. Any future refactor must
+# either keep bash in this apk or convert pack.sh to /bin/sh-compatible.
+RUN apk add --no-cache bash qemu-img e2fsprogs util-linux tar coreutils
 WORKDIR /work
 COPY --from=rootfs / /rootfs/
 COPY pack.sh /work/pack.sh

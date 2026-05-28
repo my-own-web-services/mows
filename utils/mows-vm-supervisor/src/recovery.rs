@@ -31,22 +31,44 @@ use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
 
 use crate::error::Result;
+use crate::events::{EventBus, SupervisorEvent};
 
 /// Counts returned from a reconciliation pass — useful for the startup
-/// log line and as the assertion target in tests.
+/// log line and as the assertion target in tests. Carries the row ids
+/// that flipped so the caller can drive event emission and a future
+/// fleet coordinator can attribute recovery per supervisor (FUTURE-5).
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct ReconcileStats {
     pub vms_marked_failed: u64,
     pub agents_marked_failed: u64,
     pub qemu_processes_killed: u64,
+    /// VM ids that transitioned to `failed`. Emitted as
+    /// `VmUpdated` so any connected event stream sees the recovery
+    /// immediately rather than on the next manual refresh.
+    pub failed_vm_ids: Vec<String>,
+    /// Agent ids that transitioned to `failed` (cascaded from a
+    /// failed VM).
+    pub failed_agent_ids: Vec<String>,
 }
 
 /// Mark every non-terminal VM as `failed` (and every non-terminal agent
 /// inside such a VM likewise) on supervisor startup. Returns the number
-/// of rows touched so the caller can log a single summary line.
-pub async fn reconcile_orphans(pool: &SqlitePool, now: DateTime<Utc>) -> Result<ReconcileStats> {
-    let orphans: Vec<(String, Option<i64>)> = sqlx::query_as(
-        "SELECT id, qemu_pid FROM vms \
+/// of rows touched plus the affected ids so the caller can:
+///   - log a single summary line, and
+///   - emit `SupervisorEvent::{Vm,Agent}Updated` so any frontend
+///     subscribed to `/v1/events` sees the recovery transitions.
+///
+/// Optionally takes an `&EventBus`; when provided, this function will
+/// emit events directly. When `None` the caller is responsible for
+/// draining `failed_vm_ids` / `failed_agent_ids` and emitting itself
+/// (or skipping emission entirely in tests).
+pub async fn reconcile_orphans(
+    pool: &SqlitePool,
+    now: DateTime<Utc>,
+    events: Option<&EventBus>,
+) -> Result<ReconcileStats> {
+    let orphans: Vec<(String, Option<i64>, String)> = sqlx::query_as(
+        "SELECT id, qemu_pid, status FROM vms \
          WHERE status IN ('starting', 'running', 'stopping')",
     )
     .fetch_all(pool)
@@ -57,21 +79,66 @@ pub async fn reconcile_orphans(pool: &SqlitePool, now: DateTime<Utc>) -> Result<
     }
 
     let mut killed = 0u64;
-    for (vm_id, pid) in &orphans {
+    for (vm_id, pid, previous_status) in &orphans {
+        // Tell stopping-mid-shutdown (clean interruption) apart from
+        // running/starting (true orphan) so operators reading the log
+        // post-restart aren't misled by a wall of "WARN: killed stray
+        // qemu" when the supervisor was just shutting down.
+        let level = if previous_status == "stopping" {
+            tracing::Level::INFO
+        } else {
+            tracing::Level::WARN
+        };
         if let Some(pid) = pid {
             if kill_if_qemu(*pid) {
                 killed += 1;
-                tracing::warn!(
-                    vm_id = %vm_id,
-                    pid = pid,
-                    "killed stray qemu process from previous supervisor run"
-                );
+                match level {
+                    tracing::Level::INFO => tracing::info!(
+                        vm_id = %vm_id,
+                        pid = pid,
+                        previous_status = previous_status,
+                        "reaped qemu mid-shutdown from previous supervisor run"
+                    ),
+                    _ => tracing::warn!(
+                        vm_id = %vm_id,
+                        pid = pid,
+                        previous_status = previous_status,
+                        "killed stray qemu process from previous supervisor run"
+                    ),
+                }
             }
         }
     }
 
     let timestamp = now.to_rfc3339();
     let mut tx = pool.begin().await?;
+
+    let failed_vm_ids: Vec<String> = sqlx::query_scalar(
+        "SELECT id FROM vms WHERE status IN ('starting', 'running', 'stopping')",
+    )
+    .fetch_all(&mut *tx)
+    .await?;
+
+    let failed_agent_ids: Vec<String> = if failed_vm_ids.is_empty() {
+        Vec::new()
+    } else {
+        // Inline the placeholder list — sqlx doesn't expand `IN (?)`
+        // bindings for `Vec<T>`. Each id is a UUID so quoting is safe.
+        let placeholders = (1..=failed_vm_ids.len())
+            .map(|i| format!("?{i}"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let query_string = format!(
+            "SELECT id FROM agents \
+             WHERE status IN ('starting', 'running', 'stopping') \
+               AND vm_id IN ({placeholders})"
+        );
+        let mut query = sqlx::query_scalar::<_, String>(&query_string);
+        for vm_id in &failed_vm_ids {
+            query = query.bind(vm_id);
+        }
+        query.fetch_all(&mut *tx).await?
+    };
 
     let vm_update = sqlx::query(
         "UPDATE vms SET status = 'failed', exited_at = ?1 \
@@ -92,15 +159,27 @@ pub async fn reconcile_orphans(pool: &SqlitePool, now: DateTime<Utc>) -> Result<
 
     tx.commit().await?;
 
+    if let Some(bus) = events {
+        for vm_id in &failed_vm_ids {
+            bus.emit(SupervisorEvent::VmUpdated { id: vm_id.clone() });
+        }
+        for agent_id in &failed_agent_ids {
+            bus.emit(SupervisorEvent::AgentUpdated { id: agent_id.clone() });
+        }
+    }
+
     Ok(ReconcileStats {
         vms_marked_failed: vm_update.rows_affected(),
         agents_marked_failed: agent_update.rows_affected(),
         qemu_processes_killed: killed,
+        failed_vm_ids,
+        failed_agent_ids,
     })
 }
 
 /// Best-effort: SIGKILL the given PID **iff** its `/proc/<pid>/comm`
-/// starts with `qemu`. Returns `true` if a kill was actually sent.
+/// matches a known qemu binary basename exactly. Returns `true` if a
+/// kill was actually sent.
 ///
 /// The `comm` check is the safety belt: after a container restart the
 /// PID namespace is fresh, so an old recorded PID either does not
@@ -109,7 +188,24 @@ pub async fn reconcile_orphans(pool: &SqlitePool, now: DateTime<Utc>) -> Result<
 /// resolves to a different unrelated process (e.g. PID reuse in an
 /// in-process restart with a long gap), the `comm` check refuses to
 /// kill it.
+///
+/// `comm` is the kernel's truncated 16-byte basename of the binary, so
+/// we match against the exact set of `qemu-system-*` binaries the
+/// project spawns. A prefix `starts_with("qemu")` would happily kill an
+/// unrelated `qemu_helper`, `qemu-img`, `qemu-nbd`, etc. — too loose.
 fn kill_if_qemu(pid: i64) -> bool {
+    /// 16-byte `comm` strings (kernel truncates to TASK_COMM_LEN-1 = 15
+    /// chars + NUL). `qemu-system-x86_64` would render as
+    /// `qemu-system-x86`, so check the truncated forms too.
+    const QEMU_COMM_NAMES: &[&str] = &[
+        "qemu-system-x86",     // truncated qemu-system-x86_64
+        "qemu-system-x86_64",  // full name when binary is shorter (older kernels)
+        "qemu-system-aarc",    // truncated qemu-system-aarch64
+        "qemu-system-aarch64",
+        "qemu-system-arm",
+        "qemu-system-riscv",
+    ];
+
     let Ok(pid_u32) = u32::try_from(pid) else {
         return false;
     };
@@ -124,7 +220,8 @@ fn kill_if_qemu(pid: i64) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
-    if !comm.trim_start().to_ascii_lowercase().starts_with("qemu") {
+    let comm = comm.trim();
+    if !QEMU_COMM_NAMES.iter().any(|name| comm == *name) {
         return false;
     }
     // `kill -9 <pid>` — best effort. We do not propagate failures
@@ -214,7 +311,7 @@ mod tests {
         insert_vm(&pool, "vm1", "running", None).await;
 
         let now: DateTime<Utc> = "2026-05-26T16:00:00Z".parse().unwrap();
-        let stats = reconcile_orphans(&pool, now).await.unwrap();
+        let stats = reconcile_orphans(&pool, now, None).await.unwrap();
 
         assert_eq!(stats.vms_marked_failed, 1);
         assert_eq!(stats.agents_marked_failed, 0);
@@ -232,7 +329,7 @@ mod tests {
         insert_vm(&pool, "vm-start", "starting", None).await;
         insert_vm(&pool, "vm-stop", "stopping", None).await;
 
-        let stats = reconcile_orphans(&pool, Utc::now()).await.unwrap();
+        let stats = reconcile_orphans(&pool, Utc::now(), None).await.unwrap();
 
         assert_eq!(stats.vms_marked_failed, 2);
         assert_eq!(status_of_vm(&pool, "vm-start").await, "failed");
@@ -245,7 +342,7 @@ mod tests {
         insert_vm(&pool, "vm-stopped", "stopped", None).await;
         insert_vm(&pool, "vm-failed", "failed", None).await;
 
-        let stats = reconcile_orphans(&pool, Utc::now()).await.unwrap();
+        let stats = reconcile_orphans(&pool, Utc::now(), None).await.unwrap();
 
         assert_eq!(stats.vms_marked_failed, 0);
         assert_eq!(status_of_vm(&pool, "vm-stopped").await, "stopped");
@@ -261,7 +358,7 @@ mod tests {
         insert_agent(&pool, "a2", "vm1", "starting").await;
         insert_agent(&pool, "a-done", "vm1", "stopped").await;
 
-        let stats = reconcile_orphans(&pool, Utc::now()).await.unwrap();
+        let stats = reconcile_orphans(&pool, Utc::now(), None).await.unwrap();
 
         assert_eq!(stats.vms_marked_failed, 1);
         assert_eq!(stats.agents_marked_failed, 2);
@@ -271,10 +368,75 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn cascades_to_agents_in_starting_vm() {
+        // Regression for QA-6: a VM in `starting` state with agents in
+        // a mix of non-terminal/terminal states. Reconcile must flip
+        // only the non-terminal agents inside that VM to `failed`.
+        let pool = fresh_pool().await;
+        insert_vm(&pool, "vm-start", "starting", None).await;
+        insert_agent(&pool, "a-starting", "vm-start", "starting").await;
+        insert_agent(&pool, "a-running", "vm-start", "running").await;
+        insert_agent(&pool, "a-stopping", "vm-start", "stopping").await;
+        insert_agent(&pool, "a-stopped", "vm-start", "stopped").await;
+
+        let stats = reconcile_orphans(&pool, Utc::now(), None).await.unwrap();
+        assert_eq!(stats.vms_marked_failed, 1);
+        assert_eq!(stats.agents_marked_failed, 3);
+        assert_eq!(status_of_agent(&pool, "a-starting").await, "failed");
+        assert_eq!(status_of_agent(&pool, "a-running").await, "failed");
+        assert_eq!(status_of_agent(&pool, "a-stopping").await, "failed");
+        assert_eq!(
+            status_of_agent(&pool, "a-stopped").await,
+            "stopped",
+            "terminal agents must be left untouched even when their VM was marked failed"
+        );
+    }
+
+    #[tokio::test]
     async fn no_op_when_db_is_clean() {
         let pool = fresh_pool().await;
-        let stats = reconcile_orphans(&pool, Utc::now()).await.unwrap();
+        let stats = reconcile_orphans(&pool, Utc::now(), None).await.unwrap();
         assert_eq!(stats, ReconcileStats::default());
+    }
+
+    #[tokio::test]
+    async fn emits_events_for_failed_vms_and_agents() {
+        let pool = fresh_pool().await;
+        insert_vm(&pool, "vm1", "running", None).await;
+        insert_agent(&pool, "a1", "vm1", "running").await;
+
+        let bus = EventBus::new();
+        let mut rx = bus.subscribe();
+        let stats = reconcile_orphans(&pool, Utc::now(), Some(&bus)).await.unwrap();
+
+        assert_eq!(stats.failed_vm_ids, vec!["vm1".to_string()]);
+        assert_eq!(stats.failed_agent_ids, vec!["a1".to_string()]);
+
+        // Drain — order is VmUpdated first, then AgentUpdated.
+        let first = rx.try_recv().expect("VmUpdated emitted");
+        let second = rx.try_recv().expect("AgentUpdated emitted");
+        assert!(
+            matches!(&first, SupervisorEvent::VmUpdated { id } if id == "vm1"),
+            "expected VmUpdated for vm1, got {first:?}"
+        );
+        assert!(
+            matches!(&second, SupervisorEvent::AgentUpdated { id } if id == "a1"),
+            "expected AgentUpdated for a1, got {second:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn returns_failed_ids_even_without_event_bus() {
+        // Tests that consumers who pass `None` can still drain
+        // `failed_vm_ids` / `failed_agent_ids` and emit events
+        // themselves (or skip emission entirely).
+        let pool = fresh_pool().await;
+        insert_vm(&pool, "vm1", "running", None).await;
+        insert_agent(&pool, "a1", "vm1", "starting").await;
+
+        let stats = reconcile_orphans(&pool, Utc::now(), None).await.unwrap();
+        assert_eq!(stats.failed_vm_ids, vec!["vm1".to_string()]);
+        assert_eq!(stats.failed_agent_ids, vec!["a1".to_string()]);
     }
 
     #[tokio::test]
@@ -294,7 +456,7 @@ mod tests {
         let pool = fresh_pool().await;
         insert_vm(&pool, "vm1", "running", Some(pid)).await;
 
-        let stats = reconcile_orphans(&pool, Utc::now()).await.unwrap();
+        let stats = reconcile_orphans(&pool, Utc::now(), None).await.unwrap();
         assert_eq!(stats.vms_marked_failed, 1);
         assert_eq!(
             stats.qemu_processes_killed, 0,

@@ -42,6 +42,28 @@ impl AuthContext {
     pub fn unix_socket_admin() -> Self {
         Self::admin_static()
     }
+
+    /// Admin bypasses every per-row owner check. Used by handlers to
+    /// gate ownership-scoped lookups without spreading the role-string
+    /// comparison across files.
+    pub fn is_admin(&self) -> bool {
+        self.role == "admin"
+    }
+
+    /// True when this row's `owner_user_id` matches the caller (or the
+    /// caller is admin). `owned_by` is the value from the row; `None`
+    /// means the row was created before owner tracking was wired (legacy
+    /// rows are visible to admin only). Used to gate visibility on
+    /// per-resource handlers.
+    pub fn may_access(&self, owned_by: Option<&str>) -> bool {
+        if self.is_admin() {
+            return true;
+        }
+        match (self.user_id.as_deref(), owned_by) {
+            (Some(actor), Some(owner)) => actor == owner,
+            _ => false,
+        }
+    }
 }
 
 #[derive(sqlx::FromRow)]

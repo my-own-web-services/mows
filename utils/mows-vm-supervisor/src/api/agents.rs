@@ -7,7 +7,7 @@
 use std::path::PathBuf;
 
 use axum::extract::ws::{Message, WebSocketUpgrade};
-use axum::extract::{Path, State};
+use axum::extract::{Extension, Path, State};
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{Json, Router};
@@ -18,6 +18,7 @@ use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 
 use crate::agent_runtime::{self, AgentSpawnSpec};
+use crate::api::auth_middleware::AuthContext;
 use crate::api::types::{ErrorResponse, OperationResult};
 use crate::error::{Result, SupervisorError};
 use crate::events::SupervisorEvent;
@@ -29,6 +30,7 @@ pub fn rest_router() -> OpenApiRouter<SharedState> {
     OpenApiRouter::new()
         .routes(routes!(list_all_agents))
         .routes(routes!(list_vm_agents, create_agent))
+        .routes(routes!(put_agent))
         .routes(routes!(get_agent, update_agent, delete_agent))
         .routes(routes!(stop_agent))
 }
@@ -44,13 +46,41 @@ pub struct UpdateAgentRequest {
     pub name: String,
 }
 
+/// Wire-level agent kind. Mapped to a builtin manifest by
+/// [`AgentKindName::to_kind`]. Adding a value here lights up serde's
+/// validation (unknown variants → 400 with a descriptive error before the
+/// handler runs), eliminates the stringly-typed match in `spawn_agent`,
+/// and gives the TypeScript codegen a real union literal.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum AgentKindName {
+    #[default]
+    Shell,
+    Claude,
+}
+
+impl AgentKindName {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Shell => "shell",
+            Self::Claude => "claude",
+        }
+    }
+
+    fn to_kind(self) -> crate::kinds::AgentKind {
+        match self {
+            Self::Shell => crate::kinds::builtin_shell(),
+            Self::Claude => crate::kinds::builtin_claude(),
+        }
+    }
+}
+
 #[derive(Deserialize, ToSchema)]
 pub struct CreateAgentRequest {
     /// Agent kind. Omit (or pass `null`) to fall back to the built-in
-    /// `"shell"` kind — a plain `/bin/sh` session. Currently supported
-    /// values: `"shell"`, `"claude"`. Anything else returns
-    /// `400 Bad Request` with `UnknownKind`.
-    pub kind: Option<String>,
+    /// `shell` kind — a plain `/bin/sh` session. Unknown variants are
+    /// rejected by serde before the handler runs (400 Bad Request).
+    pub kind: Option<AgentKindName>,
     /// Display name. Auto-generated from `kind` + UTC timestamp when omitted.
     pub name: Option<String>,
 }
@@ -65,42 +95,69 @@ pub struct AgentSummary {
     pub started_at: String,
     pub exited_at: Option<String>,
     pub exit_code: Option<i64>,
+    /// `users.id` of the caller who created the agent. `None` for legacy
+    /// rows written before owner tracking was plumbed; admins can still
+    /// see them, non-admin users cannot.
+    pub owner_user_id: Option<String>,
 }
 
 const AGENT_COLUMNS: &str =
-    "id, vm_id, name, kind, status, started_at, exited_at, exit_code";
+    "id, vm_id, name, kind, status, started_at, exited_at, exit_code, owner_user_id";
 
 #[utoipa::path(
     get,
     path = "/v1/agents",
     tag = "agents",
-    description = "List every agent across all VMs, newest first.",
+    description = "List agents the caller can see (own agents only for non-admin users).",
     responses(
         (status = 200, description = "Agents in the database", body = Vec<AgentSummary>),
         (status = 500, description = "Internal error", body = ErrorResponse),
     )
 )]
-async fn list_all_agents(State(state): State<SharedState>) -> Result<Json<Vec<AgentSummary>>> {
-    let sql = format!("SELECT {AGENT_COLUMNS} FROM agents ORDER BY started_at DESC");
-    let rows: Vec<AgentSummary> = sqlx::query_as(&sql).fetch_all(&state.db).await?;
-    Ok(Json(rows))
+async fn list_all_agents(
+    State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
+) -> Result<Json<Vec<AgentSummary>>> {
+    if actor.is_admin() {
+        let sql = format!("SELECT {AGENT_COLUMNS} FROM agents ORDER BY started_at DESC");
+        let rows: Vec<AgentSummary> = sqlx::query_as(&sql).fetch_all(&state.db).await?;
+        Ok(Json(rows))
+    } else {
+        // Non-admin: only rows they own. `user_id` is guaranteed `Some`
+        // here because `is_admin()` is the only path that leaves it
+        // `None` (admin token + auth-disabled both set role=admin).
+        let sql = format!(
+            "SELECT {AGENT_COLUMNS} FROM agents WHERE owner_user_id = ?1 ORDER BY started_at DESC"
+        );
+        let rows: Vec<AgentSummary> = sqlx::query_as(&sql)
+            .bind(actor.user_id.as_deref().unwrap_or(""))
+            .fetch_all(&state.db)
+            .await?;
+        Ok(Json(rows))
+    }
 }
 
 #[utoipa::path(
     get,
     path = "/v1/vms/{vm_id}/agents",
     tag = "agents",
-    description = "List agents inside a single VM.",
+    description = "List agents inside a single VM that the caller is allowed to see.",
     params(("vm_id" = String, Path, description = "VM id")),
     responses(
         (status = 200, description = "Agents in this VM", body = Vec<AgentSummary>),
-        (status = 500, description = "Internal error", body = ErrorResponse),
+        (status = 403, description = "Caller does not own the VM", body = ErrorResponse),
+        (status = 404, description = "VM not found", body = ErrorResponse),
     )
 )]
 async fn list_vm_agents(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(vm_id): Path<String>,
 ) -> Result<Json<Vec<AgentSummary>>> {
+    // Confirm the caller may see the VM at all before exposing its
+    // agents — otherwise the agent count alone would leak existence
+    // across tenants.
+    crate::api::vms::ensure_vm_visible(&state, &actor, &vm_id).await?;
     let sql = format!(
         "SELECT {AGENT_COLUMNS} FROM agents WHERE vm_id = ?1 ORDER BY started_at DESC"
     );
@@ -119,17 +176,25 @@ async fn list_vm_agents(
     params(("id" = String, Path, description = "Agent id")),
     responses(
         (status = 200, description = "The agent", body = AgentSummary),
+        (status = 403, description = "Caller does not own the agent", body = ErrorResponse),
         (status = 404, description = "Not found", body = ErrorResponse),
     )
 )]
 async fn get_agent(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
 ) -> Result<Json<AgentSummary>> {
-    Ok(Json(load_agent(&state, &id).await?))
+    let agent = load_agent(&state, &id).await?;
+    if !actor.may_access(agent.owner_user_id.as_deref()) {
+        // Surface as 404 rather than 403 — non-admins should not learn
+        // that an agent with this id exists in someone else's tenant.
+        return Err(SupervisorError::NotFound(format!("agent {id} not found")));
+    }
+    Ok(Json(agent))
 }
 
-async fn load_agent(state: &SharedState, id: &str) -> Result<AgentSummary> {
+pub(super) async fn load_agent(state: &SharedState, id: &str) -> Result<AgentSummary> {
     let sql = format!("SELECT {AGENT_COLUMNS} FROM agents WHERE id = ?1");
     sqlx::query_as(&sql)
         .bind(id)
@@ -142,40 +207,143 @@ async fn load_agent(state: &SharedState, id: &str) -> Result<AgentSummary> {
 struct VmRow {
     status: String,
     host_ssh_port: Option<i64>,
+    owner_user_id: Option<String>,
 }
 
 #[utoipa::path(
     post,
     path = "/v1/vms/{vm_id}/agents",
     tag = "agents",
-    description = "Spawn an agent inside a running VM.",
+    description = "Spawn an agent inside a running VM. The server picks the agent id.",
     params(("vm_id" = String, Path, description = "VM id")),
     request_body = CreateAgentRequest,
     responses(
         (status = 200, description = "Agent is starting", body = AgentSummary),
         (status = 400, description = "Unknown kind / bad request", body = ErrorResponse),
+        (status = 403, description = "Caller does not own the VM", body = ErrorResponse),
         (status = 404, description = "VM not found", body = ErrorResponse),
+        (status = 409, description = "VM not in running state", body = ErrorResponse),
     )
 )]
 async fn create_agent(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(vm_id): Path<String>,
     Json(request): Json<CreateAgentRequest>,
 ) -> Result<Json<AgentSummary>> {
-    let kind_name = request.kind.unwrap_or_else(|| "shell".to_string());
-    let kind = match kind_name.as_str() {
-        "shell" => crate::kinds::builtin_shell(),
-        "claude" => crate::kinds::builtin_claude(),
-        other => return Err(SupervisorError::UnknownKind(other.to_string())),
-    };
+    spawn_agent(
+        &state,
+        &actor,
+        vm_id,
+        uuid::Uuid::new_v4().to_string(),
+        request,
+    )
+    .await
+    .map(Json)
+}
 
-    // Validate VM exists and is reachable.
-    let vm: VmRow =
-        sqlx::query_as("SELECT status, host_ssh_port FROM vms WHERE id = ?1")
-            .bind(&vm_id)
-            .fetch_optional(&state.db)
-            .await?
-            .ok_or_else(|| SupervisorError::NotFound(format!("vm {vm_id} not found")))?;
+#[utoipa::path(
+    put,
+    path = "/v1/vms/{vm_id}/agents/{agent_id}",
+    tag = "agents",
+    description = "Create-or-return an agent with the caller-supplied id. Used by \
+                   the web UI's ConsoleManager so a tab's persisted id round-trips \
+                   to a single agent row across reloads. If the agent already \
+                   exists, its `vm_id`, `kind`, and owner MUST match the request, \
+                   otherwise 409 — preventing silent cross-VM or cross-tenant \
+                   reattachment.",
+    params(
+        ("vm_id" = String, Path, description = "VM id"),
+        ("agent_id" = String, Path, description = "Agent id chosen by the caller"),
+    ),
+    request_body = CreateAgentRequest,
+    responses(
+        (status = 200, description = "Agent exists (created or already present)", body = AgentSummary),
+        (status = 400, description = "Unknown kind / invalid agent_id / bad request", body = ErrorResponse),
+        (status = 403, description = "Caller does not own the VM or the existing agent", body = ErrorResponse),
+        (status = 404, description = "VM not found", body = ErrorResponse),
+        (status = 409, description = "Existing agent disagrees with request (vm_id / kind mismatch) or VM not in running state", body = ErrorResponse),
+    )
+)]
+async fn put_agent(
+    State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
+    Path((vm_id, agent_id)): Path<(String, String)>,
+    Json(request): Json<CreateAgentRequest>,
+) -> Result<Json<AgentSummary>> {
+    // Validate the caller-supplied id at the boundary. It flows into a DB
+    // primary key, the tmux session name inside the guest, and the log
+    // file path under state_dir — the same surface `validate_resource_name`
+    // already guards for `name`.
+    let agent_id = crate::api::validation::validate_resource_name("agent_id", &agent_id)?;
+
+    // Idempotency lookup. Use an explicit `match` rather than `.ok()` so a
+    // transient DB error doesn't get folded into "agent not found, spawn
+    // a duplicate" — that path was the root cause of CRIT-3 in the
+    // multi-review.
+    match load_agent(&state, &agent_id).await {
+        Ok(existing) => {
+            // Ownership: an authenticated user can't materialise (or
+            // discover) an agent owned by someone else.
+            if !actor.may_access(existing.owner_user_id.as_deref()) {
+                return Err(SupervisorError::NotFound(format!(
+                    "agent {agent_id} not found"
+                )));
+            }
+            // Cross-VM guard: the same `tabId` must not silently re-attach
+            // to an agent that lives in a different VM. Without this check
+            // the response would carry `existing.vm_id`, the web UI would
+            // happily open a WebSocket against the wrong VM, and traffic
+            // would land in someone else's session.
+            if existing.vm_id != vm_id {
+                return Err(SupervisorError::Conflict(format!(
+                    "agent {agent_id} exists in vm {} (path requested vm {vm_id})",
+                    existing.vm_id
+                )));
+            }
+            // Kind guard: the request must agree with the recorded kind.
+            // Otherwise opening a "claude" tab with a tabId previously
+            // bound to a "shell" agent would silently return the shell.
+            let requested_kind = request.kind.unwrap_or_default();
+            if existing.kind != requested_kind.as_str() {
+                return Err(SupervisorError::Conflict(format!(
+                    "agent {agent_id} exists with kind `{}` (request asked for `{}`)",
+                    existing.kind,
+                    requested_kind.as_str()
+                )));
+            }
+            Ok(Json(existing))
+        }
+        Err(SupervisorError::NotFound(_)) => {
+            spawn_agent(&state, &actor, vm_id, agent_id, request).await.map(Json)
+        }
+        Err(other) => Err(other),
+    }
+}
+
+async fn spawn_agent(
+    state: &SharedState,
+    actor: &AuthContext,
+    vm_id: String,
+    id: String,
+    request: CreateAgentRequest,
+) -> Result<AgentSummary> {
+    let kind_name = request.kind.unwrap_or_default();
+    let kind = kind_name.to_kind();
+
+    // Validate VM exists, reachable, and visible to the caller.
+    let vm: VmRow = sqlx::query_as(
+        "SELECT status, host_ssh_port, owner_user_id FROM vms WHERE id = ?1",
+    )
+    .bind(&vm_id)
+    .fetch_optional(&state.db)
+    .await?
+    .ok_or_else(|| SupervisorError::NotFound(format!("vm {vm_id} not found")))?;
+    if !actor.may_access(vm.owner_user_id.as_deref()) {
+        // Same reasoning as `get_agent`: don't leak existence of someone
+        // else's VM to a non-owner.
+        return Err(SupervisorError::NotFound(format!("vm {vm_id} not found")));
+    }
     if vm.status != "running" {
         // SLOP-23: wrong-status is a caller error, not an internal error.
         // 409 lets the client distinguish "transient — retry after the
@@ -199,24 +367,56 @@ async fn create_agent(
         ))
     })?;
 
-    let id = uuid::Uuid::new_v4().to_string();
     let raw_name = request
         .name
-        .unwrap_or_else(|| format!("{}-{}", kind_name, Utc::now().format("%Y%m%d-%H%M%S")));
+        .unwrap_or_else(|| format!("{}-{}", kind_name.as_str(), Utc::now().format("%Y%m%d-%H%M%S")));
     let name = crate::api::validation::validate_resource_name("name", &raw_name)?;
     let started_at = Utc::now().to_rfc3339();
+    let owner_user_id = actor.user_id.clone();
 
-    sqlx::query(
-        "INSERT INTO agents (id, vm_id, name, kind, status, started_at) \
-         VALUES (?1, ?2, ?3, ?4, 'starting', ?5)",
+    // `INSERT … ON CONFLICT(id) DO NOTHING` is the TOCTOU-safe idempotent
+    // insert: two concurrent PUTs with the same `agent_id` (e.g. a
+    // double-mount in React strict mode) BOTH pass the `load_agent`
+    // NotFound check, but only one INSERT actually creates a row. The
+    // loser observes `rows_affected() == 0` and returns the freshly-
+    // inserted row from the winner, preserving the idempotency contract.
+    let insert = sqlx::query(
+        "INSERT INTO agents (id, vm_id, name, kind, status, started_at, owner_user_id) \
+         VALUES (?1, ?2, ?3, ?4, 'starting', ?5, ?6) \
+         ON CONFLICT(id) DO NOTHING",
     )
     .bind(&id)
     .bind(&vm_id)
     .bind(&name)
-    .bind(&kind_name)
+    .bind(kind_name.as_str())
     .bind(&started_at)
+    .bind(&owner_user_id)
     .execute(&state.db)
     .await?;
+    if insert.rows_affected() == 0 {
+        // Someone else inserted the row between our NotFound check and the
+        // INSERT. Reload and re-validate against the same vm_id / kind /
+        // owner guards `put_agent` enforces above, then return the
+        // canonical row.
+        let existing = load_agent(state, &id).await?;
+        if !actor.may_access(existing.owner_user_id.as_deref()) {
+            return Err(SupervisorError::NotFound(format!("agent {id} not found")));
+        }
+        if existing.vm_id != vm_id {
+            return Err(SupervisorError::Conflict(format!(
+                "agent {id} exists in vm {} (path requested vm {vm_id})",
+                existing.vm_id
+            )));
+        }
+        if existing.kind != kind_name.as_str() {
+            return Err(SupervisorError::Conflict(format!(
+                "agent {id} exists with kind `{}` (request asked for `{}`)",
+                existing.kind,
+                kind_name.as_str()
+            )));
+        }
+        return Ok(existing);
+    }
 
     let log_path = state
         .config
@@ -279,16 +479,17 @@ async fn create_agent(
     });
     state.events.emit(SupervisorEvent::AgentUpdated { id: id.clone() });
 
-    Ok(Json(AgentSummary {
+    Ok(AgentSummary {
         id,
         vm_id,
         name,
-        kind: kind_name,
+        kind: kind_name.as_str().to_string(),
         status: "starting".into(),
         started_at,
         exited_at: None,
         exit_code: None,
-    }))
+        owner_user_id,
+    })
 }
 
 #[utoipa::path(
@@ -299,13 +500,19 @@ async fn create_agent(
     params(("id" = String, Path, description = "Agent id")),
     responses(
         (status = 200, description = "Agent stopped", body = OperationResult),
+        (status = 403, description = "Caller does not own the agent", body = ErrorResponse),
         (status = 404, description = "Unknown agent or already stopped", body = ErrorResponse),
     )
 )]
 async fn stop_agent(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
 ) -> Result<Json<OperationResult>> {
+    let agent = load_agent(&state, &id).await?;
+    if !actor.may_access(agent.owner_user_id.as_deref()) {
+        return Err(SupervisorError::NotFound(format!("agent {id} not found")));
+    }
     let exited_at = Utc::now().to_rfc3339();
     let query_result = sqlx::query(
         "UPDATE agents SET status = 'stopped', exited_at = ?1 \
@@ -342,9 +549,14 @@ async fn stop_agent(
 )]
 async fn update_agent(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
     Json(request): Json<UpdateAgentRequest>,
 ) -> Result<Json<AgentSummary>> {
+    let agent = load_agent(&state, &id).await?;
+    if !actor.may_access(agent.owner_user_id.as_deref()) {
+        return Err(SupervisorError::NotFound(format!("agent {id} not found")));
+    }
     let trimmed = crate::api::validation::validate_resource_name("name", &request.name)?;
     let query_result = sqlx::query("UPDATE agents SET name = ?1 WHERE id = ?2")
         .bind(&trimmed)
@@ -371,8 +583,13 @@ async fn update_agent(
 )]
 async fn delete_agent(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
 ) -> Result<Json<OperationResult>> {
+    let agent = load_agent(&state, &id).await?;
+    if !actor.may_access(agent.owner_user_id.as_deref()) {
+        return Err(SupervisorError::NotFound(format!("agent {id} not found")));
+    }
     let query_result = sqlx::query("DELETE FROM agents WHERE id = ?1")
         .bind(&id)
         .execute(&state.db)
@@ -392,11 +609,17 @@ async fn delete_agent(
 /// bouncing between clients.
 async fn get_agent_io(
     State(state): State<SharedState>,
+    Extension(actor): Extension<AuthContext>,
     Path(id): Path<String>,
     ws: WebSocketUpgrade,
 ) -> std::result::Result<axum::response::Response, SupervisorError> {
-    // Confirm the agent exists before upgrading; loaded summary unused.
-    load_agent(&state, &id).await?;
+    // Confirm the caller may see this agent before upgrading the
+    // connection — otherwise the WebSocket would attach to someone
+    // else's session.
+    let agent = load_agent(&state, &id).await?;
+    if !actor.may_access(agent.owner_user_id.as_deref()) {
+        return Err(SupervisorError::NotFound(format!("agent {id} not found")));
+    }
     let runtime = state
         .agent_runtimes
         .get(&id)

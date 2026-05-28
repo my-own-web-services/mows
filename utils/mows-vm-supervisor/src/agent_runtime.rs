@@ -224,8 +224,14 @@ pub async fn spawn(
     // Simpler: don't bother with in-VM pipe-pane — use the same per-attach
     // ssh sessions in the websocket proxy to capture history via tmux's
     // built-in `capture-pane` on demand.
+    // `-e TERM=xterm-256color`: tmux defaults to TERM=screen for new
+    // sessions, which claude's TUI rejects with `terminal does not
+    // support clear` because alpine's ncurses doesn't ship the full
+    // capability set for `screen`. xterm-256color is what the legacy
+    // ssh-io path used and is known to be present (image-builder's
+    // apk install pulls ncurses-terminfo-base which includes it).
     let create_cmd = format!(
-        "tmux new-session -d -s {} -- /bin/sh -c {}",
+        "tmux new-session -d -e TERM=xterm-256color -s {} -- /bin/sh -c {}",
         shell_quote(&session),
         shell_quote(&inner_cmd),
     );

@@ -117,11 +117,27 @@ chmod +x "${MOWS_BIN_STAGING}"
 
 IMAGE_TAG="mows-agent-image-builder-${DISTRO}-${FLAVOR}:dev"
 
+# Optional pinned-package overrides. The Dockerfile ships sensible
+# defaults; setting any of these env vars before invoking build.sh lets
+# you roll forward a single dependency without editing the Dockerfile.
+# Each maps 1:1 to a Dockerfile ARG (MIN-16: keep the lock surface in
+# one place).
+PINNED_ARGS=()
+for arg in CHROMIUM_VERSION NSS_VERSION FREETYPE_VERSION HARFBUZZ_VERSION \
+           FONT_FREEFONT_VERSION FONT_NOTO_EMOJI_VERSION \
+           CHROME_DEVTOOLS_MCP_VERSION CLAUDE_CODE_VERSION PNPM_VERSION \
+           RUST_TOOLCHAIN; do
+    if [ -n "${!arg:-}" ]; then
+        PINNED_ARGS+=(--build-arg "${arg}=${!arg}")
+    fi
+done
+
 DOCKER_BUILDKIT=1 docker build \
     --build-arg "TARGETARCH=${TARGETARCH}" \
     --build-arg "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}" \
     --build-arg "FLAVOR=${FLAVOR}" \
     --build-arg "DISTRO=${DISTRO}" \
+    "${PINNED_ARGS[@]}" \
     --target export \
     --output "type=local,dest=${OUT_DIR}" \
     -t "${IMAGE_TAG}" \

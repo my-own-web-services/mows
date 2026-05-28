@@ -12,6 +12,19 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Result, SupervisorError};
 
+/// One MCP server entry inside an agent's `~/.claude.json`. The bootstrap
+/// script materialises this set into the `mcpServers` JSON object at
+/// agent-spawn time, so adding a server is a Rust-side data change rather
+/// than an edit to an inline shell heredoc.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub struct McpServerSpec {
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentKind {
@@ -30,6 +43,11 @@ pub struct AgentKind {
     /// For claude this is the host's `~/.claude` directory.
     #[serde(default)]
     pub credentials_mount: Option<String>,
+    /// MCP servers the bootstrap script should inject into the agent's
+    /// `~/.claude.json`. Keyed by server name (becomes the key in the
+    /// resulting `mcpServers` JSON object).
+    #[serde(default)]
+    pub mcp_servers: BTreeMap<String, McpServerSpec>,
 }
 
 impl AgentKind {
@@ -95,8 +113,18 @@ pub fn builtin_shell() -> AgentKind {
         login_command: None,
         env: BTreeMap::new(),
         credentials_mount: None,
+        mcp_servers: BTreeMap::new(),
     }
 }
+
+/// Inline bootstrap script for the `claude` agent kind. Sourced from a
+/// real `.sh` file so shellcheck + syntax highlighting + tests apply, and
+/// so the rationale for each step lives next to the code that runs it
+/// (see [`CLAUDE_BOOTSTRAP_SH`] for the full body). The MCP server set
+/// is injected through `MOWS_CLAUDE_MCP_SERVERS` (a JSON object) rather
+/// than baked into the shell so adding a server is a data change in
+/// [`builtin_claude`], not an edit to the script.
+const CLAUDE_BOOTSTRAP_SH: &str = include_str!("kinds/claude_bootstrap.sh");
 
 /// Built-in claude manifest, used as a fallback when no on-disk manifest is
 /// present and so unit tests don't need a filesystem.
@@ -104,113 +132,53 @@ pub fn builtin_shell() -> AgentKind {
 /// `/creds` is bind-mounted **read-only** into the guest (the host's
 /// `~/.claude`). Claude itself needs to write its session state, so we
 /// can't point `CLAUDE_CONFIG_DIR` at `/creds` directly. The argv below
-/// stages a writable per-VM copy in `/root/.claude` before launching
-/// claude:
+/// runs `claude_bootstrap.sh` inside the VM, which:
 ///
-/// 1. Copy everything from `/creds/` (real Claude Code config + backups)
-///    into `/root/.claude`.
-/// 2. If `.claude.json` is missing (a recurring pre-existing state on
-///    some hosts where claude itself rotated the file out), restore from
-///    the most recent `backups/.claude.json.backup.*` so the agent boots
-///    instead of re-printing the "configuration file not found" loop.
-/// 3. Exec claude pointed at the writable copy.
+/// 1. Creates the `agent` user (claude refuses several permission modes
+///    as root).
+/// 2. Stages credentials in a writable per-VM copy under
+///    `/home/agent/.claude`, restoring `.claude.json` from the most
+///    recent backup if needed.
+/// 3. Stages plugins from `/creds/plugins` (mandatory once present —
+///    the previous "silent failure on missing plugin dir" behaviour was
+///    a real bug, not a feature).
+/// 4. Patches `.claude.json` with `mcpServers`, `bypassPermissionsModeAccepted`,
+///    and the project trust flags.
+/// 5. Drops privileges via `su` and execs claude.
 ///
-/// All work happens inside the VM via the SSH-launched shell, so it only
-/// runs once per agent spawn and leaves the host `/creds` untouched.
+/// `--dangerously-skip-permissions` is the right default inside a per-VM
+/// sandbox: anything the agent does is contained to the ephemeral qcow2
+/// overlay, so the cost of a wrong `rm -rf` is bounded to one VM. The
+/// user has pre-accepted the bypass mode in `.claude.json`
+/// (`bypassPermissionsModeAccepted`) so claude launches without a
+/// confirmation prompt on top of that.
 pub fn builtin_claude() -> AgentKind {
-    // Claude refuses to run several permission modes as root, so we run it
-    // as a dedicated non-root `agent` user inside the VM. The user is
-    // created lazily on first agent spawn (idempotent) so the cached image
-    // doesn't have to know about it.
-    //
-    // `--dangerously-skip-permissions` is the right default inside a
-    // per-VM sandbox: anything the agent does is contained to the
-    // ephemeral qcow2 overlay, so the cost of a wrong `rm -rf` is
-    // bounded to one VM. The user has pre-accepted the bypass mode in
-    // `.claude.json` (`bypassPermissionsModeAccepted`) so claude
-    // launches without a confirmation prompt.
-    //
-    // `DISABLE_AUTOUPDATER=1` stops claude from trying to npm-i a new
-    // version in-place (the binary lives under `/usr/local`, the agent
-    // user can't write there — every boot would emit a noisy
-    // "Auto-update failed" line otherwise). The `autoUpdaterStatus` /
-    // `autoUpdates` keys staged into `.claude.json` cover the equivalent
-    // config-file knob so changing the launch command later won't
-    // accidentally re-enable it.
-    //
-    // Steps (all happen inside the VM via the SSH-launched shell, every time
-    // an agent is created — cheap on warm runs):
-    //   1. Create the `agent` user if missing.
-    //   2. Stage credentials in `/home/agent/.claude` (writable copy of the
-    //      read-only `/creds` mount). If `.claude.json` is gone, restore from
-    //      the most recent `backups/.claude.json.backup.*`.
-    //   3. Make the workspace writable by `agent` (host uid mapping isn't
-    //      guaranteed via 9p `security_model=mapped-xattr`).
-    //   4. Drop privileges with `su` and exec claude with the right
-    //      `CLAUDE_CONFIG_DIR` + `HOME`, starting in `/workspace`.
-    // We deliberately do NOT bulk-copy `/creds` — the user's host
-    // `~/.claude` accumulates large dirs (`file-history`, `cache`,
-    // `image-cache`, `projects`, `sessions`, …) plus the occasional
-    // symlink loop in `debug/latest`. A blanket `cp -a` either fills the
-    // VM disk or aborts on the loop, leaving the agent without auth.
-    //
-    // What claude actually needs to start cleanly inside the VM:
-    //   - `.claude.json`           — the active OAuth config
-    //   - `backups/`               — fallback if `.claude.json` is empty
-    //   - `settings.json` / `settings.local.json` — user prefs (incl.
-    //     `enabledPlugins`, which references the plugin dirs below)
-    //   - `plugins/`               — installed plugins (autoresearch,
-    //     code-review, …). Without this, slash commands like
-    //     `/autoresearch` are unknown inside the VM even though
-    //     `enabledPlugins` lists them.
-    //
-    // Everything else is regenerated per-VM. `[ ! -s file ]` covers both
-    // "missing" and "zero-byte" states (the latter is what claude leaves
-    // behind when it crashes mid-write — that bug is in claude, not us).
-    // After staging credentials, pre-mark `/workspace` (and `/`, which
-    // claude uses when /workspace is unavailable) as trusted in
-    // `.claude.json`. The host's trust list is keyed by the *host's*
-    // workspace path (`/home/<user>/projects/...`), so a copied
-    // `.claude.json` always re-shows the "Is this folder trusted?"
-    // dialog inside the VM. Setting `projects./workspace.hasTrustDialogAccepted`
-    // up front bypasses the prompt; the alpine image ships python3 so
-    // we use it as the JSON editor of choice (no jq dependency).
-    let bootstrap = "set -e; \
-        id agent >/dev/null 2>&1 || adduser -D -s /bin/sh agent; \
-        install -d -o agent -g agent /home/agent/.claude /home/agent/.claude/backups; \
-        if [ -d /creds ]; then \
-            [ -s /creds/.claude.json ] && cp /creds/.claude.json /home/agent/.claude/.claude.json 2>/dev/null || true; \
-            [ -f /creds/.credentials.json ] && cp /creds/.credentials.json /home/agent/.claude/.credentials.json 2>/dev/null || true; \
-            [ -f /creds/settings.json ] && cp /creds/settings.json /home/agent/.claude/ 2>/dev/null || true; \
-            [ -f /creds/settings.local.json ] && cp /creds/settings.local.json /home/agent/.claude/ 2>/dev/null || true; \
-            if [ -d /creds/backups ]; then \
-                for b in /creds/backups/.claude.json.backup.*; do \
-                    [ -s \"$b\" ] && cp \"$b\" /home/agent/.claude/backups/ 2>/dev/null || true; \
-                done; \
-            fi; \
-            if [ ! -s /home/agent/.claude/.claude.json ]; then \
-                latest=$(ls -1t /home/agent/.claude/backups/.claude.json.backup.* 2>/dev/null \
-                    | while read f; do [ -s \"$f\" ] && { echo \"$f\"; break; }; done); \
-                if [ -n \"$latest\" ]; then cp \"$latest\" /home/agent/.claude/.claude.json; fi; \
-            fi; \
-            python3 -c \"import json, pathlib; p=pathlib.Path('/home/agent/.claude/.claude.json'); \
-src=p.read_text() if p.exists() else '{}'; \
-d=(lambda v: v if isinstance(v, dict) else {})(json.loads(src)); \
-d.setdefault('hasCompletedOnboarding', True); \
-d.setdefault('bypassPermissionsModeAccepted', True); \
-d['autoUpdaterStatus']='disabled'; \
-d['autoUpdates']=False; \
-prj=d.setdefault('projects', {}); \
-[prj.__setitem__(k, dict((prj.get(k) if isinstance(prj.get(k), dict) else {}), hasTrustDialogAccepted=True, hasCompletedProjectOnboarding=True)) for k in ('/workspace', '/home/agent', '/')]; \
-p.parent.mkdir(parents=True, exist_ok=True); \
-p.write_text(json.dumps(d, indent=2))\" 2>/dev/null || true; \
-            chown -R agent:agent /home/agent/.claude; \
-        fi; \
-        if [ -d /workspace ]; then chown agent:agent /workspace 2>/dev/null || true; fi; \
-        exec su -s /bin/sh agent -c \
-            'cd /workspace 2>/dev/null || cd; \
-             export HOME=/home/agent CLAUDE_CONFIG_DIR=/home/agent/.claude DISABLE_AUTOUPDATER=1; \
-             exec /usr/local/bin/claude --permission-mode acceptEdits'";
+    let mut mcp_servers = BTreeMap::new();
+    mcp_servers.insert(
+        "chrome-devtools".to_string(),
+        McpServerSpec {
+            command: "chrome-devtools-mcp".to_string(),
+            args: vec!["--isolated".to_string(), "--headless".to_string()],
+            env: BTreeMap::new(),
+        },
+    );
+
+    let mcp_json = serde_json::to_string(&mcp_servers)
+        .expect("serialising a BTreeMap<String, McpServerSpec> cannot fail");
+
+    // The bootstrap script reads `MOWS_CLAUDE_MCP_SERVERS` from the
+    // inherited env. agent_runtime shell-quotes both keys and values
+    // when assembling the tmux launch command, so embedding the JSON
+    // directly here is safe regardless of what characters end up in
+    // the values.
+    let mut argv_env = BTreeMap::new();
+    argv_env.insert("MOWS_CLAUDE_MCP_SERVERS".to_string(), mcp_json);
+
+    let bootstrap_command = format!(
+        "export MOWS_CLAUDE_MCP_SERVERS={}; exec /bin/sh -c {}",
+        shell_quote(argv_env.get("MOWS_CLAUDE_MCP_SERVERS").unwrap()),
+        shell_quote(CLAUDE_BOOTSTRAP_SH),
+    );
 
     AgentKind {
         name: "claude".to_string(),
@@ -221,7 +189,7 @@ p.write_text(json.dumps(d, indent=2))\" 2>/dev/null || true; \
         argv: vec![
             "/bin/sh".to_string(),
             "-c".to_string(),
-            bootstrap.to_string(),
+            bootstrap_command,
         ],
         login_command: Some("/usr/local/bin/claude login".to_string()),
         // SLOP-37: the canonical `CLAUDE_CONFIG_DIR` is set by the bootstrap
@@ -232,7 +200,26 @@ p.write_text(json.dumps(d, indent=2))\" 2>/dev/null || true; \
         // `env` empty for the claude kind.
         env: BTreeMap::new(),
         credentials_mount: Some("/creds".to_string()),
+        mcp_servers,
     }
+}
+
+/// POSIX single-quote shell escape. Used to embed the bootstrap script
+/// and the MCP-server JSON into the outer `sh -c` invocation that
+/// agent_runtime hands to tmux. `'` is closed, a `'\''` escape sequence
+/// inserted, and the quoted string reopened.
+fn shell_quote(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('\'');
+    for ch in s.chars() {
+        if ch == '\'' {
+            out.push_str("'\\''");
+        } else {
+            out.push(ch);
+        }
+    }
+    out.push('\'');
+    out
 }
 
 #[cfg(test)]
@@ -267,10 +254,12 @@ unknown_field: nope
 
     #[test]
     fn builtin_claude_round_trips() {
-        let k = builtin_claude();
-        let yaml = serde_yaml_neo::to_string(&k).unwrap();
+        let kind = builtin_claude();
+        let yaml = serde_yaml_neo::to_string(&kind).unwrap();
         let parsed = AgentKind::from_yaml(&yaml).unwrap();
         assert_eq!(parsed.name, "claude");
+        assert_eq!(parsed.mcp_servers.get("chrome-devtools").map(|s| s.command.as_str()),
+                   Some("chrome-devtools-mcp"));
     }
 
     #[test]
@@ -314,5 +303,60 @@ env:
         assert_eq!(parsed.name, "claude");
         assert_eq!(parsed.binary, "/usr/local/bin/claude");
         assert_eq!(parsed.credentials_mount.as_deref(), Some("/creds"));
+    }
+
+    #[test]
+    fn builtin_claude_argv_carries_mcp_env_and_bootstrap() {
+        // Regression for MAJ-8: the chrome-devtools MCP entry must end
+        // up in the inlined env and the bootstrap argv must invoke the
+        // extracted shell script. If someone removes the script include
+        // or drops the env injection, this test catches it.
+        let kind = builtin_claude();
+        assert_eq!(kind.argv.len(), 3);
+        assert_eq!(kind.argv[0], "/bin/sh");
+        assert_eq!(kind.argv[1], "-c");
+        let command = &kind.argv[2];
+        assert!(
+            command.starts_with("export MOWS_CLAUDE_MCP_SERVERS="),
+            "argv[2] should export the MCP env var: {command}"
+        );
+        assert!(
+            command.contains("chrome-devtools-mcp"),
+            "MCP env var should carry the chrome-devtools command: {command}"
+        );
+        // Bootstrap script content must be embedded so the `sh -c`
+        // executes it directly rather than reading from disk.
+        assert!(
+            command.contains("install -d -o agent -g agent /home/agent/.claude"),
+            "bootstrap script body should be embedded into argv[2]"
+        );
+        assert!(
+            command.contains("--dangerously-skip-permissions"),
+            "bootstrap should carry the documented launch flag"
+        );
+    }
+
+    #[test]
+    fn shell_quote_escapes_single_quote() {
+        // The escape sequence is `'` → `'\''` (close, escaped quote,
+        // reopen). The outer wrapper quotes are added by shell_quote.
+        assert_eq!(shell_quote("hello"), "'hello'");
+        assert_eq!(shell_quote("it's"), "'it'\\''s'");
+        assert_eq!(shell_quote(""), "''");
+    }
+
+    #[test]
+    fn bootstrap_script_refuses_symlinked_plugins_dir() {
+        // Static check: the extracted bootstrap script must refuse to
+        // follow a /creds/plugins symlink. Catches CRIT-4 regressions
+        // even without spinning up a real guest.
+        assert!(
+            CLAUDE_BOOTSTRAP_SH.contains("/creds/plugins is a symlink"),
+            "bootstrap script must guard /creds/plugins against symlink follow"
+        );
+        assert!(
+            CLAUDE_BOOTSTRAP_SH.contains("--no-dereference"),
+            "bootstrap script must use cp --no-dereference for plugin staging"
+        );
     }
 }
