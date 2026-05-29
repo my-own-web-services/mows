@@ -10,6 +10,7 @@ members = [
     "apis/cloud/filez/apps/backend/images",
     "apis/cloud/filez/apps/backend/metadata",
     "apis/cloud/filez/clients/rust",
+    "apis/cloud/chat/server",
 
 ]
 exclude = [

@@ -152,11 +152,35 @@ unstarted. Cross-reference per-phase multi-reviews in
 
 ## Phase 6 — Second consumer
 
-- ❌ Pick service (default: Pektin)
-- ❌ Shared crate migration alongside service schema
-- ❌ Register service resource types & actions
-- ❌ Wire check + list into handlers
-- ❌ Cross-service E2E test
+Service decision: **new `chat-server`** (realtime messaging) instead
+of Pektin / manager. Both candidates required a multi-week
+infrastructure shift to land Postgres before any auth wiring could
+start (Pektin is Redis-only, manager is in-memory). A clean-slate
+chat service is the fastest path to "engine validated against two
+consumers" + ships with the right shape (per-resource ownership,
+per-resource read/write actions, group-shared resources). Full
+design + multi-round task board lives in
+[`.plans/chat-service/`](../chat-service/).
+
+- ✅ Pick service — chat (see `.plans/chat-service/IDEA.md`)
+- ✅ Round 1 scaffolding (`Cargo.toml` + workspace registration +
+     bootstrap modules + initial migration + boot-then-health
+     verified against the dev DB)
+- ❌ Round 2 — engine schema + registration (`chat-server` ships
+     its own copy of `access_policies` / `audit_log` /
+     `user_groups` / cover-table migrations from filez)
+- ❌ Round 3 — `ChatPolicyStore` impl of
+     `mows_auth_core::PolicyStore` (tracked as the duplication
+     finding that triggers extracting `EngineBackedPolicyStore`
+     into the engine when a third consumer arrives)
+- ❌ Round 4 — REST handlers wired through `AccessPolicy::check`
+     + `list_visible`
+- ❌ Round 5 — WebSocket `/api/channels/{id}/live` with
+     in-process `tokio::broadcast` fanout
+- ❌ Round 6 — SQL test suite (channel visibility + post
+     authorization) + Rust WS round-trip test
+- ❌ Round 7 — cross-service E2E (share a channel with a
+     user-group; every member sees it via list)
 
 ## Phase 7 — Manager-UI surface
 
