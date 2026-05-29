@@ -166,13 +166,16 @@ design + multi-round task board lives in
 - ✅ Round 1 scaffolding (`Cargo.toml` + workspace registration +
      bootstrap modules + initial migration + boot-then-health
      verified against the dev DB)
-- ❌ Round 2 — engine schema + registration (`chat-server` ships
-     its own copy of `access_policies` / `audit_log` /
-     `user_groups` / cover-table migrations from filez)
-- ❌ Round 3 — `ChatPolicyStore` impl of
-     `mows_auth_core::PolicyStore` (tracked as the duplication
-     finding that triggers extracting `EngineBackedPolicyStore`
-     into the engine when a third consumer arrives)
+- ✅ Round 2 — engine schema + registration (`chat-server` ships
+     its own consolidated `access_policies` migration; user_groups
+     / audit_log / cover-tables deferred to Round 4 to keep the
+     MVP slice tight). `ChatPolicyStore` impl of all 5
+     `mows_auth_core::PolicyStore` methods landed in the same
+     round; ResourceTypeRegistry with `Channel = 0` and 3 other
+     types boot-validated. Duplication finding tracked in
+     `.plans/chat-service/IDEA.md` as the trigger for extracting
+     `EngineBackedPolicyStore` into the engine when a third
+     consumer arrives.
 - ❌ Round 4 — REST handlers wired through `AccessPolicy::check`
      + `list_visible`
 - ❌ Round 5 — WebSocket `/api/channels/{id}/live` with

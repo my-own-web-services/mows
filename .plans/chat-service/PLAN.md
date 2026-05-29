@@ -26,24 +26,37 @@ See `IDEA.md` for the why + scope contract,
 
 ## Round 2 — engine schema + registration
 
-- ❌ Copy engine migrations from filez (access_policies,
-     audit_log, user_groups lifecycle, listing_cover_tables,
-     listing_cover_reconciler, listing_hot_path_indexes, nobody
-     sentinel, materialize threshold, per-cover bulk-rebuild)
-- ❌ `src/schema.rs` hand-curated for all tables
-- ❌ `src/models/users/mod.rs` — minimal FilezUser-equivalent
-- ❌ `src/models/user_groups/mod.rs` — copied + trimmed
-- ❌ `src/models/apps/mod.rs` — minimal
-- ❌ `src/models/access_policies/mod.rs` — copied + trimmed
-- ❌ `src/models/audit_log/mod.rs` — copied + trimmed
-- ❌ `src/models/access_policies/store.rs` — `ChatPolicyStore`
-     impl of `mows_auth_core::PolicyStore`. Tracked as the
-     duplication finding that triggers extracting
+- ✅ Consolidated engine migration
+     (`00000000000001_engine_schema/up.sql`): idp_providers, users,
+     apps, access_policies + hot-path indexes + the nobody
+     sentinel. Trimmed to the User-subject path: user_groups,
+     audit_log, cover_tables, reconciler, materialize_threshold,
+     bulk_rebuild are tracked as Round-4+ migrations so this round
+     could ship as a clean MVP.
+- ✅ `src/schema.rs` hand-curated for all 6 tables (idp_providers,
+     users, apps, access_policies, channels, channel_messages)
+- ✅ `src/models/users/mod.rs` — minimal FilezUser equivalent
+- ⏸ `src/models/user_groups/mod.rs` — deferred to Round 4
+- ✅ `src/models/apps/mod.rs` — MowsApp projection
+- ✅ `src/models/access_policies/mod.rs` — `AccessPolicy` struct
+     + `AccessPolicyResourceType` + `AccessPolicyAction` enums +
+     create/new helpers
+- ⏸ `src/models/audit_log/mod.rs` — deferred to Round 4
+- ✅ `src/models/access_policies/store.rs` — `ChatPolicyStore`
+     impl of all 5 `mows_auth_core::PolicyStore` methods. Tracked
+     as the duplication finding that triggers extracting
      `EngineBackedPolicyStore` into `mows-auth-core` when a third
      consumer arrives.
-- ❌ Resource type registry impl mapping `Channel = 0`
-- ❌ `AccessPolicyAction` enum with the chat actions
-     (Create/Get/Update/Delete/List/Read/Post)
+- ✅ Resource type registry impl mapping `Channel = 0`, User = 1,
+     AccessPolicy = 2, MowsApp = 3 + identifier-injection
+     validation at boot
+- ✅ `AccessPolicyAction` enum with chat actions
+     (ChannelsCreate/Get/Update/Delete/List/Read/Post +
+     AccessPoliciesCreate/Get/Update/Delete/List)
+- ✅ 3 unit tests for registry + action round-trip + Subject
+     mapping
+- ✅ Engine migration applied to dev DB; lib + tests compile clean;
+     cross-crate sanity (mows-auth-core + filez-server) still green
 
 ## Round 3 — REST surface
 
