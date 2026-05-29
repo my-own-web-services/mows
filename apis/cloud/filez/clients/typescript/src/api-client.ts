@@ -28,10 +28,10 @@ export enum TagResourceType {
  * the `subject_type` column.
  */
 export enum SubjectType {
-  Value0 = 0,
-  Value1 = 1,
-  Value2 = 2,
-  Value3 = 3,
+  User = "User",
+  UserGroup = "UserGroup",
+  ServerMember = "ServerMember",
+  Public = "Public",
 }
 
 export enum StorageQuotaSubjectType {
@@ -50,9 +50,9 @@ export enum SortDirection {
  * POLICY_SEMANTICS.md §4.
  */
 export enum ResourceScope {
-  Value0 = 0,
-  Value1 = 1,
-  Value2 = 2,
+  Single = "Single",
+  OwnedByOwner = "OwnedByOwner",
+  AccessibleByOwner = "AccessibleByOwner",
 }
 
 export enum ListUsersSortBy {
@@ -145,16 +145,16 @@ export enum JobPersistenceType {
 
 /** User-group visibility axis (USER_GROUPS.md §1). */
 export enum GroupVisibility {
-  Value0 = 0,
-  Value1 = 1,
-  Value2 = 2,
+  Private = "Private",
+  ListedRestricted = "ListedRestricted",
+  Public = "Public",
 }
 
 /** User-group join policy axis (USER_GROUPS.md §1). */
 export enum GroupJoinPolicy {
-  Value0 = 0,
-  Value1 = 1,
-  Value2 = 2,
+  InviteOnly = "InviteOnly",
+  RequestToJoin = "RequestToJoin",
+  OpenJoin = "OpenJoin",
 }
 
 export enum FilezUserType {
@@ -170,8 +170,8 @@ export enum FileGroupType {
 
 /** Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3). */
 export enum Effect {
-  Value0 = 0,
-  Value1 = 1,
+  Deny = "Deny",
+  Allow = "Allow",
 }
 
 export enum AppType {
@@ -2169,6 +2169,17 @@ export interface UserGroup {
    * Wire-stable per mows_auth_core::types::GroupJoinPolicy.
    */
   join_policy: GroupJoinPolicy;
+  /**
+   * LISTING.md §6.2 / Phase 5 P5-3 — set to true once the
+   * member count crosses
+   * `user_group_materialize_threshold()` (1000). Maintained
+   * by `recompute_user_group_materialize_flags()` on a daily
+   * schedule; consumed by the Phase 3 listing engine to choose
+   * between cover-table and live-join paths. Defaults to false
+   * for fresh groups (most groups never grow past the
+   * threshold).
+   */
+  materialize_uga: boolean;
   /** @format date-time */
   modified_time: string;
   name: string;

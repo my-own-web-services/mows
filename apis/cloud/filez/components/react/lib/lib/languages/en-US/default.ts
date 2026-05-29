@@ -82,6 +82,135 @@ const translation: Translation = {
         create: `Create`,
         creating: `Creating...`
     },
+    userGroupCreate: {
+        createUserGroup: `Create User Group`,
+        title: `Create New User Group`,
+        description: `Create a private invite-only group. You can change visibility and join policy in settings.`,
+        nameLabel: `User Group Name`,
+        namePlaceholder: `Enter user group name`,
+        nameRequired: `User group name is required`,
+        nameTooLong: `User group name must be 256 characters or less`,
+        createFailed: `Failed to create user group`,
+        cancel: `Cancel`,
+        create: `Create`,
+        creating: `Creating...`
+    },
+    userGroupSettings: {
+        title: `User Group Settings`,
+        nameLabel: `Name`,
+        nameRequired: `Name is required`,
+        nameTooLong: `Name must be 256 characters or less`,
+        descriptionLabel: `Description`,
+        descriptionPlaceholder: `Optional — shown in the directory`,
+        descriptionTooLong: `Description must be 1024 characters or less`,
+        visibilityLabel: `Visibility`,
+        joinPolicyLabel: `Join Policy`,
+        visibility: {
+            private: `Private — only owner and members can see this group`,
+            listedRestricted: `Listed — every server member sees it, only owner can add`,
+            public: `Public — anyone can see this group exists`
+        },
+        joinPolicy: {
+            inviteOnly: `Invite only — owner adds members directly`,
+            requestToJoin: `Request to join — users request, owner approves`,
+            openJoin: `Open join — any server member can join`
+        },
+        updateFailed: `Failed to update user group`,
+        cancel: `Cancel`,
+        save: `Save`,
+        saving: `Saving...`
+    },
+    userGroupPicker: {
+        title: `User Group Selector`,
+        selectUserGroup: `Select user group`,
+        noUserGroupFound: `No user group found`,
+        loading: `Loading user groups...`,
+        loadFailed: `Failed to load user groups`
+    },
+    userGroupList: {
+        loading: `Loading user groups...`,
+        empty: `No user groups match this filter`,
+        open: `Open`,
+        loadFailed: `Failed to load user groups`,
+        totalCount: (totalCount: number) =>
+            totalCount === 1 ? `1 group` : `${totalCount} groups`,
+        filters: {
+            owned: `Owned`,
+            member: `Joined`,
+            invited: `Invited`,
+            requested: `Requested`,
+            serverListed: `Server`,
+            public: `Public`
+        },
+        visibility: {
+            private: `Private`,
+            listedRestricted: `Listed`,
+            public: `Public`
+        },
+        joinPolicy: {
+            inviteOnly: `Invite only`,
+            requestToJoin: `Request to join`,
+            openJoin: `Open join`
+        }
+    },
+    userGroupDetail: {
+        loading: `Loading...`,
+        working: `Working...`,
+        noMembers: `No members yet`,
+        noInvitations: `No pending invitations`,
+        noJoinRequests: `No pending join requests`,
+        ownerBadge: `Owner`,
+        removeMember: `Remove`,
+        invite: `Invite`,
+        inviteUserIdLabel: `User ID`,
+        inviteUserIdPlaceholder: `00000000-0000-0000-0000-000000000000`,
+        inviteMessageLabel: `Message (optional)`,
+        join: `Join`,
+        requestJoin: `Request to join`,
+        leave: `Leave`,
+        deleteGroup: `Delete group`,
+        approve: `Approve`,
+        reject: `Reject`,
+        invitedOn: (when: string) => `Invited ${when}`,
+        requestedOn: (when: string) => `Requested ${when}`,
+        groupIdPrefix: `Group ID:`,
+        userIdPrefix: `User ID:`,
+        errors: {
+            loadMembers: `Failed to load members`,
+            loadInvitations: `Failed to load invitations`,
+            loadJoinRequests: `Failed to load join requests`,
+            invite: `Failed to invite user`,
+            approve: `Failed to approve request`,
+            reject: `Failed to reject request`,
+            removeMember: `Failed to remove member`,
+            leave: `Failed to leave group`,
+            deleteGroup: `Failed to delete group`,
+            requestJoin: `Failed to request join`
+        },
+        tabs: {
+            members: `Members`,
+            invitations: `Invitations`,
+            requests: `Join requests`
+        }
+    },
+    userGroupPendingDashboard: {
+        loading: `Loading...`,
+        invitations: `Invitations`,
+        requests: `My requests`,
+        noInvitations: `No pending invitations`,
+        noRequests: `No pending requests`,
+        accept: `Accept`,
+        decline: `Decline`,
+        working: `Working...`,
+        invitedOn: (when: string) => `Invited ${when}`,
+        requestedOn: (when: string) => `Requested ${when}`,
+        groupIdPrefix: `Group ID:`,
+        errors: {
+            load: `Failed to load pending items`,
+            accept: `Failed to accept invitation`,
+            decline: `Failed to decline invitation`
+        }
+    },
     jobsProgress: {
         title: `Jobs Progress`,
         inProgress: `In Progress`,

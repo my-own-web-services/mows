@@ -32,7 +32,7 @@ use serde_valid::Validate;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-/// ```
+/// ```ignore
 /// filter_subject_access_policies!(requesting_user_id: &Uuid, user_group_ids: Vec<Uuid>)
 /// ```
 #[macro_export]

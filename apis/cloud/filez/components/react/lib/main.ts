@@ -5,6 +5,22 @@ export { default as DevPanel } from "./components/development/DevPanel";
 export { default as FileGroupCreate } from "./components/fileGroups/fileGroupCreate/FileGroupCreate";
 export { default as FileGroupPicker } from "./components/fileGroups/fileGroupPicker/FileGroupPicker";
 
+export { default as UserGroupCreate } from "./components/userGroups/userGroupCreate/UserGroupCreate";
+export { default as UserGroupSettings } from "./components/userGroups/userGroupSettings/UserGroupSettings";
+export {
+    default as UserGroupList,
+    USER_GROUP_LIST_FILTERS,
+    USER_GROUP_LIST_DEFAULT_FILTER,
+    USER_GROUP_LIST_PAGE_SIZE
+} from "./components/userGroups/userGroupList/UserGroupList";
+export { default as UserGroupDetail } from "./components/userGroups/userGroupDetail/UserGroupDetail";
+export {
+    default as UserGroupPicker,
+    USER_GROUP_PICKER_DEFAULT_FILTER,
+    USER_GROUP_PICKER_PAGE_SIZE
+} from "./components/userGroups/userGroupPicker/UserGroupPicker";
+export { default as UserGroupPendingDashboard } from "./components/userGroups/userGroupPendingDashboard/UserGroupPendingDashboard";
+
 export { default as FileList } from "./components/files/fileList/FileList";
 export { default as FileViewer } from "./components/files/fileViewer/FileViewer";
 

@@ -27,7 +27,14 @@ serde_json = { workspace = true, features = ["default"] }
 # utoipa for ToSchema — every MOWS service is axum + utoipa, so the
 # engine's public DTOs need to appear in their OpenAPI specs without
 # requiring each service to wrap or duplicate them.
-utoipa = { workspace = true, features = ["macros", "chrono", "uuid", "repr", "openapi_extensions"] }
+#
+# NOTE: do NOT enable the `repr` feature. Our wire-stable enums use
+# `#[repr(i16)]` for the diesel `as i16` casts only — serde still
+# serialises them as variant names (e.g. `"Public"`, not `2`). With
+# `repr`, utoipa would mis-describe them as integer enums in the
+# OpenAPI spec, breaking generated clients (see
+# `wire_stable_string_serde` tests in types.rs).
+utoipa = { workspace = true, features = ["macros", "chrono", "uuid", "openapi_extensions"] }
 
 # Diesel — matches filez's feature set so service crates can share the
 # connection pool when they consume mows-auth-core.

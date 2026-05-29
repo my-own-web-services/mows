@@ -843,7 +843,11 @@ pub struct DynamicGroupRule {}
 
 // Effect
 /// Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3).
-pub type Effect = i64;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Effect {
+    Deny,
+    Allow,
+}
 
 // EmptyApiResponse
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1180,11 +1184,21 @@ pub struct GetUsersResponseBody {
 
 // GroupJoinPolicy
 /// User-group join policy axis (USER_GROUPS.md §1).
-pub type GroupJoinPolicy = i64;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GroupJoinPolicy {
+    InviteOnly,
+    RequestToJoin,
+    OpenJoin,
+}
 
 // GroupVisibility
 /// User-group visibility axis (USER_GROUPS.md §1).
-pub type GroupVisibility = i64;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GroupVisibility {
+    Private,
+    ListedRestricted,
+    Public,
+}
 
 // HealthResBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1709,7 +1723,12 @@ pub struct RequestJoinUserGroupRequestBody {
 // ResourceScope
 /// How broadly a policy applies — see DATA_MODEL.md §2.4 and
 /// POLICY_SEMANTICS.md §4.
-pub type ResourceScope = i64;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ResourceScope {
+    Single,
+    OwnedByOwner,
+    AccessibleByOwner,
+}
 
 // SortDirection
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1773,7 +1792,13 @@ pub enum StorageQuotaSubjectType {
 ///
 /// The integer values are wire-stable per DATA_MODEL.md and must match
 /// the `subject_type` column.
-pub type SubjectType = i64;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SubjectType {
+    User,
+    UserGroup,
+    ServerMember,
+    Public,
+}
 
 // TagResourceType
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2014,6 +2039,15 @@ pub struct UserGroup {
     pub description: Option<String>,
     pub id: UserGroupId,
     pub join_policy: GroupJoinPolicy,
+    /// LISTING.md §6.2 / Phase 5 P5-3 — set to true once the
+    /// member count crosses
+    /// `user_group_materialize_threshold()` (1000). Maintained
+    /// by `recompute_user_group_materialize_flags()` on a daily
+    /// schedule; consumed by the Phase 3 listing engine to choose
+    /// between cover-table and live-join paths. Defaults to false
+    /// for fresh groups (most groups never grow past the
+    /// threshold).
+    pub materialize_uga: bool,
     pub modified_time: NaiveDateTime,
     pub name: String,
     pub owner_id: FilezUserId,

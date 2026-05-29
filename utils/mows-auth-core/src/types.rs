@@ -347,6 +347,77 @@ mod json_wire_format {
 }
 
 #[cfg(test)]
+mod openapi_schema_shape {
+    //! Pin the OpenAPI schema shape for every wire-stable enum. The
+    //! actual serde wire format is the PascalCase variant name (see
+    //! `json_wire_format` above), so the generated schema must say
+    //! `type: string, enum: ["Variant", …]` — never `type: integer`.
+    //!
+    //! Regression context: utoipa's `repr` feature, when enabled,
+    //! infers an integer schema from `#[repr(i16)]` even though serde
+    //! still serialises variant names. The repr feature was enabled in
+    //! a 2026-05-26 refactor; the resulting openapi.json drift then
+    //! made the TS codegen emit useless `Value0` / `Value1` enum
+    //! members. Cargo.toml now omits the feature; this test pins the
+    //! observable schema so a future re-enable fails immediately.
+    use super::*;
+    use utoipa::PartialSchema;
+
+    fn schema_value<S: PartialSchema>() -> serde_json::Value {
+        serde_json::to_value(S::schema()).unwrap()
+    }
+
+    fn assert_string_enum(value: &serde_json::Value, expected: &[&str]) {
+        assert_eq!(value["type"], serde_json::json!("string"),
+                   "schema must be `type: string`, got {value:#}");
+        let members = value["enum"].as_array().unwrap();
+        // A5 (phase4-frontend-review): a utoipa regression that emits
+        // mixed string + integer members (e.g. enum: [0, "A", 1, "B"])
+        // would pass a `type: string` check alone. Assert every member
+        // is genuinely a JSON string so that codegen can never silently
+        // round-trip an integer discriminant again.
+        for member in members {
+            assert!(
+                member.is_string(),
+                "enum member must be a JSON string, got {member:?}"
+            );
+        }
+        let got: Vec<&str> =
+            members.iter().map(|v| v.as_str().unwrap()).collect();
+        assert_eq!(got, expected, "enum members differ");
+    }
+
+    #[test] fn subject_type_schema_is_string_enum() {
+        assert_string_enum(&schema_value::<SubjectType>(),
+            &["User", "UserGroup", "ServerMember", "Public"]);
+    }
+
+    #[test] fn effect_schema_is_string_enum() {
+        assert_string_enum(&schema_value::<Effect>(), &["Deny", "Allow"]);
+    }
+
+    #[test] fn resource_scope_schema_is_string_enum() {
+        assert_string_enum(&schema_value::<ResourceScope>(),
+            &["Single", "OwnedByOwner", "AccessibleByOwner"]);
+    }
+
+    #[test] fn group_visibility_schema_is_string_enum() {
+        assert_string_enum(&schema_value::<GroupVisibility>(),
+            &["Private", "ListedRestricted", "Public"]);
+    }
+
+    #[test] fn group_join_policy_schema_is_string_enum() {
+        assert_string_enum(&schema_value::<GroupJoinPolicy>(),
+            &["InviteOnly", "RequestToJoin", "OpenJoin"]);
+    }
+
+    #[test] fn list_scope_schema_is_string_enum() {
+        assert_string_enum(&schema_value::<ListScope>(),
+            &["Owned", "All", "Shared"]);
+    }
+}
+
+#[cfg(test)]
 mod http_status_mapping {
     //! ARCH-6: every consuming service maps AuthError to HTTP the same
     //! way by delegating here. The numeric values are intentionally

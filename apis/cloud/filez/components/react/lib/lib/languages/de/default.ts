@@ -82,6 +82,135 @@ const translation: Translation = {
         create: `Erstellen`,
         creating: `Wird erstellt...`
     },
+    userGroupCreate: {
+        createUserGroup: `Benutzergruppe erstellen`,
+        title: `Neue Benutzergruppe erstellen`,
+        description: `Erstellt eine private, nur per Einladung zugängliche Gruppe. Sichtbarkeit und Beitrittsrichtlinie können in den Einstellungen angepasst werden.`,
+        nameLabel: `Name der Benutzergruppe`,
+        namePlaceholder: `Name der Benutzergruppe eingeben`,
+        nameRequired: `Der Gruppenname ist erforderlich`,
+        nameTooLong: `Der Gruppenname darf maximal 256 Zeichen lang sein`,
+        createFailed: `Fehler beim Erstellen der Benutzergruppe`,
+        cancel: `Abbrechen`,
+        create: `Erstellen`,
+        creating: `Wird erstellt...`
+    },
+    userGroupSettings: {
+        title: `Einstellungen der Benutzergruppe`,
+        nameLabel: `Name`,
+        nameRequired: `Name ist erforderlich`,
+        nameTooLong: `Name darf maximal 256 Zeichen lang sein`,
+        descriptionLabel: `Beschreibung`,
+        descriptionPlaceholder: `Optional — wird im Verzeichnis angezeigt`,
+        descriptionTooLong: `Beschreibung darf maximal 1024 Zeichen lang sein`,
+        visibilityLabel: `Sichtbarkeit`,
+        joinPolicyLabel: `Beitrittsrichtlinie`,
+        visibility: {
+            private: `Privat — nur Eigentümer und Mitglieder sehen diese Gruppe`,
+            listedRestricted: `Gelistet — alle Servermitglieder sehen sie, nur Eigentümer fügt hinzu`,
+            public: `Öffentlich — jeder sieht, dass diese Gruppe existiert`
+        },
+        joinPolicy: {
+            inviteOnly: `Nur Einladung — Eigentümer fügt Mitglieder direkt hinzu`,
+            requestToJoin: `Beitrittsantrag — Eigentümer genehmigt`,
+            openJoin: `Offener Beitritt — jedes Servermitglied kann beitreten`
+        },
+        updateFailed: `Fehler beim Aktualisieren der Benutzergruppe`,
+        cancel: `Abbrechen`,
+        save: `Speichern`,
+        saving: `Wird gespeichert...`
+    },
+    userGroupPicker: {
+        title: `Benutzergruppen-Auswahl`,
+        selectUserGroup: `Benutzergruppe auswählen`,
+        noUserGroupFound: `Keine Benutzergruppe gefunden`,
+        loading: `Lade Benutzergruppen...`,
+        loadFailed: `Fehler beim Laden der Benutzergruppen`
+    },
+    userGroupList: {
+        loading: `Lade Benutzergruppen...`,
+        empty: `Keine Benutzergruppen für diesen Filter`,
+        open: `Öffnen`,
+        loadFailed: `Fehler beim Laden der Benutzergruppen`,
+        totalCount: (totalCount: number) =>
+            totalCount === 1 ? `1 Gruppe` : `${totalCount} Gruppen`,
+        filters: {
+            owned: `Eigene`,
+            member: `Beigetreten`,
+            invited: `Eingeladen`,
+            requested: `Angefragt`,
+            serverListed: `Server`,
+            public: `Öffentlich`
+        },
+        visibility: {
+            private: `Privat`,
+            listedRestricted: `Gelistet`,
+            public: `Öffentlich`
+        },
+        joinPolicy: {
+            inviteOnly: `Nur Einladung`,
+            requestToJoin: `Beitrittsantrag`,
+            openJoin: `Offener Beitritt`
+        }
+    },
+    userGroupDetail: {
+        loading: `Wird geladen...`,
+        working: `Wird ausgeführt...`,
+        noMembers: `Noch keine Mitglieder`,
+        noInvitations: `Keine ausstehenden Einladungen`,
+        noJoinRequests: `Keine ausstehenden Beitrittsanfragen`,
+        ownerBadge: `Eigentümer`,
+        removeMember: `Entfernen`,
+        invite: `Einladen`,
+        inviteUserIdLabel: `Benutzer-ID`,
+        inviteUserIdPlaceholder: `00000000-0000-0000-0000-000000000000`,
+        inviteMessageLabel: `Nachricht (optional)`,
+        join: `Beitreten`,
+        requestJoin: `Beitritt anfragen`,
+        leave: `Verlassen`,
+        deleteGroup: `Gruppe löschen`,
+        approve: `Annehmen`,
+        reject: `Ablehnen`,
+        invitedOn: (when: string) => `Eingeladen am ${when}`,
+        requestedOn: (when: string) => `Angefragt am ${when}`,
+        groupIdPrefix: `Gruppen-ID:`,
+        userIdPrefix: `Benutzer-ID:`,
+        errors: {
+            loadMembers: `Fehler beim Laden der Mitglieder`,
+            loadInvitations: `Fehler beim Laden der Einladungen`,
+            loadJoinRequests: `Fehler beim Laden der Beitrittsanfragen`,
+            invite: `Fehler beim Einladen des Benutzers`,
+            approve: `Fehler beim Annehmen der Anfrage`,
+            reject: `Fehler beim Ablehnen der Anfrage`,
+            removeMember: `Fehler beim Entfernen des Mitglieds`,
+            leave: `Fehler beim Verlassen der Gruppe`,
+            deleteGroup: `Fehler beim Löschen der Gruppe`,
+            requestJoin: `Fehler beim Anfragen des Beitritts`
+        },
+        tabs: {
+            members: `Mitglieder`,
+            invitations: `Einladungen`,
+            requests: `Beitrittsanfragen`
+        }
+    },
+    userGroupPendingDashboard: {
+        loading: `Wird geladen...`,
+        invitations: `Einladungen`,
+        requests: `Meine Anfragen`,
+        noInvitations: `Keine ausstehenden Einladungen`,
+        noRequests: `Keine ausstehenden Anfragen`,
+        accept: `Annehmen`,
+        decline: `Ablehnen`,
+        working: `Wird ausgeführt...`,
+        invitedOn: (when: string) => `Eingeladen am ${when}`,
+        requestedOn: (when: string) => `Angefragt am ${when}`,
+        groupIdPrefix: `Gruppen-ID:`,
+        errors: {
+            load: `Fehler beim Laden ausstehender Einträge`,
+            accept: `Fehler beim Annehmen der Einladung`,
+            decline: `Fehler beim Ablehnen der Einladung`
+        }
+    },
     jobsProgress: {
         title: `Jobs Fortschritt`,
         inProgress: `In Bearbeitung`,

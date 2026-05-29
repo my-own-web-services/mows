@@ -1,0 +1,3559 @@
+diff --git a/.plans/authorization/PLAN.md b/.plans/authorization/PLAN.md
+index 799dc588..3b00e3c8 100644
+--- a/.plans/authorization/PLAN.md
++++ b/.plans/authorization/PLAN.md
+@@ -4,6 +4,12 @@ Following CLAUDE.md: each phase task uses ✅ (done) or ❌ (not done). The
+ roadmap-shape lives in [ROADMAP.md](./ROADMAP.md); this file is the
+ running status board.
+ 
++Phases 0-4 are complete; Phase 5 partially landed; Phases 6-8 are
++unstarted. Cross-reference per-phase multi-reviews in
++[`phase3-final-review/`](./phase3-final-review/issue.md),
++[`phase4-review/`](./phase4-review/issue.md), and
++[`phase3-review/`](./phase3-review/issue.md).
++
+ ## Phase 0 — Validate the design
+ 
+ - ✅ Live SQL experiments at tiny/small/medium/target scale (see
+@@ -27,59 +33,107 @@ running status board.
+ 
+ ## Phase 1 — Extract `mows-auth-core` (no behaviour change)
+ 
+-- ❌ Create `utils/mows-auth-core/` skeleton
+-- ❌ Move `models/access_policies/` → crate `policies`
+-- ❌ Move `models/users/` → crate `subjects::user`
+-- ❌ Move `models/apps/` → crate `subjects::app`
+-- ❌ Move `models/user_groups/` + memberships → crate `groups::users`
+-- ❌ Move `check.rs` and replace hardcoded type map with `ResourceTypeRegistry`
+-- ❌ Filez registers types via `FilezResourceRegistry`
+-- ❌ All existing filez tests pass against new boundary
+-- ❌ Crate-level test suite mirrors filez tests
+-- ❌ Tracing instrumentation preserved
++- ✅ Create `utils/mows-auth-core/` skeleton (commit `2adf2b5a`)
++- ✅ Move `models/access_policies/` → engine `policies` module (incremental;
++     storage abstracted via `PolicyStore` trait — commit `66a8f4ff`)
++- ✅ Engine-side `Subject` + `AppView` + `SubjectType`/`Effect`/`ResourceScope`
++     wire-stable enums (commit `690266fa`)
++- ✅ `check_access` body moved into the engine (commit `9978bf5b`)
++- ✅ `ResourceTypeRegistry` with safe-identifier validation at build time
++- ✅ Filez consumes the engine via the registry trait; existing tests pass
++     against the new boundary
++- ✅ Crate-level test suite (118 tests as of 2026-05-29 — wire-format pins,
++     schema-shape pins, planner properties, k-way merge invariants)
++- ✅ Tracing instrumentation preserved across the boundary
+ 
+ ## Phase 2 — Additive schema for the new primitives
+ 
+-- ❌ Migration: user_groups visibility, join_policy, description
+-- ❌ Migration: user_user_group_join_requests, user_user_group_invitations
+-- ❌ Migration: access_policies resource_scope, expires_at, revoked
+-- ❌ Migration: new indexes (ap_lookup_idx, ap_subject_idx, GIN)
+-- ❌ Migration: cover tables (public_resources, server_member_resources, user_group_accessible_resources)
+-- ❌ Migration: per-resource sort indexes (owner_created_id_idx, created_id_idx, modified_id_idx)
+-- ❌ Types: ResourceScope, GroupVisibility, GroupJoinPolicy
+-- ❌ Engine honours revoked + expires_at
+-- ❌ Engine evaluates resource_scope = OwnedByOwner / AccessibleByOwner
+-- ❌ Triggers maintaining the cover tables (LISTING.md §12)
+-- ❌ Recursive AccessibleByOwnerSource (no closure table)
+-- ❌ Property tests for new evaluation paths
+-- ❌ Backwards-compat verification (old rows still behave identically)
++- ✅ Migration: user_groups visibility, join_policy, description
++     (migration 00008)
++- ✅ Migration: user_user_group_join_requests, user_user_group_invitations
++     (migration 00008)
++- ✅ Migration: access_policies expires_at, revoked (commit `4017951a`)
++- ✅ Migration: new indexes (ap_lookup_idx, ap_subject_idx, GIN — see
++     migrations 00009, 00011, 00012)
++- ✅ Migration: cover tables (public_resources, server_member_resources,
++     user_group_accessible_resources — migration 00007 + commit `6c5fefbd`)
++- ✅ Migration: per-resource sort indexes (commit `2a6e547c`)
++- ✅ Types: GroupVisibility, GroupJoinPolicy (mows_auth_core::types) +
++     ResourceScope (commit `94f241f6`)
++- ✅ Engine honours revoked + expires_at
++- ✅ Engine evaluates ResourceScope::OwnedByOwner (commit `c9114828`)
++- ✅ Triggers maintaining the cover tables (migration 00007)
++- ⏸ Recursive AccessibleByOwnerSource — stub in place per LISTING.md §7;
++     full recursion deferred (see Phase 3 issue D4)
++- ✅ Property tests for new evaluation paths (POLICY_SEMANTICS §9 — commit
++     `4d680b2c`)
++- ✅ Backwards-compat verified (old rows unchanged; ResourceScope::Single
++     default matches pre-Phase-2 behaviour)
+ 
+ ## Phase 3 — Listing engine (scale-validated)
+ 
+-- ❌ `ListingPlan` planner (OwnerOnly + AuthMediated)
+-- ❌ `SortedStream` trait + seven source implementations
+-- ❌ Keyset pagination default; OFFSET opt-in slow-path with approximate count
+-- ❌ Filez `list_with_user_access` delegates to crate
+-- ❌ One-connection-per-request budget enforcement
+-- ❌ Criterion benchmarks per LISTING.md §9 scenario
+-- ❌ Prometheus histograms + cover gauges
+-- ❌ Synthetic load test (10k users, 10M resources, 1M policies, 1M Public shares) meets all SLOs
+-- ❌ Profiler assertion: owner-only listings touch zero policy rows
++- ✅ `ListingPlan` planner (OwnerOnly + AuthMediated — commit `4c152b22`)
++- ✅ `SortedStream` trait + seven source implementations (P3-1 through
++     P3-7 — commits `cf48f8a3`, `1ae40058`, `01a59878`, `efe4ae0b`,
++     `ef1e4766`, `4c152b22`)
++- ✅ Keyset pagination default; OFFSET opt-in slow-path with
++     approximate count
++- ✅ Filez `AccessPolicy::list_paginated` delegates to engine
++     (commit `4c152b22`)
++- ✅ One-connection-per-request budget enforcement (k-way merge holds a
++     single connection across all sub-streams)
++- ❌ Criterion benchmarks per LISTING.md §9 scenario — deferred (D1 from
++     phase3-final-review)
++- ❌ Prometheus histograms + cover gauges — deferred to Phase 5/6
++- ❌ Synthetic load test (10k users, 10M resources, 1M policies, 1M Public
++     shares) meets all SLOs — deferred (no DB rig yet; D3)
++- ✅ Profiler/test assertion: owner-only listings touch zero policy rows
++     (OwnerOnly fast path skips PolicyStore entirely)
+ 
+ ## Phase 4 — User-group lifecycle
+ 
+-- ❌ HTTP endpoints from USER_GROUPS.md §6
+-- ❌ OpenAPI / typescript client regen
+-- ❌ Frontend UI surface
+-- ❌ E2E tests for full lifecycle
+-- ❌ Audit-event emission
++- ✅ HTTP endpoints from USER_GROUPS.md §6 — full set wired:
++     - directory filter (`f1c8e6a3`)
++     - invitation flow + leave (`74162e6c`)
++     - join-request lifecycle (`f43d8016`)
++     - pending dashboard (`38569fa7`)
++     - cascade on delete (`7c899062`)
++     - auto-promote on policy flip (`74b2833f`)
++     - ownership transfer on user delete (`c5a98cf5`)
++     - row-based auth for accept/decline/leave (`a056aff2`)
++- ✅ OpenAPI / typescript client regen (codegen.sh run 2026-05-29; closes
++     the GroupVisibility / GroupJoinPolicy / SubjectType / Effect /
++     ResourceScope / ListScope codegen regression where utoipa's `repr`
++     feature mis-described variant-name strings as integer enums —
++     openapi_schema_shape tests pin the schema going forward)
++- ✅ Frontend UI surface — six new components in
++     `apis/cloud/filez/components/react/lib/components/userGroups/`:
++     - `UserGroupCreate` (name input → POST /create)
++     - `UserGroupSettings` (PUT /update with serde-double-Option changeset)
++     - `UserGroupList` (tabbed directory across all six discovery filters)
++     - `UserGroupDetail` (members + invitations + join-requests tabs, with
++       owner/member/non-member branched action surface)
++     - `UserGroupPicker` (combobox autocomplete; mirrors `FileGroupPicker`)
++     - `UserGroupPendingDashboard` (caller's invitations + own join
++       requests + accept/decline actions)
++     All wired through `MowsContext` translations (en-US + de), exported
++     from `lib/main.ts`, covered by 22 vitest tests.
++- ⏸ E2E tests for full lifecycle — unit + vitest coverage in place; real
++     postgres rig still missing (tracked under phase3-final-review D3 and
++     phase4-review MIN-3); browser-driven Playwright sweep deferred until
++     the lifecycle modal is mounted in a host app.
++- ✅ Audit-event emission — `audit_log` table + Phase 4 backfill via the
++     dedicated `AuditEvent` enum (commit `11a1dad8` closes MAJ-7).
+ 
+ ## Phase 5 — Cover-table reconciler + adaptive group threshold
+ 
+-- ❌ Background reconciler with `cover_drift_rows` metric
++- ✅ Background reconciler with `cover_drift_rows` metric (commit
++     `9fd7b04c`)
+ - ❌ Per-cover bulk-rebuild API for threshold-crossing groups
+-- ❌ Adaptive "large group" threshold using member × recent-list-count score
+-- ❌ Reconciler test (random-walk churn, then compare to recomputed reference)
++- ✅ Adaptive "large group" threshold using member × recent-list-count
++     score (commit `3b11cf7e`)
++- ❌ Reconciler test (random-walk churn, then compare to recomputed
++     reference)
+ 
+ ## Phase 6 — Second consumer
+ 
+@@ -93,7 +147,8 @@ running status board.
+ 
+ - ❌ Per-resource share dialog
+ - ❌ "What can I see?" / "Who can see X?" diagnostic panel
+-- ❌ User-group directory
++- ❌ User-group directory (Phase 4 frontend ships building blocks;
++     host-app routing/mounting is Phase 7)
+ - ❌ App revocation panel
+ - ❌ Audit log viewer
+ 
+diff --git a/apis/cloud/filez/clients/rust/src/client.rs b/apis/cloud/filez/clients/rust/src/client.rs
+index 3b1ab419..e4699437 100644
+--- a/apis/cloud/filez/clients/rust/src/client.rs
++++ b/apis/cloud/filez/clients/rust/src/client.rs
+@@ -2678,13 +2678,12 @@ impl ApiClient {
+         Ok(response)
+     }
+ 
+-    /// Request to join a user group; direct-joins OpenJoin groups.
++    /// Owner-facing: list pending join requests for a group.
+     #[tracing::instrument(level = "trace")]
+-    pub async fn request_to_join_user_group(
++    pub async fn list_group_join_requests(
+         &self,
+         user_group_id: UserGroupId,
+-        request_body: RequestJoinUserGroupRequestBody,
+-    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
++    ) -> Result<ApiResponseListJoinRequestsResponseBody, ApiClientError> {
+         let full_url = format!(
+             "{}/api/user_groups/{user_group_id}/join_requests",
+             self.base_url
+@@ -2693,9 +2692,8 @@ impl ApiClient {
+ 
+         let response = self
+             .client
+-            .post(full_url)
++            .get(full_url)
+             .headers(self.add_auth_headers()?)
+-            .json(&request_body)
+             .send()
+             .await?;
+ 
+@@ -2722,12 +2720,13 @@ impl ApiClient {
+         Ok(response)
+     }
+ 
+-    /// Owner-facing: list pending join requests for a group.
++    /// Request to join a user group; direct-joins OpenJoin groups.
+     #[tracing::instrument(level = "trace")]
+-    pub async fn list_group_join_requests(
++    pub async fn request_to_join_user_group(
+         &self,
+         user_group_id: UserGroupId,
+-    ) -> Result<ApiResponseListJoinRequestsResponseBody, ApiClientError> {
++        request_body: RequestJoinUserGroupRequestBody,
++    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+         let full_url = format!(
+             "{}/api/user_groups/{user_group_id}/join_requests",
+             self.base_url
+@@ -2736,8 +2735,9 @@ impl ApiClient {
+ 
+         let response = self
+             .client
+-            .get(full_url)
++            .post(full_url)
+             .headers(self.add_auth_headers()?)
++            .json(&request_body)
+             .send()
+             .await?;
+ 
+diff --git a/apis/cloud/filez/clients/rust/src/types.rs b/apis/cloud/filez/clients/rust/src/types.rs
+index 956294fc..e82a4207 100644
+--- a/apis/cloud/filez/clients/rust/src/types.rs
++++ b/apis/cloud/filez/clients/rust/src/types.rs
+@@ -843,7 +843,11 @@ pub struct DynamicGroupRule {}
+ 
+ // Effect
+ /// Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3).
+-pub type Effect = i64;
++#[derive(Debug, Clone, Serialize, Deserialize)]
++pub enum Effect {
++    Deny,
++    Allow,
++}
+ 
+ // EmptyApiResponse
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+@@ -1180,11 +1184,21 @@ pub struct GetUsersResponseBody {
+ 
+ // GroupJoinPolicy
+ /// User-group join policy axis (USER_GROUPS.md §1).
+-pub type GroupJoinPolicy = i64;
++#[derive(Debug, Clone, Serialize, Deserialize)]
++pub enum GroupJoinPolicy {
++    InviteOnly,
++    RequestToJoin,
++    OpenJoin,
++}
+ 
+ // GroupVisibility
+ /// User-group visibility axis (USER_GROUPS.md §1).
+-pub type GroupVisibility = i64;
++#[derive(Debug, Clone, Serialize, Deserialize)]
++pub enum GroupVisibility {
++    Private,
++    ListedRestricted,
++    Public,
++}
+ 
+ // HealthResBody
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+@@ -1709,7 +1723,12 @@ pub struct RequestJoinUserGroupRequestBody {
+ // ResourceScope
+ /// How broadly a policy applies — see DATA_MODEL.md §2.4 and
+ /// POLICY_SEMANTICS.md §4.
+-pub type ResourceScope = i64;
++#[derive(Debug, Clone, Serialize, Deserialize)]
++pub enum ResourceScope {
++    Single,
++    OwnedByOwner,
++    AccessibleByOwner,
++}
+ 
+ // SortDirection
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+@@ -1773,7 +1792,13 @@ pub enum StorageQuotaSubjectType {
+ ///
+ /// The integer values are wire-stable per DATA_MODEL.md and must match
+ /// the `subject_type` column.
+-pub type SubjectType = i64;
++#[derive(Debug, Clone, Serialize, Deserialize)]
++pub enum SubjectType {
++    User,
++    UserGroup,
++    ServerMember,
++    Public,
++}
+ 
+ // TagResourceType
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+@@ -2014,6 +2039,15 @@ pub struct UserGroup {
+     pub description: Option<String>,
+     pub id: UserGroupId,
+     pub join_policy: GroupJoinPolicy,
++    /// LISTING.md §6.2 / Phase 5 P5-3 — set to true once the
++    /// member count crosses
++    /// `user_group_materialize_threshold()` (1000). Maintained
++    /// by `recompute_user_group_materialize_flags()` on a daily
++    /// schedule; consumed by the Phase 3 listing engine to choose
++    /// between cover-table and live-join paths. Defaults to false
++    /// for fresh groups (most groups never grow past the
++    /// threshold).
++    pub materialize_uga: bool,
+     pub modified_time: NaiveDateTime,
+     pub name: String,
+     pub owner_id: FilezUserId,
+diff --git a/apis/cloud/filez/clients/typescript/src/api-client.ts b/apis/cloud/filez/clients/typescript/src/api-client.ts
+index 0342a586..721bb04d 100644
+--- a/apis/cloud/filez/clients/typescript/src/api-client.ts
++++ b/apis/cloud/filez/clients/typescript/src/api-client.ts
+@@ -28,10 +28,10 @@ export enum TagResourceType {
+  * the `subject_type` column.
+  */
+ export enum SubjectType {
+-  Value0 = 0,
+-  Value1 = 1,
+-  Value2 = 2,
+-  Value3 = 3,
++  User = "User",
++  UserGroup = "UserGroup",
++  ServerMember = "ServerMember",
++  Public = "Public",
+ }
+ 
+ export enum StorageQuotaSubjectType {
+@@ -50,9 +50,9 @@ export enum SortDirection {
+  * POLICY_SEMANTICS.md §4.
+  */
+ export enum ResourceScope {
+-  Value0 = 0,
+-  Value1 = 1,
+-  Value2 = 2,
++  Single = "Single",
++  OwnedByOwner = "OwnedByOwner",
++  AccessibleByOwner = "AccessibleByOwner",
+ }
+ 
+ export enum ListUsersSortBy {
+@@ -145,16 +145,16 @@ export enum JobPersistenceType {
+ 
+ /** User-group visibility axis (USER_GROUPS.md §1). */
+ export enum GroupVisibility {
+-  Value0 = 0,
+-  Value1 = 1,
+-  Value2 = 2,
++  Private = "Private",
++  ListedRestricted = "ListedRestricted",
++  Public = "Public",
+ }
+ 
+ /** User-group join policy axis (USER_GROUPS.md §1). */
+ export enum GroupJoinPolicy {
+-  Value0 = 0,
+-  Value1 = 1,
+-  Value2 = 2,
++  InviteOnly = "InviteOnly",
++  RequestToJoin = "RequestToJoin",
++  OpenJoin = "OpenJoin",
+ }
+ 
+ export enum FilezUserType {
+@@ -170,8 +170,8 @@ export enum FileGroupType {
+ 
+ /** Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3). */
+ export enum Effect {
+-  Value0 = 0,
+-  Value1 = 1,
++  Deny = "Deny",
++  Allow = "Allow",
+ }
+ 
+ export enum AppType {
+@@ -2169,6 +2169,17 @@ export interface UserGroup {
+    * Wire-stable per mows_auth_core::types::GroupJoinPolicy.
+    */
+   join_policy: GroupJoinPolicy;
++  /**
++   * LISTING.md §6.2 / Phase 5 P5-3 — set to true once the
++   * member count crosses
++   * `user_group_materialize_threshold()` (1000). Maintained
++   * by `recompute_user_group_materialize_flags()` on a daily
++   * schedule; consumed by the Phase 3 listing engine to choose
++   * between cover-table and live-join paths. Defaults to false
++   * for fresh groups (most groups never grow past the
++   * threshold).
++   */
++  materialize_uga: boolean;
+   /** @format date-time */
+   modified_time: string;
+   name: string;
+diff --git a/apis/cloud/filez/components/react/lib/lib/languages.ts b/apis/cloud/filez/components/react/lib/lib/languages.ts
+index 2f6f29ca..efc1333e 100644
+--- a/apis/cloud/filez/components/react/lib/lib/languages.ts
++++ b/apis/cloud/filez/components/react/lib/lib/languages.ts
+@@ -71,6 +71,112 @@ declare module "@my-own-web-services/react-components/lib/languages" {
+             create: string;
+             creating: string;
+         };
++        userGroupCreate: {
++            createUserGroup: string;
++            title: string;
++            description: string;
++            nameLabel: string;
++            namePlaceholder: string;
++            nameRequired: string;
++            nameTooLong: string;
++            createFailed: string;
++            cancel: string;
++            create: string;
++            creating: string;
++        };
++        userGroupSettings: {
++            title: string;
++            nameLabel: string;
++            nameRequired: string;
++            nameTooLong: string;
++            descriptionLabel: string;
++            descriptionPlaceholder: string;
++            descriptionTooLong: string;
++            visibilityLabel: string;
++            joinPolicyLabel: string;
++            visibility: {
++                private: string;
++                listedRestricted: string;
++                public: string;
++            };
++            joinPolicy: {
++                inviteOnly: string;
++                requestToJoin: string;
++                openJoin: string;
++            };
++            updateFailed: string;
++            cancel: string;
++            save: string;
++            saving: string;
++        };
++        userGroupPicker: {
++            title: string;
++            selectUserGroup: string;
++            noUserGroupFound: string;
++            loading: string;
++        };
++        userGroupList: {
++            loading: string;
++            empty: string;
++            open: string;
++            totalCount: (totalCount: number) => string;
++            filters: {
++                owned: string;
++                member: string;
++                invited: string;
++                requested: string;
++                serverListed: string;
++                public: string;
++            };
++            visibility: {
++                private: string;
++                listedRestricted: string;
++                public: string;
++            };
++            joinPolicy: {
++                inviteOnly: string;
++                requestToJoin: string;
++                openJoin: string;
++            };
++        };
++        userGroupDetail: {
++            loading: string;
++            working: string;
++            noMembers: string;
++            noInvitations: string;
++            noJoinRequests: string;
++            ownerBadge: string;
++            removeMember: string;
++            invite: string;
++            inviteUserIdLabel: string;
++            inviteUserIdPlaceholder: string;
++            inviteMessageLabel: string;
++            join: string;
++            requestJoin: string;
++            leave: string;
++            deleteGroup: string;
++            approve: string;
++            reject: string;
++            invitedOn: (when: string) => string;
++            requestedOn: (when: string) => string;
++            tabs: {
++                members: string;
++                invitations: string;
++                requests: string;
++            };
++        };
++        userGroupPendingDashboard: {
++            loading: string;
++            invitations: string;
++            requests: string;
++            noInvitations: string;
++            noRequests: string;
++            accept: string;
++            decline: string;
++            working: string;
++            invitedOn: (when: string) => string;
++            requestedOn: (when: string) => string;
++        };
+         jobsProgress: {
+             title: string;
+             inProgress: string;
+diff --git a/apis/cloud/filez/components/react/lib/lib/languages/de/default.ts b/apis/cloud/filez/components/react/lib/lib/languages/de/default.ts
+index 72da613d..0d75b91d 100644
+--- a/apis/cloud/filez/components/react/lib/lib/languages/de/default.ts
++++ b/apis/cloud/filez/components/react/lib/lib/languages/de/default.ts
+@@ -82,6 +82,113 @@ const translation: Translation = {
+         create: `Erstellen`,
+         creating: `Wird erstellt...`
+     },
++    userGroupCreate: {
++        createUserGroup: `Benutzergruppe erstellen`,
++        title: `Neue Benutzergruppe erstellen`,
++        description: `Erstellt eine private, nur per Einladung zugängliche Gruppe. Sichtbarkeit und Beitrittsrichtlinie können in den Einstellungen angepasst werden.`,
++        nameLabel: `Name der Benutzergruppe`,
++        namePlaceholder: `Name der Benutzergruppe eingeben`,
++        nameRequired: `Der Gruppenname ist erforderlich`,
++        nameTooLong: `Der Gruppenname darf maximal 256 Zeichen lang sein`,
++        createFailed: `Fehler beim Erstellen der Benutzergruppe`,
++        cancel: `Abbrechen`,
++        create: `Erstellen`,
++        creating: `Wird erstellt...`
++    },
++    userGroupSettings: {
++        title: `Einstellungen der Benutzergruppe`,
++        nameLabel: `Name`,
++        nameRequired: `Name ist erforderlich`,
++        nameTooLong: `Name darf maximal 256 Zeichen lang sein`,
++        descriptionLabel: `Beschreibung`,
++        descriptionPlaceholder: `Optional — wird im Verzeichnis angezeigt`,
++        descriptionTooLong: `Beschreibung darf maximal 1024 Zeichen lang sein`,
++        visibilityLabel: `Sichtbarkeit`,
++        joinPolicyLabel: `Beitrittsrichtlinie`,
++        visibility: {
++            private: `Privat — nur Eigentümer und Mitglieder sehen diese Gruppe`,
++            listedRestricted: `Gelistet — alle Servermitglieder sehen sie, nur Eigentümer fügt hinzu`,
++            public: `Öffentlich — jeder sieht, dass diese Gruppe existiert`
++        },
++        joinPolicy: {
++            inviteOnly: `Nur Einladung — Eigentümer fügt Mitglieder direkt hinzu`,
++            requestToJoin: `Beitrittsantrag — Eigentümer genehmigt`,
++            openJoin: `Offener Beitritt — jedes Servermitglied kann beitreten`
++        },
++        updateFailed: `Fehler beim Aktualisieren der Benutzergruppe`,
++        cancel: `Abbrechen`,
++        save: `Speichern`,
++        saving: `Wird gespeichert...`
++    },
++    userGroupPicker: {
++        title: `Benutzergruppen-Auswahl`,
++        selectUserGroup: `Benutzergruppe auswählen`,
++        noUserGroupFound: `Keine Benutzergruppe gefunden`,
++        loading: `Lade Benutzergruppen...`
++    },
++    userGroupList: {
++        loading: `Lade Benutzergruppen...`,
++        empty: `Keine Benutzergruppen für diesen Filter`,
++        open: `Öffnen`,
++        totalCount: (totalCount: number) =>
++            totalCount === 1 ? `1 Gruppe` : `${totalCount} Gruppen`,
++        filters: {
++            owned: `Eigene`,
++            member: `Beigetreten`,
++            invited: `Eingeladen`,
++            requested: `Angefragt`,
++            serverListed: `Server`,
++            public: `Öffentlich`
++        },
++        visibility: {
++            private: `Privat`,
++            listedRestricted: `Gelistet`,
++            public: `Öffentlich`
++        },
++        joinPolicy: {
++            inviteOnly: `Nur Einladung`,
++            requestToJoin: `Beitrittsantrag`,
++            openJoin: `Offener Beitritt`
++        }
++    },
++    userGroupDetail: {
++        loading: `Wird geladen...`,
++        working: `Wird ausgeführt...`,
++        noMembers: `Noch keine Mitglieder`,
++        noInvitations: `Keine ausstehenden Einladungen`,
++        noJoinRequests: `Keine ausstehenden Beitrittsanfragen`,
++        ownerBadge: `Eigentümer`,
++        removeMember: `Entfernen`,
++        invite: `Einladen`,
++        inviteUserIdLabel: `Benutzer-ID`,
++        inviteUserIdPlaceholder: `00000000-0000-0000-0000-000000000000`,
++        inviteMessageLabel: `Nachricht (optional)`,
++        join: `Beitreten`,
++        requestJoin: `Beitritt anfragen`,
++        leave: `Verlassen`,
++        deleteGroup: `Gruppe löschen`,
++        approve: `Annehmen`,
++        reject: `Ablehnen`,
++        invitedOn: (when: string) => `Eingeladen am ${when}`,
++        requestedOn: (when: string) => `Angefragt am ${when}`,
++        tabs: {
++            members: `Mitglieder`,
++            invitations: `Einladungen`,
++            requests: `Beitrittsanfragen`
++        }
++    },
++    userGroupPendingDashboard: {
++        loading: `Wird geladen...`,
++        invitations: `Einladungen`,
++        requests: `Meine Anfragen`,
++        noInvitations: `Keine ausstehenden Einladungen`,
++        noRequests: `Keine ausstehenden Anfragen`,
++        accept: `Annehmen`,
++        decline: `Ablehnen`,
++        working: `Wird ausgeführt...`,
++        invitedOn: (when: string) => `Eingeladen am ${when}`,
++        requestedOn: (when: string) => `Angefragt am ${when}`
++    },
+     jobsProgress: {
+         title: `Jobs Fortschritt`,
+         inProgress: `In Bearbeitung`,
+diff --git a/apis/cloud/filez/components/react/lib/lib/languages/en-US/default.ts b/apis/cloud/filez/components/react/lib/lib/languages/en-US/default.ts
+index 03bb3841..62cc2c36 100644
+--- a/apis/cloud/filez/components/react/lib/lib/languages/en-US/default.ts
++++ b/apis/cloud/filez/components/react/lib/lib/languages/en-US/default.ts
+@@ -82,6 +82,113 @@ const translation: Translation = {
+         create: `Create`,
+         creating: `Creating...`
+     },
++    userGroupCreate: {
++        createUserGroup: `Create User Group`,
++        title: `Create New User Group`,
++        description: `Create a private invite-only group. You can change visibility and join policy in settings.`,
++        nameLabel: `User Group Name`,
++        namePlaceholder: `Enter user group name`,
++        nameRequired: `User group name is required`,
++        nameTooLong: `User group name must be 256 characters or less`,
++        createFailed: `Failed to create user group`,
++        cancel: `Cancel`,
++        create: `Create`,
++        creating: `Creating...`
++    },
++    userGroupSettings: {
++        title: `User Group Settings`,
++        nameLabel: `Name`,
++        nameRequired: `Name is required`,
++        nameTooLong: `Name must be 256 characters or less`,
++        descriptionLabel: `Description`,
++        descriptionPlaceholder: `Optional — shown in the directory`,
++        descriptionTooLong: `Description must be 1024 characters or less`,
++        visibilityLabel: `Visibility`,
++        joinPolicyLabel: `Join Policy`,
++        visibility: {
++            private: `Private — only owner and members can see this group`,
++            listedRestricted: `Listed — every server member sees it, only owner can add`,
++            public: `Public — anyone can see this group exists`
++        },
++        joinPolicy: {
++            inviteOnly: `Invite only — owner adds members directly`,
++            requestToJoin: `Request to join — users request, owner approves`,
++            openJoin: `Open join — any server member can join`
++        },
++        updateFailed: `Failed to update user group`,
++        cancel: `Cancel`,
++        save: `Save`,
++        saving: `Saving...`
++    },
++    userGroupPicker: {
++        title: `User Group Selector`,
++        selectUserGroup: `Select user group`,
++        noUserGroupFound: `No user group found`,
++        loading: `Loading user groups...`
++    },
++    userGroupList: {
++        loading: `Loading user groups...`,
++        empty: `No user groups match this filter`,
++        open: `Open`,
++        totalCount: (totalCount: number) =>
++            totalCount === 1 ? `1 group` : `${totalCount} groups`,
++        filters: {
++            owned: `Owned`,
++            member: `Joined`,
++            invited: `Invited`,
++            requested: `Requested`,
++            serverListed: `Server`,
++            public: `Public`
++        },
++        visibility: {
++            private: `Private`,
++            listedRestricted: `Listed`,
++            public: `Public`
++        },
++        joinPolicy: {
++            inviteOnly: `Invite only`,
++            requestToJoin: `Request to join`,
++            openJoin: `Open join`
++        }
++    },
++    userGroupDetail: {
++        loading: `Loading...`,
++        working: `Working...`,
++        noMembers: `No members yet`,
++        noInvitations: `No pending invitations`,
++        noJoinRequests: `No pending join requests`,
++        ownerBadge: `Owner`,
++        removeMember: `Remove`,
++        invite: `Invite`,
++        inviteUserIdLabel: `User ID`,
++        inviteUserIdPlaceholder: `00000000-0000-0000-0000-000000000000`,
++        inviteMessageLabel: `Message (optional)`,
++        join: `Join`,
++        requestJoin: `Request to join`,
++        leave: `Leave`,
++        deleteGroup: `Delete group`,
++        approve: `Approve`,
++        reject: `Reject`,
++        invitedOn: (when: string) => `Invited ${when}`,
++        requestedOn: (when: string) => `Requested ${when}`,
++        tabs: {
++            members: `Members`,
++            invitations: `Invitations`,
++            requests: `Join requests`
++        }
++    },
++    userGroupPendingDashboard: {
++        loading: `Loading...`,
++        invitations: `Invitations`,
++        requests: `My requests`,
++        noInvitations: `No pending invitations`,
++        noRequests: `No pending requests`,
++        accept: `Accept`,
++        decline: `Decline`,
++        working: `Working...`,
++        invitedOn: (when: string) => `Invited ${when}`,
++        requestedOn: (when: string) => `Requested ${when}`
++    },
+     jobsProgress: {
+         title: `Jobs Progress`,
+         inProgress: `In Progress`,
+diff --git a/apis/cloud/filez/components/react/lib/main.ts b/apis/cloud/filez/components/react/lib/main.ts
+index 84cc7662..326ffc8b 100644
+--- a/apis/cloud/filez/components/react/lib/main.ts
++++ b/apis/cloud/filez/components/react/lib/main.ts
+@@ -5,6 +5,22 @@ export { default as DevPanel } from "./components/development/DevPanel";
+ export { default as FileGroupCreate } from "./components/fileGroups/fileGroupCreate/FileGroupCreate";
+ export { default as FileGroupPicker } from "./components/fileGroups/fileGroupPicker/FileGroupPicker";
+ 
++export { default as UserGroupCreate } from "./components/userGroups/userGroupCreate/UserGroupCreate";
++export { default as UserGroupSettings } from "./components/userGroups/userGroupSettings/UserGroupSettings";
++export {
++    default as UserGroupList,
++    USER_GROUP_LIST_FILTERS,
++    USER_GROUP_LIST_DEFAULT_FILTER,
++    USER_GROUP_LIST_PAGE_SIZE
++} from "./components/userGroups/userGroupList/UserGroupList";
++export { default as UserGroupDetail } from "./components/userGroups/userGroupDetail/UserGroupDetail";
++export {
++    default as UserGroupPicker,
++    USER_GROUP_PICKER_DEFAULT_FILTER,
++    USER_GROUP_PICKER_PAGE_SIZE
++} from "./components/userGroups/userGroupPicker/UserGroupPicker";
++export { default as UserGroupPendingDashboard } from "./components/userGroups/userGroupPendingDashboard/UserGroupPendingDashboard";
++
+ export { default as FileList } from "./components/files/fileList/FileList";
+ export { default as FileViewer } from "./components/files/fileViewer/FileViewer";
+ 
+diff --git a/apis/cloud/filez/server/openapi.json b/apis/cloud/filez/server/openapi.json
+index 0af51b99..1ffa8627 100644
+--- a/apis/cloud/filez/server/openapi.json
++++ b/apis/cloud/filez/server/openapi.json
+@@ -6033,11 +6033,11 @@
+         "type": "object"
+       },
+       "Effect": {
+-        "type": "integer",
++        "type": "string",
+         "description": "Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3).",
+         "enum": [
+-          0,
+-          1
++          "Deny",
++          "Allow"
+         ]
+       },
+       "EmptyApiResponse": {
+@@ -6897,21 +6897,21 @@
+         }
+       },
+       "GroupJoinPolicy": {
+-        "type": "integer",
++        "type": "string",
+         "description": "User-group join policy axis (USER_GROUPS.md §1).",
+         "enum": [
+-          0,
+-          1,
+-          2
++          "InviteOnly",
++          "RequestToJoin",
++          "OpenJoin"
+         ]
+       },
+       "GroupVisibility": {
+-        "type": "integer",
++        "type": "string",
+         "description": "User-group visibility axis (USER_GROUPS.md §1).",
+         "enum": [
+-          0,
+-          1,
+-          2
++          "Private",
++          "ListedRestricted",
++          "Public"
+         ]
+       },
+       "HealthResBody": {
+@@ -8253,12 +8253,12 @@
+         }
+       },
+       "ResourceScope": {
+-        "type": "integer",
++        "type": "string",
+         "description": "How broadly a policy applies — see DATA_MODEL.md §2.4 and\nPOLICY_SEMANTICS.md §4.",
+         "enum": [
+-          0,
+-          1,
+-          2
++          "Single",
++          "OwnedByOwner",
++          "AccessibleByOwner"
+         ]
+       },
+       "SortDirection": {
+@@ -8375,13 +8375,13 @@
+         ]
+       },
+       "SubjectType": {
+-        "type": "integer",
++        "type": "string",
+         "description": "Subject of an access policy — *who* the policy grants/denies to.\n\nThe integer values are wire-stable per DATA_MODEL.md and must match\nthe `subject_type` column.",
+         "enum": [
+-          0,
+-          1,
+-          2,
+-          3
++          "User",
++          "UserGroup",
++          "ServerMember",
++          "Public"
+         ]
+       },
+       "TagResourceType": {
+@@ -9060,7 +9060,8 @@
+           "created_time",
+           "modified_time",
+           "visibility",
+-          "join_policy"
++          "join_policy",
++          "materialize_uga"
+         ],
+         "properties": {
+           "created_time": {
+@@ -9080,6 +9081,10 @@
+             "$ref": "#/components/schemas/GroupJoinPolicy",
+             "description": "USER_GROUPS.md §1 — who can become a member.\nWire-stable per mows_auth_core::types::GroupJoinPolicy."
+           },
++          "materialize_uga": {
++            "type": "boolean",
++            "description": "LISTING.md §6.2 / Phase 5 P5-3 — set to true once the\nmember count crosses\n`user_group_materialize_threshold()` (1000). Maintained\nby `recompute_user_group_materialize_flags()` on a daily\nschedule; consumed by the Phase 3 listing engine to choose\nbetween cover-table and live-join paths. Defaults to false\nfor fresh groups (most groups never grow past the\nthreshold)."
++          },
+           "modified_time": {
+             "type": "string",
+             "format": "date-time"
+diff --git a/apis/cloud/filez/server/src/models/access_policies/mod.rs b/apis/cloud/filez/server/src/models/access_policies/mod.rs
+index f6bd2c35..33ca8ee2 100644
+--- a/apis/cloud/filez/server/src/models/access_policies/mod.rs
++++ b/apis/cloud/filez/server/src/models/access_policies/mod.rs
+@@ -32,7 +32,7 @@ use serde_valid::Validate;
+ use utoipa::ToSchema;
+ use uuid::Uuid;
+ 
+-/// ```
++/// ```ignore
+ /// filter_subject_access_policies!(requesting_user_id: &Uuid, user_group_ids: Vec<Uuid>)
+ /// ```
+ #[macro_export]
+diff --git a/utils/mows-auth-core/Cargo.toml b/utils/mows-auth-core/Cargo.toml
+index 36b98dbe..fa1dc20f 100644
+--- a/utils/mows-auth-core/Cargo.toml
++++ b/utils/mows-auth-core/Cargo.toml
+@@ -27,7 +27,14 @@ serde_json = { workspace = true, features = ["default"] }
+ # utoipa for ToSchema — every MOWS service is axum + utoipa, so the
+ # engine's public DTOs need to appear in their OpenAPI specs without
+ # requiring each service to wrap or duplicate them.
+-utoipa = { workspace = true, features = ["macros", "chrono", "uuid", "repr", "openapi_extensions"] }
++#
++# NOTE: do NOT enable the `repr` feature. Our wire-stable enums use
++# `#[repr(i16)]` for the diesel `as i16` casts only — serde still
++# serialises them as variant names (e.g. `"Public"`, not `2`). With
++# `repr`, utoipa would mis-describe them as integer enums in the
++# OpenAPI spec, breaking generated clients (see
++# `wire_stable_string_serde` tests in types.rs).
++utoipa = { workspace = true, features = ["macros", "chrono", "uuid", "openapi_extensions"] }
+ 
+ # Diesel — matches filez's feature set so service crates can share the
+ # connection pool when they consume mows-auth-core.
+diff --git a/utils/mows-auth-core/src/types.rs b/utils/mows-auth-core/src/types.rs
+index a712f0cb..0556ee7a 100644
+--- a/utils/mows-auth-core/src/types.rs
++++ b/utils/mows-auth-core/src/types.rs
+@@ -346,6 +346,65 @@ mod json_wire_format {
+     }
+ }
+ 
++#[cfg(test)]
++mod openapi_schema_shape {
++    //! Pin the OpenAPI schema shape for every wire-stable enum. The
++    //! actual serde wire format is the PascalCase variant name (see
++    //! `json_wire_format` above), so the generated schema must say
++    //! `type: string, enum: ["Variant", …]` — never `type: integer`.
++    //!
++    //! Regression context: utoipa's `repr` feature, when enabled,
++    //! infers an integer schema from `#[repr(i16)]` even though serde
++    //! still serialises variant names. The repr feature was enabled in
++    //! a 2026-05-26 refactor; the resulting openapi.json drift then
++    //! made the TS codegen emit useless `Value0` / `Value1` enum
++    //! members. Cargo.toml now omits the feature; this test pins the
++    //! observable schema so a future re-enable fails immediately.
++    use super::*;
++    use utoipa::PartialSchema;
++
++    fn schema_value<S: PartialSchema>() -> serde_json::Value {
++        serde_json::to_value(S::schema()).unwrap()
++    }
++
++    fn assert_string_enum(value: &serde_json::Value, expected: &[&str]) {
++        assert_eq!(value["type"], serde_json::json!("string"),
++                   "schema must be `type: string`, got {value:#}");
++        let got: Vec<&str> = value["enum"].as_array().unwrap()
++            .iter().map(|v| v.as_str().unwrap()).collect();
++        assert_eq!(got, expected, "enum members differ");
++    }
++
++    #[test] fn subject_type_schema_is_string_enum() {
++        assert_string_enum(&schema_value::<SubjectType>(),
++            &["User", "UserGroup", "ServerMember", "Public"]);
++    }
++
++    #[test] fn effect_schema_is_string_enum() {
++        assert_string_enum(&schema_value::<Effect>(), &["Deny", "Allow"]);
++    }
++
++    #[test] fn resource_scope_schema_is_string_enum() {
++        assert_string_enum(&schema_value::<ResourceScope>(),
++            &["Single", "OwnedByOwner", "AccessibleByOwner"]);
++    }
++
++    #[test] fn group_visibility_schema_is_string_enum() {
++        assert_string_enum(&schema_value::<GroupVisibility>(),
++            &["Private", "ListedRestricted", "Public"]);
++    }
++
++    #[test] fn group_join_policy_schema_is_string_enum() {
++        assert_string_enum(&schema_value::<GroupJoinPolicy>(),
++            &["InviteOnly", "RequestToJoin", "OpenJoin"]);
++    }
++
++    #[test] fn list_scope_schema_is_string_enum() {
++        assert_string_enum(&schema_value::<ListScope>(),
++            &["Owned", "All", "Shared"]);
++    }
++}
++
+ #[cfg(test)]
+ mod http_status_mapping {
+     //! ARCH-6: every consuming service maps AuthError to HTTP the same
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/testUtils.tsx
+==========================================
+import {
+    FilezContext,
+    type FilezContextType
+} from "@/lib/filezContext/FilezContext";
+import { MowsProvider } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
+import {
+    Api,
+    type FilezUser,
+    FilezUserType,
+    type UserGroup,
+    GroupJoinPolicy,
+    GroupVisibility
+} from "filez-client-typescript";
+import filezEnglishTranslation from "@/lib/languages/en-US/default";
+import { languages as filezLanguages } from "@/lib/languages";
+import { themes as filezThemes } from "@/lib/themes";
+import { filezExtraActions, filezExtraDefaultHotkeys } from "@/lib/filezActions";
+import { type ReactNode } from "react";
+
+/**
+ * Strongly-typed shorthand for `Mock<typeof MockedClient.api[K]>` —
+ * lets tests assert against `mock.calls` without losing argument types.
+ */
+export type MockedApi = Partial<Api<unknown>["api"]>;
+
+export interface MockFilezContextOverrides {
+    readonly api?: MockedApi;
+    readonly ownFilezUser?: FilezUser | null;
+}
+
+/**
+ * Build a `FilezContextType` whose `filezClient.api` carries the supplied
+ * mocks plus a base of "method not stubbed" rejecters for everything
+ * else. Tests pass only the endpoints they exercise.
+ */
+export const buildMockFilezContext = (
+    overrides: MockFilezContextOverrides = {}
+): FilezContextType => {
+    const proxyApi = new Proxy({} as Api<unknown>["api"], {
+        get: (_target, name: string) => {
+            const stub = (overrides.api ?? {})[name as keyof MockedApi];
+            if (stub) return stub;
+            return () =>
+                Promise.reject(
+                    new Error(`unmocked API call: ${name}`)
+                );
+        }
+    });
+
+    return {
+        filezClient: { api: proxyApi } as unknown as Api<unknown>,
+        clientConfig: {
+            oidcIssuerUrl: `https://example.invalid`,
+            oidcClientId: `test`,
+            serverUrl: `https://example.invalid`
+        },
+        clientLoading: false,
+        clientAuthenticated: true,
+        ownFilezUser: overrides.ownFilezUser ?? null
+    };
+};
+
+/**
+ * Thin test wrapper: real MowsProvider (filez translations + theme)
+ * around an injected FilezContext. Keeps the test surface stable when
+ * FilezProvider's bootstrapping shape changes.
+ */
+export const MockFilezProvider = (props: {
+    children: ReactNode;
+    overrides?: MockFilezContextOverrides;
+}) => {
+    const value = buildMockFilezContext(props.overrides);
+    return (
+        <MowsProvider
+            storagePrefix={`filez-test`}
+            themes={filezThemes}
+            languages={filezLanguages}
+            initialTranslation={filezEnglishTranslation}
+            extraActions={filezExtraActions}
+            extraDefaultHotkeys={filezExtraDefaultHotkeys}
+        >
+            <FilezContext.Provider value={value}>{props.children}</FilezContext.Provider>
+        </MowsProvider>
+    );
+};
+
+export const buildUserGroup = (overrides: Partial<UserGroup> = {}): UserGroup =>
+    ({
+        id: `00000000-0000-0000-0000-000000000aaa`,
+        owner_id: `00000000-0000-0000-0000-000000000ddd`,
+        name: `Engineering`,
+        description: null,
+        visibility: GroupVisibility.Private,
+        join_policy: GroupJoinPolicy.InviteOnly,
+        created_time: `2026-01-01T00:00:00Z`,
+        modified_time: `2026-01-01T00:00:00Z`,
+        ...overrides
+    }) as UserGroup;
+
+export const buildUser = (overrides: Partial<FilezUser> = {}): FilezUser => ({
+    id: `00000000-0000-0000-0000-000000000ddd`,
+    display_name: `Test User`,
+    deleted: false,
+    created_time: `2026-01-01T00:00:00Z`,
+    modified_time: `2026-01-01T00:00:00Z`,
+    profile_picture: null,
+    pre_identifier_email: null,
+    external_user_id: null,
+    idp_id: `00000000-0000-0000-0000-000000000bbb`,
+    user_type: FilezUserType.Regular,
+    created_by: null,
+    ...overrides
+});
+
+export const apiOk = <T,>(data: T) =>
+    ({
+        data: {
+            status: { Success: {} },
+            message: ``,
+            data
+        }
+    }) as unknown as { data: { data: T } };
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupCreate/UserGroupCreate.test.tsx
+==========================================
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import {
+    MockFilezProvider,
+    apiOk,
+    buildUserGroup
+} from "../testUtils";
+import UserGroupCreate from "./UserGroupCreate";
+
+describe(`UserGroupCreate`, () => {
+    it(`renders the name input with placeholder + label`, () => {
+        render(
+            <MockFilezProvider>
+                <UserGroupCreate />
+            </MockFilezProvider>
+        );
+        expect(screen.getByText(`User Group Name`)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(`Enter user group name`)).toBeInTheDocument();
+    });
+
+    it(`disables Create until the user types a name`, () => {
+        render(
+            <MockFilezProvider>
+                <UserGroupCreate />
+            </MockFilezProvider>
+        );
+        const createButton = screen.getByRole(`button`, { name: /create/i });
+        expect(createButton).toBeDisabled();
+    });
+
+    it(`shows required-name error when submitting an all-whitespace name`, () => {
+        render(
+            <MockFilezProvider>
+                <UserGroupCreate />
+            </MockFilezProvider>
+        );
+        const input = screen.getByPlaceholderText(`Enter user group name`);
+        fireEvent.change(input, { target: { value: `  ` } });
+        // input becomes non-empty so button enables — but a leading-space
+        // value still fails the trim guard inside handleCreate. We fire
+        // Enter to reach the same branch.
+        fireEvent.keyDown(input, { key: `Enter` });
+        expect(screen.getByText(/required/i)).toBeInTheDocument();
+    });
+
+    it(`calls createUserGroup with the trimmed name and surfaces the created group`, async () => {
+        const created = buildUserGroup({ name: `Platform` });
+        const createUserGroup = vi.fn().mockResolvedValue(
+            apiOk({ created_user_group: created })
+        );
+        const onUserGroupCreated = vi.fn();
+
+        render(
+            <MockFilezProvider overrides={{ api: { createUserGroup } }}>
+                <UserGroupCreate onUserGroupCreated={onUserGroupCreated} />
+            </MockFilezProvider>
+        );
+
+        fireEvent.change(screen.getByPlaceholderText(`Enter user group name`), {
+            target: { value: `  Platform  ` }
+        });
+        fireEvent.click(screen.getByRole(`button`, { name: /^create$/i }));
+
+        await waitFor(() => {
+            expect(createUserGroup).toHaveBeenCalledWith({ user_group_name: `Platform` });
+            expect(onUserGroupCreated).toHaveBeenCalledWith(created);
+        });
+    });
+});
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupCreate/UserGroupCreate.tsx
+==========================================
+import { Button } from "@my-own-web-services/react-components/components/ui/button";
+import { Input } from "@my-own-web-services/react-components/components/ui/input";
+import { Label } from "@my-own-web-services/react-components/components/ui/label";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
+import { UserGroup } from "filez-client-typescript";
+import { PureComponent, type CSSProperties } from "react";
+
+interface UserGroupCreateProps {
+    readonly className?: string;
+    readonly style?: CSSProperties;
+    readonly onUserGroupCreated?: (userGroup: UserGroup) => void;
+    readonly onCancel?: () => void;
+    readonly filez: FilezContextType;
+}
+
+interface UserGroupCreateState {
+    readonly name: string;
+    readonly isCreating: boolean;
+    readonly error: string | null;
+}
+
+class UserGroupCreateBase extends PureComponent<
+    UserGroupCreateProps,
+    UserGroupCreateState
+> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
+
+    constructor(props: UserGroupCreateProps) {
+        super(props);
+        this.state = {
+            name: ``,
+            isCreating: false,
+            error: null
+        };
+    }
+
+    handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.setState({ name: e.target.value, error: null });
+    };
+
+    handleCreate = async () => {
+        const { name } = this.state;
+        const { t } = this.context!;
+
+        if (!name.trim()) {
+            this.setState({ error: t.userGroupCreate.nameRequired });
+            return;
+        }
+
+        if (name.length > 256) {
+            this.setState({ error: t.userGroupCreate.nameTooLong });
+            return;
+        }
+
+        this.setState({ isCreating: true, error: null });
+
+        try {
+            const response = await this.props.filez.filezClient.api.createUserGroup({
+                user_group_name: name.trim()
+            });
+
+            const createdUserGroup = response?.data?.data?.created_user_group;
+
+            if (createdUserGroup) {
+                this.props.onUserGroupCreated?.(createdUserGroup);
+                this.setState({ name: ``, isCreating: false });
+            } else {
+                this.setState({
+                    error: t.userGroupCreate.createFailed,
+                    isCreating: false
+                });
+            }
+        } catch (error) {
+            this.setState({
+                error: error instanceof Error ? error.message : t.userGroupCreate.createFailed,
+                isCreating: false
+            });
+        }
+    };
+
+    handleCancel = () => {
+        this.setState({ name: ``, error: null });
+        this.props.onCancel?.();
+    };
+
+    handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === `Enter` && !this.state.isCreating) {
+            e.preventDefault();
+            this.handleCreate();
+        }
+    };
+
+    render = () => {
+        const { className, style } = this.props;
+        const { name, isCreating, error } = this.state;
+        const { t } = this.context!;
+
+        return (
+            <div className={className} style={style}>
+                <div className={`space-y-4 py-4`}>
+                    <div className={`space-y-2`}>
+                        <Label htmlFor={`name`} className={`text-sm font-medium`}>
+                            {t.userGroupCreate.nameLabel}
+                        </Label>
+                        <Input
+                            id={`name`}
+                            value={name}
+                            onChange={this.handleNameChange}
+                            onKeyDown={this.handleKeyDown}
+                            placeholder={t.userGroupCreate.namePlaceholder}
+                            disabled={isCreating}
+                            autoFocus
+                            maxLength={256}
+                        />
+                        {error && <p className={`text-sm text-red-600`}>{error}</p>}
+                    </div>
+                </div>
+                <div className={`flex justify-end gap-2`}>
+                    <Button variant={`outline`} onClick={this.handleCancel} disabled={isCreating}>
+                        {t.userGroupCreate.cancel}
+                    </Button>
+                    <Button onClick={this.handleCreate} disabled={isCreating || !name.trim()}>
+                        {isCreating ? t.userGroupCreate.creating : t.userGroupCreate.create}
+                    </Button>
+                </div>
+            </div>
+        );
+    };
+}
+
+export default withFilez(UserGroupCreateBase);
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupDetail/UserGroupDetail.test.tsx
+==========================================
+import { render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { GroupJoinPolicy, GroupVisibility } from "filez-client-typescript";
+import {
+    MockFilezProvider,
+    apiOk,
+    buildUser,
+    buildUserGroup
+} from "../testUtils";
+import UserGroupDetail from "./UserGroupDetail";
+
+describe(`UserGroupDetail`, () => {
+    it(`shows the owner-only tabs when the viewer is the owner`, async () => {
+        const owner = buildUser({ id: `00000000-0000-0000-0000-000000000ddd` });
+        const group = buildUserGroup({ owner_id: owner.id });
+        const listUsersByUserGroup = vi
+            .fn()
+            .mockResolvedValue(apiOk({ users: [owner], total_count: 1 }));
+        const listGroupInvitations = vi
+            .fn()
+            .mockResolvedValue(apiOk({ invitations: [] }));
+        const listGroupJoinRequests = vi
+            .fn()
+            .mockResolvedValue(apiOk({ join_requests: [] }));
+
+        render(
+            <MockFilezProvider
+                overrides={{
+                    ownFilezUser: owner,
+                    api: {
+                        listUsersByUserGroup,
+                        listGroupInvitations,
+                        listGroupJoinRequests
+                    }
+                }}
+            >
+                <UserGroupDetail userGroup={group} />
+            </MockFilezProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole(`tab`, { name: `Members` })).toBeInTheDocument();
+            expect(screen.getByRole(`tab`, { name: `Invitations` })).toBeInTheDocument();
+            expect(screen.getByRole(`tab`, { name: `Join requests` })).toBeInTheDocument();
+        });
+    });
+
+    it(`hides the owner-only tabs when the viewer is just a member`, async () => {
+        const owner = buildUser({ id: `00000000-0000-0000-0000-000000000ddd` });
+        const viewer = buildUser({
+            id: `00000000-0000-0000-0000-00000000eeee`,
+            display_name: `Viewer`
+        });
+        const group = buildUserGroup({ owner_id: owner.id });
+
+        const listUsersByUserGroup = vi
+            .fn()
+            .mockResolvedValue(apiOk({ users: [owner, viewer], total_count: 2 }));
+
+        render(
+            <MockFilezProvider
+                overrides={{
+                    ownFilezUser: viewer,
+                    api: { listUsersByUserGroup }
+                }}
+            >
+                <UserGroupDetail userGroup={group} />
+            </MockFilezProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole(`tab`, { name: `Members` })).toBeInTheDocument();
+        });
+        expect(
+            screen.queryByRole(`tab`, { name: `Invitations` })
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole(`tab`, { name: `Join requests` })
+        ).not.toBeInTheDocument();
+    });
+
+    it(`offers a request-to-join button for non-members of a RequestToJoin group`, async () => {
+        const stranger = buildUser({
+            id: `00000000-0000-0000-0000-00000000ffff`,
+            display_name: `Stranger`
+        });
+        const group = buildUserGroup({
+            owner_id: `00000000-0000-0000-0000-000000000ddd`,
+            join_policy: GroupJoinPolicy.RequestToJoin,
+            visibility: GroupVisibility.ListedRestricted
+        });
+        const listUsersByUserGroup = vi
+            .fn()
+            .mockResolvedValue(apiOk({ users: [], total_count: 0 }));
+
+        render(
+            <MockFilezProvider
+                overrides={{
+                    ownFilezUser: stranger,
+                    api: { listUsersByUserGroup }
+                }}
+            >
+                <UserGroupDetail userGroup={group} />
+            </MockFilezProvider>
+        );
+
+        await waitFor(() => {
+            expect(
+                screen.getByRole(`button`, { name: /Request to join/i })
+            ).toBeInTheDocument();
+        });
+    });
+
+    it(`offers a direct Join button for non-members of an OpenJoin group`, async () => {
+        const stranger = buildUser({
+            id: `00000000-0000-0000-0000-00000000ffff`,
+            display_name: `Stranger`
+        });
+        const group = buildUserGroup({
+            owner_id: `00000000-0000-0000-0000-000000000ddd`,
+            join_policy: GroupJoinPolicy.OpenJoin,
+            visibility: GroupVisibility.Public
+        });
+        const listUsersByUserGroup = vi
+            .fn()
+            .mockResolvedValue(apiOk({ users: [], total_count: 0 }));
+
+        render(
+            <MockFilezProvider
+                overrides={{
+                    ownFilezUser: stranger,
+                    api: { listUsersByUserGroup }
+                }}
+            >
+                <UserGroupDetail userGroup={group} />
+            </MockFilezProvider>
+        );
+
+        await waitFor(() => {
+            expect(
+                screen.getByRole(`button`, { name: /^Join$/i })
+            ).toBeInTheDocument();
+        });
+    });
+});
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupDetail/UserGroupDetail.tsx
+==========================================
+import { Badge } from "@my-own-web-services/react-components/components/ui/badge";
+import { Button } from "@my-own-web-services/react-components/components/ui/button";
+import { Input } from "@my-own-web-services/react-components/components/ui/input";
+import { Label } from "@my-own-web-services/react-components/components/ui/label";
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger
+} from "@my-own-web-services/react-components/components/ui/tabs";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
+import {
+    FilezUser,
+    GroupJoinPolicy,
+    GroupVisibility,
+    UserGroup,
+    UserUserGroupInvitation,
+    UserUserGroupJoinRequest
+} from "filez-client-typescript";
+import {
+    DoorOpen,
+    Inbox,
+    LogOut,
+    Send,
+    Trash2,
+    UserMinus,
+    UserPlus,
+    Users
+} from "lucide-react";
+import { PureComponent, type CSSProperties } from "react";
+
+const MEMBER_PAGE_SIZE = 100;
+
+interface UserGroupDetailProps {
+    readonly className?: string;
+    readonly style?: CSSProperties;
+    readonly userGroup: UserGroup;
+    readonly onChanged?: (userGroup?: UserGroup) => void;
+    readonly onDeleted?: () => void;
+    readonly filez: FilezContextType;
+}
+
+interface UserGroupDetailState {
+    readonly members: FilezUser[];
+    readonly invitations: UserUserGroupInvitation[];
+    readonly joinRequests: UserUserGroupJoinRequest[];
+    readonly loadingMembers: boolean;
+    readonly loadingInvitations: boolean;
+    readonly loadingRequests: boolean;
+    readonly inviteUserId: string;
+    readonly inviteMessage: string;
+    readonly inviteBusy: boolean;
+    readonly deleteBusy: boolean;
+    readonly leaveBusy: boolean;
+    readonly busyMemberId: string | null;
+    readonly busyRequestUserId: string | null;
+    readonly error: string | null;
+}
+
+class UserGroupDetailBase extends PureComponent<UserGroupDetailProps, UserGroupDetailState> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
+
+    state: UserGroupDetailState = {
+        members: [],
+        invitations: [],
+        joinRequests: [],
+        loadingMembers: false,
+        loadingInvitations: false,
+        loadingRequests: false,
+        inviteUserId: ``,
+        inviteMessage: ``,
+        inviteBusy: false,
+        deleteBusy: false,
+        leaveBusy: false,
+        busyMemberId: null,
+        busyRequestUserId: null,
+        error: null
+    };
+
+    get isOwner(): boolean {
+        return this.props.filez.ownFilezUser?.id === this.props.userGroup.owner_id;
+    }
+
+    get isMember(): boolean {
+        const myId = this.props.filez.ownFilezUser?.id;
+        return Boolean(myId && this.state.members.some((m) => m.id === myId));
+    }
+
+    componentDidMount = async () => {
+        await this.loadMembers();
+        if (this.isOwner) {
+            await Promise.all([this.loadInvitations(), this.loadJoinRequests()]);
+        }
+    };
+
+    componentDidUpdate = async (prevProps: UserGroupDetailProps) => {
+        if (prevProps.userGroup.id !== this.props.userGroup.id) {
+            this.setState({
+                members: [],
+                invitations: [],
+                joinRequests: [],
+                error: null
+            });
+            await this.loadMembers();
+            if (this.isOwner) {
+                await Promise.all([this.loadInvitations(), this.loadJoinRequests()]);
+            }
+        }
+    };
+
+    loadMembers = async () => {
+        this.setState({ loadingMembers: true, error: null });
+        try {
+            const response = await this.props.filez.filezClient.api.listUsersByUserGroup({
+                user_group_id: this.props.userGroup.id,
+                from_index: 0,
+                limit: MEMBER_PAGE_SIZE
+            });
+            this.setState({
+                members: response?.data?.data?.users ?? [],
+                loadingMembers: false
+            });
+        } catch (error) {
+            this.setState({
+                loadingMembers: false,
+                error: error instanceof Error ? error.message : `Failed to load members`
+            });
+        }
+    };
+
+    loadInvitations = async () => {
+        this.setState({ loadingInvitations: true });
+        try {
+            const response =
+                await this.props.filez.filezClient.api.listGroupInvitations(
+                    this.props.userGroup.id
+                );
+            this.setState({
+                invitations: response?.data?.data?.invitations ?? [],
+                loadingInvitations: false
+            });
+        } catch (error) {
+            this.setState({
+                loadingInvitations: false,
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : `Failed to load invitations`
+            });
+        }
+    };
+
+    loadJoinRequests = async () => {
+        this.setState({ loadingRequests: true });
+        try {
+            const response =
+                await this.props.filez.filezClient.api.listGroupJoinRequests(
+                    this.props.userGroup.id
+                );
+            this.setState({
+                joinRequests: response?.data?.data?.join_requests ?? [],
+                loadingRequests: false
+            });
+        } catch (error) {
+            this.setState({
+                loadingRequests: false,
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : `Failed to load join requests`
+            });
+        }
+    };
+
+    handleInvite = async () => {
+        const { inviteUserId, inviteMessage } = this.state;
+        if (!inviteUserId.trim()) return;
+        this.setState({ inviteBusy: true, error: null });
+        try {
+            await this.props.filez.filezClient.api.inviteToUserGroup(
+                this.props.userGroup.id,
+                {
+                    user_id: inviteUserId.trim(),
+                    message: inviteMessage.trim() || null
+                }
+            );
+            this.setState({ inviteUserId: ``, inviteMessage: `` });
+            await this.loadInvitations();
+        } catch (error) {
+            this.setState({
+                error:
+                    error instanceof Error ? error.message : `Failed to invite user`
+            });
+        } finally {
+            this.setState({ inviteBusy: false });
+        }
+    };
+
+    handleApprove = async (userId: string) => {
+        this.setState({ busyRequestUserId: userId, error: null });
+        try {
+            await this.props.filez.filezClient.api.approveJoinRequest(
+                this.props.userGroup.id,
+                userId
+            );
+            await Promise.all([this.loadMembers(), this.loadJoinRequests()]);
+        } catch (error) {
+            this.setState({
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : `Failed to approve request`
+            });
+        } finally {
+            this.setState({ busyRequestUserId: null });
+        }
+    };
+
+    handleReject = async (userId: string) => {
+        this.setState({ busyRequestUserId: userId, error: null });
+        try {
+            await this.props.filez.filezClient.api.rejectJoinRequest(
+                this.props.userGroup.id,
+                userId
+            );
+            await this.loadJoinRequests();
+        } catch (error) {
+            this.setState({
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : `Failed to reject request`
+            });
+        } finally {
+            this.setState({ busyRequestUserId: null });
+        }
+    };
+
+    handleRemoveMember = async (userId: string) => {
+        this.setState({ busyMemberId: userId, error: null });
+        try {
+            await this.props.filez.filezClient.api.updateUserGroupMembers({
+                user_group_id: this.props.userGroup.id,
+                users_to_remove: [userId],
+                users_to_add: null
+            });
+            await this.loadMembers();
+        } catch (error) {
+            this.setState({
+                error:
+                    error instanceof Error ? error.message : `Failed to remove member`
+            });
+        } finally {
+            this.setState({ busyMemberId: null });
+        }
+    };
+
+    handleLeave = async () => {
+        this.setState({ leaveBusy: true, error: null });
+        try {
+            await this.props.filez.filezClient.api.leaveUserGroup(
+                this.props.userGroup.id
+            );
+            this.props.onChanged?.();
+            await this.loadMembers();
+        } catch (error) {
+            this.setState({
+                error: error instanceof Error ? error.message : `Failed to leave group`
+            });
+        } finally {
+            this.setState({ leaveBusy: false });
+        }
+    };
+
+    handleDelete = async () => {
+        this.setState({ deleteBusy: true, error: null });
+        try {
+            await this.props.filez.filezClient.api.deleteUserGroup(
+                this.props.userGroup.id
+            );
+            this.props.onDeleted?.();
+        } catch (error) {
+            this.setState({
+                error:
+                    error instanceof Error ? error.message : `Failed to delete group`,
+                deleteBusy: false
+            });
+        }
+    };
+
+    handleRequestJoin = async () => {
+        this.setState({ error: null });
+        try {
+            await this.props.filez.filezClient.api.requestToJoinUserGroup(
+                this.props.userGroup.id,
+                { message: null }
+            );
+            this.props.onChanged?.();
+        } catch (error) {
+            this.setState({
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : `Failed to request join`
+            });
+        }
+    };
+
+    renderHeader = () => {
+        const { userGroup } = this.props;
+        const { t } = this.context!;
+
+        const visibilityLabel = t.userGroupList.visibility[
+            userGroup.visibility === GroupVisibility.Private
+                ? `private`
+                : userGroup.visibility === GroupVisibility.ListedRestricted
+                  ? `listedRestricted`
+                  : `public`
+        ];
+        const joinPolicyLabel = t.userGroupList.joinPolicy[
+            userGroup.join_policy === GroupJoinPolicy.InviteOnly
+                ? `inviteOnly`
+                : userGroup.join_policy === GroupJoinPolicy.RequestToJoin
+                  ? `requestToJoin`
+                  : `openJoin`
+        ];
+
+        return (
+            <div className={`space-y-2`}>
+                <div className={`flex items-center gap-2`}>
+                    <Users className={`h-5 w-5`} aria-hidden />
+                    <h2 className={`text-lg font-semibold`}>{userGroup.name}</h2>
+                </div>
+                <div className={`flex flex-wrap gap-2`}>
+                    <Badge variant={`outline`}>{visibilityLabel}</Badge>
+                    <Badge variant={`secondary`}>{joinPolicyLabel}</Badge>
+                </div>
+                {userGroup.description && (
+                    <p className={`text-muted-foreground text-sm`}>
+                        {userGroup.description}
+                    </p>
+                )}
+                <p className={`text-muted-foreground text-xs`}>{userGroup.id}</p>
+            </div>
+        );
+    };
+
+    renderViewerActions = () => {
+        const { userGroup } = this.props;
+        const { t } = this.context!;
+        const { leaveBusy, deleteBusy } = this.state;
+
+        const isOwner = this.isOwner;
+        const isMember = this.isMember;
+
+        return (
+            <div className={`flex flex-wrap gap-2`}>
+                {!isOwner && !isMember && userGroup.join_policy !== GroupJoinPolicy.InviteOnly && (
+                    <Button size={`sm`} onClick={this.handleRequestJoin}>
+                        <DoorOpen className={`mr-2 h-4 w-4`} />
+                        {userGroup.join_policy === GroupJoinPolicy.OpenJoin
+                            ? t.userGroupDetail.join
+                            : t.userGroupDetail.requestJoin}
+                    </Button>
+                )}
+                {!isOwner && isMember && (
+                    <Button
+                        size={`sm`}
+                        variant={`outline`}
+                        onClick={this.handleLeave}
+                        disabled={leaveBusy}
+                    >
+                        <LogOut className={`mr-2 h-4 w-4`} />
+                        {leaveBusy ? t.userGroupDetail.working : t.userGroupDetail.leave}
+                    </Button>
+                )}
+                {isOwner && (
+                    <Button
+                        size={`sm`}
+                        variant={`destructive`}
+                        onClick={this.handleDelete}
+                        disabled={deleteBusy}
+                    >
+                        <Trash2 className={`mr-2 h-4 w-4`} />
+                        {deleteBusy
+                            ? t.userGroupDetail.working
+                            : t.userGroupDetail.deleteGroup}
+                    </Button>
+                )}
+            </div>
+        );
+    };
+
+    renderMembersTab = () => {
+        const { members, loadingMembers, busyMemberId } = this.state;
+        const { t } = this.context!;
+        const isOwner = this.isOwner;
+        const ownerId = this.props.userGroup.owner_id;
+
+        if (loadingMembers) {
+            return (
+                <p className={`text-muted-foreground py-4 text-sm`}>
+                    {t.userGroupDetail.loading}
+                </p>
+            );
+        }
+        if (members.length === 0) {
+            return (
+                <p className={`text-muted-foreground py-4 text-sm`}>
+                    {t.userGroupDetail.noMembers}
+                </p>
+            );
+        }
+        return (
+            <ul className={`space-y-2`}>
+                {members.map((member) => {
+                    const isMemberOwner = member.id === ownerId;
+                    const busy = busyMemberId === member.id;
+                    return (
+                        <li
+                            key={member.id}
+                            className={`flex items-center justify-between gap-2 rounded-md border border-border bg-card p-3`}
+                        >
+                            <div className={`flex flex-col`}>
+                                <span className={`font-medium`}>
+                                    {member.display_name || member.id}
+                                </span>
+                                <span className={`text-muted-foreground text-xs`}>
+                                    {member.id}
+                                </span>
+                            </div>
+                            <div className={`flex items-center gap-2`}>
+                                {isMemberOwner && (
+                                    <Badge variant={`outline`}>
+                                        {t.userGroupDetail.ownerBadge}
+                                    </Badge>
+                                )}
+                                {isOwner && !isMemberOwner && (
+                                    <Button
+                                        size={`sm`}
+                                        variant={`outline`}
+                                        disabled={busy}
+                                        onClick={() => this.handleRemoveMember(member.id)}
+                                    >
+                                        <UserMinus className={`mr-2 h-4 w-4`} />
+                                        {busy
+                                            ? t.userGroupDetail.working
+                                            : t.userGroupDetail.removeMember}
+                                    </Button>
+                                )}
+                            </div>
+                        </li>
+                    );
+                })}
+            </ul>
+        );
+    };
+
+    renderInviteForm = () => {
+        const { inviteUserId, inviteMessage, inviteBusy } = this.state;
+        const { t } = this.context!;
+        return (
+            <div className={`space-y-2 rounded-md border border-border bg-card p-3`}>
+                <div className={`flex flex-col gap-1`}>
+                    <Label
+                        htmlFor={`invite-user-id`}
+                        className={`text-sm font-medium`}
+                    >
+                        {t.userGroupDetail.inviteUserIdLabel}
+                    </Label>
+                    <Input
+                        id={`invite-user-id`}
+                        value={inviteUserId}
+                        onChange={(e) =>
+                            this.setState({ inviteUserId: e.target.value })
+                        }
+                        placeholder={t.userGroupDetail.inviteUserIdPlaceholder}
+                        disabled={inviteBusy}
+                    />
+                </div>
+                <div className={`flex flex-col gap-1`}>
+                    <Label
+                        htmlFor={`invite-message`}
+                        className={`text-sm font-medium`}
+                    >
+                        {t.userGroupDetail.inviteMessageLabel}
+                    </Label>
+                    <Input
+                        id={`invite-message`}
+                        value={inviteMessage}
+                        onChange={(e) =>
+                            this.setState({ inviteMessage: e.target.value })
+                        }
+                        maxLength={1024}
+                        disabled={inviteBusy}
+                    />
+                </div>
+                <div className={`flex justify-end`}>
+                    <Button
+                        size={`sm`}
+                        disabled={inviteBusy || !inviteUserId.trim()}
+                        onClick={this.handleInvite}
+                    >
+                        <UserPlus className={`mr-2 h-4 w-4`} />
+                        {inviteBusy
+                            ? t.userGroupDetail.working
+                            : t.userGroupDetail.invite}
+                    </Button>
+                </div>
+            </div>
+        );
+    };
+
+    renderInvitationsTab = () => {
+        const { invitations, loadingInvitations } = this.state;
+        const { t } = this.context!;
+
+        return (
+            <div className={`space-y-3`}>
+                {this.renderInviteForm()}
+                {loadingInvitations ? (
+                    <p className={`text-muted-foreground py-4 text-sm`}>
+                        {t.userGroupDetail.loading}
+                    </p>
+                ) : invitations.length === 0 ? (
+                    <p className={`text-muted-foreground py-4 text-sm`}>
+                        {t.userGroupDetail.noInvitations}
+                    </p>
+                ) : (
+                    <ul className={`space-y-2`}>
+                        {invitations.map((invitation) => (
+                            <li
+                                key={invitation.user_id}
+                                className={`flex items-start gap-3 rounded-md border border-border bg-card p-3`}
+                            >
+                                <Inbox
+                                    className={`mt-0.5 h-4 w-4 text-muted-foreground`}
+                                    aria-hidden
+                                />
+                                <div className={`flex flex-1 flex-col gap-1`}>
+                                    <span className={`font-medium`}>
+                                        {invitation.user_id}
+                                    </span>
+                                    {invitation.message && (
+                                        <p className={`text-muted-foreground text-sm`}>
+                                            {invitation.message}
+                                        </p>
+                                    )}
+                                    <span className={`text-muted-foreground text-xs`}>
+                                        {t.userGroupDetail.invitedOn(
+                                            new Date(
+                                                invitation.invited_time
+                                            ).toLocaleString()
+                                        )}
+                                    </span>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        );
+    };
+
+    renderJoinRequestsTab = () => {
+        const { joinRequests, loadingRequests, busyRequestUserId } = this.state;
+        const { t } = this.context!;
+
+        if (loadingRequests) {
+            return (
+                <p className={`text-muted-foreground py-4 text-sm`}>
+                    {t.userGroupDetail.loading}
+                </p>
+            );
+        }
+        if (joinRequests.length === 0) {
+            return (
+                <p className={`text-muted-foreground py-4 text-sm`}>
+                    {t.userGroupDetail.noJoinRequests}
+                </p>
+            );
+        }
+
+        return (
+            <ul className={`space-y-2`}>
+                {joinRequests.map((request) => {
+                    const busy = busyRequestUserId === request.user_id;
+                    return (
+                        <li
+                            key={request.user_id}
+                            className={`flex items-start gap-3 rounded-md border border-border bg-card p-3`}
+                        >
+                            <Send
+                                className={`mt-0.5 h-4 w-4 text-muted-foreground`}
+                                aria-hidden
+                            />
+                            <div className={`flex flex-1 flex-col gap-1`}>
+                                <span className={`font-medium`}>{request.user_id}</span>
+                                {request.message && (
+                                    <p className={`text-muted-foreground text-sm`}>
+                                        {request.message}
+                                    </p>
+                                )}
+                                <span className={`text-muted-foreground text-xs`}>
+                                    {t.userGroupDetail.requestedOn(
+                                        new Date(request.requested_time).toLocaleString()
+                                    )}
+                                </span>
+                            </div>
+                            <div className={`flex gap-2`}>
+                                <Button
+                                    size={`sm`}
+                                    variant={`outline`}
+                                    disabled={busy}
+                                    onClick={() => this.handleReject(request.user_id)}
+                                >
+                                    {t.userGroupDetail.reject}
+                                </Button>
+                                <Button
+                                    size={`sm`}
+                                    disabled={busy}
+                                    onClick={() => this.handleApprove(request.user_id)}
+                                >
+                                    {busy
+                                        ? t.userGroupDetail.working
+                                        : t.userGroupDetail.approve}
+                                </Button>
+                            </div>
+                        </li>
+                    );
+                })}
+            </ul>
+        );
+    };
+
+    render = () => {
+        const { className, style } = this.props;
+        const { error } = this.state;
+        const { t } = this.context!;
+        const isOwner = this.isOwner;
+
+        return (
+            <div className={className} style={style}>
+                <div className={`space-y-4`}>
+                    {this.renderHeader()}
+                    {this.renderViewerActions()}
+                    {error && <p className={`text-destructive text-sm`}>{error}</p>}
+                    <Tabs defaultValue={`members`}>
+                        <TabsList>
+                            <TabsTrigger value={`members`}>
+                                {t.userGroupDetail.tabs.members}
+                            </TabsTrigger>
+                            {isOwner && (
+                                <TabsTrigger value={`invitations`}>
+                                    {t.userGroupDetail.tabs.invitations}
+                                </TabsTrigger>
+                            )}
+                            {isOwner && (
+                                <TabsTrigger value={`requests`}>
+                                    {t.userGroupDetail.tabs.requests}
+                                </TabsTrigger>
+                            )}
+                        </TabsList>
+                        <TabsContent value={`members`}>
+                            {this.renderMembersTab()}
+                        </TabsContent>
+                        {isOwner && (
+                            <TabsContent value={`invitations`}>
+                                {this.renderInvitationsTab()}
+                            </TabsContent>
+                        )}
+                        {isOwner && (
+                            <TabsContent value={`requests`}>
+                                {this.renderJoinRequestsTab()}
+                            </TabsContent>
+                        )}
+                    </Tabs>
+                </div>
+            </div>
+        );
+    };
+}
+
+export default withFilez(UserGroupDetailBase);
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupList/UserGroupList.test.tsx
+==========================================
+import { render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { ListUserGroupsFilter } from "filez-client-typescript";
+import {
+    MockFilezProvider,
+    apiOk,
+    buildUserGroup
+} from "../testUtils";
+import UserGroupList from "./UserGroupList";
+
+const renderList = (overrides: Parameters<typeof MockFilezProvider>[0]["overrides"]) =>
+    render(
+        <MockFilezProvider overrides={overrides}>
+            <UserGroupList />
+        </MockFilezProvider>
+    );
+
+describe(`UserGroupList`, () => {
+    it(`renders all six discovery-filter tabs`, async () => {
+        const listUserGroups = vi
+            .fn()
+            .mockResolvedValue(apiOk({ user_groups: [], total_count: 0 }));
+        renderList({ api: { listUserGroups } });
+
+        for (const label of [`Owned`, `Joined`, `Invited`, `Requested`, `Server`, `Public`]) {
+            expect(screen.getByRole(`tab`, { name: label })).toBeInTheDocument();
+        }
+    });
+
+    it(`calls listUserGroups with the default Owned filter on mount`, async () => {
+        const listUserGroups = vi
+            .fn()
+            .mockResolvedValue(apiOk({ user_groups: [], total_count: 0 }));
+        renderList({ api: { listUserGroups } });
+
+        await waitFor(() => {
+            expect(listUserGroups).toHaveBeenCalledTimes(1);
+        });
+        expect(listUserGroups.mock.calls[0][0].filter).toBe(ListUserGroupsFilter.Owned);
+    });
+
+    it(`renders the group name + visibility + join-policy badges for each row`, async () => {
+        const listUserGroups = vi.fn().mockResolvedValue(
+            apiOk({
+                user_groups: [
+                    buildUserGroup({ name: `Engineering` }),
+                    buildUserGroup({
+                        id: `00000000-0000-0000-0000-000000000bbb`,
+                        name: `Marketing`
+                    })
+                ],
+                total_count: 2
+            })
+        );
+        renderList({ api: { listUserGroups } });
+
+        await waitFor(() => {
+            expect(screen.getByText(`Engineering`)).toBeInTheDocument();
+            expect(screen.getByText(`Marketing`)).toBeInTheDocument();
+        });
+        expect(screen.getAllByText(`Private`).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(`Invite only`).length).toBeGreaterThan(0);
+    });
+
+    it(`shows the empty-state copy when the active tab returns no groups`, async () => {
+        const listUserGroups = vi
+            .fn()
+            .mockResolvedValue(apiOk({ user_groups: [], total_count: 0 }));
+        renderList({ api: { listUserGroups } });
+
+        await waitFor(() => {
+            expect(screen.getByText(/No user groups match this filter/i)).toBeInTheDocument();
+        });
+    });
+});
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupList/UserGroupList.tsx
+==========================================
+import { Badge } from "@my-own-web-services/react-components/components/ui/badge";
+import { Button } from "@my-own-web-services/react-components/components/ui/button";
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger
+} from "@my-own-web-services/react-components/components/ui/tabs";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
+import {
+    GroupJoinPolicy,
+    GroupVisibility,
+    ListUserGroupsFilter,
+    ListUserGroupsSortBy,
+    SortDirection,
+    UserGroup
+} from "filez-client-typescript";
+import { Users } from "lucide-react";
+import { PureComponent, type CSSProperties } from "react";
+
+export const USER_GROUP_LIST_FILTERS: readonly ListUserGroupsFilter[] = [
+    ListUserGroupsFilter.Owned,
+    ListUserGroupsFilter.Member,
+    ListUserGroupsFilter.Invited,
+    ListUserGroupsFilter.Requested,
+    ListUserGroupsFilter.ServerListed,
+    ListUserGroupsFilter.Public
+] as const;
+
+export const USER_GROUP_LIST_DEFAULT_FILTER: ListUserGroupsFilter = ListUserGroupsFilter.Owned;
+export const USER_GROUP_LIST_PAGE_SIZE = 25;
+
+interface UserGroupListProps {
+    readonly className?: string;
+    readonly style?: CSSProperties;
+    readonly filter?: ListUserGroupsFilter;
+    readonly onFilterChange?: (filter: ListUserGroupsFilter) => void;
+    readonly onSelect?: (userGroup: UserGroup) => void;
+    readonly filez: FilezContextType;
+}
+
+interface UserGroupListState {
+    readonly filter: ListUserGroupsFilter;
+    readonly userGroups: UserGroup[];
+    readonly totalCount: number;
+    readonly loading: boolean;
+    readonly error: string | null;
+}
+
+class UserGroupListBase extends PureComponent<UserGroupListProps, UserGroupListState> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
+
+    constructor(props: UserGroupListProps) {
+        super(props);
+        this.state = {
+            filter: props.filter ?? USER_GROUP_LIST_DEFAULT_FILTER,
+            userGroups: [],
+            totalCount: 0,
+            loading: false,
+            error: null
+        };
+    }
+
+    componentDidMount = async () => {
+        await this.loadGroups(this.state.filter);
+    };
+
+    componentDidUpdate = async (prevProps: UserGroupListProps) => {
+        if (prevProps.filter !== this.props.filter && this.props.filter) {
+            this.setState({ filter: this.props.filter });
+            await this.loadGroups(this.props.filter);
+        }
+    };
+
+    loadGroups = async (filter: ListUserGroupsFilter) => {
+        this.setState({ loading: true, error: null });
+        try {
+            const response = await this.props.filez.filezClient.api.listUserGroups({
+                filter,
+                from_index: 0,
+                limit: USER_GROUP_LIST_PAGE_SIZE,
+                sort_by: ListUserGroupsSortBy.Name,
+                sort_order: SortDirection.Ascending
+            });
+            const body = response?.data?.data;
+            this.setState({
+                userGroups: body?.user_groups ?? [],
+                totalCount: body?.total_count ?? 0,
+                loading: false,
+                error: null
+            });
+        } catch (error) {
+            this.setState({
+                userGroups: [],
+                totalCount: 0,
+                loading: false,
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : `Failed to load user groups`
+            });
+        }
+    };
+
+    handleTabChange = (value: string) => {
+        const next = value as ListUserGroupsFilter;
+        this.setState({ filter: next });
+        this.props.onFilterChange?.(next);
+        this.loadGroups(next);
+    };
+
+    renderVisibilityBadge = (visibility: GroupVisibility) => {
+        const { t } = this.context!;
+        const label = t.userGroupList.visibility[
+            visibility === GroupVisibility.Private
+                ? `private`
+                : visibility === GroupVisibility.ListedRestricted
+                  ? `listedRestricted`
+                  : `public`
+        ];
+        return (
+            <Badge variant={`outline`} className={`text-xs`}>
+                {label}
+            </Badge>
+        );
+    };
+
+    renderJoinPolicyBadge = (joinPolicy: GroupJoinPolicy) => {
+        const { t } = this.context!;
+        const label = t.userGroupList.joinPolicy[
+            joinPolicy === GroupJoinPolicy.InviteOnly
+                ? `inviteOnly`
+                : joinPolicy === GroupJoinPolicy.RequestToJoin
+                  ? `requestToJoin`
+                  : `openJoin`
+        ];
+        return (
+            <Badge variant={`secondary`} className={`text-xs`}>
+                {label}
+            </Badge>
+        );
+    };
+
+    renderGroupRow = (group: UserGroup) => {
+        const { t } = this.context!;
+        return (
+            <li
+                key={group.id}
+                className={`flex items-start gap-3 rounded-md border border-border bg-card p-3`}
+            >
+                <Users className={`mt-0.5 h-5 w-5 text-muted-foreground`} aria-hidden />
+                <div className={`flex flex-1 flex-col gap-1`}>
+                    <div className={`flex flex-wrap items-center gap-2`}>
+                        <span className={`font-medium`}>{group.name}</span>
+                        {this.renderVisibilityBadge(group.visibility)}
+                        {this.renderJoinPolicyBadge(group.join_policy)}
+                    </div>
+                    {group.description && (
+                        <p className={`text-muted-foreground text-sm`}>{group.description}</p>
+                    )}
+                    <span className={`text-muted-foreground text-xs`}>{group.id}</span>
+                </div>
+                {this.props.onSelect && (
+                    <Button
+                        size={`sm`}
+                        variant={`outline`}
+                        onClick={() => this.props.onSelect?.(group)}
+                    >
+                        {t.userGroupList.open}
+                    </Button>
+                )}
+            </li>
+        );
+    };
+
+    renderTabContent = () => {
+        const { userGroups, loading, error, totalCount } = this.state;
+        const { t } = this.context!;
+
+        if (loading) {
+            return (
+                <p className={`text-muted-foreground py-4 text-sm`}>
+                    {t.userGroupList.loading}
+                </p>
+            );
+        }
+        if (error) {
+            return <p className={`text-destructive py-4 text-sm`}>{error}</p>;
+        }
+        if (userGroups.length === 0) {
+            return (
+                <p className={`text-muted-foreground py-4 text-sm`}>
+                    {t.userGroupList.empty}
+                </p>
+            );
+        }
+        return (
+            <div className={`space-y-3`}>
+                <p className={`text-muted-foreground text-xs`}>
+                    {t.userGroupList.totalCount(totalCount)}
+                </p>
+                <ul className={`space-y-2`}>{userGroups.map(this.renderGroupRow)}</ul>
+            </div>
+        );
+    };
+
+    render = () => {
+        const { className, style } = this.props;
+        const { filter } = this.state;
+        const { t } = this.context!;
+
+        return (
+            <div className={className} style={style}>
+                <Tabs value={filter} onValueChange={this.handleTabChange}>
+                    <TabsList className={`flex-wrap`}>
+                        {USER_GROUP_LIST_FILTERS.map((value) => (
+                            <TabsTrigger key={value} value={value}>
+                                {t.userGroupList.filters[
+                                    value === ListUserGroupsFilter.Owned
+                                        ? `owned`
+                                        : value === ListUserGroupsFilter.Member
+                                          ? `member`
+                                          : value === ListUserGroupsFilter.Invited
+                                            ? `invited`
+                                            : value === ListUserGroupsFilter.Requested
+                                              ? `requested`
+                                              : value === ListUserGroupsFilter.ServerListed
+                                                ? `serverListed`
+                                                : `public`
+                                ]}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    {USER_GROUP_LIST_FILTERS.map((value) => (
+                        <TabsContent key={value} value={value}>
+                            {filter === value && this.renderTabContent()}
+                        </TabsContent>
+                    ))}
+                </Tabs>
+            </div>
+        );
+    };
+}
+
+export default withFilez(UserGroupListBase);
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupPendingDashboard/UserGroupPendingDashboard.test.tsx
+==========================================
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { MockFilezProvider, apiOk } from "../testUtils";
+import UserGroupPendingDashboard from "./UserGroupPendingDashboard";
+
+const inv = (userGroupId: string) => ({
+    user_id: `00000000-0000-0000-0000-000000000ddd`,
+    user_group_id: userGroupId,
+    invited_time: `2026-01-01T00:00:00Z`,
+    invited_by: `00000000-0000-0000-0000-000000000bbb`,
+    message: `Join the team`
+});
+
+describe(`UserGroupPendingDashboard`, () => {
+    it(`renders both Invitations and My requests tabs`, async () => {
+        const listMyInvitations = vi
+            .fn()
+            .mockResolvedValue(apiOk({ invitations: [] }));
+        const listMyJoinRequests = vi
+            .fn()
+            .mockResolvedValue(apiOk({ join_requests: [] }));
+        render(
+            <MockFilezProvider
+                overrides={{ api: { listMyInvitations, listMyJoinRequests } }}
+            >
+                <UserGroupPendingDashboard />
+            </MockFilezProvider>
+        );
+        await waitFor(() => {
+            expect(screen.getByRole(`tab`, { name: /Invitations/ })).toBeInTheDocument();
+            expect(screen.getByRole(`tab`, { name: /My requests/ })).toBeInTheDocument();
+        });
+    });
+
+    it(`calls acceptInvitation when the Accept button is clicked`, async () => {
+        const listMyInvitations = vi
+            .fn()
+            .mockResolvedValueOnce(
+                apiOk({ invitations: [inv(`00000000-0000-0000-0000-000000000aaa`)] })
+            )
+            .mockResolvedValue(apiOk({ invitations: [] }));
+        const listMyJoinRequests = vi
+            .fn()
+            .mockResolvedValue(apiOk({ join_requests: [] }));
+        const acceptInvitation = vi.fn().mockResolvedValue(apiOk({}));
+
+        render(
+            <MockFilezProvider
+                overrides={{
+                    api: { listMyInvitations, listMyJoinRequests, acceptInvitation }
+                }}
+            >
+                <UserGroupPendingDashboard />
+            </MockFilezProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(`Join the team`)).toBeInTheDocument();
+        });
+        fireEvent.click(screen.getByRole(`button`, { name: `Accept` }));
+        await waitFor(() => {
+            expect(acceptInvitation).toHaveBeenCalledWith(
+                `00000000-0000-0000-0000-000000000aaa`
+            );
+        });
+    });
+
+    it(`calls declineInvitation when the Decline button is clicked`, async () => {
+        const listMyInvitations = vi
+            .fn()
+            .mockResolvedValueOnce(
+                apiOk({ invitations: [inv(`00000000-0000-0000-0000-000000000ccc`)] })
+            )
+            .mockResolvedValue(apiOk({ invitations: [] }));
+        const listMyJoinRequests = vi
+            .fn()
+            .mockResolvedValue(apiOk({ join_requests: [] }));
+        const declineInvitation = vi.fn().mockResolvedValue(apiOk({}));
+
+        render(
+            <MockFilezProvider
+                overrides={{
+                    api: { listMyInvitations, listMyJoinRequests, declineInvitation }
+                }}
+            >
+                <UserGroupPendingDashboard />
+            </MockFilezProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(`Join the team`)).toBeInTheDocument();
+        });
+        fireEvent.click(screen.getByRole(`button`, { name: `Decline` }));
+        await waitFor(() => {
+            expect(declineInvitation).toHaveBeenCalledWith(
+                `00000000-0000-0000-0000-000000000ccc`
+            );
+        });
+    });
+});
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupPendingDashboard/UserGroupPendingDashboard.tsx
+==========================================
+import { Badge } from "@my-own-web-services/react-components/components/ui/badge";
+import { Button } from "@my-own-web-services/react-components/components/ui/button";
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger
+} from "@my-own-web-services/react-components/components/ui/tabs";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
+import {
+    UserUserGroupInvitation,
+    UserUserGroupJoinRequest
+} from "filez-client-typescript";
+import { Inbox, Send } from "lucide-react";
+import { PureComponent, type CSSProperties } from "react";
+
+interface UserGroupPendingDashboardProps {
+    readonly className?: string;
+    readonly style?: CSSProperties;
+    readonly onChanged?: () => void;
+    readonly filez: FilezContextType;
+}
+
+interface UserGroupPendingDashboardState {
+    readonly invitations: UserUserGroupInvitation[];
+    readonly joinRequests: UserUserGroupJoinRequest[];
+    readonly loading: boolean;
+    readonly error: string | null;
+    readonly busyUserGroupId: string | null;
+}
+
+class UserGroupPendingDashboardBase extends PureComponent<
+    UserGroupPendingDashboardProps,
+    UserGroupPendingDashboardState
+> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
+
+    state: UserGroupPendingDashboardState = {
+        invitations: [],
+        joinRequests: [],
+        loading: false,
+        error: null,
+        busyUserGroupId: null
+    };
+
+    componentDidMount = async () => {
+        await this.loadAll();
+    };
+
+    loadAll = async () => {
+        this.setState({ loading: true, error: null });
+        try {
+            const [invResponse, reqResponse] = await Promise.all([
+                this.props.filez.filezClient.api.listMyInvitations(),
+                this.props.filez.filezClient.api.listMyJoinRequests()
+            ]);
+            this.setState({
+                invitations: invResponse?.data?.data?.invitations ?? [],
+                joinRequests: reqResponse?.data?.data?.join_requests ?? [],
+                loading: false,
+                error: null
+            });
+        } catch (error) {
+            this.setState({
+                loading: false,
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : `Failed to load pending items`
+            });
+        }
+    };
+
+    handleAccept = async (userGroupId: string) => {
+        this.setState({ busyUserGroupId: userGroupId, error: null });
+        try {
+            await this.props.filez.filezClient.api.acceptInvitation(userGroupId);
+            this.props.onChanged?.();
+            await this.loadAll();
+        } catch (error) {
+            this.setState({
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : `Failed to accept invitation`
+            });
+        } finally {
+            this.setState({ busyUserGroupId: null });
+        }
+    };
+
+    handleDecline = async (userGroupId: string) => {
+        this.setState({ busyUserGroupId: userGroupId, error: null });
+        try {
+            await this.props.filez.filezClient.api.declineInvitation(userGroupId);
+            this.props.onChanged?.();
+            await this.loadAll();
+        } catch (error) {
+            this.setState({
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : `Failed to decline invitation`
+            });
+        } finally {
+            this.setState({ busyUserGroupId: null });
+        }
+    };
+
+    renderInvitation = (invitation: UserUserGroupInvitation) => {
+        const { t } = this.context!;
+        const { busyUserGroupId } = this.state;
+        const busy = busyUserGroupId === invitation.user_group_id;
+        return (
+            <li
+                key={invitation.user_group_id}
+                className={`flex items-start gap-3 rounded-md border border-border bg-card p-3`}
+            >
+                <Inbox className={`mt-0.5 h-4 w-4 text-muted-foreground`} aria-hidden />
+                <div className={`flex flex-1 flex-col gap-1`}>
+                    <span className={`font-medium`}>{invitation.user_group_id}</span>
+                    {invitation.message && (
+                        <p className={`text-muted-foreground text-sm`}>
+                            {invitation.message}
+                        </p>
+                    )}
+                    <span className={`text-muted-foreground text-xs`}>
+                        {t.userGroupPendingDashboard.invitedOn(
+                            new Date(invitation.invited_time).toLocaleString()
+                        )}
+                    </span>
+                </div>
+                <div className={`flex gap-2`}>
+                    <Button
+                        size={`sm`}
+                        variant={`outline`}
+                        disabled={busy}
+                        onClick={() => this.handleDecline(invitation.user_group_id)}
+                    >
+                        {t.userGroupPendingDashboard.decline}
+                    </Button>
+                    <Button
+                        size={`sm`}
+                        disabled={busy}
+                        onClick={() => this.handleAccept(invitation.user_group_id)}
+                    >
+                        {busy
+                            ? t.userGroupPendingDashboard.working
+                            : t.userGroupPendingDashboard.accept}
+                    </Button>
+                </div>
+            </li>
+        );
+    };
+
+    renderJoinRequest = (request: UserUserGroupJoinRequest) => {
+        const { t } = this.context!;
+        return (
+            <li
+                key={request.user_group_id}
+                className={`flex items-start gap-3 rounded-md border border-border bg-card p-3`}
+            >
+                <Send className={`mt-0.5 h-4 w-4 text-muted-foreground`} aria-hidden />
+                <div className={`flex flex-1 flex-col gap-1`}>
+                    <span className={`font-medium`}>{request.user_group_id}</span>
+                    {request.message && (
+                        <p className={`text-muted-foreground text-sm`}>
+                            {request.message}
+                        </p>
+                    )}
+                    <span className={`text-muted-foreground text-xs`}>
+                        {t.userGroupPendingDashboard.requestedOn(
+                            new Date(request.requested_time).toLocaleString()
+                        )}
+                    </span>
+                </div>
+            </li>
+        );
+    };
+
+    render = () => {
+        const { className, style } = this.props;
+        const { invitations, joinRequests, loading, error } = this.state;
+        const { t } = this.context!;
+
+        return (
+            <div className={className} style={style}>
+                {error && <p className={`text-destructive pb-2 text-sm`}>{error}</p>}
+                <Tabs defaultValue={`invitations`}>
+                    <TabsList>
+                        <TabsTrigger value={`invitations`}>
+                            {t.userGroupPendingDashboard.invitations}
+                            <Badge variant={`secondary`} className={`ml-2`}>
+                                {invitations.length}
+                            </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value={`requests`}>
+                            {t.userGroupPendingDashboard.requests}
+                            <Badge variant={`secondary`} className={`ml-2`}>
+                                {joinRequests.length}
+                            </Badge>
+                        </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value={`invitations`}>
+                        {loading ? (
+                            <p className={`text-muted-foreground py-4 text-sm`}>
+                                {t.userGroupPendingDashboard.loading}
+                            </p>
+                        ) : invitations.length === 0 ? (
+                            <p className={`text-muted-foreground py-4 text-sm`}>
+                                {t.userGroupPendingDashboard.noInvitations}
+                            </p>
+                        ) : (
+                            <ul className={`space-y-2`}>
+                                {invitations.map(this.renderInvitation)}
+                            </ul>
+                        )}
+                    </TabsContent>
+                    <TabsContent value={`requests`}>
+                        {loading ? (
+                            <p className={`text-muted-foreground py-4 text-sm`}>
+                                {t.userGroupPendingDashboard.loading}
+                            </p>
+                        ) : joinRequests.length === 0 ? (
+                            <p className={`text-muted-foreground py-4 text-sm`}>
+                                {t.userGroupPendingDashboard.noRequests}
+                            </p>
+                        ) : (
+                            <ul className={`space-y-2`}>
+                                {joinRequests.map(this.renderJoinRequest)}
+                            </ul>
+                        )}
+                    </TabsContent>
+                </Tabs>
+            </div>
+        );
+    };
+}
+
+export default withFilez(UserGroupPendingDashboardBase);
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupPicker/UserGroupPicker.test.tsx
+==========================================
+import { render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { MockFilezProvider, buildUserGroup } from "../testUtils";
+import UserGroupPicker from "./UserGroupPicker";
+
+describe(`UserGroupPicker`, () => {
+    it(`shows the placeholder copy when no value is selected`, async () => {
+        const getUserGroups = vi.fn().mockResolvedValue([]);
+        render(
+            <MockFilezProvider>
+                <UserGroupPicker getUserGroups={getUserGroups} />
+            </MockFilezProvider>
+        );
+        await waitFor(() => {
+            expect(screen.getByText(`Select user group`)).toBeInTheDocument();
+        });
+    });
+
+    it(`auto-selects the only group when there is exactly one option`, async () => {
+        const onValueChange = vi.fn();
+        const single = buildUserGroup({ name: `Only one` });
+        const getUserGroups = vi.fn().mockResolvedValue([single]);
+
+        render(
+            <MockFilezProvider>
+                <UserGroupPicker
+                    getUserGroups={getUserGroups}
+                    onValueChange={onValueChange}
+                />
+            </MockFilezProvider>
+        );
+
+        await waitFor(() => {
+            expect(onValueChange).toHaveBeenCalledWith(single);
+        });
+    });
+
+    it(`renders the standalone list when used inside a modal`, async () => {
+        const getUserGroups = vi
+            .fn()
+            .mockResolvedValue([buildUserGroup({ name: `Alpha` })]);
+
+        render(
+            <MockFilezProvider>
+                <UserGroupPicker standalone getUserGroups={getUserGroups} />
+            </MockFilezProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(`Alpha`)).toBeInTheDocument();
+        });
+    });
+});
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupPicker/UserGroupPicker.tsx
+==========================================
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList
+} from "@my-own-web-services/react-components/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger
+} from "@my-own-web-services/react-components/components/ui/popover";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
+import { cn } from "@/lib/utils";
+import {
+    ListUserGroupsFilter,
+    ListUserGroupsSortBy,
+    SortDirection,
+    UserGroup
+} from "filez-client-typescript";
+import { Check, ChevronsUpDown, Users } from "lucide-react";
+import { PureComponent, type CSSProperties, type ReactNode } from "react";
+
+export const USER_GROUP_PICKER_DEFAULT_FILTER: ListUserGroupsFilter =
+    ListUserGroupsFilter.AccessGranted;
+export const USER_GROUP_PICKER_PAGE_SIZE = 100;
+
+interface UserGroupPickerProps {
+    readonly className?: string;
+    readonly style?: CSSProperties;
+    readonly value?: UserGroup;
+    readonly onValueChange?: (value?: UserGroup) => void;
+    readonly getUserGroups?: () => Promise<UserGroup[] | undefined>;
+    readonly filter?: ListUserGroupsFilter;
+    readonly disabled?: boolean;
+    readonly placeholder?: string;
+    readonly triggerComponent?: ReactNode;
+    readonly standalone?: boolean;
+    readonly autofocus?: boolean;
+    readonly filez: FilezContextType;
+}
+
+interface UserGroupPickerState {
+    readonly open: boolean;
+    readonly userGroups: UserGroup[];
+    readonly loading: boolean;
+    readonly error: string | null;
+}
+
+class UserGroupPickerBase extends PureComponent<UserGroupPickerProps, UserGroupPickerState> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
+
+    constructor(props: UserGroupPickerProps) {
+        super(props);
+        this.state = {
+            open: false,
+            userGroups: [],
+            loading: false,
+            error: null
+        };
+    }
+
+    componentDidMount = async () => {
+        await this.loadGroups();
+    };
+
+    componentDidUpdate = async (prevProps: UserGroupPickerProps) => {
+        if (
+            this.props.getUserGroups !== prevProps.getUserGroups ||
+            this.props.filter !== prevProps.filter
+        ) {
+            await this.loadGroups();
+        }
+    };
+
+    loadGroups = async () => {
+        this.setState({ loading: true, error: null });
+        try {
+            let groups: UserGroup[] | undefined;
+
+            if (this.props.getUserGroups) {
+                groups = await this.props.getUserGroups();
+            } else {
+                const res = await this.props.filez.filezClient.api.listUserGroups({
+                    filter: this.props.filter ?? USER_GROUP_PICKER_DEFAULT_FILTER,
+                    from_index: 0,
+                    limit: USER_GROUP_PICKER_PAGE_SIZE,
+                    sort_by: ListUserGroupsSortBy.Name,
+                    sort_order: SortDirection.Ascending
+                });
+                groups = res?.data?.data?.user_groups;
+            }
+
+            const userGroups = groups || [];
+
+            this.setState({
+                userGroups,
+                loading: false,
+                error: null
+            });
+
+            if (userGroups.length === 1 && !this.props.value) {
+                this.props.onValueChange?.(userGroups[0]);
+            }
+        } catch (error) {
+            this.setState({
+                userGroups: [],
+                loading: false,
+                error:
+                    error instanceof Error ? error.message : `Failed to load user groups`
+            });
+        }
+    };
+
+    handleOpenChange = (open: boolean) => {
+        this.setState({ open });
+        if (open && this.state.userGroups.length === 0) {
+            this.loadGroups();
+        }
+        if (open && this.state.userGroups.length === 1 && !this.props.value) {
+            this.props.onValueChange?.(this.state.userGroups[0]);
+            this.setState({ open: false });
+        }
+    };
+
+    handleSelect = (userGroup: UserGroup) => {
+        this.setState({ open: false });
+        this.props.onValueChange?.(userGroup);
+    };
+
+    filterUserGroups = (value: string, search: string) => {
+        const userGroup = this.state.userGroups.find((group) => group.id === value);
+        if (!userGroup) return 0;
+        const searchLower = search.toLowerCase();
+        const nameMatch = userGroup.name.toLowerCase().includes(searchLower);
+        const idMatch = userGroup.id.toLowerCase().includes(searchLower);
+        return nameMatch || idMatch ? 1 : 0;
+    };
+
+    renderContent = () => {
+        const { value, placeholder, autofocus = false } = this.props;
+        const { userGroups, loading, error } = this.state;
+        const { t } = this.context!;
+
+        const displayPlaceholder = placeholder || t.userGroupPicker.selectUserGroup;
+
+        if (loading) {
+            return (
+                <div className={`py-6 text-center text-sm`}>
+                    {t.userGroupPicker.loading}
+                </div>
+            );
+        }
+        if (error) {
+            return (
+                <div className={`text-destructive py-6 text-center text-sm`}>{error}</div>
+            );
+        }
+
+        return (
+            <Command filter={this.filterUserGroups}>
+                <CommandInput placeholder={displayPlaceholder} autoFocus={autofocus} />
+                <CommandList>
+                    <CommandEmpty className={`py-6 text-center text-sm select-none`}>
+                        {t.userGroupPicker.noUserGroupFound}
+                    </CommandEmpty>
+                    <CommandGroup>
+                        {userGroups.map((userGroup) => (
+                            <CommandItem
+                                key={userGroup.id}
+                                value={userGroup.id}
+                                className={`cursor-pointer`}
+                                onSelect={() => this.handleSelect(userGroup)}
+                            >
+                                <div className={`flex items-center gap-2`}>
+                                    <Users className={`h-4 w-4`} />
+                                    <div className={`flex flex-col`}>
+                                        <span className={`font-medium`}>
+                                            {userGroup.name}
+                                        </span>
+                                        <span className={`text-muted-foreground text-xs`}>
+                                            {userGroup.id}
+                                        </span>
+                                    </div>
+                                </div>
+                                <Check
+                                    className={cn(
+                                        `ml-auto h-4 w-4`,
+                                        value?.id === userGroup.id
+                                            ? `opacity-100`
+                                            : `opacity-0`
+                                    )}
+                                />
+                            </CommandItem>
+                        ))}
+                    </CommandGroup>
+                </CommandList>
+            </Command>
+        );
+    };
+
+    render = () => {
+        const {
+            className,
+            style,
+            value,
+            placeholder,
+            triggerComponent,
+            disabled = false,
+            standalone = false
+        } = this.props;
+        const { open } = this.state;
+        const { t } = this.context!;
+
+        const displayPlaceholder = placeholder || t.userGroupPicker.selectUserGroup;
+
+        if (standalone) {
+            return (
+                <div className={cn(className, `w-full`)} style={style}>
+                    {this.renderContent()}
+                </div>
+            );
+        }
+
+        return (
+            <Popover modal open={open} onOpenChange={this.handleOpenChange}>
+                <PopoverTrigger asChild>
+                    <div
+                        className={cn(
+                            className,
+                            `flex w-full cursor-pointer items-center justify-between rounded-md border px-3 py-2`,
+                            disabled && `pointer-events-none cursor-not-allowed opacity-50`
+                        )}
+                        style={style}
+                        title={displayPlaceholder}
+                    >
+                        {triggerComponent || (
+                            <>
+                                <div className={`flex items-center gap-2`}>
+                                    <Users className={`h-4 w-4`} />
+                                    {value ? (
+                                        <div className={`flex flex-col`}>
+                                            <span className={`font-medium`}>
+                                                {value.name}
+                                            </span>
+                                            <span className={`text-muted-foreground text-xs`}>
+                                                {value.id}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <span className={`text-muted-foreground`}>
+                                            {displayPlaceholder}
+                                        </span>
+                                    )}
+                                </div>
+                                <ChevronsUpDown className={`ml-2 h-4 w-4 opacity-50`} />
+                            </>
+                        )}
+                    </div>
+                </PopoverTrigger>
+                <PopoverContent className={`w-[300px] p-0`}>
+                    {this.renderContent()}
+                </PopoverContent>
+            </Popover>
+        );
+    };
+}
+
+export default withFilez(UserGroupPickerBase);
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupSettings/UserGroupSettings.test.tsx
+==========================================
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { GroupJoinPolicy, GroupVisibility } from "filez-client-typescript";
+import {
+    MockFilezProvider,
+    apiOk,
+    buildUserGroup
+} from "../testUtils";
+import UserGroupSettings from "./UserGroupSettings";
+
+describe(`UserGroupSettings`, () => {
+    it(`pre-fills the form with the supplied user group`, () => {
+        const group = buildUserGroup({
+            name: `Engineering`,
+            description: `The eng team`,
+            visibility: GroupVisibility.Public,
+            join_policy: GroupJoinPolicy.OpenJoin
+        });
+        render(
+            <MockFilezProvider>
+                <UserGroupSettings userGroup={group} />
+            </MockFilezProvider>
+        );
+        expect(screen.getByLabelText(`Name`)).toHaveValue(`Engineering`);
+        expect(screen.getByLabelText(`Description`)).toHaveValue(`The eng team`);
+    });
+
+    it(`calls onCancel without an update when nothing changed`, async () => {
+        const updateUserGroup = vi.fn();
+        const onCancel = vi.fn();
+        render(
+            <MockFilezProvider overrides={{ api: { updateUserGroup } }}>
+                <UserGroupSettings userGroup={buildUserGroup()} onCancel={onCancel} />
+            </MockFilezProvider>
+        );
+        fireEvent.click(screen.getByRole(`button`, { name: /save/i }));
+        await waitFor(() => {
+            expect(onCancel).toHaveBeenCalledTimes(1);
+            expect(updateUserGroup).not.toHaveBeenCalled();
+        });
+    });
+
+    it(`sends only the changed fields in the changeset`, async () => {
+        const updateUserGroup = vi.fn().mockResolvedValue(
+            apiOk({
+                outcome: {
+                    auto_promoted_requests: 0,
+                    updated_user_group: buildUserGroup({ name: `Renamed` })
+                }
+            })
+        );
+        render(
+            <MockFilezProvider overrides={{ api: { updateUserGroup } }}>
+                <UserGroupSettings userGroup={buildUserGroup({ name: `Engineering` })} />
+            </MockFilezProvider>
+        );
+
+        fireEvent.change(screen.getByLabelText(`Name`), { target: { value: `Renamed` } });
+        fireEvent.click(screen.getByRole(`button`, { name: /save/i }));
+
+        await waitFor(() => {
+            expect(updateUserGroup).toHaveBeenCalledTimes(1);
+        });
+        const payload = updateUserGroup.mock.calls[0][0];
+        expect(payload.changeset).toEqual({ new_user_group_name: `Renamed` });
+    });
+
+    it(`clears the description with explicit null when emptied`, async () => {
+        const updateUserGroup = vi.fn().mockResolvedValue(
+            apiOk({
+                outcome: {
+                    auto_promoted_requests: 0,
+                    updated_user_group: buildUserGroup({ description: null })
+                }
+            })
+        );
+        render(
+            <MockFilezProvider overrides={{ api: { updateUserGroup } }}>
+                <UserGroupSettings
+                    userGroup={buildUserGroup({ description: `the team` })}
+                />
+            </MockFilezProvider>
+        );
+
+        fireEvent.change(screen.getByLabelText(`Description`), { target: { value: `` } });
+        fireEvent.click(screen.getByRole(`button`, { name: /save/i }));
+
+        await waitFor(() => {
+            expect(updateUserGroup).toHaveBeenCalledTimes(1);
+        });
+        expect(updateUserGroup.mock.calls[0][0].changeset).toEqual({
+            new_description: null
+        });
+    });
+});
+==========================================
+FILE: apis/cloud/filez/components/react/lib/components/userGroups/userGroupSettings/UserGroupSettings.tsx
+==========================================
+import { Button } from "@my-own-web-services/react-components/components/ui/button";
+import { Input } from "@my-own-web-services/react-components/components/ui/input";
+import { Label } from "@my-own-web-services/react-components/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@my-own-web-services/react-components/components/ui/select";
+import { Textarea } from "@my-own-web-services/react-components/components/ui/textarea";
+import { MowsContext } from "@my-own-web-services/react-components/lib/mowsContext/MowsContext";
+import { type FilezContextType, withFilez } from "@/lib/filezContext/FilezContext";
+import {
+    GroupJoinPolicy,
+    GroupVisibility,
+    UpdateUserGroupChangeset,
+    UserGroup
+} from "filez-client-typescript";
+import { PureComponent, type CSSProperties } from "react";
+
+const NAME_MAX_LENGTH = 256;
+const DESCRIPTION_MAX_LENGTH = 1024;
+
+interface UserGroupSettingsProps {
+    readonly className?: string;
+    readonly style?: CSSProperties;
+    readonly userGroup: UserGroup;
+    readonly onUserGroupUpdated?: (userGroup: UserGroup, autoPromotedRequests: number) => void;
+    readonly onCancel?: () => void;
+    readonly filez: FilezContextType;
+}
+
+interface UserGroupSettingsState {
+    readonly name: string;
+    readonly description: string;
+    readonly visibility: GroupVisibility;
+    readonly joinPolicy: GroupJoinPolicy;
+    readonly isSaving: boolean;
+    readonly error: string | null;
+}
+
+const stateFromUserGroup = (userGroup: UserGroup) => ({
+    name: userGroup.name,
+    description: userGroup.description ?? ``,
+    visibility: userGroup.visibility,
+    joinPolicy: userGroup.join_policy
+});
+
+class UserGroupSettingsBase extends PureComponent<
+    UserGroupSettingsProps,
+    UserGroupSettingsState
+> {
+    static contextType = MowsContext;
+    declare context: React.ContextType<typeof MowsContext>;
+
+    constructor(props: UserGroupSettingsProps) {
+        super(props);
+        this.state = {
+            ...stateFromUserGroup(props.userGroup),
+            isSaving: false,
+            error: null
+        };
+    }
+
+    componentDidUpdate = (prevProps: UserGroupSettingsProps) => {
+        if (prevProps.userGroup !== this.props.userGroup) {
+            this.setState({
+                ...stateFromUserGroup(this.props.userGroup),
+                isSaving: false,
+                error: null
+            });
+        }
+    };
+
+    handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.setState({ name: e.target.value, error: null });
+    };
+
+    handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        this.setState({ description: e.target.value, error: null });
+    };
+
+    handleVisibilityChange = (value: string) => {
+        this.setState({ visibility: value as GroupVisibility, error: null });
+    };
+
+    handleJoinPolicyChange = (value: string) => {
+        this.setState({ joinPolicy: value as GroupJoinPolicy, error: null });
+    };
+
+    buildChangeset = (): UpdateUserGroupChangeset | null => {
+        const { userGroup } = this.props;
+        const { name, description, visibility, joinPolicy } = this.state;
+        const changeset: UpdateUserGroupChangeset = {};
+        const trimmedName = name.trim();
+        const normalisedDescription = description.trim();
+
+        if (trimmedName !== userGroup.name) {
+            changeset.new_user_group_name = trimmedName;
+        }
+        // Serde double-Option: `null` clears the field, `undefined`
+        // (omitted) leaves it alone. We have nothing to clear vs leave
+        // distinction here so empty-string maps to "clear".
+        const currentDescription = userGroup.description ?? ``;
+        if (normalisedDescription !== currentDescription) {
+            changeset.new_description =
+                normalisedDescription.length === 0 ? null : normalisedDescription;
+        }
+        if (visibility !== userGroup.visibility) {
+            changeset.new_visibility = visibility;
+        }
+        if (joinPolicy !== userGroup.join_policy) {
+            changeset.new_join_policy = joinPolicy;
+        }
+
+        return Object.keys(changeset).length === 0 ? null : changeset;
+    };
+
+    handleSave = async () => {
+        const { t } = this.context!;
+        const { name, description } = this.state;
+
+        if (!name.trim()) {
+            this.setState({ error: t.userGroupSettings.nameRequired });
+            return;
+        }
+        if (name.length > NAME_MAX_LENGTH) {
+            this.setState({ error: t.userGroupSettings.nameTooLong });
+            return;
+        }
+        if (description.length > DESCRIPTION_MAX_LENGTH) {
+            this.setState({ error: t.userGroupSettings.descriptionTooLong });
+            return;
+        }
+
+        const changeset = this.buildChangeset();
+        if (!changeset) {
+            this.props.onCancel?.();
+            return;
+        }
+
+        this.setState({ isSaving: true, error: null });
+
+        try {
+            const response = await this.props.filez.filezClient.api.updateUserGroup({
+                user_group_id: this.props.userGroup.id,
+                changeset
+            });
+
+            const outcome = response?.data?.data?.outcome;
+            if (outcome?.updated_user_group) {
+                this.props.onUserGroupUpdated?.(
+                    outcome.updated_user_group,
+                    outcome.auto_promoted_requests
+                );
+                this.setState({ isSaving: false });
+            } else {
+                this.setState({
+                    error: t.userGroupSettings.updateFailed,
+                    isSaving: false
+                });
+            }
+        } catch (error) {
+            this.setState({
+                error:
+                    error instanceof Error ? error.message : t.userGroupSettings.updateFailed,
+                isSaving: false
+            });
+        }
+    };
+
+    render = () => {
+        const { className, style } = this.props;
+        const { name, description, visibility, joinPolicy, isSaving, error } = this.state;
+        const { t } = this.context!;
+
+        return (
+            <div className={className} style={style}>
+                <div className={`space-y-4 py-4`}>
+                    <div className={`space-y-2`}>
+                        <Label htmlFor={`user-group-name`} className={`text-sm font-medium`}>
+                            {t.userGroupSettings.nameLabel}
+                        </Label>
+                        <Input
+                            id={`user-group-name`}
+                            value={name}
+                            onChange={this.handleNameChange}
+                            disabled={isSaving}
+                            maxLength={NAME_MAX_LENGTH}
+                        />
+                    </div>
+                    <div className={`space-y-2`}>
+                        <Label
+                            htmlFor={`user-group-description`}
+                            className={`text-sm font-medium`}
+                        >
+                            {t.userGroupSettings.descriptionLabel}
+                        </Label>
+                        <Textarea
+                            id={`user-group-description`}
+                            value={description}
+                            onChange={this.handleDescriptionChange}
+                            placeholder={t.userGroupSettings.descriptionPlaceholder}
+                            disabled={isSaving}
+                            maxLength={DESCRIPTION_MAX_LENGTH}
+                            rows={3}
+                        />
+                    </div>
+                    <div className={`grid grid-cols-1 gap-4 md:grid-cols-2`}>
+                        <div className={`space-y-2`}>
+                            <Label
+                                htmlFor={`user-group-visibility`}
+                                className={`text-sm font-medium`}
+                            >
+                                {t.userGroupSettings.visibilityLabel}
+                            </Label>
+                            <Select
+                                value={visibility}
+                                onValueChange={this.handleVisibilityChange}
+                                disabled={isSaving}
+                            >
+                                <SelectTrigger id={`user-group-visibility`}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={GroupVisibility.Private}>
+                                        {t.userGroupSettings.visibility.private}
+                                    </SelectItem>
+                                    <SelectItem value={GroupVisibility.ListedRestricted}>
+                                        {t.userGroupSettings.visibility.listedRestricted}
+                                    </SelectItem>
+                                    <SelectItem value={GroupVisibility.Public}>
+                                        {t.userGroupSettings.visibility.public}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className={`space-y-2`}>
+                            <Label
+                                htmlFor={`user-group-join-policy`}
+                                className={`text-sm font-medium`}
+                            >
+                                {t.userGroupSettings.joinPolicyLabel}
+                            </Label>
+                            <Select
+                                value={joinPolicy}
+                                onValueChange={this.handleJoinPolicyChange}
+                                disabled={isSaving}
+                            >
+                                <SelectTrigger id={`user-group-join-policy`}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={GroupJoinPolicy.InviteOnly}>
+                                        {t.userGroupSettings.joinPolicy.inviteOnly}
+                                    </SelectItem>
+                                    <SelectItem value={GroupJoinPolicy.RequestToJoin}>
+                                        {t.userGroupSettings.joinPolicy.requestToJoin}
+                                    </SelectItem>
+                                    <SelectItem value={GroupJoinPolicy.OpenJoin}>
+                                        {t.userGroupSettings.joinPolicy.openJoin}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    {error && <p className={`text-sm text-destructive`}>{error}</p>}
+                </div>
+                <div className={`flex justify-end gap-2`}>
+                    <Button
+                        variant={`outline`}
+                        onClick={this.props.onCancel}
+                        disabled={isSaving}
+                    >
+                        {t.userGroupSettings.cancel}
+                    </Button>
+                    <Button onClick={this.handleSave} disabled={isSaving || !name.trim()}>
+                        {isSaving ? t.userGroupSettings.saving : t.userGroupSettings.save}
+                    </Button>
+                </div>
+            </div>
+        );
+    };
+}
+
+export default withFilez(UserGroupSettingsBase);

@@ -2678,13 +2678,12 @@ impl ApiClient {
         Ok(response)
     }
 
-    /// Request to join a user group; direct-joins OpenJoin groups.
+    /// Owner-facing: list pending join requests for a group.
     #[tracing::instrument(level = "trace")]
-    pub async fn request_to_join_user_group(
+    pub async fn list_group_join_requests(
         &self,
         user_group_id: UserGroupId,
-        request_body: RequestJoinUserGroupRequestBody,
-    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    ) -> Result<ApiResponseListJoinRequestsResponseBody, ApiClientError> {
         let full_url = format!(
             "{}/api/user_groups/{user_group_id}/join_requests",
             self.base_url
@@ -2693,9 +2692,8 @@ impl ApiClient {
 
         let response = self
             .client
-            .post(full_url)
+            .get(full_url)
             .headers(self.add_auth_headers()?)
-            .json(&request_body)
             .send()
             .await?;
 
@@ -2722,12 +2720,13 @@ impl ApiClient {
         Ok(response)
     }
 
-    /// Owner-facing: list pending join requests for a group.
+    /// Request to join a user group; direct-joins OpenJoin groups.
     #[tracing::instrument(level = "trace")]
-    pub async fn list_group_join_requests(
+    pub async fn request_to_join_user_group(
         &self,
         user_group_id: UserGroupId,
-    ) -> Result<ApiResponseListJoinRequestsResponseBody, ApiClientError> {
+        request_body: RequestJoinUserGroupRequestBody,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         let full_url = format!(
             "{}/api/user_groups/{user_group_id}/join_requests",
             self.base_url
@@ -2736,8 +2735,9 @@ impl ApiClient {
 
         let response = self
             .client
-            .get(full_url)
+            .post(full_url)
             .headers(self.add_auth_headers()?)
+            .json(&request_body)
             .send()
             .await?;
 
