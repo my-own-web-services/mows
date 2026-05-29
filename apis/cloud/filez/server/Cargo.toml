@@ -29,6 +29,10 @@ path = "src/build/gen_migrations.rs"
 name = "openapi_dump"
 path = "src/build/openapi_dump.rs"
 
+[[bin]]
+name = "run_migrations"
+path = "src/build/run_migrations.rs"
+
 
 [lib]
 name = "filez_server_lib"

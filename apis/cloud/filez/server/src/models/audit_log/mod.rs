@@ -104,6 +104,28 @@ pub enum AuditEvent {
     UserGroupMaterializeFlagsRecomputed {
         flags_flipped: usize,
     },
+    /// Phase 5 P5-4 — `rebuild_user_group_cover(group_id)` ran.
+    /// Emitted by the per-cover bulk-rebuild API (operator action
+    /// or threshold-promotion path) so the targeted rebuild leaves
+    /// the same paper trail the full reconciler does.
+    /// `rows_processed` counts the (group_id, resource) pairs
+    /// recomputed.
+    UserGroupCoverRebuilt {
+        rows_processed: usize,
+    },
+    /// Phase 5 P5-4 — `rebuild_public_cover()` ran (operator
+    /// action). `rows_processed` counts the (Public, resource)
+    /// pairs recomputed across the whole `public_resources` table.
+    PublicCoverRebuilt {
+        rows_processed: usize,
+    },
+    /// Phase 5 P5-4 — `rebuild_server_member_cover()` ran (operator
+    /// action). `rows_processed` counts the (ServerMember,
+    /// resource) pairs recomputed across the whole
+    /// `server_member_resources` table.
+    ServerMemberCoverRebuilt {
+        rows_processed: usize,
+    },
 }
 
 impl AuditEvent {
@@ -118,6 +140,11 @@ impl AuditEvent {
             AuditEvent::CoverTablesReconciled { .. } => "cover_tables_reconciled",
             AuditEvent::UserGroupMaterializeFlagsRecomputed { .. } => {
                 "user_group_materialize_flags_recomputed"
+            }
+            AuditEvent::UserGroupCoverRebuilt { .. } => "user_group_cover_rebuilt",
+            AuditEvent::PublicCoverRebuilt { .. } => "public_cover_rebuilt",
+            AuditEvent::ServerMemberCoverRebuilt { .. } => {
+                "server_member_cover_rebuilt"
             }
         }
     }
@@ -240,6 +267,30 @@ mod event_wire_stability_guard {
     }
 
     #[test]
+    fn user_group_cover_rebuilt_event_type_is_stable() {
+        let e = AuditEvent::UserGroupCoverRebuilt { rows_processed: 0 };
+        assert_eq!(e.event_type(), "user_group_cover_rebuilt");
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["event_type"], "user_group_cover_rebuilt");
+    }
+
+    #[test]
+    fn public_cover_rebuilt_event_type_is_stable() {
+        let e = AuditEvent::PublicCoverRebuilt { rows_processed: 0 };
+        assert_eq!(e.event_type(), "public_cover_rebuilt");
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["event_type"], "public_cover_rebuilt");
+    }
+
+    #[test]
+    fn server_member_cover_rebuilt_event_type_is_stable() {
+        let e = AuditEvent::ServerMemberCoverRebuilt { rows_processed: 0 };
+        assert_eq!(e.event_type(), "server_member_cover_rebuilt");
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["event_type"], "server_member_cover_rebuilt");
+    }
+
+    #[test]
     fn event_type_method_matches_serde_tag() {
         // The `event_type()` helper exists so handlers can read the
         // discriminator without round-tripping through serde. It
@@ -258,6 +309,9 @@ mod event_wire_stability_guard {
             AuditEvent::UserGroupMaterializeFlagsRecomputed {
                 flags_flipped: 1,
             },
+            AuditEvent::UserGroupCoverRebuilt { rows_processed: 1 },
+            AuditEvent::PublicCoverRebuilt { rows_processed: 1 },
+            AuditEvent::ServerMemberCoverRebuilt { rows_processed: 1 },
         ] {
             let serialised = serde_json::to_value(&event).unwrap();
             assert_eq!(
@@ -311,6 +365,33 @@ mod metadata_field_stability_guard {
         };
         let json = serde_json::to_value(&e).unwrap();
         assert_eq!(json["flags_flipped"], 42);
+    }
+
+    #[test]
+    fn user_group_cover_rebuilt_metadata_shape() {
+        let e = AuditEvent::UserGroupCoverRebuilt {
+            rows_processed: 5_000,
+        };
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["rows_processed"], 5_000);
+    }
+
+    #[test]
+    fn public_cover_rebuilt_metadata_shape() {
+        let e = AuditEvent::PublicCoverRebuilt {
+            rows_processed: 50_000,
+        };
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["rows_processed"], 50_000);
+    }
+
+    #[test]
+    fn server_member_cover_rebuilt_metadata_shape() {
+        let e = AuditEvent::ServerMemberCoverRebuilt {
+            rows_processed: 1_234,
+        };
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(json["rows_processed"], 1_234);
     }
 }
 

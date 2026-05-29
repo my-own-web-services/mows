@@ -129,11 +129,26 @@ unstarted. Cross-reference per-phase multi-reviews in
 
 - ✅ Background reconciler with `cover_drift_rows` metric (commit
      `9fd7b04c`)
-- ❌ Per-cover bulk-rebuild API for threshold-crossing groups
+- ✅ Per-cover bulk-rebuild API for threshold-crossing groups —
+     migration 00018 ships `rebuild_user_group_cover(group_id)`,
+     `rebuild_public_cover()`, `rebuild_server_member_cover()`;
+     `recompute_user_group_materialize_flags()` now calls the
+     user-group rebuild synchronously for every group it flips
+     false → true. Rust wrappers in `models/cover_tables/` write
+     one `audit_log` row per rebuild (`UserGroupCoverRebuilt` /
+     `PublicCoverRebuilt` / `ServerMemberCoverRebuilt`).
 - ✅ Adaptive "large group" threshold using member × recent-list-count
      score (commit `3b11cf7e`)
-- ❌ Reconciler test (random-walk churn, then compare to recomputed
-     reference)
+- ✅ Reconciler test (random-walk churn vs. recomputed reference) —
+     `tests/sql/cover_consistency_random_walk.sql` drives 200 random
+     policy/membership CRUD ops + two bulk-loader-bypass TRUNCATEs,
+     then asserts trigger-maintained cover state matches a fully
+     recomputed-from-scratch snapshot (LISTING.md §16). Second SQL
+     test (`bulk_rebuild_per_cover.sql`) pins the P5-4 functions +
+     the threshold-flip rebuild path. Both run via
+     `tests/sql_tests.rs` against the dev DB; embedded-migrations
+     runner (`bin/run_migrations`) applies migrations without
+     letting diesel-CLI regenerate `schema.rs`.
 
 ## Phase 6 — Second consumer
 

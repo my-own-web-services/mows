@@ -24,8 +24,11 @@ use crate::{
     models::{
         access_policies::AccessPolicyResourceType,
         audit_log::{AuditEvent, AuditLog},
+        user_groups::UserGroupId,
+        users::FilezUserId,
     },
 };
+use diesel::sql_types::Uuid as SqlUuid;
 
 #[derive(QueryableByName, Debug)]
 struct ReconcileRow {
@@ -109,4 +112,121 @@ pub async fn recompute_user_group_materialize_flags(
     .await?;
 
     Ok(flags_flipped)
+}
+
+/// Phase 5 P5-4 — targeted bulk-rebuild of ONE user-group's cover
+/// rows. Drains live `DirectPolicy` reads for the group and
+/// re-derives every entry in `user_group_accessible_resources`
+/// from the current `access_policies` state. Returns the count of
+/// (group, resource) pairs processed.
+///
+/// Use cases:
+///   - the daily materialise-flag flip promoted this group from
+///     small to large (LISTING.md §6.2); the cover needs a backfill
+///     before the Phase-3 read path can switch over.
+///   - an operator observed drift on one group and wants a
+///     targeted rebuild without paying the full reconciler's
+///     O(distinct subject × resource) cost across the whole table.
+///
+/// `actor_id` is `Some(...)` when an operator triggered the
+/// rebuild, `None` when the daily threshold-flip job did. The
+/// audit row's `resource_id` points at the affected group.
+#[tracing::instrument(level = "trace", skip(database))]
+pub async fn rebuild_user_group_cover(
+    database: &Database,
+    user_group_id: &UserGroupId,
+    actor_id: Option<&FilezUserId>,
+) -> Result<usize, FilezError> {
+    #[derive(QueryableByName, Debug)]
+    struct RebuildRow {
+        #[diesel(sql_type = Integer)]
+        rebuild_user_group_cover: i32,
+    }
+
+    let mut connection = database.get_connection().await?;
+    let result: RebuildRow = diesel::sql_query("SELECT rebuild_user_group_cover($1)")
+        .bind::<SqlUuid, _>(user_group_id.0)
+        .get_result(&mut connection)
+        .await?;
+    let rows_processed = usize::try_from(result.rebuild_user_group_cover)
+        .map_err(FilezError::TryFromIntError)?;
+
+    AuditLog::insert(
+        database,
+        AuditEvent::UserGroupCoverRebuilt { rows_processed },
+        actor_id,
+        AccessPolicyResourceType::UserGroup,
+        Some(user_group_id.0),
+    )
+    .await?;
+
+    Ok(rows_processed)
+}
+
+/// Phase 5 P5-4 — targeted bulk-rebuild of the whole
+/// `public_resources` cover. Operator-only entry point; the daily
+/// reconciler already covers this surface as part of its sweep.
+/// Useful when an operator suspects drift on this cover and wants
+/// to fix it without waiting an hour.
+#[tracing::instrument(level = "trace", skip(database))]
+pub async fn rebuild_public_cover(
+    database: &Database,
+    actor_id: Option<&FilezUserId>,
+) -> Result<usize, FilezError> {
+    #[derive(QueryableByName, Debug)]
+    struct RebuildRow {
+        #[diesel(sql_type = Integer)]
+        rebuild_public_cover: i32,
+    }
+
+    let mut connection = database.get_connection().await?;
+    let result: RebuildRow = diesel::sql_query("SELECT rebuild_public_cover()")
+        .get_result(&mut connection)
+        .await?;
+    let rows_processed = usize::try_from(result.rebuild_public_cover)
+        .map_err(FilezError::TryFromIntError)?;
+
+    AuditLog::insert(
+        database,
+        AuditEvent::PublicCoverRebuilt { rows_processed },
+        actor_id,
+        AccessPolicyResourceType::User,
+        None,
+    )
+    .await?;
+
+    Ok(rows_processed)
+}
+
+/// Phase 5 P5-4 — targeted bulk-rebuild of the whole
+/// `server_member_resources` cover. Operator-only entry point;
+/// mirrors [`rebuild_public_cover`] for the ServerMember surface.
+#[tracing::instrument(level = "trace", skip(database))]
+pub async fn rebuild_server_member_cover(
+    database: &Database,
+    actor_id: Option<&FilezUserId>,
+) -> Result<usize, FilezError> {
+    #[derive(QueryableByName, Debug)]
+    struct RebuildRow {
+        #[diesel(sql_type = Integer)]
+        rebuild_server_member_cover: i32,
+    }
+
+    let mut connection = database.get_connection().await?;
+    let result: RebuildRow = diesel::sql_query("SELECT rebuild_server_member_cover()")
+        .get_result(&mut connection)
+        .await?;
+    let rows_processed = usize::try_from(result.rebuild_server_member_cover)
+        .map_err(FilezError::TryFromIntError)?;
+
+    AuditLog::insert(
+        database,
+        AuditEvent::ServerMemberCoverRebuilt { rows_processed },
+        actor_id,
+        AccessPolicyResourceType::User,
+        None,
+    )
+    .await?;
+
+    Ok(rows_processed)
 }
