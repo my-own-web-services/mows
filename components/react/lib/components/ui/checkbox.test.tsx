@@ -70,4 +70,17 @@ describe(`Checkbox`, () => {
             `indeterminate`
         );
     });
+
+    it(`renders the minus icon when indeterminate (not the check)`, () => {
+        const { container } = render(
+            <Checkbox aria-label={`x`} checked={`indeterminate`} />
+        );
+        // lucide-react inlines an svg per icon — Minus has a single <line>
+        // while Check has a <path>. Both are wrapped in an SVG element, so
+        // we assert via the SVG's `class` attribute that points at the
+        // lucide icon name.
+        const svg = container.querySelector(`svg`);
+        expect(svg).not.toBeNull();
+        expect(svg?.getAttribute(`class`) ?? ``).toMatch(/minus/i);
+    });
 });

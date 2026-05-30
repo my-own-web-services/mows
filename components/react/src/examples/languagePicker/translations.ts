@@ -13,7 +13,6 @@
 
 export interface LanguagePickerTranslation {
   popover: { title: string; description: string };
-  standalone: { title: string; description: string };
   doc: {
     installation: {
       title: string;
@@ -28,7 +27,6 @@ export interface LanguagePickerTranslation {
     examples: {
       title: string;
       popover: { title: string; description: string };
-      standalone: { title: string; description: string };
     };
     definedBehaviour: {
       title: string;
@@ -49,10 +47,6 @@ export const languagePickerEn: LanguagePickerTranslation = {
   popover: {
     title: `Popover trigger`,
     description: `Default form — the picker lives behind a popover.`,
-  },
-  standalone: {
-    title: `Standalone`,
-    description: `Searchable list inline, no popover.`,
   },
   doc: {
     installation: {
@@ -76,10 +70,6 @@ export const languagePickerEn: LanguagePickerTranslation = {
       popover: {
         title: `Popover trigger`,
         description: `Trigger + popover list.`,
-      },
-      standalone: {
-        title: `Standalone`,
-        description: `Inline searchable list.`,
       },
     },
     definedBehaviour: {
@@ -108,10 +98,6 @@ export const languagePickerDe: LanguagePickerTranslation = {
     title: `Popover-Trigger`,
     description: `Standardform — der Picker lebt hinter einem Popover.`,
   },
-  standalone: {
-    title: `Eigenständig`,
-    description: `Suchliste inline, ohne Popover.`,
-  },
   doc: {
     installation: {
       title: `Installation`,
@@ -135,7 +121,6 @@ export const languagePickerDe: LanguagePickerTranslation = {
         title: `Popover-Trigger`,
         description: `Trigger + Popover-Liste.`,
       },
-      standalone: { title: `Eigenständig`, description: `Inline-Suchliste.` },
     },
     definedBehaviour: {
       title: `Festgelegtes Verhalten`,

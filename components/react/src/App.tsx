@@ -40,7 +40,6 @@ import {
     SidebarHeader,
     SidebarInset,
     SidebarMenu,
-    SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarProvider
@@ -368,12 +367,15 @@ export default class App extends PureComponent<AppProps, AppState> {
                             <span>{demo.name}</span>
                         </a>
                     </SidebarMenuButton>
-                    <SidebarMenuAction
-                        // Hide the outline-star affordance until the row
-                        // is hovered/focused; favorited items keep their
-                        // filled star permanently visible so you can see
-                        // at a glance what's already starred.
-                        showOnHover={!isFav}
+                    {/* Same bare-icon star variant as the DocPage header
+                        — no SidebarMenuAction chip, no hover background.
+                        `data-sidebar="menu-action"` keeps the row's
+                        existing `pr-8` reserved spot. Non-favorited rows
+                        hide the affordance on md+ screens until hover /
+                        focus (the original `showOnHover` behaviour). */}
+                    <button
+                        type={`button`}
+                        data-sidebar={`menu-action`}
                         onClick={(event) => {
                             // The action sits on top of the menu button;
                             // stop propagation so toggling a star doesn't
@@ -394,17 +396,22 @@ export default class App extends PureComponent<AppProps, AppState> {
                                 : t.sidebar.addToFavoritesAriaLabel
                         }
                         className={cn(
-                            `cursor-pointer`,
+                            `absolute right-1.5 top-1/2 inline-flex -translate-y-1/2 cursor-pointer items-center justify-center bg-transparent p-0 transition-opacity focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring`,
                             isFav
                                 ? `text-primary hover:text-primary/80`
-                                : `text-muted-foreground hover:text-foreground`
+                                : `text-muted-foreground hover:text-foreground`,
+                            !isFav &&
+                                `md:opacity-0 md:group-focus-within/menu-item:opacity-100 md:group-hover/menu-item:opacity-100`
                         )}
                     >
                         <Star
-                            className={isFav ? `fill-current` : undefined}
+                            className={cn(
+                                `size-6`,
+                                isFav && `fill-current`
+                            )}
                             aria-hidden
                         />
-                    </SidebarMenuAction>
+                    </button>
                 </SidebarMenuItem>
             );
         };
@@ -609,11 +616,13 @@ export default class App extends PureComponent<AppProps, AppState> {
                                                             const label = isFav
                                                                 ? t.sidebar.removeFromFavoritesAriaLabel
                                                                 : t.sidebar.addToFavoritesAriaLabel;
+                                                            // Plain icon-only button — no <Button variant>
+                                                            // wrapper so there's no hover background or
+                                                            // ring chip around the star. Sized to read
+                                                            // alongside the 4xl heading.
                                                             return (
-                                                                <Button
+                                                                <button
                                                                     type={`button`}
-                                                                    variant={`ghost`}
-                                                                    size={`icon`}
                                                                     onClick={() =>
                                                                         this.toggleFavorite(
                                                                             selected.id
@@ -623,8 +632,7 @@ export default class App extends PureComponent<AppProps, AppState> {
                                                                     aria-label={label}
                                                                     title={label}
                                                                     className={cn(
-                                                                        // Click target sized to match the 36 px heading line.
-                                                                        `h-10 w-10`,
+                                                                        `inline-flex cursor-pointer items-center justify-center bg-transparent p-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm`,
                                                                         isFav
                                                                             ? `text-primary hover:text-primary/80`
                                                                             : `text-muted-foreground hover:text-foreground`
@@ -632,12 +640,12 @@ export default class App extends PureComponent<AppProps, AppState> {
                                                                 >
                                                                     <Star
                                                                         className={cn(
-                                                                            `size-7`,
+                                                                            `size-6`,
                                                                             isFav && `fill-current`
                                                                         )}
                                                                         aria-hidden
                                                                     />
-                                                                </Button>
+                                                                </button>
                                                             );
                                                         })()}
                                                     </div>

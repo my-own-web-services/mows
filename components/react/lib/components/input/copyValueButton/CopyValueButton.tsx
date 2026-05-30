@@ -1,7 +1,7 @@
 import { log } from "@/lib/logging";
 import { cn } from "@/lib/utils";
+import { Check, Copy } from "lucide-react";
 import { type CSSProperties, forwardRef, useEffect, useRef, useState } from "react";
-import { IoCheckmarkSharp, IoCopySharp } from "react-icons/io5";
 import { toast as sonnerToast } from "sonner";
 
 interface CopyValueButtonProps {
@@ -76,9 +76,13 @@ const CopyValueButton = forwardRef<HTMLDivElement, CopyValueButtonProps>(
             >
                 {label !== undefined && <span>{label}</span>}
                 {copied ? (
-                    <IoCheckmarkSharp className={`text-success duration-200`} />
+                    <Check
+                        className={`text-success h-4 w-4 duration-200`}
+                        aria-hidden
+                        strokeWidth={2}
+                    />
                 ) : (
-                    <IoCopySharp />
+                    <Copy className={`h-4 w-4`} aria-hidden strokeWidth={1.75} />
                 )}
             </div>
         );

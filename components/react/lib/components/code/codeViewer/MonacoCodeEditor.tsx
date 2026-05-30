@@ -160,14 +160,35 @@ const MonacoCodeEditor = (props: CodeViewerProps) => {
         ]);
     }, [revealLine]);
 
+    // Track whether the editor instance is mounted so the reveal effect
+    // can depend on it (and re-run if the editor is unmounted /
+    // remounted, e.g. when a new Dialog opens with a fresh CodeViewer).
+    const [editorReady, setEditorReady] = React.useState(false);
+
     const handleMount: OnMount = (editor, _m: Monaco) => {
         editorRef.current = editor;
-        applyReveal();
+        setEditorReady(true);
     };
 
+    // Monaco computes its initial layout asynchronously. When the
+    // editor mounts inside an opening Dialog (or any host whose enter
+    // animation is still in flight) the viewport height is 0 at mount
+    // time, so `revealLineInCenter()` reads as "already centered" and
+    // is effectively a no-op — the decoration applies but the scroll
+    // doesn't happen. Run the reveal once immediately for editors that
+    // mount into a stable layout, again on the next animation frame,
+    // and a final time after the typical Radix dialog enter animation
+    // (~150ms) so the line ends up centered regardless of host timing.
     React.useEffect(() => {
+        if (!editorReady) return;
         applyReveal();
-    }, [applyReveal, code]);
+        const raf = requestAnimationFrame(() => applyReveal());
+        const timer = window.setTimeout(() => applyReveal(), 250);
+        return () => {
+            cancelAnimationFrame(raf);
+            window.clearTimeout(timer);
+        };
+    }, [editorReady, applyReveal, code]);
 
     // In `fitContent` mode the visible word-wrap setting is forced to
     // `off` so the rendered line count equals the source line count.

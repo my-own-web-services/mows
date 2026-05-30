@@ -21,7 +21,15 @@ interface DocPageProps {
  */
 export const DocPage = ({ indexItems, children }: DocPageProps) => (
     <div className={`flex gap-16 lg:items-start`}>
-        <div className={`flex flex-1 flex-col gap-16`}>{children}</div>
+        {/* `min-w-0` is load-bearing on the content column: without it the
+            flex item's default min-width is `auto`, and a child whose
+            intrinsic width exceeds the available space (e.g. a Monaco
+            `<CodeViewer fitContent />` snippet with a long line) pushes
+            the column wider than the viewport, shoves the right-rail
+            `<PageIndex>` off-screen, and overflows the page. With
+            `min-w-0` the column can shrink past intrinsic size and
+            Monaco gets its own internal horizontal scroll. */}
+        <div className={`flex min-w-0 flex-1 flex-col gap-16`}>{children}</div>
         <aside className={`lg:sticky lg:top-4 lg:w-56 lg:flex-none`}>
             <PageIndex items={indexItems} />
         </aside>

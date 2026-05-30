@@ -25,7 +25,6 @@ const ANCHOR = {
     composition: `composition`,
     examples: `examples`,
     popover: `examples-popover`,
-    standalone: `examples-standalone`,
     rtl: `rtl`,
     definedBehaviour: `defined-behaviour`,
     apiReference: `api-reference`
@@ -38,10 +37,9 @@ const USAGE_SNIPPET = `import { LanguagePicker } from "@my-own-web-services/reac
 <LanguagePicker />`;
 
 const COMPOSITION_SNIPPET = `// LanguagePicker reads the available languages and the current language
-// from MowsProvider, and calls setLanguage on selection. Set standalone
-// to render the searchable list inline (without the popover trigger).
+// from MowsProvider, and calls setLanguage on selection.
 
-<LanguagePicker standalone />`;
+<LanguagePicker />`;
 
 const PROPS: PropRow[] = [
     { name: `defaultOpen`, type: `boolean`, default: `false`, description: `Open the popover on first mount (popover mode only).` },
@@ -66,10 +64,7 @@ const buildIndexItems = (t: Strings): PageIndexItem[] => {
         {
             id: ANCHOR.examples,
             label: doc.examples.title,
-            children: [
-                { id: ANCHOR.popover, label: doc.examples.popover.title },
-                { id: ANCHOR.standalone, label: doc.examples.standalone.title }
-            ]
+            children: [{ id: ANCHOR.popover, label: doc.examples.popover.title }]
         },
         { id: ANCHOR.usage, label: doc.usage.title },
         { id: ANCHOR.composition, label: doc.composition.title },
@@ -126,22 +121,13 @@ export const LanguagePickerDocPage = () => {
             </DocSection>
 
             <DocSection id={ANCHOR.examples} title={doc.examples.title}>
-                <div className={`flex flex-col gap-10`}>
-                    <DocSubsection
-                        id={ANCHOR.popover}
-                        title={doc.examples.popover.title}
-                        description={doc.examples.popover.description}
-                    >
-                        <ExampleCard example={languagePickerExampleById(`popover`)} hideHeader />
-                    </DocSubsection>
-                    <DocSubsection
-                        id={ANCHOR.standalone}
-                        title={doc.examples.standalone.title}
-                        description={doc.examples.standalone.description}
-                    >
-                        <ExampleCard example={languagePickerExampleById(`standalone`)} hideHeader />
-                    </DocSubsection>
-                </div>
+                <DocSubsection
+                    id={ANCHOR.popover}
+                    title={doc.examples.popover.title}
+                    description={doc.examples.popover.description}
+                >
+                    <ExampleCard example={languagePickerExampleById(`popover`)} hideHeader />
+                </DocSubsection>
             </DocSection>
 
             <DocSection id={ANCHOR.usage} title={doc.usage.title} description={doc.usage.body}>
