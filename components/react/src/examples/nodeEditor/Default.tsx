@@ -5,7 +5,7 @@ import {
     type Edge,
     type Node as RFNode
 } from "@xyflow/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import NodeEditor from "../../../lib/components/editor/nodeEditor/NodeEditor";
 import type { TypedNodeData } from "../../../lib/components/editor/nodeEditor/types";
 import { Input } from "../../../lib/components/ui/input";
@@ -45,12 +45,70 @@ const Example = () => {
             targetHandle: `in`
         }
     ]);
-    const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({
-        [NODE_IDS.slider]: { x: 0, y: 0 },
-        [NODE_IDS.text]: { x: 0, y: 220 },
-        [NODE_IDS.doubler]: { x: 320, y: 60 },
-        [NODE_IDS.output]: { x: 640, y: 60 }
-    });
+
+    // Nodes live in state, not in a `useMemo`. xyflow's `adoptUserNodes`
+    // resets each node's `measured` + `handleBounds` whenever the
+    // user-node object reference changes, which flips `nodesInitialized`
+    // to false and makes `getEdgePosition` return `null` for every edge
+    // — i.e. the edge layer renders nothing until the ResizeObserver
+    // re-measures. Recomputing the whole `nodes` array from a `useMemo`
+    // on every render (e.g. on every slider tick) therefore made every
+    // edge visibly blink out. Keeping nodes in state and only patching
+    // the specific node whose body changed lets the unchanged nodes
+    // keep their measured cache, and the patched node's spread carries
+    // `measured` forward from the previous render so its handle bounds
+    // survive too.
+    const [nodes, setNodes] = useState<TypedRFNode[]>(() => [
+        {
+            id: NODE_IDS.slider,
+            type: `typed`,
+            position: { x: 0, y: 0 },
+            width: NODE_WIDTH,
+            height: NODE_HEIGHT,
+            data: {
+                label: `Slider`,
+                outputs: [{ id: `out`, type: `number`, label: `value: number` }],
+                body: null
+            }
+        },
+        {
+            id: NODE_IDS.text,
+            type: `typed`,
+            position: { x: 0, y: 220 },
+            width: NODE_WIDTH,
+            height: NODE_HEIGHT,
+            data: {
+                label: `Text`,
+                outputs: [{ id: `out`, type: `string`, label: `text: string` }],
+                body: null
+            }
+        },
+        {
+            id: NODE_IDS.doubler,
+            type: `typed`,
+            position: { x: 320, y: 60 },
+            width: NODE_WIDTH,
+            height: NODE_HEIGHT,
+            data: {
+                label: `Doubler`,
+                inputs: [{ id: `in`, type: `number`, label: `in: number` }],
+                outputs: [{ id: `out`, type: `number`, label: `2×in: number` }],
+                body: null
+            }
+        },
+        {
+            id: NODE_IDS.output,
+            type: `typed`,
+            position: { x: 640, y: 60 },
+            width: NODE_WIDTH,
+            height: NODE_HEIGHT,
+            data: {
+                label: `Output`,
+                inputs: [{ id: `in`, type: `number`, label: `value: number` }],
+                body: null
+            }
+        }
+    ]);
 
     // Trivial data-flow: when a typed edge connects two nodes, the downstream
     // node receives its upstream value. Real applications would drive this off
@@ -75,98 +133,86 @@ const Example = () => {
         outputValue: outputValue ?? null
     });
 
-    const nodes = useMemo<TypedRFNode[]>(
-        () => [
-            {
-                id: NODE_IDS.slider,
-                type: `typed`,
-                position: positions[NODE_IDS.slider]!,
-                width: NODE_WIDTH,
-                height: NODE_HEIGHT,
-                data: {
-                    label: `Slider`,
-                    outputs: [{ id: `out`, type: `number`, label: `value: number` }],
-                    body: (
-                        <div className={`flex flex-col gap-2`}>
-                            <Slider
-                                value={[sliderValue]}
-                                onValueChange={(v) => setSliderValue(v[0] ?? 0)}
-                                min={0}
-                                max={100}
-                                step={1}
-                                className={`min-w-[160px]`}
-                            />
-                            <span className={`text-muted-foreground text-xs`}>
-                                value = {sliderValue}
-                            </span>
-                        </div>
-                    )
-                }
-            },
-            {
-                id: NODE_IDS.text,
-                type: `typed`,
-                position: positions[NODE_IDS.text]!,
-                width: NODE_WIDTH,
-                height: NODE_HEIGHT,
-                data: {
-                    label: `Text`,
-                    outputs: [{ id: `out`, type: `string`, label: `text: string` }],
-                    body: (
-                        <Input
-                            value={textValue}
-                            onChange={(e) => setTextValue(e.target.value)}
-                            placeholder={`type here`}
-                            className={`h-7 min-w-[160px] text-xs`}
-                        />
-                    )
-                }
-            },
-            {
-                id: NODE_IDS.doubler,
-                type: `typed`,
-                position: positions[NODE_IDS.doubler]!,
-                width: NODE_WIDTH,
-                height: NODE_HEIGHT,
-                data: {
-                    label: `Doubler`,
-                    inputs: [{ id: `in`, type: `number`, label: `in: number` }],
-                    outputs: [{ id: `out`, type: `number`, label: `2×in: number` }],
-                    body: (
-                        <span className={`text-muted-foreground text-xs`}>
-                            {doublerOutput === undefined ? `(not connected)` : `2 × ${doublerInput} = ${doublerOutput}`}
-                        </span>
-                    )
-                }
-            },
-            {
-                id: NODE_IDS.output,
-                type: `typed`,
-                position: positions[NODE_IDS.output]!,
-                width: NODE_WIDTH,
-                height: NODE_HEIGHT,
-                data: {
-                    label: `Output`,
-                    inputs: [{ id: `in`, type: `number`, label: `value: number` }],
-                    body: (
-                        <span className={`text-foreground font-mono text-base`}>
-                            {outputValue ?? `—`}
-                        </span>
-                    )
-                }
-            }
-        ],
-        [positions, sliderValue, textValue, doublerInput, doublerOutput, outputValue]
+    // One body per node, memoised on the inputs that drive its content.
+    // Identity-stable bodies are how the patch below keeps the unchanged
+    // nodes' object references constant across renders.
+    const sliderBody = useMemo<ReactNode>(
+        () => (
+            <div className={`flex flex-col gap-2`}>
+                <Slider
+                    value={[sliderValue]}
+                    onValueChange={(v) => setSliderValue(v[0] ?? 0)}
+                    min={0}
+                    max={100}
+                    step={1}
+                    className={`min-w-[160px]`}
+                />
+                <span className={`text-muted-foreground text-xs`}>
+                    value = {sliderValue}
+                </span>
+            </div>
+        ),
+        [sliderValue]
+    );
+    const textBody = useMemo<ReactNode>(
+        () => (
+            <Input
+                value={textValue}
+                onChange={(e) => setTextValue(e.target.value)}
+                placeholder={`type here`}
+                className={`h-7 min-w-[160px] text-xs`}
+            />
+        ),
+        [textValue]
+    );
+    const doublerBody = useMemo<ReactNode>(
+        () => (
+            <span className={`text-muted-foreground text-xs`}>
+                {doublerOutput === undefined
+                    ? `(not connected)`
+                    : `2 × ${doublerInput} = ${doublerOutput}`}
+            </span>
+        ),
+        [doublerInput, doublerOutput]
+    );
+    const outputBody = useMemo<ReactNode>(
+        () => (
+            <span className={`text-foreground font-mono text-base`}>
+                {outputValue ?? `—`}
+            </span>
+        ),
+        [outputValue]
     );
 
+    // Patch only the nodes whose body actually changed. Returning the
+    // same `n` reference for unchanged nodes is load-bearing — see the
+    // `useState` comment above.
+    useEffect(() => {
+        const bodies: Record<string, ReactNode> = {
+            [NODE_IDS.slider]: sliderBody,
+            [NODE_IDS.text]: textBody,
+            [NODE_IDS.doubler]: doublerBody,
+            [NODE_IDS.output]: outputBody
+        };
+        setNodes((current) => {
+            let mutated = false;
+            const next = current.map((n) => {
+                const nextBody = bodies[n.id];
+                if (nextBody === undefined || n.data.body === nextBody) return n;
+                mutated = true;
+                return { ...n, data: { ...n.data, body: nextBody } };
+            });
+            return mutated ? next : current;
+        });
+    }, [sliderBody, textBody, doublerBody, outputBody]);
+
     const handleNodesChange = useCallback(
-        (changes: Parameters<typeof applyNodeChanges>[0]) => {
-            const next = applyNodeChanges(changes, nodes);
-            setPositions(
-                Object.fromEntries(next.map((n) => [n.id, { x: n.position.x, y: n.position.y }]))
-            );
-        },
-        [nodes]
+        (changes: Parameters<typeof applyNodeChanges>[0]) =>
+            // `applyNodeChanges` persists `measured` from xyflow's
+            // `dimensions` events into our state, so subsequent body
+            // patches can carry it forward via `...n`.
+            setNodes((current) => applyNodeChanges(changes, current) as TypedRFNode[]),
+        []
     );
     const handleEdgesChange = useCallback(
         (changes: Parameters<typeof applyEdgeChanges>[0]) =>
