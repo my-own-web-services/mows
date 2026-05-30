@@ -25,6 +25,7 @@ const ANCHOR = {
     composition: `composition`,
     examples: `examples`,
     default: `examples-default`,
+    appExtension: `app-extension`,
     rtl: `rtl`,
     definedBehaviour: `defined-behaviour`,
     apiReference: `api-reference`
@@ -42,6 +43,39 @@ const COMPOSITION_SNIPPET = `// Place SettingsPanel inside a sized container —
 <div className="h-[640px]">
     <SettingsPanel />
 </div>`;
+
+const APP_EXTENSION_SNIPPET = `// 1. Declare your app's settings schema once.
+import { defineAppSettings } from "@my-own-web-services/react-components";
+
+export const filezSettings = defineAppSettings({
+    appKey: "filez",
+    schema: {
+        defaultView: {
+            type: "select",
+            options: [
+                { value: "grid", label: (t) => t.filez.viewGrid },
+                { value: "list", label: (t) => t.filez.viewList }
+            ],
+            default: "grid",
+            label: (t) => t.filez.defaultViewLabel,
+            group: (t) => t.filez.displayGroup
+        },
+        showHidden: {
+            type: "boolean",
+            default: false,
+            label: (t) => t.filez.showHiddenLabel,
+            group: (t) => t.filez.displayGroup
+        }
+    }
+});
+
+// 2. Register it on MowsProvider — done once at app boot.
+<MowsProvider appSettings={filezSettings} storagePrefix="filez">
+    <App />
+</MowsProvider>
+
+// 3. SettingsPanel auto-renders one section per declared group, with the
+//    right primitive per type. No additional panel wiring needed.`;
 
 const PROPS: PropRow[] = [
     {
@@ -79,6 +113,7 @@ const buildIndexItems = (t: Strings): PageIndexItem[] => {
         },
         { id: ANCHOR.usage, label: doc.usage.title },
         { id: ANCHOR.composition, label: doc.composition.title },
+        { id: ANCHOR.appExtension, label: doc.appExtension.title },
         { id: ANCHOR.rtl, label: doc.rtl.title },
         { id: ANCHOR.definedBehaviour, label: doc.definedBehaviour.title },
         { id: ANCHOR.apiReference, label: doc.apiReference.title },
@@ -94,49 +129,67 @@ const buildBehaviourEntries = (
         statement: statements.threeHeadings,
         testFile: TEST_FILE,
         testName: `renders the three section headings`,
-        testLine: 119
+        testLine: 146
     },
     {
         statement: statements.standalonePickersShowCurrent,
         testFile: TEST_FILE,
         testName: `uses the standalone-style theme/code-theme/language pickers and shows their current values`,
-        testLine: 126
+        testLine: 153
     },
     {
         statement: statements.jsonTabShowsSettings,
         testFile: TEST_FILE,
-        testName: `switches to the JSON tab and shows current settings`,
-        testLine: 136
+        testName: `switches to the JSON tab and shows the unified settings blob`,
+        testLine: 163
     },
     {
         statement: statements.jsonSaveAppliesEdit,
         testFile: TEST_FILE,
-        testName: `applies edited JSON when Save is clicked`,
-        testLine: 149
+        testName: `pastes a wholesale blob into the JSON tab and calls replaceBlob`,
+        testLine: 182
+    },
+    {
+        statement: statements.jsonRejectsBadVersion,
+        testFile: TEST_FILE,
+        testName: `rejects a JSON paste whose _v doesn't match the current version`,
+        testLine: 208
     },
     {
         statement: statements.notificationsSection,
         testFile: TEST_FILE,
         testName: `renders the Notifications section with the toast position picker`,
-        testLine: 173
+        testLine: 231
     },
     {
         statement: statements.jsonIncludesToast,
         testFile: TEST_FILE,
-        testName: `includes toast settings in the JSON view`,
-        testLine: 180
+        testName: `exposes the toast slot inside core in the JSON view`,
+        testLine: 238
     },
     {
         statement: statements.toastPositionFromJson,
         testFile: TEST_FILE,
-        testName: `applies toast.position from edited JSON`,
-        testLine: 192
+        testName: `a pasted blob with core.toast lands in the manager after save`,
+        testLine: 251
+    },
+    {
+        statement: statements.bracketPairToggle,
+        testFile: TEST_FILE,
+        testName: `exposes a bracket-pair colorization toggle that calls setCodeEditorSettings`,
+        testLine: 282
+    },
+    {
+        statement: statements.appSectionWhenRegistered,
+        testFile: TEST_FILE,
+        testName: `renders an app-settings section when a schema is registered`,
+        testLine: 377
     },
     {
         statement: statements.jsonErrorOnInvalid,
         testFile: TEST_FILE,
         testName: `shows an error when JSON is invalid`,
-        testLine: 246
+        testLine: 470
     }
 ];
 
@@ -212,6 +265,20 @@ export const SettingsPanelDocPage = () => {
             >
                 <ExpandableCode>
                     <CodeViewer code={COMPOSITION_SNIPPET} language={`tsx`} fitContent />
+                </ExpandableCode>
+            </DocSection>
+
+            <DocSection
+                id={ANCHOR.appExtension}
+                title={doc.appExtension.title}
+                description={doc.appExtension.body}
+            >
+                <ExpandableCode>
+                    <CodeViewer
+                        code={APP_EXTENSION_SNIPPET}
+                        language={`tsx`}
+                        fitContent
+                    />
                 </ExpandableCode>
             </DocSection>
 

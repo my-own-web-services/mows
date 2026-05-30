@@ -91,6 +91,10 @@ export interface BaseTranslation {
             bottomCenter: string;
             bottomRight: string;
         };
+        /** Fallback group label for app-registered settings whose
+         * schema entry didn't declare a `group`. Rendered as the
+         * section heading in `<SettingsPanel>`. */
+        appSectionDefaultGroup: string;
     };
     keyboardShortcuts: {
         label: string;

@@ -4,14 +4,21 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { type AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
 import { defaultCodeThemes, type MowsCodeTheme } from "../codeThemes";
-import { getBrowserLanguage, type Language, type Translation } from "../languages";
+import { type Language, type Translation } from "../languages";
 import baseEnglishTranslation from "../languages/en-US/default";
 import { log } from "../logging";
 import { defaultMapStyles, type MowsMapStyle } from "../mapStyles";
 import { defaultThemes, loadThemeCSS, type MowsTheme } from "../themes";
 import { type Action, ActionManager } from "./ActionManager";
+import {
+    type AnyAppSettings,
+    type AppSettingsContextValue,
+    createAppSettingsContextValue
+} from "./appSettings";
 import { coreDefaultHotkeys, defineCoreActions } from "./coreActions";
 import { type HotkeyConfig, HotkeyManager } from "./HotkeyManager";
+import { migrateLegacySettings } from "./legacyMigration";
+import { SettingsManager } from "./SettingsManager";
 
 export interface MowsOidcConfig {
     readonly issuerUrl: string;
@@ -90,6 +97,17 @@ export interface MowsContextType {
     readonly mapStyles: MowsMapStyle[];
     readonly currentMapStyle: MowsMapStyle;
     readonly setMapStyle: (style: MowsMapStyle) => void;
+    /** Unified settings system (single localStorage blob). Exposed so
+     * advanced consumers can read/replace the entire blob (JSON
+     * export/import tab in SettingsPanel) and so app-settings hooks
+     * have a backdoor to the manager when they need it. Day-to-day
+     * settings reads should go through the dedicated `current*` /
+     * `set*` accessors above. */
+    readonly settingsManager: SettingsManager;
+    /** App-settings registry handles, populated when MowsProvider was
+     * mounted with an `appSettings` prop. `registered` is null when no
+     * app schema was registered. */
+    readonly appSettings: AppSettingsContextValue;
 }
 
 interface MowsClientManagerProps {
@@ -107,6 +125,7 @@ interface MowsClientManagerProps {
     readonly defaultMapStyleId: string;
     readonly auth?: AuthContextProps;
     readonly authConfigured: boolean;
+    readonly appSettings: AnyAppSettings | null;
 }
 
 interface MowsClientManagerState {
@@ -118,46 +137,65 @@ interface MowsClientManagerState {
     readonly codeEditorSettings: MowsCodeEditorSettings;
     readonly toastSettings: MowsToastSettings;
     readonly currentMapStyle: MowsMapStyle;
+    /** Held in state (not as an instance field) so a prop-driven
+     * recompute schedules a normal render via setState instead of
+     * `forceUpdate`. The reference identity changes only when
+     * `props.appSettings` or `this.settingsManager` change. */
+    readonly appSettingsContext: AppSettingsContextValue;
 }
 
-const buildStorageKeys = (prefix: string) => ({
-    theme: `${prefix}_theme`,
-    codeTheme: `${prefix}_code_theme`,
-    codeEditorSettings: `${prefix}_code_editor_settings`,
-    toastSettings: `${prefix}_toast_settings`,
-    mapStyle: `${prefix}_map_style`,
-    selectedLanguage: `${prefix}_language`,
-    hotkeyConfig: `${prefix}_hotkey_config`,
-    recentActions: `${prefix}_recent_actions`,
-    postLoginRedirectPath: `${prefix}_post_login_redirect_path`
-});
+/** Auth helper key suffix — intentionally NOT inside the unified
+ * settings blob. The value is transient (lives at most one OIDC
+ * round-trip) and is cleared on resume; mixing it into the blob would
+ * tempt callers to surface it in the settings UI. */
+const POST_LOGIN_REDIRECT_PATH_SUFFIX = `_post_login_redirect_path`;
 
-const readCodeEditorSettings = (storageKey: string): MowsCodeEditorSettings => {
-    const raw = localStorage.getItem(storageKey);
+const readCodeEditorFromBlob = (
+    raw: Record<string, unknown> | undefined
+): MowsCodeEditorSettings => {
     if (!raw) return defaultCodeEditorSettings;
-    try {
-        const parsed = JSON.parse(raw);
-        return { ...defaultCodeEditorSettings, ...parsed };
-    } catch (error) {
-        log.warn(`Failed to parse stored code editor settings; reverting to defaults`, error);
-        return defaultCodeEditorSettings;
-    }
+    return {
+        showWhitespace:
+            typeof raw.showWhitespace === `boolean`
+                ? raw.showWhitespace
+                : defaultCodeEditorSettings.showWhitespace,
+        wrap: typeof raw.wrap === `boolean` ? raw.wrap : defaultCodeEditorSettings.wrap,
+        showLineNumbers:
+            typeof raw.showLineNumbers === `boolean`
+                ? raw.showLineNumbers
+                : defaultCodeEditorSettings.showLineNumbers,
+        bracketPairColorization:
+            typeof raw.bracketPairColorization === `boolean`
+                ? raw.bracketPairColorization
+                : defaultCodeEditorSettings.bracketPairColorization
+    };
 };
 
-const readToastSettings = (storageKey: string): MowsToastSettings => {
-    const raw = localStorage.getItem(storageKey);
+const readToastFromBlob = (
+    raw: Record<string, unknown> | undefined
+): MowsToastSettings => {
     if (!raw) return defaultToastSettings;
-    try {
-        const parsed = JSON.parse(raw);
-        const next = { ...defaultToastSettings, ...parsed };
-        if (!TOAST_POSITIONS.includes(next.position)) {
-            return defaultToastSettings;
-        }
-        return next;
-    } catch (error) {
-        log.warn(`Failed to parse stored toast settings; reverting to defaults`, error);
-        return defaultToastSettings;
+    const position = raw.position;
+    if (
+        typeof position === `string` &&
+        (TOAST_POSITIONS as readonly string[]).includes(position)
+    ) {
+        return { position: position as ToastPosition };
     }
+    return defaultToastSettings;
+};
+
+const pickLanguage = (languages: Language[], code: string | undefined): Language => {
+    if (code) {
+        const lang = languages.find((l) => l.code === code);
+        if (lang) return lang;
+    }
+    const browserCode = navigator.language || navigator.languages?.[0] || `en-US`;
+    return (
+        languages.find((l) => l.code === browserCode) ||
+        languages.find((l) => l.code === browserCode.split(`-`)[0]) ||
+        languages.find((l) => l.code === `en-US`)!
+    );
 };
 
 const applyThemeClassSynchronously = (theme: MowsTheme) => {
@@ -185,60 +223,93 @@ export class MowsClientManagerBase extends Component<
 > {
     private actionManager: ActionManager;
     private hotkeyManager: HotkeyManager;
-    private storageKeys: ReturnType<typeof buildStorageKeys>;
+    private settingsManager: SettingsManager;
+    private postLoginRedirectKey: string;
+    private unsubscribeSettings: (() => void) | null = null;
+    /** Tracks the most-recently-requested language code so an older
+     * `import()` resolving late doesn't overwrite the newer choice
+     * (rapid double-click on the language picker). */
+    private pendingLanguageCode: string | null = null;
 
     constructor(props: MowsClientManagerProps) {
         super(props);
-        this.storageKeys = buildStorageKeys(props.storagePrefix);
+        this.postLoginRedirectKey = `${props.storagePrefix}${POST_LOGIN_REDIRECT_PATH_SUFFIX}`;
 
-        const currentThemeId =
-            localStorage.getItem(this.storageKeys.theme) || props.defaultThemeId;
-        log.info(`Current theme ID:`, currentThemeId);
+        // Run the legacy-key migration BEFORE constructing SettingsManager
+        // — if the old keys exist and the new key doesn't, we pre-seed
+        // the manager so its first persistence pass writes the unified
+        // blob in the same tick (no half-migrated state on disk).
+        const migration =
+            typeof localStorage !== `undefined`
+                ? migrateLegacySettings(props.storagePrefix, localStorage)
+                : { migrated: false };
+        this.settingsManager = new SettingsManager({
+            storagePrefix: props.storagePrefix,
+            initialBlob: migration.blob
+        });
 
-        const initialTheme =
-            props.themes.find((theme) => theme.id === currentThemeId) || props.themes[0];
+        const initialTheme = pickThemeFromBlob(
+            this.settingsManager,
+            props.themes,
+            props.defaultThemeId
+        );
 
         // Apply the theme class synchronously before React paints, so we don't
         // flash the default :root tokens (white surfaces on dark themes, etc.)
         // before componentDidMount fires.
         applyThemeClassSynchronously(initialTheme);
 
-        const currentCodeThemeId =
-            localStorage.getItem(this.storageKeys.codeTheme) || props.defaultCodeThemeId;
-        const initialCodeTheme =
-            props.codeThemes.find((codeTheme) => codeTheme.id === currentCodeThemeId) || props.codeThemes[0];
+        const initialCodeTheme = pickById(
+            props.codeThemes,
+            this.settingsManager.getCore(`codeTheme`),
+            props.defaultCodeThemeId
+        );
+        const initialMapStyle = pickById(
+            props.mapStyles,
+            this.settingsManager.getCore(`mapStyle`),
+            props.defaultMapStyleId
+        );
 
-        const currentMapStyleId =
-            localStorage.getItem(this.storageKeys.mapStyle) || props.defaultMapStyleId;
-        const initialMapStyle =
-            props.mapStyles.find((style) => style.id === currentMapStyleId) || props.mapStyles[0];
+        this.actionManager = new ActionManager({
+            recentActionsSlot: this.settingsManager.deviceSlotAdapter(`recentActions`),
+            maxRecentActions: 5
+        });
+        this.hotkeyManager = new HotkeyManager(this.actionManager, {
+            configSlot: this.settingsManager.deviceSlotAdapter(`hotkeyConfig`),
+            defaultHotkeys: { ...coreDefaultHotkeys, ...props.extraDefaultHotkeys }
+        });
 
         this.state = {
             currentTheme: initialTheme,
             currentTranslation: props.initialTranslation,
-            currentLanguage: getBrowserLanguage(props.languages, this.storageKeys.selectedLanguage),
+            currentLanguage: pickLanguage(
+                props.languages,
+                this.settingsManager.getCore(`language`)
+            ),
             currentCodeTheme: initialCodeTheme,
-            codeEditorSettings: readCodeEditorSettings(this.storageKeys.codeEditorSettings),
-            toastSettings: readToastSettings(this.storageKeys.toastSettings),
-            currentMapStyle: initialMapStyle
+            codeEditorSettings: readCodeEditorFromBlob(
+                this.settingsManager.getCore(`codeEditor`)
+            ),
+            toastSettings: readToastFromBlob(this.settingsManager.getCore(`toast`)),
+            currentMapStyle: initialMapStyle,
+            appSettingsContext: createAppSettingsContextValue(
+                this.settingsManager,
+                props.appSettings
+            )
         };
-
-        this.actionManager = new ActionManager({
-            recentActionsStorageKey: this.storageKeys.recentActions,
-            maxRecentActions: 5
-        });
-        this.hotkeyManager = new HotkeyManager(this.actionManager, {
-            configStorageKey: this.storageKeys.hotkeyConfig,
-            defaultHotkeys: { ...coreDefaultHotkeys, ...props.extraDefaultHotkeys }
-        });
     }
 
     componentDidMount = () => {
-        const coreActions = defineCoreActions(this, this.storageKeys.postLoginRedirectPath);
+        const coreActions = defineCoreActions(this, this.postLoginRedirectKey);
         this.actionManager.defineMultipleActions([...coreActions, ...this.props.extraActions]);
 
         this.setTheme(this.state.currentTheme);
         this.setLanguage(this.state.currentLanguage);
+
+        // Subscribe to wholesale blob replacements (JSON import tab in
+        // SettingsPanel) so the in-state derived values (theme,
+        // language, …) refresh when a paste happens.
+        this.unsubscribeSettings = this.settingsManager.subscribe(`*`, this.syncStateFromBlob);
     };
 
     componentDidUpdate = (prevProps: MowsClientManagerProps) => {
@@ -248,6 +319,23 @@ export class MowsClientManagerBase extends Component<
         if (auth?.user !== prevAuth?.user) {
             this.restoreRedirectPath();
         }
+
+        if (this.props.appSettings !== prevProps.appSettings) {
+            // Rebind the typed-hook surface to the new schema. React
+            // schedules a normal render from setState — no forceUpdate
+            // bypass, no batching surprises.
+            this.setState({
+                appSettingsContext: createAppSettingsContextValue(
+                    this.settingsManager,
+                    this.props.appSettings
+                )
+            });
+        }
+    };
+
+    componentWillUnmount = () => {
+        this.unsubscribeSettings?.();
+        this.unsubscribeSettings = null;
     };
 
     changeActiveModal = (modalType?: string) => {
@@ -256,11 +344,61 @@ export class MowsClientManagerBase extends Component<
     };
 
     restoreRedirectPath = () => {
-        const redirectPath = localStorage.getItem(this.storageKeys.postLoginRedirectPath);
+        const redirectPath = localStorage.getItem(this.postLoginRedirectKey);
         log.info(`Restoring redirect path:`, redirectPath);
         if (redirectPath) {
-            localStorage.removeItem(this.storageKeys.postLoginRedirectPath);
+            localStorage.removeItem(this.postLoginRedirectKey);
             window.history.replaceState({}, document.title, redirectPath);
+        }
+    };
+
+    /**
+     * Re-derive in-state values from the unified blob — invoked when
+     * the JSON import tab replaces the whole blob. We don't subscribe
+     * per-slice because the JSON tab is the only writer that bypasses
+     * `set*` methods; individual `set*` calls already update state in
+     * the same tick (avoiding an extra rerender from the subscriber).
+     */
+    private syncStateFromBlob = () => {
+        const codeThemeId = this.settingsManager.getCore(`codeTheme`);
+        const mapStyleId = this.settingsManager.getCore(`mapStyle`);
+        const languageCode = this.settingsManager.getCore(`language`);
+
+        const nextTheme = pickThemeFromBlob(
+            this.settingsManager,
+            this.props.themes,
+            this.props.defaultThemeId
+        );
+        const nextCodeTheme = pickById(
+            this.props.codeThemes,
+            codeThemeId,
+            this.props.defaultCodeThemeId
+        );
+        const nextMapStyle = pickById(
+            this.props.mapStyles,
+            mapStyleId,
+            this.props.defaultMapStyleId
+        );
+
+        this.setState({
+            currentTheme: nextTheme,
+            currentCodeTheme: nextCodeTheme,
+            currentMapStyle: nextMapStyle,
+            codeEditorSettings: readCodeEditorFromBlob(
+                this.settingsManager.getCore(`codeEditor`)
+            ),
+            toastSettings: readToastFromBlob(this.settingsManager.getCore(`toast`))
+        });
+
+        // Always re-apply the theme class — the blob may have flipped
+        // between "system" and an explicit id without changing the
+        // resolved id (e.g. system → light when system was dark), so a
+        // shortcut comparison would miss the class-name swap.
+        applyThemeClassSynchronously(nextTheme);
+
+        const nextLanguage = pickLanguage(this.props.languages, languageCode);
+        if (nextLanguage.code !== this.state.currentLanguage?.code) {
+            this.setLanguage(nextLanguage);
         }
     };
 
@@ -273,7 +411,7 @@ export class MowsClientManagerBase extends Component<
             }
         });
 
-        localStorage.setItem(this.storageKeys.theme, theme.id);
+        this.settingsManager.setCore(`theme`, theme.id);
 
         if (theme.id === `system`) {
             const systemTheme = window.matchMedia(`(prefers-color-scheme: dark)`).matches
@@ -292,18 +430,18 @@ export class MowsClientManagerBase extends Component<
     };
 
     setCodeTheme = (theme: MowsCodeTheme) => {
-        localStorage.setItem(this.storageKeys.codeTheme, theme.id);
+        this.settingsManager.setCore(`codeTheme`, theme.id);
         this.setState({ currentCodeTheme: theme });
     };
 
     setMapStyle = (style: MowsMapStyle) => {
-        localStorage.setItem(this.storageKeys.mapStyle, style.id);
+        this.settingsManager.setCore(`mapStyle`, style.id);
         this.setState({ currentMapStyle: style });
     };
 
     setCodeEditorSettings = (partial: Partial<MowsCodeEditorSettings>) => {
         const next = { ...this.state.codeEditorSettings, ...partial };
-        localStorage.setItem(this.storageKeys.codeEditorSettings, JSON.stringify(next));
+        this.settingsManager.setCore(`codeEditor`, next as Record<string, unknown>);
         this.setState({ codeEditorSettings: next });
     };
 
@@ -313,7 +451,7 @@ export class MowsClientManagerBase extends Component<
             log.warn(`Ignoring invalid toast position`, partial);
             return;
         }
-        localStorage.setItem(this.storageKeys.toastSettings, JSON.stringify(next));
+        this.settingsManager.setCore(`toast`, next as Record<string, unknown>);
         this.setState({ toastSettings: next });
     };
 
@@ -322,12 +460,17 @@ export class MowsClientManagerBase extends Component<
             log.error(`No language provided`);
             return;
         }
+        this.pendingLanguageCode = languageToSet.code;
         this.setState({ currentLanguage: languageToSet });
 
         const translation = await languageToSet.import();
 
-        localStorage.setItem(this.storageKeys.selectedLanguage, languageToSet.code);
+        // If the user picked a different language while our import()
+        // was in flight, the newer pick already won — drop this
+        // resolution on the floor so we don't apply stale strings.
+        if (this.pendingLanguageCode !== languageToSet.code) return;
 
+        this.settingsManager.setCore(`language`, languageToSet.code);
         this.setState({ currentTranslation: translation.default });
     };
 
@@ -375,12 +518,39 @@ export class MowsClientManagerBase extends Component<
             setToastSettings: this.setToastSettings,
             mapStyles,
             currentMapStyle,
-            setMapStyle: this.setMapStyle
+            setMapStyle: this.setMapStyle,
+            settingsManager: this.settingsManager,
+            appSettings: this.state.appSettingsContext
         };
 
         return <MowsContext.Provider value={contextValue}>{children}</MowsContext.Provider>;
     };
 }
+
+const pickThemeFromBlob = (
+    settingsManager: SettingsManager,
+    themes: MowsTheme[],
+    defaultThemeId: string
+): MowsTheme => {
+    const stored = settingsManager.getCore(`theme`);
+    return (
+        themes.find((theme) => theme.id === stored) ||
+        themes.find((theme) => theme.id === defaultThemeId) ||
+        themes[0]
+    );
+};
+
+const pickById = <T extends { id: string }>(
+    list: T[],
+    storedId: string | undefined,
+    defaultId: string
+): T => {
+    return (
+        list.find((item) => item.id === storedId) ||
+        list.find((item) => item.id === defaultId) ||
+        list[0]
+    );
+};
 
 export const MowsContext = createContext<MowsContextType | undefined>(undefined);
 
@@ -446,6 +616,24 @@ interface MowsProviderProps {
     readonly extraActions?: Action[];
     readonly extraDefaultHotkeys?: HotkeyConfig;
     readonly onSigninCallback?: (user: User | void) => void;
+    /**
+     * Optional consumer-app settings schema. Build it via
+     * `defineAppSettings({ appKey, schema })`. When set, the schema's
+     * fields are persisted into the unified settings blob under
+     * `app.<appKey>.*` and become available via `useAppSetting`. The
+     * built-in `<SettingsPanel>` auto-renders one section per
+     * registered field. See the SettingsSystem guide for the full
+     * pattern.
+     *
+     * IMPORTANT: pass a stable reference (a module-level constant
+     * returned by `defineAppSettings`). Swapping the schema at runtime
+     * works (the typed-hook surface re-binds) but writes already
+     * stored under the OLD `appKey` are not migrated; if the new
+     * schema changes `appKey`, those values become orphaned in the
+     * blob. Don't mutate the schema either — `defineAppSettings`
+     * returns the object verbatim.
+     */
+    readonly appSettings?: AnyAppSettings;
 }
 
 export class MowsProvider extends Component<MowsProviderProps> {
@@ -491,7 +679,8 @@ export class MowsProvider extends Component<MowsProviderProps> {
             defaultMapStyleId,
             extraActions,
             extraDefaultHotkeys,
-            authConfigured: !!oidc
+            authConfigured: !!oidc,
+            appSettings: this.props.appSettings ?? null
         } as const;
 
         if (!oidc) {

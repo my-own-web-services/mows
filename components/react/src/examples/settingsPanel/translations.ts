@@ -24,6 +24,7 @@ export interface SettingsPanelTranslation {
     };
     usage: { title: string; body: string };
     composition: { title: string; body: string };
+    appExtension: { title: string; body: string };
     examples: {
       title: string;
       default: { title: string; description: string };
@@ -37,9 +38,12 @@ export interface SettingsPanelTranslation {
         standalonePickersShowCurrent: string;
         jsonTabShowsSettings: string;
         jsonSaveAppliesEdit: string;
+        jsonRejectsBadVersion: string;
         notificationsSection: string;
         jsonIncludesToast: string;
         toastPositionFromJson: string;
+        bracketPairToggle: string;
+        appSectionWhenRegistered: string;
         jsonErrorOnInvalid: string;
       };
     };
@@ -68,7 +72,11 @@ export const settingsPanelEn: SettingsPanelTranslation = {
     },
     composition: {
       title: `Composition`,
-      body: `<SettingsPanel> stitches together <ThemePicker>, <CodeThemePicker>, <LanguagePicker>, the code-editor toggles and the toast position picker, plus a JSON tab that round-trips the entire MowsSettings object.`,
+      body: `<SettingsPanel> stitches together <ThemePicker>, <CodeThemePicker>, <LanguagePicker>, the code-editor toggles and the toast position picker, plus a JSON tab that round-trips the entire unified <SettingsBlob> (core + app slots). Apps extend the panel with their own typed sections by registering a schema via <MowsProvider appSettings={…} /> — see the Settings system guide.`,
+    },
+    appExtension: {
+      title: `Extending with app settings`,
+      body: `Consumer apps add their own typed settings via \`defineAppSettings\`. The schema becomes a new section inside <SettingsPanel> (one sub-section per declared \`group\`), values are persisted under \`app.<appKey>\` in the same blob the panel's JSON tab exports, and reads happen through the typed \`useAppSetting\` hook. The full pattern — schema shape, field types, defaults, custom render escape hatch — lives in the <SettingsSystem> guide.`,
     },
     examples: {
       title: `Examples`,
@@ -84,11 +92,14 @@ export const settingsPanelEn: SettingsPanelTranslation = {
       statements: {
         threeHeadings: `Renders the three section headings (Appearance, Code editor, Language).`,
         standalonePickersShowCurrent: `Uses the standalone-style theme / code-theme / language pickers and shows their current values.`,
-        jsonTabShowsSettings: `Switching to the JSON tab shows the live current settings.`,
-        jsonSaveAppliesEdit: `Editing the JSON and clicking Save applies the new settings on the surrounding context.`,
+        jsonTabShowsSettings: `Switching to the JSON tab shows the unified settings blob (_v / core / app).`,
+        jsonSaveAppliesEdit: `Editing the JSON and clicking Save calls settingsManager.replaceBlob with the parsed value.`,
+        jsonRejectsBadVersion: `Rejects a JSON paste whose _v doesn't match the current schema version.`,
         notificationsSection: `Renders the Notifications section with the toast position picker.`,
-        jsonIncludesToast: `Includes toast settings in the JSON view.`,
-        toastPositionFromJson: `Applies toast.position from edited JSON to the surrounding context.`,
+        jsonIncludesToast: `Exposes core.toast inside the JSON view.`,
+        toastPositionFromJson: `A pasted blob with core.toast lands in the settings manager after save.`,
+        bracketPairToggle: `Bracket-pair colorization switch dispatches setCodeEditorSettings.`,
+        appSectionWhenRegistered: `Renders an app-settings section when a schema is registered, and writes through the manager.`,
         jsonErrorOnInvalid: `Shows an error message when the edited JSON is invalid.`,
       },
     },
@@ -123,7 +134,11 @@ export const settingsPanelDe: SettingsPanelTranslation = {
     },
     composition: {
       title: `Komposition`,
-      body: `<SettingsPanel> verknüpft <ThemePicker>, <CodeThemePicker>, <LanguagePicker>, die Code-Editor-Toggles und den Toast-Position-Picker — plus einen JSON-Tab, der das gesamte MowsSettings-Objekt durchschleust.`,
+      body: `<SettingsPanel> verknüpft <ThemePicker>, <CodeThemePicker>, <LanguagePicker>, die Code-Editor-Toggles und den Toast-Position-Picker — plus einen JSON-Tab, der den gesamten vereinheitlichten <SettingsBlob> (core + app) durchschleust. Apps erweitern das Panel mit eigenen typisierten Sektionen, indem sie ein Schema via <MowsProvider appSettings={…} /> registrieren — siehe den Settings-System-Guide.`,
+    },
+    appExtension: {
+      title: `Mit eigenen App-Settings erweitern`,
+      body: `Consumer-Apps fügen ihre eigenen typisierten Settings über \`defineAppSettings\` hinzu. Das Schema wird als zusätzliche Sektion in <SettingsPanel> gerendert (eine Untersektion pro deklarierter \`group\`), Werte werden unter \`app.<appKey>\` im selben Blob persistiert, den der JSON-Tab des Panels exportiert, und Lese-Zugriffe laufen über den typisierten \`useAppSetting\`-Hook. Das vollständige Muster — Schema-Form, Feldtypen, Defaults, Custom-Render-Escape-Hatch — steht im <SettingsSystem>-Guide.`,
     },
     examples: {
       title: `Beispiele`,
@@ -139,11 +154,14 @@ export const settingsPanelDe: SettingsPanelTranslation = {
       statements: {
         threeHeadings: `Rendert die drei Sektionsüberschriften (Erscheinungsbild, Code-Editor, Sprache).`,
         standalonePickersShowCurrent: `Verwendet die standalone-Variante der Theme- / Code-Theme- / Sprache-Picker und zeigt ihre aktuellen Werte.`,
-        jsonTabShowsSettings: `Der JSON-Tab zeigt die aktuellen Einstellungen live an.`,
-        jsonSaveAppliesEdit: `Editieren des JSONs und Klick auf Speichern überträgt die neuen Werte in den Context.`,
+        jsonTabShowsSettings: `Der JSON-Tab zeigt den vereinheitlichten Settings-Blob an (_v / core / app).`,
+        jsonSaveAppliesEdit: `Editieren des JSONs und Klick auf Speichern ruft settingsManager.replaceBlob mit dem geparsten Wert auf.`,
+        jsonRejectsBadVersion: `Lehnt einen JSON-Paste ab, dessen _v nicht zur aktuellen Schema-Version passt.`,
         notificationsSection: `Rendert die Sektion "Benachrichtigungen" mit dem Toast-Position-Picker.`,
-        jsonIncludesToast: `Bezieht die Toast-Einstellungen in die JSON-Ansicht mit ein.`,
-        toastPositionFromJson: `Übernimmt toast.position aus dem editierten JSON in den umgebenden Context.`,
+        jsonIncludesToast: `Exponiert core.toast in der JSON-Ansicht.`,
+        toastPositionFromJson: `Ein eingefügter Blob mit core.toast landet nach Save im Settings-Manager.`,
+        bracketPairToggle: `Der Switch für Bracket-Pair-Colorization löst setCodeEditorSettings aus.`,
+        appSectionWhenRegistered: `Rendert eine App-Settings-Sektion, wenn ein Schema registriert ist, und schreibt durch den Manager.`,
         jsonErrorOnInvalid: `Zeigt eine Fehlermeldung, wenn das editierte JSON ungültig ist.`,
       },
     },

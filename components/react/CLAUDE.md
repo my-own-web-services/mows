@@ -283,3 +283,41 @@ that exercises that mode is incomplete.
 - This package is consumed by other MOWS packages via **yalc**, not pnpm
   workspaces.
 - After changes: `pnpm build && yalc push` to update consumers.
+
+# Settings system
+
+All persisted preferences (lib-owned AND consumer-app-registered) live in a
+**single** `localStorage` key — `${storagePrefix}_settings` — holding one
+JSON blob with this shape:
+
+```
+{ _v: 1, core: { … }, device: { … }, app: { <appKey>: { … } } }
+```
+
+- **`core`** — lib-owned and stable wire format: `theme`, `codeTheme`,
+  `language`, `mapStyle`, `codeEditor`, `toast`. This is the slot that a
+  future remote Settings API will sync across the user's installs.
+- **`device`** — device-local ephemeral state owned by the lib: hotkey
+  overrides + recent-actions MRU. Deliberately outside `core` so the
+  sync API doesn't propagate per-machine state.
+- **`app`** — sub-keyed by `appKey`. Each consumer app registers its
+  own schema via `defineAppSettings({ appKey, schema })` and passes it
+  to `<MowsProvider appSettings={…} />`. Apps read/write via
+  `useAppSetting(schema, "fieldId")` — fully type-inferred from the
+  schema.
+
+Implementation lives in `lib/lib/mowsContext/`:
+
+- `SettingsManager.ts` — owns the blob; exposes `getCore`/`setCore`,
+  `getDevice`/`setDevice`, `getApp`/`setApp`, `subscribe(path)`,
+  `replaceBlob`, plus `validateBlob` and `SettingsBlobValidationError`.
+- `legacyMigration.ts` — one-shot read of the pre-unification keys
+  (`_theme`, `_language`, …) into the new blob on first mount.
+- `appSettings.ts` — `defineAppSettings`, schema types, runtime
+  `matchesFieldType` guard.
+- `useAppSetting.ts` — typed React hook.
+
+User-facing docs live in `src/guides/SettingsSystemGuide.tsx` (linked
+from the SettingsPanel DocPage). Never bypass `SettingsManager` to
+read/write a setting directly from `localStorage` — the version check,
+defaults, and subscriber notifications all live in the manager.

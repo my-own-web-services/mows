@@ -1,0 +1,57 @@
+=== Files in scope for this review ===
+
+NEW files (read in full):
+- components/react/lib/lib/mowsContext/SettingsManager.ts
+- components/react/lib/lib/mowsContext/SettingsManager.test.ts
+- components/react/lib/lib/mowsContext/legacyMigration.ts
+- components/react/lib/lib/mowsContext/legacyMigration.test.ts
+- components/react/lib/lib/mowsContext/appSettings.ts
+- components/react/lib/lib/mowsContext/appSettings.test.ts
+- components/react/lib/lib/mowsContext/useAppSetting.ts
+- components/react/src/guides/SettingsSystemGuide.tsx
+
+MODIFIED files (diff in the .diff file; read current state for full context):
+- components/react/lib/lib/mowsContext/MowsContext.tsx
+- components/react/lib/lib/mowsContext/ActionManager.tsx
+- components/react/lib/lib/mowsContext/HotkeyManager.tsx
+- components/react/lib/components/settings/settingsPanel/SettingsPanel.tsx
+- components/react/lib/components/settings/settingsPanel/SettingsPanel.test.tsx
+- components/react/lib/main.ts
+- components/react/lib/lib/languages.ts
+- components/react/lib/lib/languages/en-US/default.ts
+- components/react/lib/lib/languages/de/default.ts
+- components/react/src/examples/settingsPanel/SettingsPanelDocPage.tsx
+- components/react/src/examples/settingsPanel/translations.ts
+- components/react/src/guides/index.tsx
+- components/react/src/languages.ts
+- components/react/src/languages/en-US.ts
+- components/react/src/languages/de.ts
+
+OUT-OF-SCOPE for this review (other unrelated diffs in the working tree
+— please ignore even though they appear in `git status`):
+- components/react/lib/components/code/codeViewer/MonacoCodeEditor.tsx
+- components/react/lib/components/ui/checkbox.tsx / checkbox.test.tsx
+- components/react/src/examples/nodeEditor/Default.tsx
+- components/react/src/examples/languagePicker/* (Standalone removal, unrelated)
+- components/react/src/examples/map/MapDocPage.tsx
+- components/react/src/App.tsx (favorite-star tweaks)
+- components/react/src/demos.tsx
+- components/react/src/examples/harness/registryIntegrity.test.ts
+- Any new untracked dirs unrelated to settings (dateTime/timeline, staggeredCheckboxes, weather*, expandableSection, openingHours/Collapsible, audioPlayer/AudioPlayerDemoPage, etc.)
+
+=== Subject of the review ===
+
+A new unified Settings system inside `@my-own-web-services/react-components`.
+The goal is: every persisted setting (theme, language, hotkey overrides,
+recent actions, and any consumer-app-registered fields) lives in a single
+localStorage blob under `${storagePrefix}_settings`, structured as
+`{ _v, core: {...}, app: { <appKey>: {...} } }`. Apps register their own
+typed settings via `defineAppSettings({ appKey, schema })`, read+write via
+`useAppSetting(schema, "fieldId")`, and SettingsPanel renders the registered
+schema as additional sections. Legacy per-concern keys (`_theme`, `_language`,
+…) auto-migrate on first mount. The future story is a remote-sync provider
+for the `core` slot, while `app.*` stays device-local — so the persistence
+layer is an interface (`SettingsStorageAdapter`) for swap-in later.
+
+Focus your review on: this Settings system. Skip anything labelled
+out-of-scope above.

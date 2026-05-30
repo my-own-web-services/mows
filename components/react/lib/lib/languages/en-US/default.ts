@@ -93,7 +93,10 @@ const translation: BaseTranslation = {
             bottomLeft: `Bottom left`,
             bottomCenter: `Bottom center`,
             bottomRight: `Bottom right`
-        }
+        },
+        /** Fallback label used in `<SettingsPanel>` for app-registered
+         * settings whose schema entry omitted the `group` field. */
+        appSectionDefaultGroup: `Other`
     },
     keyboardShortcuts: {
         label: `Keyboard Shortcuts`,

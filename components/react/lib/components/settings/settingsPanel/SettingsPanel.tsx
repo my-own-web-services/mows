@@ -4,6 +4,7 @@ import LanguagePicker from "@/components/settings/languagePicker/LanguagePicker"
 import MapStylePicker from "@/components/settings/mapStylePicker/MapStylePicker";
 import ThemePicker from "@/components/settings/themePicker/ThemePicker";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
     Select,
@@ -12,33 +13,36 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import type { Translation } from "@/lib/languages";
 import {
-    type MowsCodeEditorSettings,
-    type MowsToastSettings,
+    type AnyAppSettings,
+    type AppSettingField,
+    type AppSettingsContextValue,
+    matchesFieldType,
+    resolveLocalisedText
+} from "@/lib/mowsContext/appSettings";
+import {
     type ToastPosition,
     TOAST_POSITIONS,
     useMows
 } from "@/lib/mowsContext/MowsContext";
+import {
+    type SettingsBlob,
+    SettingsBlobValidationError
+} from "@/lib/mowsContext/SettingsManager";
 import { cn } from "@/lib/utils";
 import {
     type CSSProperties,
+    type ReactNode,
     useCallback,
     useEffect,
     useMemo,
     useRef,
-    useState
+    useState,
+    useSyncExternalStore
 } from "react";
-
-export interface MowsSettings {
-    readonly theme: string;
-    readonly codeTheme: string;
-    readonly mapStyle: string;
-    readonly language?: string;
-    readonly codeEditor?: Partial<MowsCodeEditorSettings>;
-    readonly toast?: Partial<MowsToastSettings>;
-}
 
 export interface SettingsPanelProps {
     readonly className?: string;
@@ -47,9 +51,19 @@ export interface SettingsPanelProps {
 
 const fieldClass = `flex h-9 w-full items-center justify-between rounded-md border border-input bg-background py-1`;
 
-type SectionId = `appearance` | `code-editor` | `language` | `notifications` | `map`;
+type CoreSectionId =
+    | `appearance`
+    | `code-editor`
+    | `language`
+    | `notifications`
+    | `map`;
 
-const TOAST_POSITION_LABEL_KEYS: Record<ToastPosition, keyof Translation[`settings`][`toastPositions`]> = {
+type SectionId = CoreSectionId | `app-${string}`;
+
+const TOAST_POSITION_LABEL_KEYS: Record<
+    ToastPosition,
+    keyof Translation[`settings`][`toastPositions`]
+> = {
     "top-left": `topLeft`,
     "top-center": `topCenter`,
     "top-right": `topRight`,
@@ -59,102 +73,97 @@ const TOAST_POSITION_LABEL_KEYS: Record<ToastPosition, keyof Translation[`settin
 };
 
 const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+    const mows = useMows();
     const {
         t,
-        themes,
-        currentTheme,
-        setTheme,
-        codeThemes,
-        currentCodeTheme,
-        setCodeTheme,
-        languages,
-        currentLanguage,
-        setLanguage,
         codeEditorSettings,
         setCodeEditorSettings,
         toastSettings,
         setToastSettings,
-        mapStyles,
-        currentMapStyle,
-        setMapStyle
-    } = useMows();
+        settingsManager,
+        appSettings
+    } = mows;
 
-    const sections = useMemo(
-        () =>
-            [
-                { id: `appearance`, label: t.settings.sections.appearance },
-                { id: `code-editor`, label: t.settings.sections.codeEditor },
-                { id: `map`, label: t.settings.sections.map },
-                { id: `notifications`, label: t.settings.sections.notifications },
-                { id: `language`, label: t.settings.sections.language }
-            ] as { id: SectionId; label: string }[],
-        [t.settings.sections]
+    // Subscribe to the whole blob so the JSON tab stays in sync if any
+    // other code (or a programmatic `replaceBlob`) modifies it under us.
+    const blob = useSyncExternalStore(
+        useCallback((listener) => settingsManager.subscribe(`*`, listener), [settingsManager]),
+        useCallback(() => settingsManager.getBlob(), [settingsManager])
     );
 
-    const currentSettings: MowsSettings = useMemo(
-        () => ({
-            theme: currentTheme.id,
-            codeTheme: currentCodeTheme.id,
-            mapStyle: currentMapStyle.id,
-            language: currentLanguage?.code,
-            codeEditor: codeEditorSettings,
-            toast: toastSettings
-        }),
-        [
-            currentTheme.id,
-            currentCodeTheme.id,
-            currentMapStyle.id,
-            currentLanguage?.code,
-            codeEditorSettings,
-            toastSettings
-        ]
-    );
+    // Group registered app fields so we render one sub-section per
+    // group. Field order inside a group is preserved from the schema
+    // declaration order (Object.entries on a same-shape object is
+    // insertion-ordered in modern JS).
+    const appGroups = useMemo(() => buildAppGroups(appSettings.registered, t), [
+        appSettings.registered,
+        t
+    ]);
 
-    const [jsonDraft, setJsonDraft] = useState(() => JSON.stringify(currentSettings, null, 2));
+    const sections = useMemo(() => {
+        const core: { id: CoreSectionId; label: string }[] = [
+            { id: `appearance`, label: t.settings.sections.appearance },
+            { id: `code-editor`, label: t.settings.sections.codeEditor },
+            { id: `map`, label: t.settings.sections.map },
+            { id: `notifications`, label: t.settings.sections.notifications },
+            { id: `language`, label: t.settings.sections.language }
+        ];
+        const app: { id: SectionId; label: string }[] = appGroups.map((g) => ({
+            id: `app-${g.id}` as const,
+            label: g.label
+        }));
+        return [...core, ...app];
+    }, [appGroups, t.settings.sections]);
+
+    // JSON tab edits the full unified blob — that's the "single key,
+    // single JSON file for export" guarantee the system gives users.
+    const [jsonDraft, setJsonDraft] = useState(() => JSON.stringify(blob, null, 2));
     const [jsonError, setJsonError] = useState<string | null>(null);
+    // Ref for the JSON-tab textarea so we can skip the blob-driven
+    // reset while the user is actively typing (otherwise a programmatic
+    // blob change — e.g. cross-tab sync, or any `setCore` from a
+    // sibling component — would overwrite mid-edit and lose work).
+    const jsonTextareaRef = useRef<HTMLElement | null>(null);
 
     useEffect(() => {
-        setJsonDraft(JSON.stringify(currentSettings, null, 2));
+        if (
+            typeof document !== `undefined` &&
+            jsonTextareaRef.current &&
+            jsonTextareaRef.current.contains(document.activeElement)
+        ) {
+            // User is mid-edit — preserve their draft. They'll see the
+            // staleness on next blur or when they explicitly Reset.
+            return;
+        }
+        setJsonDraft(JSON.stringify(blob, null, 2));
         setJsonError(null);
-    }, [currentSettings]);
-
-    const applySettings = (next: MowsSettings) => {
-        if (next.theme && next.theme !== currentTheme.id) {
-            const theme = themes.find((th) => th.id === next.theme);
-            if (theme) setTheme(theme);
-        }
-        if (next.codeTheme && next.codeTheme !== currentCodeTheme.id) {
-            const codeTheme = codeThemes.find((c) => c.id === next.codeTheme);
-            if (codeTheme) setCodeTheme(codeTheme);
-        }
-        if (next.mapStyle && next.mapStyle !== currentMapStyle.id) {
-            const mapStyle = mapStyles.find((m) => m.id === next.mapStyle);
-            if (mapStyle) setMapStyle(mapStyle);
-        }
-        if (next.language && next.language !== currentLanguage?.code) {
-            const lang = languages.find((l) => l.code === next.language);
-            if (lang) setLanguage(lang);
-        }
-        if (next.codeEditor) {
-            setCodeEditorSettings(next.codeEditor);
-        }
-        if (next.toast) {
-            setToastSettings(next.toast);
-        }
-    };
+    }, [blob]);
 
     const onSaveJson = () => {
+        let parsed: SettingsBlob;
         try {
-            const parsed = JSON.parse(jsonDraft) as MowsSettings;
-            applySettings(parsed);
-            setJsonError(null);
+            parsed = JSON.parse(jsonDraft) as SettingsBlob;
         } catch (err) {
             setJsonError(t.settings.invalidJson + ` (` + (err as Error).message + `)`);
+            return;
+        }
+        try {
+            // SettingsManager.replaceBlob owns the version + shape
+            // contract; the panel only forwards the parsed value and
+            // surfaces the validation error to the user.
+            settingsManager.replaceBlob(parsed);
+            setJsonError(null);
+        } catch (err) {
+            if (err instanceof SettingsBlobValidationError) {
+                setJsonError(`${t.settings.invalidJson} (${err.message})`);
+                return;
+            }
+            throw err;
         }
     };
 
     const onResetJson = () => {
-        setJsonDraft(JSON.stringify(currentSettings, null, 2));
+        setJsonDraft(JSON.stringify(blob, null, 2));
         setJsonError(null);
     };
 
@@ -182,9 +191,6 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
         const observer = new IntersectionObserver(
             (entries) => {
                 if (Date.now() < programmaticScrollUntil.current) return;
-                // Pick the entry whose top is closest to (but not below) the
-                // root's top — that's the section currently anchored to the
-                // top of the viewport.
                 const candidates = entries
                     .filter((e) => e.isIntersecting)
                     .sort(
@@ -192,45 +198,37 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                             a.boundingClientRect.top - b.boundingClientRect.top
                     );
                 if (candidates.length === 0) return;
-                const id = (candidates[0].target as HTMLElement).dataset
-                    .sectionId as SectionId | undefined;
+                const target = candidates[0].target;
+                // The observer is only ever attached to our own
+                // `[data-section-id]` divs (HTMLElements with a
+                // dataset). The narrow guard makes the access
+                // type-safe even if a future refactor ever observes a
+                // non-HTML element (SVG, MathML).
+                if (!(target instanceof HTMLElement)) return;
+                const id = target.dataset.sectionId as SectionId | undefined;
                 if (id) setActiveSection(id);
             },
             {
                 root,
-                // Triggers ~halfway up the viewport so the highlight follows
-                // the section title rather than waiting for the entire
-                // section to scroll out.
                 rootMargin: `0px 0px -60% 0px`,
                 threshold: [0, 0.1, 0.5]
             }
         );
         sections.forEach((s) => {
-            const el = root.querySelector<HTMLElement>(
-                `[data-section-id="${s.id}"]`
-            );
+            const el = root.querySelector<HTMLElement>(`[data-section-id="${s.id}"]`);
             if (el) observer.observe(el);
         });
         return () => observer.disconnect();
     }, [sections]);
 
-    // Form/JSON view is a single binary mode, not a tabbed surface — a
-    // small toggle button at the top-right swaps the two views in place,
-    // freeing the full panel width for content instead of burning a full
-    // bar on two labels.
     const [mode, setMode] = useState<`form` | `json`>(`form`);
     const toggleMode = () => setMode((m) => (m === `form` ? `json` : `form`));
-    // The button advertises the target view, not the current one
-    // ("press to switch to JSON" / "press to switch to Form").
     const toggleLabel = mode === `form` ? t.settings.jsonTab : t.settings.formTab;
 
     return (
         <div
             style={style}
-            className={cn(
-                `SettingsPanel relative flex h-full flex-col`,
-                className
-            )}
+            className={cn(`SettingsPanel relative flex h-full flex-col`, className)}
         >
             <Button
                 type={`button`}
@@ -245,7 +243,6 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
 
             {mode === `form` ? (
                 <div className={`flex min-h-0 flex-1 gap-6 pt-2`}>
-
                     <nav
                         className={`flex w-48 shrink-0 flex-col gap-1 border-r pr-3`}
                         aria-label={t.settings.title}
@@ -287,12 +284,9 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                             >
                                 {t.settings.sections.appearance}
                             </h2>
-                            <div
-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
-                            >
-                                <Label>{t.settings.labels.theme}</Label>
+                            <SettingRow label={t.settings.labels.theme}>
                                 <ThemePicker className={fieldClass} />
-                            </div>
+                            </SettingRow>
                         </section>
 
                         <section
@@ -304,23 +298,18 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                             >
                                 {t.settings.sections.codeEditor}
                             </h2>
-                            <div
-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
-                            >
-                                <Label>{t.settings.labels.codeTheme}</Label>
+                            <SettingRow label={t.settings.labels.codeTheme}>
                                 <CodeThemePicker className={fieldClass} />
-                            </div>
+                            </SettingRow>
                             <CodeViewer
                                 language={`tsx`}
                                 code={`const greet = (name: string): string => \`Hello, \${name}!\`;\nconst nums = [1, 2, 3].map((n) => n * 2);`}
                                 className={`h-[140px]`}
                             />
-                            <div
-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
+                            <SettingRow
+                                label={t.settings.labels.showLineNumbers}
+                                htmlFor={`settings-show-line-numbers`}
                             >
-                                <Label htmlFor={`settings-show-line-numbers`}>
-                                    {t.settings.labels.showLineNumbers}
-                                </Label>
                                 <Switch
                                     id={`settings-show-line-numbers`}
                                     checked={codeEditorSettings.showLineNumbers}
@@ -328,13 +317,11 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                                         setCodeEditorSettings({ showLineNumbers })
                                     }
                                 />
-                            </div>
-                            <div
-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
+                            </SettingRow>
+                            <SettingRow
+                                label={t.settings.labels.wrap}
+                                htmlFor={`settings-wrap`}
                             >
-                                <Label htmlFor={`settings-wrap`}>
-                                    {t.settings.labels.wrap}
-                                </Label>
                                 <Switch
                                     id={`settings-wrap`}
                                     checked={codeEditorSettings.wrap}
@@ -342,13 +329,11 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                                         setCodeEditorSettings({ wrap })
                                     }
                                 />
-                            </div>
-                            <div
-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
+                            </SettingRow>
+                            <SettingRow
+                                label={t.settings.labels.showWhitespace}
+                                htmlFor={`settings-show-whitespace`}
                             >
-                                <Label htmlFor={`settings-show-whitespace`}>
-                                    {t.settings.labels.showWhitespace}
-                                </Label>
                                 <Switch
                                     id={`settings-show-whitespace`}
                                     checked={codeEditorSettings.showWhitespace}
@@ -356,21 +341,23 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                                         setCodeEditorSettings({ showWhitespace })
                                     }
                                 />
-                            </div>
-                            <div
-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
+                            </SettingRow>
+                            <SettingRow
+                                label={t.settings.labels.bracketPairColorization}
+                                htmlFor={`settings-bracket-pair-colorization`}
                             >
-                                <Label htmlFor={`settings-bracket-pair-colorization`}>
-                                    {t.settings.labels.bracketPairColorization}
-                                </Label>
                                 <Switch
                                     id={`settings-bracket-pair-colorization`}
-                                    checked={codeEditorSettings.bracketPairColorization}
+                                    checked={
+                                        codeEditorSettings.bracketPairColorization
+                                    }
                                     onCheckedChange={(bracketPairColorization) =>
-                                        setCodeEditorSettings({ bracketPairColorization })
+                                        setCodeEditorSettings({
+                                            bracketPairColorization
+                                        })
                                     }
                                 />
-                            </div>
+                            </SettingRow>
                         </section>
 
                         <section
@@ -382,12 +369,9 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                             >
                                 {t.settings.sections.map}
                             </h2>
-                            <div
-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
-                            >
-                                <Label>{t.settings.labels.mapStyle}</Label>
+                            <SettingRow label={t.settings.labels.mapStyle}>
                                 <MapStylePicker className={fieldClass} />
-                            </div>
+                            </SettingRow>
                         </section>
 
                         <section
@@ -399,12 +383,10 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                             >
                                 {t.settings.sections.notifications}
                             </h2>
-                            <div
-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
+                            <SettingRow
+                                label={t.settings.labels.toastPosition}
+                                htmlFor={`settings-toast-position`}
                             >
-                                <Label htmlFor={`settings-toast-position`}>
-                                    {t.settings.labels.toastPosition}
-                                </Label>
                                 <Select
                                     value={toastSettings.position}
                                     onValueChange={(value) =>
@@ -431,7 +413,7 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                            </div>
+                            </SettingRow>
                         </section>
 
                         <section
@@ -443,26 +425,48 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                             >
                                 {t.settings.sections.language}
                             </h2>
-                            <div
-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
-                            >
-                                <Label>{t.settings.labels.language}</Label>
+                            <SettingRow label={t.settings.labels.language}>
                                 <LanguagePicker className={fieldClass} />
-                            </div>
+                            </SettingRow>
                         </section>
+
+                        {appGroups.map((group) => (
+                            <section
+                                key={group.id}
+                                data-section-id={`app-${group.id}`}
+                                className={`flex flex-col gap-4 scroll-mt-2`}
+                            >
+                                <h2
+                                    className={`text-2xl font-semibold tracking-tight`}
+                                >
+                                    {group.label}
+                                </h2>
+                                {group.fields.map((entry) => (
+                                    <AppFieldRow
+                                        key={entry.settingId}
+                                        settingId={entry.settingId}
+                                        field={entry.field}
+                                        appSettingsContext={appSettings}
+                                        t={t}
+                                    />
+                                ))}
+                            </section>
+                        ))}
                     </div>
                 </div>
             ) : (
                 <div className={`flex min-h-0 flex-1 flex-col gap-2 pt-2`}>
-                    <CodeViewer
-                        editable
-                        wrap
-                        showLineNumbers
-                        language={`json`}
-                        code={jsonDraft}
-                        onCodeChange={setJsonDraft}
-                        className={`h-[400px]`}
-                    />
+                    <div ref={(el) => { jsonTextareaRef.current = el; }}>
+                        <CodeViewer
+                            editable
+                            wrap
+                            showLineNumbers
+                            language={`json`}
+                            code={jsonDraft}
+                            onCodeChange={setJsonDraft}
+                            className={`h-[400px]`}
+                        />
+                    </div>
                     {jsonError && (
                         <span className={`text-sm text-destructive`}>{jsonError}</span>
                     )}
@@ -481,3 +485,212 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
 SettingsPanel.displayName = `SettingsPanel`;
 
 export default SettingsPanel;
+
+// ---- Helpers ---------------------------------------------------------------
+
+interface SettingRowProps {
+    readonly label: ReactNode;
+    readonly description?: ReactNode;
+    readonly htmlFor?: string;
+    readonly children: ReactNode;
+}
+
+const SettingRow = ({ label, description, htmlFor, children }: SettingRowProps) => (
+    <div className={`grid grid-cols-[200px_1fr] items-start gap-3`}>
+        <div className={`flex flex-col gap-1 pt-2`}>
+            <Label htmlFor={htmlFor}>{label}</Label>
+            {description && (
+                <span className={`text-xs text-muted-foreground`}>{description}</span>
+            )}
+        </div>
+        <div className={`pt-1`}>{children}</div>
+    </div>
+);
+
+interface AppGroup {
+    readonly id: string;
+    readonly label: string;
+    readonly fields: ReadonlyArray<{ readonly settingId: string; readonly field: AppSettingField }>;
+}
+
+const APP_GROUP_ID_OTHER = `__other__`;
+
+const buildAppGroups = (
+    registered: AnyAppSettings | null,
+    t: Translation
+): AppGroup[] => {
+    if (!registered) return [];
+    const groups = new Map<string, AppGroup & { id: string }>();
+    const fallbackLabel = t.settings.appSectionDefaultGroup ?? `Other`;
+
+    for (const [settingId, field] of Object.entries(registered.schema)) {
+        const label = field.group
+            ? resolveLocalisedText(field.group, t)
+            : fallbackLabel;
+        // Use the resolved label as the grouping key but keep a stable
+        // slug for the section id (so the same group across languages
+        // doesn't fragment the nav when the locale changes mid-life).
+        const groupId =
+            field.group === undefined ? APP_GROUP_ID_OTHER : slugForGroup(label);
+        let bucket = groups.get(groupId);
+        if (!bucket) {
+            bucket = { id: groupId, label, fields: [] };
+            groups.set(groupId, bucket);
+        }
+        (bucket.fields as Array<{ settingId: string; field: AppSettingField }>).push({
+            settingId,
+            field
+        });
+    }
+    return Array.from(groups.values());
+};
+
+const slugForGroup = (label: string): string =>
+    label.toLowerCase().replace(/[^a-z0-9]+/g, `-`).replace(/^-+|-+$/g, ``) || `group`;
+
+interface AppFieldRowProps {
+    readonly settingId: string;
+    readonly field: AppSettingField;
+    readonly appSettingsContext: AppSettingsContextValue;
+    readonly t: Translation;
+}
+
+const AppFieldRow = ({ settingId, field, appSettingsContext, t }: AppFieldRowProps) => {
+    const value = useSyncExternalStore(
+        useCallback(
+            (listener) => appSettingsContext.subscribe(settingId, listener),
+            [appSettingsContext, settingId]
+        ),
+        useCallback(() => {
+            const stored = appSettingsContext.getValue(settingId);
+            return matchesFieldType(stored, field) ? stored : field.default;
+        }, [appSettingsContext, field, settingId])
+    );
+
+    const setValue = useCallback(
+        (next: unknown) => appSettingsContext.setValue(settingId, next),
+        [appSettingsContext, settingId]
+    );
+
+    const label = resolveLocalisedText(field.label, t);
+    const description = field.description
+        ? resolveLocalisedText(field.description, t)
+        : undefined;
+    const inputId = `settings-app-${settingId}`;
+
+    // Custom renderer escape hatch — schema author owns the row body.
+    if (field.render) {
+        // Cast to a value-type-erased shape. Every concrete schema's
+        // `render` signature is `({ value: T, setValue: (T) => void, t }) => ReactNode`
+        // for SOME `T`, but TS narrows the union to `never` here:
+        // `value: T` is covariant and `setValue: (T) => void` is
+        // contravariant in `T`, so the intersection of all union
+        // members has no common position for `T` at all. We erase to
+        // `unknown` to bypass — safety is guaranteed by the schema
+        // author's responsibility to return a renderer that matches
+        // the field's declared `type` (which the value at this point
+        // already does, since `matchesFieldType` ran one closure ago).
+        const renderFn = field.render as (props: {
+            value: unknown;
+            setValue: (v: unknown) => void;
+            t: Translation;
+        }) => ReactNode;
+        return (
+            <SettingRow label={label} description={description} htmlFor={inputId}>
+                {renderFn({ value, setValue, t })}
+            </SettingRow>
+        );
+    }
+
+    return (
+        <SettingRow label={label} description={description} htmlFor={inputId}>
+            {renderBuiltinField(field, value, setValue, inputId, t)}
+        </SettingRow>
+    );
+};
+
+const renderBuiltinField = (
+    field: AppSettingField,
+    value: unknown,
+    setValue: (v: unknown) => void,
+    inputId: string,
+    t: Translation
+): ReactNode => {
+    switch (field.type) {
+        case `boolean`:
+            return (
+                <Switch
+                    id={inputId}
+                    checked={value as boolean}
+                    onCheckedChange={(v) => setValue(v)}
+                />
+            );
+        case `select`:
+            return (
+                <Select
+                    value={value as string}
+                    onValueChange={(v) => setValue(v)}
+                >
+                    <SelectTrigger id={inputId} className={fieldClass}>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {field.options.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                                {resolveLocalisedText(opt.label, t)}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            );
+        case `number`:
+            return (
+                <Input
+                    id={inputId}
+                    type={`number`}
+                    value={value as number}
+                    min={field.min}
+                    max={field.max}
+                    step={field.step}
+                    onChange={(e) => {
+                        const n = Number(e.target.value);
+                        if (Number.isFinite(n)) setValue(n);
+                    }}
+                />
+            );
+        case `slider`:
+            return (
+                <Slider
+                    id={inputId}
+                    value={[value as number]}
+                    min={field.min}
+                    max={field.max}
+                    step={field.step ?? 1}
+                    onValueChange={(v) => setValue(v[0])}
+                />
+            );
+        case `string`:
+            return (
+                <Input
+                    id={inputId}
+                    type={`text`}
+                    value={value as string}
+                    placeholder={
+                        field.placeholder
+                            ? resolveLocalisedText(field.placeholder, t)
+                            : undefined
+                    }
+                    onChange={(e) => setValue(e.target.value)}
+                />
+            );
+        case `color`:
+            return (
+                <Input
+                    id={inputId}
+                    type={`color`}
+                    value={value as string}
+                    onChange={(e) => setValue(e.target.value)}
+                />
+            );
+    }
+};

@@ -30,6 +30,7 @@ import { dialogEn } from "../examples/dialog/translations";
 import { dropdownMenuEn } from "../examples/dropdownMenu/translations";
 import { emojiPickerEn } from "../examples/emojiPicker/translations";
 import { expandableCodeEn } from "../examples/expandableCode/translations";
+import { expandableSectionEn } from "../examples/expandableSection/translations";
 import { fileIconEn } from "../examples/fileIcon/translations";
 import { fileViewerEn } from "../examples/fileViewer/translations";
 import { globalContextMenuEn } from "../examples/globalContextMenu/translations";
@@ -72,6 +73,7 @@ import { sidebarEn } from "../examples/sidebar/translations";
 import { skeletonEn } from "../examples/skeleton/translations";
 import { sliderEn } from "../examples/slider/translations";
 import { sonnerEn } from "../examples/sonner/translations";
+import { staggeredCheckboxesEn } from "../examples/staggeredCheckboxes/translations";
 import { switchEn } from "../examples/switch/translations";
 import { tabsEn } from "../examples/tabs/translations";
 import { terminalEn } from "../examples/terminal/translations";
@@ -81,6 +83,8 @@ import { timePickerEn } from "../examples/timePicker/translations";
 import { timelineEn } from "../examples/timeline/translations";
 import { timezoneSelectorEn } from "../examples/timezoneSelector/translations";
 import { videoViewerEn } from "../examples/videoViewer/translations";
+import { weatherChipEn } from "../examples/weatherChip/translations";
+import { weatherExpandableEn } from "../examples/weatherExpandable/translations";
 
 const translation: Translation = {
     ...baseEn,
@@ -142,7 +146,8 @@ const translation: Translation = {
             removeFromFavoritesAriaLabel: `Remove from favorites`,
             guidesLabel: `Guides`,
             creatingAppsLabel: `Creating Apps`,
-            translationsLabel: `Translations`
+            translationsLabel: `Translations`,
+            settingsSystemLabel: `Settings System`
         },
         guides: {
             creatingApps: {
@@ -315,6 +320,77 @@ const translation: Translation = {
                         body: `Per-locale app files start with \`...baseEn\` (or \`...baseDe\`) so the library's strings keep their values without being duplicated. Forgetting the spread leaves your app-side keys typechecking individually but the merged \`Translation\` missing every library key — and the compile error surfaces only at the assignment site, far from the missing field.`
                     }
                 }
+            },
+            settingsSystem: {
+                title: `Settings System`,
+                overview: {
+                    title: `Overview`,
+                    intro: `Every preference your app persists — the library's own (theme, language, hotkey overrides, …) and anything you add yourself — lives in one JSON blob under a single \`localStorage\` key. Users can copy that blob, paste it into another browser, and recover the full UX state in one step.`,
+                    oneBlob: {
+                        title: `One key, one blob`,
+                        body: `The key is \`\${storagePrefix}_settings\`. Inside it: \`_v\` (schema version), \`core\` (lib-owned slots) and \`app\` (your fields, sub-keyed by \`appKey\`). The split is intentional — see the next subsection.`
+                    },
+                    coreVsApp: {
+                        title: `core vs. app`,
+                        body: `\`core.*\` is the contract the library owns. The shape is stable so a future Settings API can sync these values across devices/apps for the same user. \`app.<appKey>.*\` is yours — defined by your schema, stays device-local even when \`core\` is later remote-synced.`
+                    },
+                    futureSync: {
+                        title: `Future: remote sync of core`,
+                        body: `Today the blob is purely \`localStorage\`. The persistence layer in \`SettingsManager\` is intentionally an interface (\`SettingsStorageAdapter\`) so a future remote-sync provider for \`core\` slots in without consumer changes. \`_v\` versions the wire format for that sync.`
+                    }
+                },
+                quickStart: {
+                    title: `Quick start`,
+                    intro: `Three steps: declare a schema, register it on \`<MowsProvider>\`, read+write via \`useAppSetting\`.`,
+                    defineSchema: {
+                        title: `1. Declare the schema`,
+                        body: `\`defineAppSettings({ appKey, schema })\` is a runtime-free helper that returns the schema object verbatim plus a stable \`appKey\`. Each schema entry is a typed field descriptor: \`type\` ("boolean" | "select" | "number" | "slider" | "string" | "color"), \`default\`, \`label\`, optional \`group\` for SettingsPanel placement.`
+                    },
+                    registerSchema: {
+                        title: `2. Register on MowsProvider`,
+                        body: `Pass the schema via \`<MowsProvider appSettings={…}>\`. That populates the registry the typed hooks read from. One schema per app — multi-schema is not a supported pattern.`
+                    },
+                    readWrite: {
+                        title: `3. Read + write with useAppSetting`,
+                        body: `\`useAppSetting(schema, "fieldId")\` returns \`[value, setValue]\` fully type-inferred from the schema. The hook subscribes only to the specific path, so unrelated writes don't re-render. Defaults kick in automatically — and the runtime type guard falls back to the default when the stored value doesn't match the declared type (defensive against blob corruption).`
+                    }
+                },
+                fields: {
+                    title: `Field types`,
+                    intro: `The schema field types map to the primitives \`<SettingsPanel>\` knows how to render:`,
+                    builtin: {
+                        title: `Built-ins`,
+                        body: `\`boolean\` → Switch · \`select\` → Select (typed by option value) · \`number\` → numeric Input · \`slider\` → Slider · \`string\` → text Input · \`color\` → color Input. Each field's value type is derived from the descriptor so consumer code sees \`boolean\`, the option-value union, \`number\`, or \`string\` — never \`unknown\`.`
+                    },
+                    custom: {
+                        title: `Escape hatch: custom render`,
+                        body: `When a built-in primitive doesn't fit, supply \`render: ({ value, setValue, t }) => …\` on the schema entry. Storage + typed hooks stay free; only the row UI is yours.`
+                    }
+                },
+                panel: {
+                    title: `SettingsPanel integration`,
+                    intro: `\`<SettingsPanel>\` auto-renders every registered field. You don't write panel UI — the schema is the panel.`,
+                    grouping: {
+                        title: `Grouping fields`,
+                        body: `Set \`group: t => t.…\` on each field to control which section header it lives under. Fields without a group land in a translated "Other" bucket. Order inside a group follows schema-declaration order.`
+                    },
+                    jsonExport: {
+                        title: `JSON tab = full export`,
+                        body: `The panel's JSON tab edits the entire unified blob — core + app — so a paste covers everything in one round-trip. Save calls \`settingsManager.replaceBlob(parsed)\`; the version check rejects pastes whose \`_v\` doesn't match.`
+                    }
+                },
+                storage: {
+                    title: `Storage shape & migration`,
+                    intro: `What the unified blob looks like on disk, and how legacy installs migrate.`,
+                    shape: {
+                        title: `Blob shape`,
+                        body: `Three top-level slots inside \`_v: 1\`: \`core\` (theme, language, code editor, map style, toast), \`device\` (hotkey overrides + recent-actions MRU — intentionally per-machine), and \`app\` keyed by your \`appKey\`. The literal JSON layout is shown below. Empty slots are simply absent — defaults are applied on read.`
+                    },
+                    migration: {
+                        title: `Legacy keys are auto-migrated`,
+                        body: `Older versions of this lib used one \`localStorage\` key per concern (\`_theme\`, \`_code_theme\`, \`_language\`, …). On first mount with the unified system, those keys are read, merged into the new blob, and removed — once. Second mount is a no-op. Corrupted legacy JSON values are logged and skipped (the lib falls back to its default for that slot).`
+                    }
+                }
             }
         },
         examples: {
@@ -373,6 +449,7 @@ const translation: Translation = {
             keyComboDisplay: keyComboDisplayEn,
             keyboardShortcutEditor: keyboardShortcutEditorEn,
             expandableCode: expandableCodeEn,
+            expandableSection: expandableSectionEn,
             searchInput: searchInputEn,
             numberInput: numberInputEn,
             colorCurves: colorCurvesEn,
@@ -403,6 +480,9 @@ const translation: Translation = {
             chat: chatEn,
             keyComboRecorder: keyComboRecorderEn,
             chart: chartEn,
+            weatherChip: weatherChipEn,
+            weatherExpandable: weatherExpandableEn,
+            staggeredCheckboxes: staggeredCheckboxesEn,
         },
         common: {
             selected: `selected`,

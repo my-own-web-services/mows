@@ -31,6 +31,7 @@ import type { DialogTranslation } from "./examples/dialog/translations";
 import type { DropdownMenuTranslation } from "./examples/dropdownMenu/translations";
 import type { EmojiPickerTranslation } from "./examples/emojiPicker/translations";
 import type { ExpandableCodeTranslation } from "./examples/expandableCode/translations";
+import type { ExpandableSectionTranslation } from "./examples/expandableSection/translations";
 import type { FileIconTranslation } from "./examples/fileIcon/translations";
 import type { FileViewerTranslation } from "./examples/fileViewer/translations";
 import type { GlobalContextMenuTranslation } from "./examples/globalContextMenu/translations";
@@ -73,6 +74,7 @@ import type { SidebarTranslation } from "./examples/sidebar/translations";
 import type { SkeletonTranslation } from "./examples/skeleton/translations";
 import type { SliderTranslation } from "./examples/slider/translations";
 import type { SonnerTranslation } from "./examples/sonner/translations";
+import type { StaggeredCheckboxesTranslation } from "./examples/staggeredCheckboxes/translations";
 import type { SwitchTranslation } from "./examples/switch/translations";
 import type { TabsTranslation } from "./examples/tabs/translations";
 import type { TerminalTranslation } from "./examples/terminal/translations";
@@ -82,6 +84,8 @@ import type { TimePickerTranslation } from "./examples/timePicker/translations";
 import type { TimelineTranslation } from "./examples/timeline/translations";
 import type { TimezoneSelectorTranslation } from "./examples/timezoneSelector/translations";
 import type { VideoViewerTranslation } from "./examples/videoViewer/translations";
+import type { WeatherChipTranslation } from "./examples/weatherChip/translations";
+import type { WeatherExpandableTranslation } from "./examples/weatherExpandable/translations";
 
 // eslint-disable-next-line quotes
 declare module "../lib/lib/languages" {
@@ -133,6 +137,7 @@ declare module "../lib/lib/languages" {
                 guidesLabel: string;
                 creatingAppsLabel: string;
                 translationsLabel: string;
+                settingsSystemLabel: string;
             };
             guides: {
                 creatingApps: {
@@ -225,6 +230,41 @@ declare module "../lib/lib/languages" {
                         spreadBase: { title: string; body: string };
                     };
                 };
+                settingsSystem: {
+                    title: string;
+                    overview: {
+                        title: string;
+                        intro: string;
+                        oneBlob: { title: string; body: string };
+                        coreVsApp: { title: string; body: string };
+                        futureSync: { title: string; body: string };
+                    };
+                    quickStart: {
+                        title: string;
+                        intro: string;
+                        defineSchema: { title: string; body: string };
+                        registerSchema: { title: string; body: string };
+                        readWrite: { title: string; body: string };
+                    };
+                    fields: {
+                        title: string;
+                        intro: string;
+                        builtin: { title: string; body: string };
+                        custom: { title: string; body: string };
+                    };
+                    panel: {
+                        title: string;
+                        intro: string;
+                        grouping: { title: string; body: string };
+                        jsonExport: { title: string; body: string };
+                    };
+                    storage: {
+                        title: string;
+                        intro: string;
+                        shape: { title: string; body: string };
+                        migration: { title: string; body: string };
+                    };
+                };
             };
             examples: {
                 _harness: {
@@ -282,6 +322,7 @@ declare module "../lib/lib/languages" {
                 keyComboDisplay: KeyComboDisplayTranslation;
                 keyboardShortcutEditor: KeyboardShortcutEditorTranslation;
                 expandableCode: ExpandableCodeTranslation;
+                expandableSection: ExpandableSectionTranslation;
                 searchInput: SearchInputTranslation;
                 numberInput: NumberInputTranslation;
                 colorCurves: ColorCurvesTranslation;
@@ -312,6 +353,9 @@ declare module "../lib/lib/languages" {
                 dateTimeDisplay: DateTimeDisplayTranslation;
                 keyComboRecorder: KeyComboRecorderTranslation;
                 chart: ChartTranslation;
+                weatherChip: WeatherChipTranslation;
+                weatherExpandable: WeatherExpandableTranslation;
+                staggeredCheckboxes: StaggeredCheckboxesTranslation;
             };
             common: {
                 selected: string;

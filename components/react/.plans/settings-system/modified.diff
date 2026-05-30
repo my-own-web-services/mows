@@ -1,0 +1,2427 @@
+diff --git a/components/react/lib/components/settings/settingsPanel/SettingsPanel.test.tsx b/components/react/lib/components/settings/settingsPanel/SettingsPanel.test.tsx
+index c2e2f871..dec37eb8 100644
+--- a/components/react/lib/components/settings/settingsPanel/SettingsPanel.test.tsx
++++ b/components/react/lib/components/settings/settingsPanel/SettingsPanel.test.tsx
+@@ -25,6 +25,7 @@ import { defaultCodeThemes, type MowsCodeTheme } from "../../../lib/codeThemes";
+ import enTranslation from "../../../lib/languages/en-US/default";
+ import { defaultMapStyles, type MowsMapStyle } from "../../../lib/mapStyles";
+ import { ActionManager } from "../../../lib/mowsContext/ActionManager";
++import { createAppSettingsContextValue } from "../../../lib/mowsContext/appSettings";
+ import { HotkeyManager } from "../../../lib/mowsContext/HotkeyManager";
+ import {
+     defaultCodeEditorSettings,
+@@ -32,6 +33,7 @@ import {
+     MowsContext,
+     type MowsContextType
+ } from "../../../lib/mowsContext/MowsContext";
++import { SettingsManager, type SettingsStorageAdapter } from "../../../lib/mowsContext/SettingsManager";
+ import { defaultThemes, type MowsTheme } from "../../../lib/themes";
+ import SettingsPanel from "./SettingsPanel";
+ 
+@@ -47,15 +49,33 @@ interface ContextStubs {
+     toastPosition?: typeof defaultToastSettings.position;
+ }
+ 
++const inMemoryStorage = (): SettingsStorageAdapter => {
++    const data = new Map<string, string>();
++    return {
++        getItem: (k) => data.get(k) ?? null,
++        setItem: (k, v) => {
++            data.set(k, v);
++        },
++        removeItem: (k) => {
++            data.delete(k);
++        }
++    };
++};
++
+ const buildContext = (stubs: ContextStubs = {}): MowsContextType => {
++    const settingsManager = new SettingsManager({
++        storagePrefix: `test_${Math.random()}`,
++        storage: inMemoryStorage()
++    });
+     const actionManager = new ActionManager({
+-        recentActionsStorageKey: `s_${Math.random()}`,
++        recentActionsSlot: settingsManager.coreSlotAdapter(`recentActions`),
+         maxRecentActions: 5
+     });
+     const hotkeyManager = new HotkeyManager(actionManager, {
+-        configStorageKey: `hk_${Math.random()}`,
++        configSlot: settingsManager.coreSlotAdapter(`hotkeyConfig`),
+         defaultHotkeys: {}
+     });
++    const appSettings = createAppSettingsContextValue(settingsManager, null);
+ 
+     const currentTheme =
+         defaultThemes.find((th) => th.id === (stubs.currentThemeId ?? `light`)) ?? defaultThemes[0];
+@@ -108,12 +128,19 @@ const buildContext = (stubs: ContextStubs = {}): MowsContextType => {
+         setToastSettings: stubs.setToastSettings ?? (() => undefined),
+         mapStyles: defaultMapStyles,
+         currentMapStyle,
+-        setMapStyle: stubs.setMapStyle ?? (() => undefined)
++        setMapStyle: stubs.setMapStyle ?? (() => undefined),
++        settingsManager,
++        appSettings
+     };
+ };
+ 
+-const renderPanel = (stubs: ContextStubs = {}, children: ReactNode = <SettingsPanel />) =>
+-    render(<MowsContext.Provider value={buildContext(stubs)}>{children}</MowsContext.Provider>);
++const renderPanel = (stubs: ContextStubs = {}, children: ReactNode = <SettingsPanel />) => {
++    const ctx = buildContext(stubs);
++    const utils = render(
++        <MowsContext.Provider value={ctx}>{children}</MowsContext.Provider>
++    );
++    return { ...utils, ctx };
++};
+ 
+ describe(`SettingsPanel`, () => {
+     it(`renders the three section headings`, () => {
+@@ -133,9 +160,14 @@ describe(`SettingsPanel`, () => {
+         expect(screen.getAllByText(`English`).length).toBeGreaterThan(0);
+     });
+ 
+-    it(`switches to the JSON tab and shows current settings`, async () => {
++    it(`switches to the JSON tab and shows the unified settings blob`, async () => {
+         const user = userEvent.setup();
+-        renderPanel({ currentThemeId: `dark`, currentCodeThemeId: `hc-black` });
++        const { ctx } = renderPanel();
++        // Seed the manager so the JSON tab has something to show — the
++        // blob shape is `{ _v, core: {...}, app: {...} }`, not the
++        // legacy flat object.
++        ctx.settingsManager.setCore(`theme`, `dark`);
++        ctx.settingsManager.setCore(`codeTheme`, `hc-black`);
+ 
+         await user.click(screen.getByRole(`button`, { name: `JSON` }));
+         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
+@@ -143,31 +175,54 @@ describe(`SettingsPanel`, () => {
+             (el) => !(el as HTMLTextAreaElement).readOnly
+         ) as HTMLTextAreaElement;
+         const parsed = JSON.parse(textarea.value);
+-        expect(parsed).toMatchObject({ theme: `dark`, codeTheme: `hc-black` });
++        expect(parsed._v).toBe(1);
++        expect(parsed.core).toMatchObject({ theme: `dark`, codeTheme: `hc-black` });
+     });
+ 
+-    it(`applies edited JSON when Save is clicked`, async () => {
++    it(`pastes a wholesale blob into the JSON tab and calls replaceBlob`, async () => {
+         const user = userEvent.setup();
+-        const setTheme = vi.fn();
+-        const setCodeTheme = vi.fn();
+-        renderPanel({ setTheme, setCodeTheme });
++        const { ctx } = renderPanel();
++        const replaceSpy = vi.spyOn(ctx.settingsManager, `replaceBlob`);
+ 
+         await user.click(screen.getByRole(`button`, { name: `JSON` }));
+         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
+-        const textarea = textareas.find((el) => !(el as HTMLTextAreaElement).readOnly) as HTMLTextAreaElement;
++        const textarea = textareas.find(
++            (el) => !(el as HTMLTextAreaElement).readOnly
++        ) as HTMLTextAreaElement;
+ 
++        const nextBlob = {
++            _v: 1,
++            core: { theme: `dark`, codeTheme: `hc-light`, language: `en-US` },
++            app: { example: { foo: `bar` } }
++        };
+         await user.clear(textarea);
+         await user.click(textarea);
+-        await user.paste(
+-            JSON.stringify({ theme: `dark`, codeTheme: `hc-light`, language: `en-US` }, null, 2)
+-        );
++        await user.paste(JSON.stringify(nextBlob, null, 2));
+ 
+         await user.click(screen.getByRole(`button`, { name: `Save` }));
+ 
+-        expect(setTheme).toHaveBeenCalled();
+-        expect(setTheme.mock.calls[0][0].id).toBe(`dark`);
+-        expect(setCodeTheme).toHaveBeenCalled();
+-        expect(setCodeTheme.mock.calls[0][0].id).toBe(`hc-light`);
++        expect(replaceSpy).toHaveBeenCalledTimes(1);
++        expect(replaceSpy.mock.calls[0][0]).toEqual(nextBlob);
++    });
++
++    it(`rejects a JSON paste whose _v doesn't match the current version`, async () => {
++        const user = userEvent.setup();
++        const { ctx } = renderPanel();
++        const replaceSpy = vi.spyOn(ctx.settingsManager, `replaceBlob`);
++
++        await user.click(screen.getByRole(`button`, { name: `JSON` }));
++        const textareas = await screen.findAllByTestId(`codeviewer-mock`);
++        const textarea = textareas.find(
++            (el) => !(el as HTMLTextAreaElement).readOnly
++        ) as HTMLTextAreaElement;
++
++        await user.clear(textarea);
++        await user.click(textarea);
++        await user.paste(JSON.stringify({ _v: 999, core: {}, app: {} }, null, 2));
++        await user.click(screen.getByRole(`button`, { name: `Save` }));
++
++        expect(replaceSpy).not.toHaveBeenCalled();
++        expect(screen.getByText(/Invalid JSON/i)).toBeInTheDocument();
+     });
+ 
+     it(`renders the Notifications section with the toast position picker`, () => {
+@@ -177,22 +232,22 @@ describe(`SettingsPanel`, () => {
+         expect(screen.getByText(`Top left`)).toBeInTheDocument();
+     });
+ 
+-    it(`includes toast settings in the JSON view`, async () => {
++    it(`exposes the toast slot inside core in the JSON view`, async () => {
+         const user = userEvent.setup();
+-        renderPanel({ toastPosition: `top-center` });
++        const { ctx } = renderPanel();
++        ctx.settingsManager.setCore(`toast`, { position: `top-center` });
+         await user.click(screen.getByRole(`button`, { name: `JSON` }));
+         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
+         const textarea = textareas.find(
+             (el) => !(el as HTMLTextAreaElement).readOnly
+         ) as HTMLTextAreaElement;
+         const parsed = JSON.parse(textarea.value);
+-        expect(parsed.toast).toEqual({ position: `top-center` });
++        expect(parsed.core.toast).toEqual({ position: `top-center` });
+     });
+ 
+-    it(`applies toast.position from edited JSON`, async () => {
++    it(`a pasted blob with core.toast lands in the manager after save`, async () => {
+         const user = userEvent.setup();
+-        const setToastSettings = vi.fn();
+-        renderPanel({ setToastSettings });
++        const { ctx } = renderPanel();
+ 
+         await user.click(screen.getByRole(`button`, { name: `JSON` }));
+         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
+@@ -204,9 +259,13 @@ describe(`SettingsPanel`, () => {
+         await user.paste(
+             JSON.stringify(
+                 {
+-                    theme: `light`,
+-                    codeTheme: `vs-dark`,
+-                    toast: { position: `bottom-left` }
++                    _v: 1,
++                    core: {
++                        theme: `light`,
++                        codeTheme: `vs-dark`,
++                        toast: { position: `bottom-left` }
++                    },
++                    app: {}
+                 },
+                 null,
+                 2
+@@ -214,7 +273,7 @@ describe(`SettingsPanel`, () => {
+         );
+         await user.click(screen.getByRole(`button`, { name: `Save` }));
+ 
+-        expect(setToastSettings).toHaveBeenCalledWith({ position: `bottom-left` });
++        expect(ctx.settingsManager.getCore(`toast`)).toEqual({ position: `bottom-left` });
+     });
+ 
+     it(`exposes a bracket-pair colorization toggle that calls setCodeEditorSettings`, async () => {
+@@ -243,6 +302,57 @@ describe(`SettingsPanel`, () => {
+         });
+     });
+ 
++    it(`renders an app-settings section when a schema is registered`, async () => {
++        // Build a context with a registered app schema rather than the
++        // default null. We can't use the test fixture because it always
++        // passes null — patch the appSettings field manually.
++        const baseCtx = buildContext();
++        const schema = {
++            appKey: `filez`,
++            schema: {
++                showHidden: {
++                    type: `boolean` as const,
++                    default: false,
++                    label: `Show hidden`,
++                    group: `Display`
++                },
++                defaultView: {
++                    type: `select` as const,
++                    options: [
++                        { value: `grid`, label: `Grid` },
++                        { value: `list`, label: `List` }
++                    ],
++                    default: `grid`,
++                    label: `Default view`,
++                    group: `Display`
++                }
++            }
++        };
++        const ctx: MowsContextType = {
++            ...baseCtx,
++            appSettings: createAppSettingsContextValue(baseCtx.settingsManager, schema)
++        };
++
++        render(
++            <MowsContext.Provider value={ctx}>
++                <SettingsPanel />
++            </MowsContext.Provider>
++        );
++
++        // The "Display" group becomes a section heading.
++        expect(
++            screen.getByRole(`heading`, { name: `Display` })
++        ).toBeInTheDocument();
++
++        // The boolean field renders as a Switch — clicking it persists
++        // through the settings manager.
++        const user = userEvent.setup();
++        const toggle = screen.getByRole(`switch`, { name: `Show hidden` });
++        expect(toggle).toHaveAttribute(`aria-checked`, `false`);
++        await user.click(toggle);
++        expect(ctx.settingsManager.getApp(`filez`, `showHidden`)).toBe(true);
++    });
++
+     it(`shows an error when JSON is invalid`, async () => {
+         const user = userEvent.setup();
+         renderPanel();
+diff --git a/components/react/lib/components/settings/settingsPanel/SettingsPanel.tsx b/components/react/lib/components/settings/settingsPanel/SettingsPanel.tsx
+index fcdb17b6..78f29d53 100644
+--- a/components/react/lib/components/settings/settingsPanel/SettingsPanel.tsx
++++ b/components/react/lib/components/settings/settingsPanel/SettingsPanel.tsx
+@@ -4,6 +4,7 @@ import LanguagePicker from "@/components/settings/languagePicker/LanguagePicker"
+ import MapStylePicker from "@/components/settings/mapStylePicker/MapStylePicker";
+ import ThemePicker from "@/components/settings/themePicker/ThemePicker";
+ import { Button } from "@/components/ui/button";
++import { Input } from "@/components/ui/input";
+ import { Label } from "@/components/ui/label";
+ import {
+     Select,
+@@ -12,34 +13,37 @@ import {
+     SelectTrigger,
+     SelectValue
+ } from "@/components/ui/select";
++import { Slider } from "@/components/ui/slider";
+ import { Switch } from "@/components/ui/switch";
+ import type { Translation } from "@/lib/languages";
+ import {
+-    type MowsCodeEditorSettings,
+-    type MowsToastSettings,
++    type AnyAppSettings,
++    type AppSettingField,
++    type AppSettingsContextValue,
++    matchesFieldType,
++    resolveLocalisedText
++} from "@/lib/mowsContext/appSettings";
++import {
+     type ToastPosition,
+     TOAST_POSITIONS,
+     useMows
+ } from "@/lib/mowsContext/MowsContext";
++import {
++    type SettingsBlob,
++    SETTINGS_BLOB_VERSION
++} from "@/lib/mowsContext/SettingsManager";
+ import { cn } from "@/lib/utils";
+ import {
+     type CSSProperties,
++    type ReactNode,
+     useCallback,
+     useEffect,
+     useMemo,
+     useRef,
+-    useState
++    useState,
++    useSyncExternalStore
+ } from "react";
+ 
+-export interface MowsSettings {
+-    readonly theme: string;
+-    readonly codeTheme: string;
+-    readonly mapStyle: string;
+-    readonly language?: string;
+-    readonly codeEditor?: Partial<MowsCodeEditorSettings>;
+-    readonly toast?: Partial<MowsToastSettings>;
+-}
+-
+ export interface SettingsPanelProps {
+     readonly className?: string;
+     readonly style?: CSSProperties;
+@@ -47,9 +51,19 @@ export interface SettingsPanelProps {
+ 
+ const fieldClass = `flex h-9 w-full items-center justify-between rounded-md border border-input bg-background py-1`;
+ 
+-type SectionId = `appearance` | `code-editor` | `language` | `notifications` | `map`;
++type CoreSectionId =
++    | `appearance`
++    | `code-editor`
++    | `language`
++    | `notifications`
++    | `map`;
++
++type SectionId = CoreSectionId | `app-${string}`;
+ 
+-const TOAST_POSITION_LABEL_KEYS: Record<ToastPosition, keyof Translation[`settings`][`toastPositions`]> = {
++const TOAST_POSITION_LABEL_KEYS: Record<
++    ToastPosition,
++    keyof Translation[`settings`][`toastPositions`]
++> = {
+     "top-left": `topLeft`,
+     "top-center": `topCenter`,
+     "top-right": `topRight`,
+@@ -59,94 +73,72 @@ const TOAST_POSITION_LABEL_KEYS: Record<ToastPosition, keyof Translation[`settin
+ };
+ 
+ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
++    const mows = useMows();
+     const {
+         t,
+-        themes,
+-        currentTheme,
+-        setTheme,
+-        codeThemes,
+-        currentCodeTheme,
+-        setCodeTheme,
+-        languages,
+-        currentLanguage,
+-        setLanguage,
+         codeEditorSettings,
+         setCodeEditorSettings,
+         toastSettings,
+         setToastSettings,
+-        mapStyles,
+-        currentMapStyle,
+-        setMapStyle
+-    } = useMows();
+-
+-    const sections = useMemo(
+-        () =>
+-            [
+-                { id: `appearance`, label: t.settings.sections.appearance },
+-                { id: `code-editor`, label: t.settings.sections.codeEditor },
+-                { id: `map`, label: t.settings.sections.map },
+-                { id: `notifications`, label: t.settings.sections.notifications },
+-                { id: `language`, label: t.settings.sections.language }
+-            ] as { id: SectionId; label: string }[],
+-        [t.settings.sections]
+-    );
++        settingsManager,
++        appSettings
++    } = mows;
+ 
+-    const currentSettings: MowsSettings = useMemo(
+-        () => ({
+-            theme: currentTheme.id,
+-            codeTheme: currentCodeTheme.id,
+-            mapStyle: currentMapStyle.id,
+-            language: currentLanguage?.code,
+-            codeEditor: codeEditorSettings,
+-            toast: toastSettings
+-        }),
+-        [
+-            currentTheme.id,
+-            currentCodeTheme.id,
+-            currentMapStyle.id,
+-            currentLanguage?.code,
+-            codeEditorSettings,
+-            toastSettings
+-        ]
++    // Subscribe to the whole blob so the JSON tab stays in sync if any
++    // other code (or a programmatic `replaceBlob`) modifies it under us.
++    const blob = useSyncExternalStore(
++        useCallback((listener) => settingsManager.subscribe(`*`, listener), [settingsManager]),
++        useCallback(() => settingsManager.getBlob(), [settingsManager])
+     );
+ 
+-    const [jsonDraft, setJsonDraft] = useState(() => JSON.stringify(currentSettings, null, 2));
++    // Group registered app fields so we render one sub-section per
++    // group. Field order inside a group is preserved from the schema
++    // declaration order (Object.entries on a same-shape object is
++    // insertion-ordered in modern JS).
++    const appGroups = useMemo(() => buildAppGroups(appSettings.registered, t), [
++        appSettings.registered,
++        t
++    ]);
++
++    const sections = useMemo(() => {
++        const core: { id: CoreSectionId; label: string }[] = [
++            { id: `appearance`, label: t.settings.sections.appearance },
++            { id: `code-editor`, label: t.settings.sections.codeEditor },
++            { id: `map`, label: t.settings.sections.map },
++            { id: `notifications`, label: t.settings.sections.notifications },
++            { id: `language`, label: t.settings.sections.language }
++        ];
++        const app: { id: SectionId; label: string }[] = appGroups.map((g) => ({
++            id: `app-${g.id}` as const,
++            label: g.label
++        }));
++        return [...core, ...app];
++    }, [appGroups, t.settings.sections]);
++
++    // JSON tab edits the full unified blob — that's the "single key,
++    // single JSON file for export" guarantee the system gives users.
++    const [jsonDraft, setJsonDraft] = useState(() => JSON.stringify(blob, null, 2));
+     const [jsonError, setJsonError] = useState<string | null>(null);
+ 
+     useEffect(() => {
+-        setJsonDraft(JSON.stringify(currentSettings, null, 2));
++        setJsonDraft(JSON.stringify(blob, null, 2));
+         setJsonError(null);
+-    }, [currentSettings]);
+-
+-    const applySettings = (next: MowsSettings) => {
+-        if (next.theme && next.theme !== currentTheme.id) {
+-            const theme = themes.find((th) => th.id === next.theme);
+-            if (theme) setTheme(theme);
+-        }
+-        if (next.codeTheme && next.codeTheme !== currentCodeTheme.id) {
+-            const codeTheme = codeThemes.find((c) => c.id === next.codeTheme);
+-            if (codeTheme) setCodeTheme(codeTheme);
+-        }
+-        if (next.mapStyle && next.mapStyle !== currentMapStyle.id) {
+-            const mapStyle = mapStyles.find((m) => m.id === next.mapStyle);
+-            if (mapStyle) setMapStyle(mapStyle);
+-        }
+-        if (next.language && next.language !== currentLanguage?.code) {
+-            const lang = languages.find((l) => l.code === next.language);
+-            if (lang) setLanguage(lang);
+-        }
+-        if (next.codeEditor) {
+-            setCodeEditorSettings(next.codeEditor);
+-        }
+-        if (next.toast) {
+-            setToastSettings(next.toast);
+-        }
+-    };
++    }, [blob]);
+ 
+     const onSaveJson = () => {
+         try {
+-            const parsed = JSON.parse(jsonDraft) as MowsSettings;
+-            applySettings(parsed);
++            const parsed = JSON.parse(jsonDraft) as SettingsBlob;
++            if (
++                !parsed ||
++                typeof parsed !== `object` ||
++                parsed._v !== SETTINGS_BLOB_VERSION
++            ) {
++                setJsonError(
++                    `${t.settings.invalidJson} (expected _v === ${SETTINGS_BLOB_VERSION})`
++                );
++                return;
++            }
++            settingsManager.replaceBlob(parsed);
+             setJsonError(null);
+         } catch (err) {
+             setJsonError(t.settings.invalidJson + ` (` + (err as Error).message + `)`);
+@@ -154,7 +146,7 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+     };
+ 
+     const onResetJson = () => {
+-        setJsonDraft(JSON.stringify(currentSettings, null, 2));
++        setJsonDraft(JSON.stringify(blob, null, 2));
+         setJsonError(null);
+     };
+ 
+@@ -182,9 +174,6 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+         const observer = new IntersectionObserver(
+             (entries) => {
+                 if (Date.now() < programmaticScrollUntil.current) return;
+-                // Pick the entry whose top is closest to (but not below) the
+-                // root's top — that's the section currently anchored to the
+-                // top of the viewport.
+                 const candidates = entries
+                     .filter((e) => e.isIntersecting)
+                     .sort(
+@@ -198,39 +187,25 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+             },
+             {
+                 root,
+-                // Triggers ~halfway up the viewport so the highlight follows
+-                // the section title rather than waiting for the entire
+-                // section to scroll out.
+                 rootMargin: `0px 0px -60% 0px`,
+                 threshold: [0, 0.1, 0.5]
+             }
+         );
+         sections.forEach((s) => {
+-            const el = root.querySelector<HTMLElement>(
+-                `[data-section-id="${s.id}"]`
+-            );
++            const el = root.querySelector<HTMLElement>(`[data-section-id="${s.id}"]`);
+             if (el) observer.observe(el);
+         });
+         return () => observer.disconnect();
+     }, [sections]);
+ 
+-    // Form/JSON view is a single binary mode, not a tabbed surface — a
+-    // small toggle button at the top-right swaps the two views in place,
+-    // freeing the full panel width for content instead of burning a full
+-    // bar on two labels.
+     const [mode, setMode] = useState<`form` | `json`>(`form`);
+     const toggleMode = () => setMode((m) => (m === `form` ? `json` : `form`));
+-    // The button advertises the target view, not the current one
+-    // ("press to switch to JSON" / "press to switch to Form").
+     const toggleLabel = mode === `form` ? t.settings.jsonTab : t.settings.formTab;
+ 
+     return (
+         <div
+             style={style}
+-            className={cn(
+-                `SettingsPanel relative flex h-full flex-col`,
+-                className
+-            )}
++            className={cn(`SettingsPanel relative flex h-full flex-col`, className)}
+         >
+             <Button
+                 type={`button`}
+@@ -245,7 +220,6 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+ 
+             {mode === `form` ? (
+                 <div className={`flex min-h-0 flex-1 gap-6 pt-2`}>
+-
+                     <nav
+                         className={`flex w-48 shrink-0 flex-col gap-1 border-r pr-3`}
+                         aria-label={t.settings.title}
+@@ -287,12 +261,9 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+                             >
+                                 {t.settings.sections.appearance}
+                             </h2>
+-                            <div
+-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
+-                            >
+-                                <Label>{t.settings.labels.theme}</Label>
++                            <SettingRow label={t.settings.labels.theme}>
+                                 <ThemePicker className={fieldClass} />
+-                            </div>
++                            </SettingRow>
+                         </section>
+ 
+                         <section
+@@ -304,23 +275,18 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+                             >
+                                 {t.settings.sections.codeEditor}
+                             </h2>
+-                            <div
+-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
+-                            >
+-                                <Label>{t.settings.labels.codeTheme}</Label>
++                            <SettingRow label={t.settings.labels.codeTheme}>
+                                 <CodeThemePicker className={fieldClass} />
+-                            </div>
++                            </SettingRow>
+                             <CodeViewer
+                                 language={`tsx`}
+                                 code={`const greet = (name: string): string => \`Hello, \${name}!\`;\nconst nums = [1, 2, 3].map((n) => n * 2);`}
+                                 className={`h-[140px]`}
+                             />
+-                            <div
+-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
++                            <SettingRow
++                                label={t.settings.labels.showLineNumbers}
++                                htmlFor={`settings-show-line-numbers`}
+                             >
+-                                <Label htmlFor={`settings-show-line-numbers`}>
+-                                    {t.settings.labels.showLineNumbers}
+-                                </Label>
+                                 <Switch
+                                     id={`settings-show-line-numbers`}
+                                     checked={codeEditorSettings.showLineNumbers}
+@@ -328,13 +294,11 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+                                         setCodeEditorSettings({ showLineNumbers })
+                                     }
+                                 />
+-                            </div>
+-                            <div
+-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
++                            </SettingRow>
++                            <SettingRow
++                                label={t.settings.labels.wrap}
++                                htmlFor={`settings-wrap`}
+                             >
+-                                <Label htmlFor={`settings-wrap`}>
+-                                    {t.settings.labels.wrap}
+-                                </Label>
+                                 <Switch
+                                     id={`settings-wrap`}
+                                     checked={codeEditorSettings.wrap}
+@@ -342,13 +306,11 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+                                         setCodeEditorSettings({ wrap })
+                                     }
+                                 />
+-                            </div>
+-                            <div
+-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
++                            </SettingRow>
++                            <SettingRow
++                                label={t.settings.labels.showWhitespace}
++                                htmlFor={`settings-show-whitespace`}
+                             >
+-                                <Label htmlFor={`settings-show-whitespace`}>
+-                                    {t.settings.labels.showWhitespace}
+-                                </Label>
+                                 <Switch
+                                     id={`settings-show-whitespace`}
+                                     checked={codeEditorSettings.showWhitespace}
+@@ -356,21 +318,23 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+                                         setCodeEditorSettings({ showWhitespace })
+                                     }
+                                 />
+-                            </div>
+-                            <div
+-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
++                            </SettingRow>
++                            <SettingRow
++                                label={t.settings.labels.bracketPairColorization}
++                                htmlFor={`settings-bracket-pair-colorization`}
+                             >
+-                                <Label htmlFor={`settings-bracket-pair-colorization`}>
+-                                    {t.settings.labels.bracketPairColorization}
+-                                </Label>
+                                 <Switch
+                                     id={`settings-bracket-pair-colorization`}
+-                                    checked={codeEditorSettings.bracketPairColorization}
++                                    checked={
++                                        codeEditorSettings.bracketPairColorization
++                                    }
+                                     onCheckedChange={(bracketPairColorization) =>
+-                                        setCodeEditorSettings({ bracketPairColorization })
++                                        setCodeEditorSettings({
++                                            bracketPairColorization
++                                        })
+                                     }
+                                 />
+-                            </div>
++                            </SettingRow>
+                         </section>
+ 
+                         <section
+@@ -382,12 +346,9 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+                             >
+                                 {t.settings.sections.map}
+                             </h2>
+-                            <div
+-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
+-                            >
+-                                <Label>{t.settings.labels.mapStyle}</Label>
++                            <SettingRow label={t.settings.labels.mapStyle}>
+                                 <MapStylePicker className={fieldClass} />
+-                            </div>
++                            </SettingRow>
+                         </section>
+ 
+                         <section
+@@ -399,12 +360,10 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+                             >
+                                 {t.settings.sections.notifications}
+                             </h2>
+-                            <div
+-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
++                            <SettingRow
++                                label={t.settings.labels.toastPosition}
++                                htmlFor={`settings-toast-position`}
+                             >
+-                                <Label htmlFor={`settings-toast-position`}>
+-                                    {t.settings.labels.toastPosition}
+-                                </Label>
+                                 <Select
+                                     value={toastSettings.position}
+                                     onValueChange={(value) =>
+@@ -431,7 +390,7 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+                                         ))}
+                                     </SelectContent>
+                                 </Select>
+-                            </div>
++                            </SettingRow>
+                         </section>
+ 
+                         <section
+@@ -443,13 +402,33 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+                             >
+                                 {t.settings.sections.language}
+                             </h2>
+-                            <div
+-                                className={`grid grid-cols-[200px_1fr] items-center gap-3`}
+-                            >
+-                                <Label>{t.settings.labels.language}</Label>
++                            <SettingRow label={t.settings.labels.language}>
+                                 <LanguagePicker className={fieldClass} />
+-                            </div>
++                            </SettingRow>
+                         </section>
++
++                        {appGroups.map((group) => (
++                            <section
++                                key={group.id}
++                                data-section-id={`app-${group.id}`}
++                                className={`flex flex-col gap-4 scroll-mt-2`}
++                            >
++                                <h2
++                                    className={`text-2xl font-semibold tracking-tight`}
++                                >
++                                    {group.label}
++                                </h2>
++                                {group.fields.map((entry) => (
++                                    <AppFieldRow
++                                        key={entry.settingId}
++                                        settingId={entry.settingId}
++                                        field={entry.field}
++                                        appSettingsContext={appSettings}
++                                        t={t}
++                                    />
++                                ))}
++                            </section>
++                        ))}
+                     </div>
+                 </div>
+             ) : (
+@@ -481,3 +460,206 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
+ SettingsPanel.displayName = `SettingsPanel`;
+ 
+ export default SettingsPanel;
++
++// ---- Helpers ---------------------------------------------------------------
++
++interface SettingRowProps {
++    readonly label: ReactNode;
++    readonly description?: ReactNode;
++    readonly htmlFor?: string;
++    readonly children: ReactNode;
++}
++
++const SettingRow = ({ label, description, htmlFor, children }: SettingRowProps) => (
++    <div className={`grid grid-cols-[200px_1fr] items-start gap-3`}>
++        <div className={`flex flex-col gap-1 pt-2`}>
++            <Label htmlFor={htmlFor}>{label}</Label>
++            {description && (
++                <span className={`text-xs text-muted-foreground`}>{description}</span>
++            )}
++        </div>
++        <div className={`pt-1`}>{children}</div>
++    </div>
++);
++
++interface AppGroup {
++    readonly id: string;
++    readonly label: string;
++    readonly fields: ReadonlyArray<{ readonly settingId: string; readonly field: AppSettingField }>;
++}
++
++const APP_GROUP_ID_OTHER = `__other__`;
++
++const buildAppGroups = (
++    registered: AnyAppSettings | null,
++    t: Translation
++): AppGroup[] => {
++    if (!registered) return [];
++    const groups = new Map<string, AppGroup & { id: string }>();
++    const fallbackLabel = t.settings.appSectionDefaultGroup ?? `Other`;
++
++    for (const [settingId, field] of Object.entries(registered.schema)) {
++        const label = field.group
++            ? resolveLocalisedText(field.group, t)
++            : fallbackLabel;
++        // Use the resolved label as the grouping key but keep a stable
++        // slug for the section id (so the same group across languages
++        // doesn't fragment the nav when the locale changes mid-life).
++        const groupId =
++            field.group === undefined ? APP_GROUP_ID_OTHER : slugForGroup(label);
++        let bucket = groups.get(groupId);
++        if (!bucket) {
++            bucket = { id: groupId, label, fields: [] };
++            groups.set(groupId, bucket);
++        }
++        (bucket.fields as Array<{ settingId: string; field: AppSettingField }>).push({
++            settingId,
++            field
++        });
++    }
++    return Array.from(groups.values());
++};
++
++const slugForGroup = (label: string): string =>
++    label.toLowerCase().replace(/[^a-z0-9]+/g, `-`).replace(/^-+|-+$/g, ``) || `group`;
++
++interface AppFieldRowProps {
++    readonly settingId: string;
++    readonly field: AppSettingField;
++    readonly appSettingsContext: AppSettingsContextValue;
++    readonly t: Translation;
++}
++
++const AppFieldRow = ({ settingId, field, appSettingsContext, t }: AppFieldRowProps) => {
++    const value = useSyncExternalStore(
++        useCallback(
++            (listener) => appSettingsContext.subscribe(settingId, listener),
++            [appSettingsContext, settingId]
++        ),
++        useCallback(() => {
++            const stored = appSettingsContext.getValue(settingId);
++            return matchesFieldType(stored, field) ? stored : field.default;
++        }, [appSettingsContext, field, settingId])
++    );
++
++    const setValue = useCallback(
++        (next: unknown) => appSettingsContext.setValue(settingId, next),
++        [appSettingsContext, settingId]
++    );
++
++    const label = resolveLocalisedText(field.label, t);
++    const description = field.description
++        ? resolveLocalisedText(field.description, t)
++        : undefined;
++    const inputId = `settings-app-${settingId}`;
++
++    // Custom renderer escape hatch — schema author owns the row body.
++    if (field.render) {
++        // Cast to the union-erased shape: every concrete `render` signature
++        // is `({ value, setValue, t }) => ReactNode` modulo the value type,
++        // but TS narrows the union to `never` because the `value` /
++        // `setValue` params are mutually contravariant across union members.
++        const renderFn = field.render as (props: {
++            value: unknown;
++            setValue: (v: unknown) => void;
++            t: Translation;
++        }) => ReactNode;
++        return (
++            <SettingRow label={label} description={description} htmlFor={inputId}>
++                {renderFn({ value, setValue, t })}
++            </SettingRow>
++        );
++    }
++
++    return (
++        <SettingRow label={label} description={description} htmlFor={inputId}>
++            {renderBuiltinField(field, value, setValue, inputId, t)}
++        </SettingRow>
++    );
++};
++
++const renderBuiltinField = (
++    field: AppSettingField,
++    value: unknown,
++    setValue: (v: unknown) => void,
++    inputId: string,
++    t: Translation
++): ReactNode => {
++    switch (field.type) {
++        case `boolean`:
++            return (
++                <Switch
++                    id={inputId}
++                    checked={value as boolean}
++                    onCheckedChange={(v) => setValue(v)}
++                />
++            );
++        case `select`:
++            return (
++                <Select
++                    value={value as string}
++                    onValueChange={(v) => setValue(v)}
++                >
++                    <SelectTrigger id={inputId} className={fieldClass}>
++                        <SelectValue />
++                    </SelectTrigger>
++                    <SelectContent>
++                        {field.options.map((opt) => (
++                            <SelectItem key={opt.value} value={opt.value}>
++                                {resolveLocalisedText(opt.label, t)}
++                            </SelectItem>
++                        ))}
++                    </SelectContent>
++                </Select>
++            );
++        case `number`:
++            return (
++                <Input
++                    id={inputId}
++                    type={`number`}
++                    value={value as number}
++                    min={field.min}
++                    max={field.max}
++                    step={field.step}
++                    onChange={(e) => {
++                        const n = Number(e.target.value);
++                        if (Number.isFinite(n)) setValue(n);
++                    }}
++                />
++            );
++        case `slider`:
++            return (
++                <Slider
++                    id={inputId}
++                    value={[value as number]}
++                    min={field.min}
++                    max={field.max}
++                    step={field.step ?? 1}
++                    onValueChange={(v) => setValue(v[0])}
++                />
++            );
++        case `string`:
++            return (
++                <Input
++                    id={inputId}
++                    type={`text`}
++                    value={value as string}
++                    placeholder={
++                        field.placeholder
++                            ? resolveLocalisedText(field.placeholder, t)
++                            : undefined
++                    }
++                    onChange={(e) => setValue(e.target.value)}
++                />
++            );
++        case `color`:
++            return (
++                <Input
++                    id={inputId}
++                    type={`color`}
++                    value={value as string}
++                    onChange={(e) => setValue(e.target.value)}
++                />
++            );
++    }
++};
+diff --git a/components/react/lib/lib/languages.ts b/components/react/lib/lib/languages.ts
+index fc900bf2..6ee0f57e 100644
+--- a/components/react/lib/lib/languages.ts
++++ b/components/react/lib/lib/languages.ts
+@@ -91,6 +91,10 @@ export interface BaseTranslation {
+             bottomCenter: string;
+             bottomRight: string;
+         };
++        /** Fallback group label for app-registered settings whose
++         * schema entry didn't declare a `group`. Rendered as the
++         * section heading in `<SettingsPanel>`. */
++        appSectionDefaultGroup: string;
+     };
+     keyboardShortcuts: {
+         label: string;
+diff --git a/components/react/lib/lib/languages/de/default.ts b/components/react/lib/lib/languages/de/default.ts
+index 74980a68..d105f94c 100644
+--- a/components/react/lib/lib/languages/de/default.ts
++++ b/components/react/lib/lib/languages/de/default.ts
+@@ -93,7 +93,8 @@ const translation: BaseTranslation = {
+             bottomLeft: `Unten links`,
+             bottomCenter: `Unten mittig`,
+             bottomRight: `Unten rechts`
+-        }
++        },
++        appSectionDefaultGroup: `Weitere`
+     },
+     keyboardShortcuts: {
+         label: `Tastenkombinationen`,
+diff --git a/components/react/lib/lib/languages/en-US/default.ts b/components/react/lib/lib/languages/en-US/default.ts
+index 639ba0e0..a28111ba 100644
+--- a/components/react/lib/lib/languages/en-US/default.ts
++++ b/components/react/lib/lib/languages/en-US/default.ts
+@@ -93,7 +93,10 @@ const translation: BaseTranslation = {
+             bottomLeft: `Bottom left`,
+             bottomCenter: `Bottom center`,
+             bottomRight: `Bottom right`
+-        }
++        },
++        /** Fallback label used in `<SettingsPanel>` for app-registered
++         * settings whose schema entry omitted the `group` field. */
++        appSectionDefaultGroup: `Other`
+     },
+     keyboardShortcuts: {
+         label: `Keyboard Shortcuts`,
+diff --git a/components/react/lib/lib/mowsContext/ActionManager.tsx b/components/react/lib/lib/mowsContext/ActionManager.tsx
+index 383dfc93..1b17103d 100644
+--- a/components/react/lib/lib/mowsContext/ActionManager.tsx
++++ b/components/react/lib/lib/mowsContext/ActionManager.tsx
+@@ -238,8 +238,22 @@ export interface RecentAction {
+     timestamp: number;
+ }
+ 
++/**
++ * Generic JSON-typed storage slot. SettingsManager hands a slot
++ * pointing into the unified settings blob (`core.recentActions`).
++ * Tests can pass an in-memory slot. Mirrors `HotkeyConfigSlot`.
++ */
++export interface RecentActionsSlot {
++    get(): unknown;
++    set(value: RecentAction[]): void;
++}
++
+ export interface ActionManagerConfig {
+-    recentActionsStorageKey: string;
++    /** Slot in the unified settings blob. Preferred for new callers. */
++    recentActionsSlot?: RecentActionsSlot;
++    /** @deprecated Use `recentActionsSlot` — kept for legacy test
++     * fixtures + out-of-tree consumers. */
++    recentActionsStorageKey?: string;
+     maxRecentActions: number;
+ }
+ 
+@@ -247,9 +261,11 @@ export class ActionManager {
+     private actions: Map<string, Action> = new Map();
+     private recentActions: RecentAction[] = [];
+     private config: ActionManagerConfig;
++    private slot: RecentActionsSlot;
+ 
+     constructor(config: ActionManagerConfig) {
+         this.config = config;
++        this.slot = resolveRecentActionsSlot(config);
+     }
+ 
+     dispatchAction = (
+@@ -386,24 +402,23 @@ export class ActionManager {
+     };
+ 
+     loadRecentActions = () => {
+-        const stored = localStorage.getItem(this.config.recentActionsStorageKey);
+-        if (stored) {
+-            try {
+-                this.recentActions = JSON.parse(stored) as RecentAction[];
+-            } catch (e) {
+-                log.error(`Failed to parse recent actions from localStorage`, e);
+-                this.recentActions = [];
+-            }
+-        } else {
++        const stored = this.slot.get();
++        if (!stored) {
++            this.recentActions = [];
++            return;
++        }
++        if (!Array.isArray(stored)) {
++            log.warn(
++                `Stored recent actions value is not an array; ignoring and starting fresh`
++            );
+             this.recentActions = [];
++            return;
+         }
++        this.recentActions = stored as RecentAction[];
+     };
+ 
+     saveRecentActions = () => {
+-        localStorage.setItem(
+-            this.config.recentActionsStorageKey,
+-            JSON.stringify(this.recentActions)
+-        );
++        this.slot.set(this.recentActions);
+     };
+ 
+     getRecentCommands = (): RecentAction[] => {
+@@ -412,3 +427,28 @@ export class ActionManager {
+             .slice(0, this.config.maxRecentActions);
+     };
+ }
++
++const resolveRecentActionsSlot = (config: ActionManagerConfig): RecentActionsSlot => {
++    if (config.recentActionsSlot) return config.recentActionsSlot;
++    if (config.recentActionsStorageKey) {
++        const key = config.recentActionsStorageKey;
++        return {
++            get: () => {
++                const raw = localStorage.getItem(key);
++                if (!raw) return undefined;
++                try {
++                    return JSON.parse(raw) as unknown;
++                } catch (e) {
++                    log.error(`Failed to parse recent actions from localStorage at ${key}`, e);
++                    return undefined;
++                }
++            },
++            set: (value) => {
++                localStorage.setItem(key, JSON.stringify(value));
++            }
++        };
++    }
++    throw new Error(
++        `ActionManager requires either recentActionsSlot or recentActionsStorageKey in its config`
++    );
++};
+diff --git a/components/react/lib/lib/mowsContext/HotkeyManager.tsx b/components/react/lib/lib/mowsContext/HotkeyManager.tsx
+index 69036a39..503ae56b 100644
+--- a/components/react/lib/lib/mowsContext/HotkeyManager.tsx
++++ b/components/react/lib/lib/mowsContext/HotkeyManager.tsx
+@@ -18,8 +18,24 @@ export interface HotkeyConfig {
+     };
+ }
+ 
++/**
++ * Generic JSON-typed storage slot. SettingsManager hands a slot
++ * pointing into the unified settings blob (`core.hotkeyConfig`) so the
++ * manager keeps its own parse/validate logic but doesn't own a
++ * standalone localStorage key. Tests can pass an in-memory slot.
++ */
++export interface HotkeyConfigSlot {
++    get(): unknown;
++    set(value: HotkeyConfig): void;
++}
++
+ export interface HotkeyManagerConfig {
+-    configStorageKey: string;
++    /** Slot in the unified settings blob. Preferred for new callers. */
++    configSlot?: HotkeyConfigSlot;
++    /** @deprecated Use `configSlot` — kept so older test fixtures and
++     * any out-of-tree consumers still work. When set, the manager
++     * reads / writes a single localStorage key directly. */
++    configStorageKey?: string;
+     defaultHotkeys: HotkeyConfig;
+ }
+ 
+@@ -27,10 +43,12 @@ export class HotkeyManager {
+     private actionManager: ActionManager;
+     private hotkeyConfig: HotkeyConfig;
+     private config: HotkeyManagerConfig;
++    private slot: HotkeyConfigSlot;
+ 
+     constructor(actionManager: ActionManager, config: HotkeyManagerConfig) {
+         this.actionManager = actionManager;
+         this.config = config;
++        this.slot = resolveHotkeyConfigSlot(config);
+         this.hotkeyConfig = this.loadHotkeyConfig();
+         this.mergeWithDefaultHotkeys();
+ 
+@@ -123,25 +141,52 @@ export class HotkeyManager {
+     };
+ 
+     private saveHotkeyConfig = (hotkeyConfig: HotkeyConfig): void => {
+-        log.debug(`Saving custom hotkey config to localStorage:`, hotkeyConfig);
+-        localStorage.setItem(this.config.configStorageKey, JSON.stringify(hotkeyConfig));
++        log.debug(`Saving custom hotkey config:`, hotkeyConfig);
++        this.slot.set(hotkeyConfig);
+     };
+ 
+     private loadHotkeyConfig = (): HotkeyConfig => {
+-        const savedConfig = localStorage.getItem(this.config.configStorageKey);
+-        if (!savedConfig) {
+-            return {};
+-        }
++        const stored = this.slot.get();
++        if (!stored || typeof stored !== `object`) return {};
+         try {
+-            const parsedConfig = JSON.parse(savedConfig) as HotkeyConfig;
+-            return migrateLegacyModifierTokens(parsedConfig);
++            return migrateLegacyModifierTokens(stored as HotkeyConfig);
+         } catch (error) {
+-            log.warn(`Failed to parse stored hotkey config; starting fresh`, error);
++            log.warn(`Failed to migrate stored hotkey config; starting fresh`, error);
+             return {};
+         }
+     };
+ }
+ 
++/**
++ * Pick the right slot implementation from the manager config. New
++ * callers pass a `configSlot`; legacy callers (tests, older apps)
++ * still set `configStorageKey` and get a localStorage-backed slot.
++ */
++const resolveHotkeyConfigSlot = (config: HotkeyManagerConfig): HotkeyConfigSlot => {
++    if (config.configSlot) return config.configSlot;
++    if (config.configStorageKey) {
++        const key = config.configStorageKey;
++        return {
++            get: () => {
++                const raw = localStorage.getItem(key);
++                if (!raw) return undefined;
++                try {
++                    return JSON.parse(raw) as unknown;
++                } catch (error) {
++                    log.warn(`Failed to parse stored hotkey config at ${key}`, error);
++                    return undefined;
++                }
++            },
++            set: (value) => {
++                localStorage.setItem(key, JSON.stringify(value));
++            }
++        };
++    }
++    throw new Error(
++        `HotkeyManager requires either configSlot or configStorageKey in its config`
++    );
++};
++
+ /**
+  * Rewrites the platform-primary modifier in stored hotkey configs from the
+  * pre-`mod` format (`ctrl` on non-Mac, `meta` on Mac) to the new `mod` token.
+diff --git a/components/react/lib/lib/mowsContext/MowsContext.tsx b/components/react/lib/lib/mowsContext/MowsContext.tsx
+index d3852dca..8dd00311 100644
+--- a/components/react/lib/lib/mowsContext/MowsContext.tsx
++++ b/components/react/lib/lib/mowsContext/MowsContext.tsx
+@@ -4,14 +4,21 @@ import { DndProvider } from "react-dnd";
+ import { HTML5Backend } from "react-dnd-html5-backend";
+ import { type AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
+ import { defaultCodeThemes, type MowsCodeTheme } from "../codeThemes";
+-import { getBrowserLanguage, type Language, type Translation } from "../languages";
++import { type Language, type Translation } from "../languages";
+ import baseEnglishTranslation from "../languages/en-US/default";
+ import { log } from "../logging";
+ import { defaultMapStyles, type MowsMapStyle } from "../mapStyles";
+ import { defaultThemes, loadThemeCSS, type MowsTheme } from "../themes";
+ import { type Action, ActionManager } from "./ActionManager";
++import {
++    type AnyAppSettings,
++    type AppSettingsContextValue,
++    createAppSettingsContextValue
++} from "./appSettings";
+ import { coreDefaultHotkeys, defineCoreActions } from "./coreActions";
+ import { type HotkeyConfig, HotkeyManager } from "./HotkeyManager";
++import { migrateLegacySettings } from "./legacyMigration";
++import { SettingsManager } from "./SettingsManager";
+ 
+ export interface MowsOidcConfig {
+     readonly issuerUrl: string;
+@@ -90,6 +97,17 @@ export interface MowsContextType {
+     readonly mapStyles: MowsMapStyle[];
+     readonly currentMapStyle: MowsMapStyle;
+     readonly setMapStyle: (style: MowsMapStyle) => void;
++    /** Unified settings system (single localStorage blob). Exposed so
++     * advanced consumers can read/replace the entire blob (JSON
++     * export/import tab in SettingsPanel) and so app-settings hooks
++     * have a backdoor to the manager when they need it. Day-to-day
++     * settings reads should go through the dedicated `current*` /
++     * `set*` accessors above. */
++    readonly settingsManager: SettingsManager;
++    /** App-settings registry handles, populated when MowsProvider was
++     * mounted with an `appSettings` prop. `registered` is null when no
++     * app schema was registered. */
++    readonly appSettings: AppSettingsContextValue;
+ }
+ 
+ interface MowsClientManagerProps {
+@@ -107,6 +125,7 @@ interface MowsClientManagerProps {
+     readonly defaultMapStyleId: string;
+     readonly auth?: AuthContextProps;
+     readonly authConfigured: boolean;
++    readonly appSettings: AnyAppSettings | null;
+ }
+ 
+ interface MowsClientManagerState {
+@@ -120,44 +139,60 @@ interface MowsClientManagerState {
+     readonly currentMapStyle: MowsMapStyle;
+ }
+ 
+-const buildStorageKeys = (prefix: string) => ({
+-    theme: `${prefix}_theme`,
+-    codeTheme: `${prefix}_code_theme`,
+-    codeEditorSettings: `${prefix}_code_editor_settings`,
+-    toastSettings: `${prefix}_toast_settings`,
+-    mapStyle: `${prefix}_map_style`,
+-    selectedLanguage: `${prefix}_language`,
+-    hotkeyConfig: `${prefix}_hotkey_config`,
+-    recentActions: `${prefix}_recent_actions`,
++/** Auth helper key — intentionally NOT moved into the unified blob.
++ * Cleared mid-OIDC-redirect dance; mixing it into the blob would tempt
++ * callers to read it via the settings panel UI, and the value is
++ * transient (it lives for at most one nav round-trip). */
++const buildAuxKeys = (prefix: string) => ({
+     postLoginRedirectPath: `${prefix}_post_login_redirect_path`
+ });
+ 
+-const readCodeEditorSettings = (storageKey: string): MowsCodeEditorSettings => {
+-    const raw = localStorage.getItem(storageKey);
++const readCodeEditorFromBlob = (
++    raw: Record<string, unknown> | undefined
++): MowsCodeEditorSettings => {
+     if (!raw) return defaultCodeEditorSettings;
+-    try {
+-        const parsed = JSON.parse(raw);
+-        return { ...defaultCodeEditorSettings, ...parsed };
+-    } catch (error) {
+-        log.warn(`Failed to parse stored code editor settings; reverting to defaults`, error);
+-        return defaultCodeEditorSettings;
+-    }
++    return {
++        showWhitespace:
++            typeof raw.showWhitespace === `boolean`
++                ? raw.showWhitespace
++                : defaultCodeEditorSettings.showWhitespace,
++        wrap: typeof raw.wrap === `boolean` ? raw.wrap : defaultCodeEditorSettings.wrap,
++        showLineNumbers:
++            typeof raw.showLineNumbers === `boolean`
++                ? raw.showLineNumbers
++                : defaultCodeEditorSettings.showLineNumbers,
++        bracketPairColorization:
++            typeof raw.bracketPairColorization === `boolean`
++                ? raw.bracketPairColorization
++                : defaultCodeEditorSettings.bracketPairColorization
++    };
+ };
+ 
+-const readToastSettings = (storageKey: string): MowsToastSettings => {
+-    const raw = localStorage.getItem(storageKey);
++const readToastFromBlob = (
++    raw: Record<string, unknown> | undefined
++): MowsToastSettings => {
+     if (!raw) return defaultToastSettings;
+-    try {
+-        const parsed = JSON.parse(raw);
+-        const next = { ...defaultToastSettings, ...parsed };
+-        if (!TOAST_POSITIONS.includes(next.position)) {
+-            return defaultToastSettings;
+-        }
+-        return next;
+-    } catch (error) {
+-        log.warn(`Failed to parse stored toast settings; reverting to defaults`, error);
+-        return defaultToastSettings;
++    const position = raw.position;
++    if (
++        typeof position === `string` &&
++        (TOAST_POSITIONS as readonly string[]).includes(position)
++    ) {
++        return { position: position as ToastPosition };
+     }
++    return defaultToastSettings;
++};
++
++const pickLanguage = (languages: Language[], code: string | undefined): Language => {
++    if (code) {
++        const lang = languages.find((l) => l.code === code);
++        if (lang) return lang;
++    }
++    const browserCode = navigator.language || navigator.languages?.[0] || `en-US`;
++    return (
++        languages.find((l) => l.code === browserCode) ||
++        languages.find((l) => l.code === browserCode.split(`-`)[0]) ||
++        languages.find((l) => l.code === `en-US`)!
++    );
+ };
+ 
+ const applyThemeClassSynchronously = (theme: MowsTheme) => {
+@@ -185,60 +220,91 @@ export class MowsClientManagerBase extends Component<
+ > {
+     private actionManager: ActionManager;
+     private hotkeyManager: HotkeyManager;
+-    private storageKeys: ReturnType<typeof buildStorageKeys>;
++    private settingsManager: SettingsManager;
++    private auxKeys: ReturnType<typeof buildAuxKeys>;
++    private appSettingsContext: AppSettingsContextValue;
++    private unsubscribeSettings: (() => void) | null = null;
+ 
+     constructor(props: MowsClientManagerProps) {
+         super(props);
+-        this.storageKeys = buildStorageKeys(props.storagePrefix);
+-
+-        const currentThemeId =
+-            localStorage.getItem(this.storageKeys.theme) || props.defaultThemeId;
+-        log.info(`Current theme ID:`, currentThemeId);
++        this.auxKeys = buildAuxKeys(props.storagePrefix);
++
++        // Run the legacy-key migration BEFORE constructing SettingsManager
++        // — if the old keys exist and the new key doesn't, we pre-seed
++        // the manager so its first persistence pass writes the unified
++        // blob in the same tick (no half-migrated state on disk).
++        const migration =
++            typeof localStorage !== `undefined`
++                ? migrateLegacySettings(props.storagePrefix, localStorage)
++                : { migrated: false };
++        this.settingsManager = new SettingsManager({
++            storagePrefix: props.storagePrefix,
++            initialBlob: migration.blob
++        });
+ 
+-        const initialTheme =
+-            props.themes.find((theme) => theme.id === currentThemeId) || props.themes[0];
++        const initialTheme = pickThemeFromBlob(
++            this.settingsManager,
++            props.themes,
++            props.defaultThemeId
++        );
+ 
+         // Apply the theme class synchronously before React paints, so we don't
+         // flash the default :root tokens (white surfaces on dark themes, etc.)
+         // before componentDidMount fires.
+         applyThemeClassSynchronously(initialTheme);
+ 
+-        const currentCodeThemeId =
+-            localStorage.getItem(this.storageKeys.codeTheme) || props.defaultCodeThemeId;
+-        const initialCodeTheme =
+-            props.codeThemes.find((codeTheme) => codeTheme.id === currentCodeThemeId) || props.codeThemes[0];
+-
+-        const currentMapStyleId =
+-            localStorage.getItem(this.storageKeys.mapStyle) || props.defaultMapStyleId;
+-        const initialMapStyle =
+-            props.mapStyles.find((style) => style.id === currentMapStyleId) || props.mapStyles[0];
++        const initialCodeTheme = pickById(
++            props.codeThemes,
++            this.settingsManager.getCore(`codeTheme`),
++            props.defaultCodeThemeId
++        );
++        const initialMapStyle = pickById(
++            props.mapStyles,
++            this.settingsManager.getCore(`mapStyle`),
++            props.defaultMapStyleId
++        );
+ 
+         this.state = {
+             currentTheme: initialTheme,
+             currentTranslation: props.initialTranslation,
+-            currentLanguage: getBrowserLanguage(props.languages, this.storageKeys.selectedLanguage),
++            currentLanguage: pickLanguage(
++                props.languages,
++                this.settingsManager.getCore(`language`)
++            ),
+             currentCodeTheme: initialCodeTheme,
+-            codeEditorSettings: readCodeEditorSettings(this.storageKeys.codeEditorSettings),
+-            toastSettings: readToastSettings(this.storageKeys.toastSettings),
++            codeEditorSettings: readCodeEditorFromBlob(
++                this.settingsManager.getCore(`codeEditor`)
++            ),
++            toastSettings: readToastFromBlob(this.settingsManager.getCore(`toast`)),
+             currentMapStyle: initialMapStyle
+         };
+ 
+         this.actionManager = new ActionManager({
+-            recentActionsStorageKey: this.storageKeys.recentActions,
++            recentActionsSlot: this.settingsManager.coreSlotAdapter(`recentActions`),
+             maxRecentActions: 5
+         });
+         this.hotkeyManager = new HotkeyManager(this.actionManager, {
+-            configStorageKey: this.storageKeys.hotkeyConfig,
++            configSlot: this.settingsManager.coreSlotAdapter(`hotkeyConfig`),
+             defaultHotkeys: { ...coreDefaultHotkeys, ...props.extraDefaultHotkeys }
+         });
++
++        this.appSettingsContext = createAppSettingsContextValue(
++            this.settingsManager,
++            props.appSettings
++        );
+     }
+ 
+     componentDidMount = () => {
+-        const coreActions = defineCoreActions(this, this.storageKeys.postLoginRedirectPath);
++        const coreActions = defineCoreActions(this, this.auxKeys.postLoginRedirectPath);
+         this.actionManager.defineMultipleActions([...coreActions, ...this.props.extraActions]);
+ 
+         this.setTheme(this.state.currentTheme);
+         this.setLanguage(this.state.currentLanguage);
++
++        // Subscribe to wholesale blob replacements (JSON import tab in
++        // SettingsPanel) so the in-state derived values (theme,
++        // language, …) refresh when a paste happens.
++        this.unsubscribeSettings = this.settingsManager.subscribe(`*`, this.syncStateFromBlob);
+     };
+ 
+     componentDidUpdate = (prevProps: MowsClientManagerProps) => {
+@@ -248,6 +314,19 @@ export class MowsClientManagerBase extends Component<
+         if (auth?.user !== prevAuth?.user) {
+             this.restoreRedirectPath();
+         }
++
++        if (this.props.appSettings !== prevProps.appSettings) {
++            this.appSettingsContext = createAppSettingsContextValue(
++                this.settingsManager,
++                this.props.appSettings
++            );
++            this.forceUpdate();
++        }
++    };
++
++    componentWillUnmount = () => {
++        this.unsubscribeSettings?.();
++        this.unsubscribeSettings = null;
+     };
+ 
+     changeActiveModal = (modalType?: string) => {
+@@ -256,14 +335,65 @@ export class MowsClientManagerBase extends Component<
+     };
+ 
+     restoreRedirectPath = () => {
+-        const redirectPath = localStorage.getItem(this.storageKeys.postLoginRedirectPath);
++        const redirectPath = localStorage.getItem(this.auxKeys.postLoginRedirectPath);
+         log.info(`Restoring redirect path:`, redirectPath);
+         if (redirectPath) {
+-            localStorage.removeItem(this.storageKeys.postLoginRedirectPath);
++            localStorage.removeItem(this.auxKeys.postLoginRedirectPath);
+             window.history.replaceState({}, document.title, redirectPath);
+         }
+     };
+ 
++    /**
++     * Re-derive in-state values from the unified blob — invoked when
++     * the JSON import tab replaces the whole blob. We don't subscribe
++     * per-slice because the JSON tab is the only writer that bypasses
++     * `set*` methods; individual `set*` calls already update state in
++     * the same tick (avoiding an extra rerender from the subscriber).
++     */
++    private syncStateFromBlob = () => {
++        const themeId = this.settingsManager.getCore(`theme`);
++        const codeThemeId = this.settingsManager.getCore(`codeTheme`);
++        const mapStyleId = this.settingsManager.getCore(`mapStyle`);
++        const languageCode = this.settingsManager.getCore(`language`);
++
++        const nextTheme = pickThemeFromBlob(
++            this.settingsManager,
++            this.props.themes,
++            this.props.defaultThemeId
++        );
++        const nextCodeTheme = pickById(
++            this.props.codeThemes,
++            codeThemeId,
++            this.props.defaultCodeThemeId
++        );
++        const nextMapStyle = pickById(
++            this.props.mapStyles,
++            mapStyleId,
++            this.props.defaultMapStyleId
++        );
++
++        this.setState({
++            currentTheme: nextTheme,
++            currentCodeTheme: nextCodeTheme,
++            currentMapStyle: nextMapStyle,
++            codeEditorSettings: readCodeEditorFromBlob(
++                this.settingsManager.getCore(`codeEditor`)
++            ),
++            toastSettings: readToastFromBlob(this.settingsManager.getCore(`toast`))
++        });
++
++        if (themeId !== nextTheme.id) {
++            applyThemeClassSynchronously(nextTheme);
++        } else {
++            applyThemeClassSynchronously(nextTheme);
++        }
++
++        const nextLanguage = pickLanguage(this.props.languages, languageCode);
++        if (nextLanguage.code !== this.state.currentLanguage?.code) {
++            this.setLanguage(nextLanguage);
++        }
++    };
++
+     setTheme = async (theme: MowsTheme) => {
+         const root = window.document.documentElement;
+ 
+@@ -273,7 +403,7 @@ export class MowsClientManagerBase extends Component<
+             }
+         });
+ 
+-        localStorage.setItem(this.storageKeys.theme, theme.id);
++        this.settingsManager.setCore(`theme`, theme.id);
+ 
+         if (theme.id === `system`) {
+             const systemTheme = window.matchMedia(`(prefers-color-scheme: dark)`).matches
+@@ -292,18 +422,18 @@ export class MowsClientManagerBase extends Component<
+     };
+ 
+     setCodeTheme = (theme: MowsCodeTheme) => {
+-        localStorage.setItem(this.storageKeys.codeTheme, theme.id);
++        this.settingsManager.setCore(`codeTheme`, theme.id);
+         this.setState({ currentCodeTheme: theme });
+     };
+ 
+     setMapStyle = (style: MowsMapStyle) => {
+-        localStorage.setItem(this.storageKeys.mapStyle, style.id);
++        this.settingsManager.setCore(`mapStyle`, style.id);
+         this.setState({ currentMapStyle: style });
+     };
+ 
+     setCodeEditorSettings = (partial: Partial<MowsCodeEditorSettings>) => {
+         const next = { ...this.state.codeEditorSettings, ...partial };
+-        localStorage.setItem(this.storageKeys.codeEditorSettings, JSON.stringify(next));
++        this.settingsManager.setCore(`codeEditor`, next as Record<string, unknown>);
+         this.setState({ codeEditorSettings: next });
+     };
+ 
+@@ -313,7 +443,7 @@ export class MowsClientManagerBase extends Component<
+             log.warn(`Ignoring invalid toast position`, partial);
+             return;
+         }
+-        localStorage.setItem(this.storageKeys.toastSettings, JSON.stringify(next));
++        this.settingsManager.setCore(`toast`, next as Record<string, unknown>);
+         this.setState({ toastSettings: next });
+     };
+ 
+@@ -326,7 +456,7 @@ export class MowsClientManagerBase extends Component<
+ 
+         const translation = await languageToSet.import();
+ 
+-        localStorage.setItem(this.storageKeys.selectedLanguage, languageToSet.code);
++        this.settingsManager.setCore(`language`, languageToSet.code);
+ 
+         this.setState({ currentTranslation: translation.default });
+     };
+@@ -375,13 +505,40 @@ export class MowsClientManagerBase extends Component<
+             setToastSettings: this.setToastSettings,
+             mapStyles,
+             currentMapStyle,
+-            setMapStyle: this.setMapStyle
++            setMapStyle: this.setMapStyle,
++            settingsManager: this.settingsManager,
++            appSettings: this.appSettingsContext
+         };
+ 
+         return <MowsContext.Provider value={contextValue}>{children}</MowsContext.Provider>;
+     };
+ }
+ 
++const pickThemeFromBlob = (
++    settingsManager: SettingsManager,
++    themes: MowsTheme[],
++    defaultThemeId: string
++): MowsTheme => {
++    const stored = settingsManager.getCore(`theme`);
++    return (
++        themes.find((theme) => theme.id === stored) ||
++        themes.find((theme) => theme.id === defaultThemeId) ||
++        themes[0]
++    );
++};
++
++const pickById = <T extends { id: string }>(
++    list: T[],
++    storedId: string | undefined,
++    defaultId: string
++): T => {
++    return (
++        list.find((item) => item.id === storedId) ||
++        list.find((item) => item.id === defaultId) ||
++        list[0]
++    );
++};
++
+ export const MowsContext = createContext<MowsContextType | undefined>(undefined);
+ 
+ export const withMows = <P extends { mows: MowsContextType }>(
+@@ -446,6 +603,16 @@ interface MowsProviderProps {
+     readonly extraActions?: Action[];
+     readonly extraDefaultHotkeys?: HotkeyConfig;
+     readonly onSigninCallback?: (user: User | void) => void;
++    /**
++     * Optional consumer-app settings schema. Build it via
++     * `defineAppSettings({ appKey, schema })`. When set, the schema's
++     * fields are persisted into the unified settings blob under
++     * `app.<appKey>.*` and become available via `useAppSetting`. The
++     * built-in `<SettingsPanel>` auto-renders one section per
++     * registered field. See the SettingsSystem guide for the full
++     * pattern.
++     */
++    readonly appSettings?: AnyAppSettings;
+ }
+ 
+ export class MowsProvider extends Component<MowsProviderProps> {
+@@ -491,7 +658,8 @@ export class MowsProvider extends Component<MowsProviderProps> {
+             defaultMapStyleId,
+             extraActions,
+             extraDefaultHotkeys,
+-            authConfigured: !!oidc
++            authConfigured: !!oidc,
++            appSettings: this.props.appSettings ?? null
+         } as const;
+ 
+         if (!oidc) {
+diff --git a/components/react/lib/main.ts b/components/react/lib/main.ts
+index 3b26d802..8f4a6e44 100644
+--- a/components/react/lib/main.ts
++++ b/components/react/lib/main.ts
+@@ -247,6 +247,15 @@ export {
+     default as SearchSelectPicker,
+     type SearchSelectPickerProps
+ } from "./components/input/searchSelectPicker/SearchSelectPicker";
++export {
++    default as StaggeredCheckboxes,
++    collectAllIds as staggeredCheckboxesCollectAllIds,
++    collectLeafIds as staggeredCheckboxesCollectLeafIds,
++    getNodeState as staggeredCheckboxesGetNodeState,
++    type StaggeredCheckboxNode,
++    type StaggeredCheckboxState,
++    type StaggeredCheckboxesProps
++} from "./components/input/staggeredCheckboxes/StaggeredCheckboxes";
+ export {
+     default as EmojiPicker,
+     type EmojiPickerHandle
+@@ -274,7 +283,6 @@ export { default as LoggingConfig } from "./components/settings/loggingConfig/Lo
+ export { default as MapStylePicker } from "./components/settings/mapStylePicker/MapStylePicker";
+ export {
+     default as SettingsPanel,
+-    type MowsSettings,
+     type SettingsPanelProps
+ } from "./components/settings/settingsPanel/SettingsPanel";
+ export { default as ThemePicker } from "./components/settings/themePicker/ThemePicker";
+@@ -284,6 +292,34 @@ export {
+     type MapProps,
+     type MapView
+ } from "./components/map/Map";
++export {
++    default as WeatherChip,
++    type WeatherChipProps
++} from "./components/map/weatherChip/WeatherChip";
++export {
++    default as WeatherExpandable,
++    type WeatherExpandableProps
++} from "./components/map/weatherExpandable/WeatherExpandable";
++export {
++    DEFAULT_WEATHER_EXPANDABLE_STRINGS,
++    resolveWeatherEmoji,
++    resolveConditionLabel as resolveWeatherExpandableConditionLabel,
++    type WeatherExpandableConditionKey,
++    type WeatherExpandableData,
++    type WeatherExpandableForecastDay,
++    type WeatherExpandableIconName,
++    type WeatherExpandableStrings
++} from "./components/map/weatherExpandable/types";
++export {
++    DEFAULT_WEATHER_CHIP_STRINGS,
++    resolveConditionLabel,
++    resolveWeatherIcon,
++    type WeatherChipStrings,
++    type WeatherConditionKey,
++    type WeatherIconName,
++    type WeatherMode,
++    type WeatherRecord
++} from "./components/map/weatherChip/types";
+ 
+ export { default as ResourceList } from "./components/list/ResourceList/ResourceList";
+ export * from "./components/list/ResourceList/ResourceListTypes";
+@@ -325,6 +361,10 @@ export {
+     type PageIndexItem,
+     type PageIndexProps
+ } from "./components/navigation/pageIndex/PageIndex";
++export {
++    default as ExpandableSection,
++    type ExpandableSectionProps
++} from "./components/navigation/expandableSection/ExpandableSection";
+ export {
+     default as SectionHeading,
+     type SectionHeadingProps
+@@ -369,9 +409,12 @@ export * from "./lib/dateTimeUtils";
+ export * from "./lib/languages";
+ export * from "./lib/logging";
+ export * from "./lib/mowsContext/ActionManager";
++export * from "./lib/mowsContext/appSettings";
+ export * from "./lib/mowsContext/coreActions";
+ export * from "./lib/mowsContext/HotkeyManager";
+ export * from "./lib/mowsContext/MowsContext";
++export * from "./lib/mowsContext/SettingsManager";
++export * from "./lib/mowsContext/useAppSetting";
+ export * from "./lib/mapStyles";
+ export * from "./lib/themes";
+ export * from "./lib/timezoneUtils";
+diff --git a/components/react/src/examples/settingsPanel/SettingsPanelDocPage.tsx b/components/react/src/examples/settingsPanel/SettingsPanelDocPage.tsx
+index d88cf663..e2afc811 100644
+--- a/components/react/src/examples/settingsPanel/SettingsPanelDocPage.tsx
++++ b/components/react/src/examples/settingsPanel/SettingsPanelDocPage.tsx
+@@ -25,6 +25,7 @@ const ANCHOR = {
+     composition: `composition`,
+     examples: `examples`,
+     default: `examples-default`,
++    appExtension: `app-extension`,
+     rtl: `rtl`,
+     definedBehaviour: `defined-behaviour`,
+     apiReference: `api-reference`
+@@ -43,6 +44,39 @@ const COMPOSITION_SNIPPET = `// Place SettingsPanel inside a sized container —
+     <SettingsPanel />
+ </div>`;
+ 
++const APP_EXTENSION_SNIPPET = `// 1. Declare your app's settings schema once.
++import { defineAppSettings } from "@my-own-web-services/react-components";
++
++export const filezSettings = defineAppSettings({
++    appKey: "filez",
++    schema: {
++        defaultView: {
++            type: "select",
++            options: [
++                { value: "grid", label: (t) => t.filez.viewGrid },
++                { value: "list", label: (t) => t.filez.viewList }
++            ],
++            default: "grid",
++            label: (t) => t.filez.defaultViewLabel,
++            group: (t) => t.filez.displayGroup
++        },
++        showHidden: {
++            type: "boolean",
++            default: false,
++            label: (t) => t.filez.showHiddenLabel,
++            group: (t) => t.filez.displayGroup
++        }
++    }
++});
++
++// 2. Register it on MowsProvider — done once at app boot.
++<MowsProvider appSettings={filezSettings} storagePrefix="filez">
++    <App />
++</MowsProvider>
++
++// 3. SettingsPanel auto-renders one section per declared group, with the
++//    right primitive per type. No additional panel wiring needed.`;
++
+ const PROPS: PropRow[] = [
+     {
+         name: `className`,
+@@ -79,6 +113,7 @@ const buildIndexItems = (t: Strings): PageIndexItem[] => {
+         },
+         { id: ANCHOR.usage, label: doc.usage.title },
+         { id: ANCHOR.composition, label: doc.composition.title },
++        { id: ANCHOR.appExtension, label: doc.appExtension.title },
+         { id: ANCHOR.rtl, label: doc.rtl.title },
+         { id: ANCHOR.definedBehaviour, label: doc.definedBehaviour.title },
+         { id: ANCHOR.apiReference, label: doc.apiReference.title },
+@@ -94,49 +129,67 @@ const buildBehaviourEntries = (
+         statement: statements.threeHeadings,
+         testFile: TEST_FILE,
+         testName: `renders the three section headings`,
+-        testLine: 119
++        testLine: 146
+     },
+     {
+         statement: statements.standalonePickersShowCurrent,
+         testFile: TEST_FILE,
+         testName: `uses the standalone-style theme/code-theme/language pickers and shows their current values`,
+-        testLine: 126
++        testLine: 153
+     },
+     {
+         statement: statements.jsonTabShowsSettings,
+         testFile: TEST_FILE,
+-        testName: `switches to the JSON tab and shows current settings`,
+-        testLine: 136
++        testName: `switches to the JSON tab and shows the unified settings blob`,
++        testLine: 163
+     },
+     {
+         statement: statements.jsonSaveAppliesEdit,
+         testFile: TEST_FILE,
+-        testName: `applies edited JSON when Save is clicked`,
+-        testLine: 149
++        testName: `pastes a wholesale blob into the JSON tab and calls replaceBlob`,
++        testLine: 182
++    },
++    {
++        statement: statements.jsonRejectsBadVersion,
++        testFile: TEST_FILE,
++        testName: `rejects a JSON paste whose _v doesn't match the current version`,
++        testLine: 208
+     },
+     {
+         statement: statements.notificationsSection,
+         testFile: TEST_FILE,
+         testName: `renders the Notifications section with the toast position picker`,
+-        testLine: 173
++        testLine: 228
+     },
+     {
+         statement: statements.jsonIncludesToast,
+         testFile: TEST_FILE,
+-        testName: `includes toast settings in the JSON view`,
+-        testLine: 180
++        testName: `exposes the toast slot inside core in the JSON view`,
++        testLine: 235
+     },
+     {
+         statement: statements.toastPositionFromJson,
+         testFile: TEST_FILE,
+-        testName: `applies toast.position from edited JSON`,
+-        testLine: 192
++        testName: `a pasted blob with core.toast lands in the manager after save`,
++        testLine: 248
++    },
++    {
++        statement: statements.bracketPairToggle,
++        testFile: TEST_FILE,
++        testName: `exposes a bracket-pair colorization toggle that calls setCodeEditorSettings`,
++        testLine: 279
++    },
++    {
++        statement: statements.appSectionWhenRegistered,
++        testFile: TEST_FILE,
++        testName: `renders an app-settings section when a schema is registered`,
++        testLine: 305
+     },
+     {
+         statement: statements.jsonErrorOnInvalid,
+         testFile: TEST_FILE,
+         testName: `shows an error when JSON is invalid`,
+-        testLine: 246
++        testLine: 356
+     }
+ ];
+ 
+@@ -215,6 +268,20 @@ export const SettingsPanelDocPage = () => {
+                 </ExpandableCode>
+             </DocSection>
+ 
++            <DocSection
++                id={ANCHOR.appExtension}
++                title={doc.appExtension.title}
++                description={doc.appExtension.body}
++            >
++                <ExpandableCode>
++                    <CodeViewer
++                        code={APP_EXTENSION_SNIPPET}
++                        language={`tsx`}
++                        fitContent
++                    />
++                </ExpandableCode>
++            </DocSection>
++
+             <DocSection
+                 id={ANCHOR.rtl}
+                 title={doc.rtl.title}
+diff --git a/components/react/src/examples/settingsPanel/translations.ts b/components/react/src/examples/settingsPanel/translations.ts
+index 72f1e0b7..5b034ba0 100644
+--- a/components/react/src/examples/settingsPanel/translations.ts
++++ b/components/react/src/examples/settingsPanel/translations.ts
+@@ -24,6 +24,7 @@ export interface SettingsPanelTranslation {
+     };
+     usage: { title: string; body: string };
+     composition: { title: string; body: string };
++    appExtension: { title: string; body: string };
+     examples: {
+       title: string;
+       default: { title: string; description: string };
+@@ -37,9 +38,12 @@ export interface SettingsPanelTranslation {
+         standalonePickersShowCurrent: string;
+         jsonTabShowsSettings: string;
+         jsonSaveAppliesEdit: string;
++        jsonRejectsBadVersion: string;
+         notificationsSection: string;
+         jsonIncludesToast: string;
+         toastPositionFromJson: string;
++        bracketPairToggle: string;
++        appSectionWhenRegistered: string;
+         jsonErrorOnInvalid: string;
+       };
+     };
+@@ -68,7 +72,11 @@ export const settingsPanelEn: SettingsPanelTranslation = {
+     },
+     composition: {
+       title: `Composition`,
+-      body: `<SettingsPanel> stitches together <ThemePicker>, <CodeThemePicker>, <LanguagePicker>, the code-editor toggles and the toast position picker, plus a JSON tab that round-trips the entire MowsSettings object.`,
++      body: `<SettingsPanel> stitches together <ThemePicker>, <CodeThemePicker>, <LanguagePicker>, the code-editor toggles and the toast position picker, plus a JSON tab that round-trips the entire unified <SettingsBlob> (core + app slots). Apps extend the panel with their own typed sections by registering a schema via <MowsProvider appSettings={…} /> — see the Settings system guide.`,
++    },
++    appExtension: {
++      title: `Extending with app settings`,
++      body: `Consumer apps add their own typed settings via \`defineAppSettings\`. The schema becomes a new section inside <SettingsPanel> (one sub-section per declared \`group\`), values are persisted under \`app.<appKey>\` in the same blob the panel's JSON tab exports, and reads happen through the typed \`useAppSetting\` hook. The full pattern — schema shape, field types, defaults, custom render escape hatch — lives in the <SettingsSystem> guide.`,
+     },
+     examples: {
+       title: `Examples`,
+@@ -84,11 +92,14 @@ export const settingsPanelEn: SettingsPanelTranslation = {
+       statements: {
+         threeHeadings: `Renders the three section headings (Appearance, Code editor, Language).`,
+         standalonePickersShowCurrent: `Uses the standalone-style theme / code-theme / language pickers and shows their current values.`,
+-        jsonTabShowsSettings: `Switching to the JSON tab shows the live current settings.`,
+-        jsonSaveAppliesEdit: `Editing the JSON and clicking Save applies the new settings on the surrounding context.`,
++        jsonTabShowsSettings: `Switching to the JSON tab shows the unified settings blob (_v / core / app).`,
++        jsonSaveAppliesEdit: `Editing the JSON and clicking Save calls settingsManager.replaceBlob with the parsed value.`,
++        jsonRejectsBadVersion: `Rejects a JSON paste whose _v doesn't match the current schema version.`,
+         notificationsSection: `Renders the Notifications section with the toast position picker.`,
+-        jsonIncludesToast: `Includes toast settings in the JSON view.`,
+-        toastPositionFromJson: `Applies toast.position from edited JSON to the surrounding context.`,
++        jsonIncludesToast: `Exposes core.toast inside the JSON view.`,
++        toastPositionFromJson: `A pasted blob with core.toast lands in the settings manager after save.`,
++        bracketPairToggle: `Bracket-pair colorization switch dispatches setCodeEditorSettings.`,
++        appSectionWhenRegistered: `Renders an app-settings section when a schema is registered, and writes through the manager.`,
+         jsonErrorOnInvalid: `Shows an error message when the edited JSON is invalid.`,
+       },
+     },
+@@ -123,7 +134,11 @@ export const settingsPanelDe: SettingsPanelTranslation = {
+     },
+     composition: {
+       title: `Komposition`,
+-      body: `<SettingsPanel> verknüpft <ThemePicker>, <CodeThemePicker>, <LanguagePicker>, die Code-Editor-Toggles und den Toast-Position-Picker — plus einen JSON-Tab, der das gesamte MowsSettings-Objekt durchschleust.`,
++      body: `<SettingsPanel> verknüpft <ThemePicker>, <CodeThemePicker>, <LanguagePicker>, die Code-Editor-Toggles und den Toast-Position-Picker — plus einen JSON-Tab, der den gesamten vereinheitlichten <SettingsBlob> (core + app) durchschleust. Apps erweitern das Panel mit eigenen typisierten Sektionen, indem sie ein Schema via <MowsProvider appSettings={…} /> registrieren — siehe den Settings-System-Guide.`,
++    },
++    appExtension: {
++      title: `Mit eigenen App-Settings erweitern`,
++      body: `Consumer-Apps fügen ihre eigenen typisierten Settings über \`defineAppSettings\` hinzu. Das Schema wird als zusätzliche Sektion in <SettingsPanel> gerendert (eine Untersektion pro deklarierter \`group\`), Werte werden unter \`app.<appKey>\` im selben Blob persistiert, den der JSON-Tab des Panels exportiert, und Lese-Zugriffe laufen über den typisierten \`useAppSetting\`-Hook. Das vollständige Muster — Schema-Form, Feldtypen, Defaults, Custom-Render-Escape-Hatch — steht im <SettingsSystem>-Guide.`,
+     },
+     examples: {
+       title: `Beispiele`,
+@@ -139,11 +154,14 @@ export const settingsPanelDe: SettingsPanelTranslation = {
+       statements: {
+         threeHeadings: `Rendert die drei Sektionsüberschriften (Erscheinungsbild, Code-Editor, Sprache).`,
+         standalonePickersShowCurrent: `Verwendet die standalone-Variante der Theme- / Code-Theme- / Sprache-Picker und zeigt ihre aktuellen Werte.`,
+-        jsonTabShowsSettings: `Der JSON-Tab zeigt die aktuellen Einstellungen live an.`,
+-        jsonSaveAppliesEdit: `Editieren des JSONs und Klick auf Speichern überträgt die neuen Werte in den Context.`,
++        jsonTabShowsSettings: `Der JSON-Tab zeigt den vereinheitlichten Settings-Blob an (_v / core / app).`,
++        jsonSaveAppliesEdit: `Editieren des JSONs und Klick auf Speichern ruft settingsManager.replaceBlob mit dem geparsten Wert auf.`,
++        jsonRejectsBadVersion: `Lehnt einen JSON-Paste ab, dessen _v nicht zur aktuellen Schema-Version passt.`,
+         notificationsSection: `Rendert die Sektion "Benachrichtigungen" mit dem Toast-Position-Picker.`,
+-        jsonIncludesToast: `Bezieht die Toast-Einstellungen in die JSON-Ansicht mit ein.`,
+-        toastPositionFromJson: `Übernimmt toast.position aus dem editierten JSON in den umgebenden Context.`,
++        jsonIncludesToast: `Exponiert core.toast in der JSON-Ansicht.`,
++        toastPositionFromJson: `Ein eingefügter Blob mit core.toast landet nach Save im Settings-Manager.`,
++        bracketPairToggle: `Der Switch für Bracket-Pair-Colorization löst setCodeEditorSettings aus.`,
++        appSectionWhenRegistered: `Rendert eine App-Settings-Sektion, wenn ein Schema registriert ist, und schreibt durch den Manager.`,
+         jsonErrorOnInvalid: `Zeigt eine Fehlermeldung, wenn das editierte JSON ungültig ist.`,
+       },
+     },
+diff --git a/components/react/src/guides/index.tsx b/components/react/src/guides/index.tsx
+index 94c4f4b4..585a9d3a 100644
+--- a/components/react/src/guides/index.tsx
++++ b/components/react/src/guides/index.tsx
+@@ -1,7 +1,8 @@
+-import { BookOpen, Languages } from "lucide-react";
++import { BookOpen, Languages, Settings } from "lucide-react";
+ import { type ComponentType, type ReactNode } from "react";
+ import type { Translation } from "../languages";
+ import { CreatingAppsGuide } from "./CreatingAppsGuide";
++import { SettingsSystemGuide } from "./SettingsSystemGuide";
+ import { TranslationsGuide } from "./TranslationsGuide";
+ import { registerGuideLinks } from "../componentLinkRegistry";
+ 
+@@ -38,6 +39,13 @@ export const guides: ReadonlyArray<GuideEntry> = [
+         label: (t) => t.example.sidebar.translationsLabel,
+         icon: Languages,
+         render: () => <TranslationsGuide />
++    },
++    {
++        id: `settings-system`,
++        name: `SettingsSystem`,
++        label: (t) => t.example.sidebar.settingsSystemLabel,
++        icon: Settings,
++        render: () => <SettingsSystemGuide />
+     }
+ ];
+ 
+diff --git a/components/react/src/languages.ts b/components/react/src/languages.ts
+index ecc5a103..30c2794d 100644
+--- a/components/react/src/languages.ts
++++ b/components/react/src/languages.ts
+@@ -31,6 +31,7 @@ import type { DialogTranslation } from "./examples/dialog/translations";
+ import type { DropdownMenuTranslation } from "./examples/dropdownMenu/translations";
+ import type { EmojiPickerTranslation } from "./examples/emojiPicker/translations";
+ import type { ExpandableCodeTranslation } from "./examples/expandableCode/translations";
++import type { ExpandableSectionTranslation } from "./examples/expandableSection/translations";
+ import type { FileIconTranslation } from "./examples/fileIcon/translations";
+ import type { FileViewerTranslation } from "./examples/fileViewer/translations";
+ import type { GlobalContextMenuTranslation } from "./examples/globalContextMenu/translations";
+@@ -73,6 +74,7 @@ import type { SidebarTranslation } from "./examples/sidebar/translations";
+ import type { SkeletonTranslation } from "./examples/skeleton/translations";
+ import type { SliderTranslation } from "./examples/slider/translations";
+ import type { SonnerTranslation } from "./examples/sonner/translations";
++import type { StaggeredCheckboxesTranslation } from "./examples/staggeredCheckboxes/translations";
+ import type { SwitchTranslation } from "./examples/switch/translations";
+ import type { TabsTranslation } from "./examples/tabs/translations";
+ import type { TerminalTranslation } from "./examples/terminal/translations";
+@@ -82,6 +84,8 @@ import type { TimePickerTranslation } from "./examples/timePicker/translations";
+ import type { TimelineTranslation } from "./examples/timeline/translations";
+ import type { TimezoneSelectorTranslation } from "./examples/timezoneSelector/translations";
+ import type { VideoViewerTranslation } from "./examples/videoViewer/translations";
++import type { WeatherChipTranslation } from "./examples/weatherChip/translations";
++import type { WeatherExpandableTranslation } from "./examples/weatherExpandable/translations";
+ 
+ // eslint-disable-next-line quotes
+ declare module "../lib/lib/languages" {
+@@ -133,6 +137,7 @@ declare module "../lib/lib/languages" {
+                 guidesLabel: string;
+                 creatingAppsLabel: string;
+                 translationsLabel: string;
++                settingsSystemLabel: string;
+             };
+             guides: {
+                 creatingApps: {
+@@ -225,6 +230,41 @@ declare module "../lib/lib/languages" {
+                         spreadBase: { title: string; body: string };
+                     };
+                 };
++                settingsSystem: {
++                    title: string;
++                    overview: {
++                        title: string;
++                        intro: string;
++                        oneBlob: { title: string; body: string };
++                        coreVsApp: { title: string; body: string };
++                        futureSync: { title: string; body: string };
++                    };
++                    quickStart: {
++                        title: string;
++                        intro: string;
++                        defineSchema: { title: string; body: string };
++                        registerSchema: { title: string; body: string };
++                        readWrite: { title: string; body: string };
++                    };
++                    fields: {
++                        title: string;
++                        intro: string;
++                        builtin: { title: string; body: string };
++                        custom: { title: string; body: string };
++                    };
++                    panel: {
++                        title: string;
++                        intro: string;
++                        grouping: { title: string; body: string };
++                        jsonExport: { title: string; body: string };
++                    };
++                    storage: {
++                        title: string;
++                        intro: string;
++                        shape: { title: string; body: string };
++                        migration: { title: string; body: string };
++                    };
++                };
+             };
+             examples: {
+                 _harness: {
+@@ -282,6 +322,7 @@ declare module "../lib/lib/languages" {
+                 keyComboDisplay: KeyComboDisplayTranslation;
+                 keyboardShortcutEditor: KeyboardShortcutEditorTranslation;
+                 expandableCode: ExpandableCodeTranslation;
++                expandableSection: ExpandableSectionTranslation;
+                 searchInput: SearchInputTranslation;
+                 numberInput: NumberInputTranslation;
+                 colorCurves: ColorCurvesTranslation;
+@@ -312,6 +353,9 @@ declare module "../lib/lib/languages" {
+                 dateTimeDisplay: DateTimeDisplayTranslation;
+                 keyComboRecorder: KeyComboRecorderTranslation;
+                 chart: ChartTranslation;
++                weatherChip: WeatherChipTranslation;
++                weatherExpandable: WeatherExpandableTranslation;
++                staggeredCheckboxes: StaggeredCheckboxesTranslation;
+             };
+             common: {
+                 selected: string;
+diff --git a/components/react/src/languages/de.ts b/components/react/src/languages/de.ts
+index f808dcc3..1670ce7b 100644
+--- a/components/react/src/languages/de.ts
++++ b/components/react/src/languages/de.ts
+@@ -30,6 +30,7 @@ import { dialogDe } from "../examples/dialog/translations";
+ import { dropdownMenuDe } from "../examples/dropdownMenu/translations";
+ import { emojiPickerDe } from "../examples/emojiPicker/translations";
+ import { expandableCodeDe } from "../examples/expandableCode/translations";
++import { expandableSectionDe } from "../examples/expandableSection/translations";
+ import { fileIconDe } from "../examples/fileIcon/translations";
+ import { fileViewerDe } from "../examples/fileViewer/translations";
+ import { globalContextMenuDe } from "../examples/globalContextMenu/translations";
+@@ -72,6 +73,7 @@ import { sidebarDe } from "../examples/sidebar/translations";
+ import { skeletonDe } from "../examples/skeleton/translations";
+ import { sliderDe } from "../examples/slider/translations";
+ import { sonnerDe } from "../examples/sonner/translations";
++import { staggeredCheckboxesDe } from "../examples/staggeredCheckboxes/translations";
+ import { switchDe } from "../examples/switch/translations";
+ import { tabsDe } from "../examples/tabs/translations";
+ import { terminalDe } from "../examples/terminal/translations";
+@@ -81,6 +83,8 @@ import { timePickerDe } from "../examples/timePicker/translations";
+ import { timelineDe } from "../examples/timeline/translations";
+ import { timezoneSelectorDe } from "../examples/timezoneSelector/translations";
+ import { videoViewerDe } from "../examples/videoViewer/translations";
++import { weatherChipDe } from "../examples/weatherChip/translations";
++import { weatherExpandableDe } from "../examples/weatherExpandable/translations";
+ 
+ const translation: Translation = {
+     ...baseDe,
+@@ -142,7 +146,8 @@ const translation: Translation = {
+             removeFromFavoritesAriaLabel: `Aus Favoriten entfernen`,
+             guidesLabel: `Anleitungen`,
+             creatingAppsLabel: `Apps erstellen`,
+-            translationsLabel: `Übersetzungen`
++            translationsLabel: `Übersetzungen`,
++            settingsSystemLabel: `Settings-System`
+         },
+         guides: {
+             creatingApps: {
+@@ -315,6 +320,77 @@ const translation: Translation = {
+                         body: `Per-Locale-App-Dateien starten mit \`...baseEn\` (oder \`...baseDe\`), damit die Strings der Bibliothek ihre Werte behalten, ohne dupliziert zu werden. Vergisst du den Spread, typisieren deine App-seitigen Schlüssel zwar einzeln, aber die zusammengeführte \`Translation\` fehlt jeder Bibliotheksschlüssel — und der Compile-Fehler taucht erst an der Zuweisungsstelle auf, weit weg vom fehlenden Feld.`
+                     }
+                 }
++            },
++            settingsSystem: {
++                title: `Settings-System`,
++                overview: {
++                    title: `Überblick`,
++                    intro: `Jede Einstellung, die deine App persistiert — die der Bibliothek (Theme, Sprache, Hotkey-Overrides, …) und alles, was du selbst hinzufügst — lebt in einem JSON-Blob unter einem einzigen \`localStorage\`-Key. Nutzer können diesen Blob kopieren, in einen anderen Browser einfügen und den kompletten UX-Zustand in einem Schritt wiederherstellen.`,
++                    oneBlob: {
++                        title: `Ein Key, ein Blob`,
++                        body: `Der Key heißt \`\${storagePrefix}_settings\`. Im Inhalt: \`_v\` (Schema-Version), \`core\` (von der Lib verwaltete Slots) und \`app\` (deine Felder, per \`appKey\` als Sub-Key gruppiert). Die Trennung ist bewusst — siehe nächste Unterabschnitt.`
++                    },
++                    coreVsApp: {
++                        title: `core vs. app`,
++                        body: `\`core.*\` ist der Vertrag, der der Bibliothek gehört. Das Schema ist stabil, damit eine zukünftige Settings-API diese Werte für denselben Nutzer geräte-/app-übergreifend synchronisieren kann. \`app.<appKey>.*\` gehört dir — definiert durch dein Schema, bleibt geräte-lokal, auch wenn \`core\` später remote synchronisiert wird.`
++                    },
++                    futureSync: {
++                        title: `Zukunft: Remote-Sync für core`,
++                        body: `Heute liegt der Blob ausschließlich in \`localStorage\`. Die Persistenzschicht im \`SettingsManager\` ist bewusst ein Interface (\`SettingsStorageAdapter\`), damit ein zukünftiger Remote-Sync-Provider für \`core\` ohne Consumer-Änderungen rein-gesteckt werden kann. \`_v\` versioniert das Wire-Format dafür.`
++                    }
++                },
++                quickStart: {
++                    title: `Quick-Start`,
++                    intro: `Drei Schritte: Schema deklarieren, auf \`<MowsProvider>\` registrieren, mit \`useAppSetting\` lesen+schreiben.`,
++                    defineSchema: {
++                        title: `1. Schema deklarieren`,
++                        body: `\`defineAppSettings({ appKey, schema })\` ist ein runtime-freier Helper, der das Schema-Objekt verbatim plus einen stabilen \`appKey\` zurückgibt. Jeder Eintrag im Schema ist ein typisierter Field-Descriptor: \`type\` ("boolean" | "select" | "number" | "slider" | "string" | "color"), \`default\`, \`label\`, optional \`group\` für die Platzierung im SettingsPanel.`
++                    },
++                    registerSchema: {
++                        title: `2. Auf MowsProvider registrieren`,
++                        body: `Das Schema via \`<MowsProvider appSettings={…}>\` reichen. Damit ist die Registry gefüllt, aus der die typisierten Hooks lesen. Ein Schema pro App — Multi-Schema ist kein unterstütztes Muster.`
++                    },
++                    readWrite: {
++                        title: `3. Lesen + Schreiben mit useAppSetting`,
++                        body: `\`useAppSetting(schema, "fieldId")\` gibt \`[value, setValue]\` vollständig typ-inferiert aus dem Schema zurück. Der Hook abonniert nur den spezifischen Pfad — fremde Writes lösen keinen Re-Render aus. Defaults greifen automatisch — der Runtime-Type-Guard fällt auf den Default zurück, wenn der gespeicherte Wert nicht zum deklarierten Typ passt (defensiv gegen Blob-Korruption).`
++                    }
++                },
++                fields: {
++                    title: `Feldtypen`,
++                    intro: `Die Feldtypen im Schema mappen auf die Primitiven, die \`<SettingsPanel>\` rendern kann:`,
++                    builtin: {
++                        title: `Eingebaut`,
++                        body: `\`boolean\` → Switch · \`select\` → Select (typisiert über die Option-Values) · \`number\` → numerisches Input · \`slider\` → Slider · \`string\` → Text-Input · \`color\` → Color-Input. Der Value-Typ jedes Feldes wird aus dem Descriptor abgeleitet — Consumer-Code sieht \`boolean\`, die Option-Value-Union, \`number\` oder \`string\` — nie \`unknown\`.`
++                    },
++                    custom: {
++                        title: `Escape-Hatch: eigener Render`,
++                        body: `Wenn kein eingebautes Primitive passt, definiere \`render: ({ value, setValue, t }) => …\` am Schema-Eintrag. Storage und typisierte Hooks bleiben geschenkt; nur die Zeilen-UI gehört dir.`
++                    }
++                },
++                panel: {
++                    title: `SettingsPanel-Integration`,
++                    intro: `\`<SettingsPanel>\` rendert automatisch jedes registrierte Feld. Du schreibst keine Panel-UI — das Schema ist das Panel.`,
++                    grouping: {
++                        title: `Felder gruppieren`,
++                        body: `Setze \`group: t => t.…\` pro Feld, um die Sektion zu steuern. Felder ohne Gruppe landen in einem übersetzten "Weitere"-Bucket. Reihenfolge innerhalb einer Gruppe folgt der Schema-Deklarationsreihenfolge.`
++                    },
++                    jsonExport: {
++                        title: `JSON-Tab = vollständiger Export`,
++                        body: `Der JSON-Tab des Panels bearbeitet den gesamten Blob — core + app — sodass ein Paste alles in einem Rutsch abdeckt. Save ruft \`settingsManager.replaceBlob(parsed)\`; der Versions-Check lehnt Pastes mit nicht passendem \`_v\` ab.`
++                    }
++                },
++                storage: {
++                    title: `Storage-Format & Migration`,
++                    intro: `Wie der vereinheitlichte Blob auf Platte aussieht und wie Legacy-Installationen migrieren.`,
++                    shape: {
++                        title: `Blob-Format`,
++                        body: `\`{ _v: 1, core: { theme, codeTheme, language, mapStyle, codeEditor, toast, hotkeyConfig, recentActions }, app: { <appKey>: { <settingId>: value } } }\`. Leere Slots fehlen einfach — Defaults greifen beim Lesen.`
++                    },
++                    migration: {
++                        title: `Legacy-Keys werden automatisch migriert`,
++                        body: `Ältere Versionen der Lib nutzten einen \`localStorage\`-Key pro Concern (\`_theme\`, \`_code_theme\`, \`_language\`, …). Beim ersten Mount mit dem neuen System werden diese Keys gelesen, in den neuen Blob gemerged und entfernt — einmalig. Der zweite Mount ist ein No-Op. Korrupte Legacy-JSON-Werte werden geloggt und übersprungen (die Lib fällt für diesen Slot auf den Default zurück).`
++                    }
++                }
+             }
+         },
+         examples: {
+@@ -373,6 +449,7 @@ const translation: Translation = {
+             keyComboDisplay: keyComboDisplayDe,
+             keyboardShortcutEditor: keyboardShortcutEditorDe,
+             expandableCode: expandableCodeDe,
++            expandableSection: expandableSectionDe,
+             searchInput: searchInputDe,
+             numberInput: numberInputDe,
+             colorCurves: colorCurvesDe,
+@@ -403,6 +480,9 @@ const translation: Translation = {
+             chat: chatDe,
+             keyComboRecorder: keyComboRecorderDe,
+             chart: chartDe,
++            weatherChip: weatherChipDe,
++            weatherExpandable: weatherExpandableDe,
++            staggeredCheckboxes: staggeredCheckboxesDe,
+         },
+         common: {
+             selected: `ausgewählt`,
+diff --git a/components/react/src/languages/en-US.ts b/components/react/src/languages/en-US.ts
+index 96d8ff1c..80d23883 100644
+--- a/components/react/src/languages/en-US.ts
++++ b/components/react/src/languages/en-US.ts
+@@ -30,6 +30,7 @@ import { dialogEn } from "../examples/dialog/translations";
+ import { dropdownMenuEn } from "../examples/dropdownMenu/translations";
+ import { emojiPickerEn } from "../examples/emojiPicker/translations";
+ import { expandableCodeEn } from "../examples/expandableCode/translations";
++import { expandableSectionEn } from "../examples/expandableSection/translations";
+ import { fileIconEn } from "../examples/fileIcon/translations";
+ import { fileViewerEn } from "../examples/fileViewer/translations";
+ import { globalContextMenuEn } from "../examples/globalContextMenu/translations";
+@@ -72,6 +73,7 @@ import { sidebarEn } from "../examples/sidebar/translations";
+ import { skeletonEn } from "../examples/skeleton/translations";
+ import { sliderEn } from "../examples/slider/translations";
+ import { sonnerEn } from "../examples/sonner/translations";
++import { staggeredCheckboxesEn } from "../examples/staggeredCheckboxes/translations";
+ import { switchEn } from "../examples/switch/translations";
+ import { tabsEn } from "../examples/tabs/translations";
+ import { terminalEn } from "../examples/terminal/translations";
+@@ -81,6 +83,8 @@ import { timePickerEn } from "../examples/timePicker/translations";
+ import { timelineEn } from "../examples/timeline/translations";
+ import { timezoneSelectorEn } from "../examples/timezoneSelector/translations";
+ import { videoViewerEn } from "../examples/videoViewer/translations";
++import { weatherChipEn } from "../examples/weatherChip/translations";
++import { weatherExpandableEn } from "../examples/weatherExpandable/translations";
+ 
+ const translation: Translation = {
+     ...baseEn,
+@@ -142,7 +146,8 @@ const translation: Translation = {
+             removeFromFavoritesAriaLabel: `Remove from favorites`,
+             guidesLabel: `Guides`,
+             creatingAppsLabel: `Creating Apps`,
+-            translationsLabel: `Translations`
++            translationsLabel: `Translations`,
++            settingsSystemLabel: `Settings System`
+         },
+         guides: {
+             creatingApps: {
+@@ -315,6 +320,77 @@ const translation: Translation = {
+                         body: `Per-locale app files start with \`...baseEn\` (or \`...baseDe\`) so the library's strings keep their values without being duplicated. Forgetting the spread leaves your app-side keys typechecking individually but the merged \`Translation\` missing every library key — and the compile error surfaces only at the assignment site, far from the missing field.`
+                     }
+                 }
++            },
++            settingsSystem: {
++                title: `Settings System`,
++                overview: {
++                    title: `Overview`,
++                    intro: `Every preference your app persists — the library's own (theme, language, hotkey overrides, …) and anything you add yourself — lives in one JSON blob under a single \`localStorage\` key. Users can copy that blob, paste it into another browser, and recover the full UX state in one step.`,
++                    oneBlob: {
++                        title: `One key, one blob`,
++                        body: `The key is \`\${storagePrefix}_settings\`. Inside it: \`_v\` (schema version), \`core\` (lib-owned slots) and \`app\` (your fields, sub-keyed by \`appKey\`). The split is intentional — see the next subsection.`
++                    },
++                    coreVsApp: {
++                        title: `core vs. app`,
++                        body: `\`core.*\` is the contract the library owns. The shape is stable so a future Settings API can sync these values across devices/apps for the same user. \`app.<appKey>.*\` is yours — defined by your schema, stays device-local even when \`core\` is later remote-synced.`
++                    },
++                    futureSync: {
++                        title: `Future: remote sync of core`,
++                        body: `Today the blob is purely \`localStorage\`. The persistence layer in \`SettingsManager\` is intentionally an interface (\`SettingsStorageAdapter\`) so a future remote-sync provider for \`core\` slots in without consumer changes. \`_v\` versions the wire format for that sync.`
++                    }
++                },
++                quickStart: {
++                    title: `Quick start`,
++                    intro: `Three steps: declare a schema, register it on \`<MowsProvider>\`, read+write via \`useAppSetting\`.`,
++                    defineSchema: {
++                        title: `1. Declare the schema`,
++                        body: `\`defineAppSettings({ appKey, schema })\` is a runtime-free helper that returns the schema object verbatim plus a stable \`appKey\`. Each schema entry is a typed field descriptor: \`type\` ("boolean" | "select" | "number" | "slider" | "string" | "color"), \`default\`, \`label\`, optional \`group\` for SettingsPanel placement.`
++                    },
++                    registerSchema: {
++                        title: `2. Register on MowsProvider`,
++                        body: `Pass the schema via \`<MowsProvider appSettings={…}>\`. That populates the registry the typed hooks read from. One schema per app — multi-schema is not a supported pattern.`
++                    },
++                    readWrite: {
++                        title: `3. Read + write with useAppSetting`,
++                        body: `\`useAppSetting(schema, "fieldId")\` returns \`[value, setValue]\` fully type-inferred from the schema. The hook subscribes only to the specific path, so unrelated writes don't re-render. Defaults kick in automatically — and the runtime type guard falls back to the default when the stored value doesn't match the declared type (defensive against blob corruption).`
++                    }
++                },
++                fields: {
++                    title: `Field types`,
++                    intro: `The schema field types map to the primitives \`<SettingsPanel>\` knows how to render:`,
++                    builtin: {
++                        title: `Built-ins`,
++                        body: `\`boolean\` → Switch · \`select\` → Select (typed by option value) · \`number\` → numeric Input · \`slider\` → Slider · \`string\` → text Input · \`color\` → color Input. Each field's value type is derived from the descriptor so consumer code sees \`boolean\`, the option-value union, \`number\`, or \`string\` — never \`unknown\`.`
++                    },
++                    custom: {
++                        title: `Escape hatch: custom render`,
++                        body: `When a built-in primitive doesn't fit, supply \`render: ({ value, setValue, t }) => …\` on the schema entry. Storage + typed hooks stay free; only the row UI is yours.`
++                    }
++                },
++                panel: {
++                    title: `SettingsPanel integration`,
++                    intro: `\`<SettingsPanel>\` auto-renders every registered field. You don't write panel UI — the schema is the panel.`,
++                    grouping: {
++                        title: `Grouping fields`,
++                        body: `Set \`group: t => t.…\` on each field to control which section header it lives under. Fields without a group land in a translated "Other" bucket. Order inside a group follows schema-declaration order.`
++                    },
++                    jsonExport: {
++                        title: `JSON tab = full export`,
++                        body: `The panel's JSON tab edits the entire unified blob — core + app — so a paste covers everything in one round-trip. Save calls \`settingsManager.replaceBlob(parsed)\`; the version check rejects pastes whose \`_v\` doesn't match.`
++                    }
++                },
++                storage: {
++                    title: `Storage shape & migration`,
++                    intro: `What the unified blob looks like on disk, and how legacy installs migrate.`,
++                    shape: {
++                        title: `Blob shape`,
++                        body: `\`{ _v: 1, core: { theme, codeTheme, language, mapStyle, codeEditor, toast, hotkeyConfig, recentActions }, app: { <appKey>: { <settingId>: value } } }\`. Empty slots are simply absent — defaults are applied on read.`
++                    },
++                    migration: {
++                        title: `Legacy keys are auto-migrated`,
++                        body: `Older versions of this lib used one \`localStorage\` key per concern (\`_theme\`, \`_code_theme\`, \`_language\`, …). On first mount with the unified system, those keys are read, merged into the new blob, and removed — once. Second mount is a no-op. Corrupted legacy JSON values are logged and skipped (the lib falls back to its default for that slot).`
++                    }
++                }
+             }
+         },
+         examples: {
+@@ -373,6 +449,7 @@ const translation: Translation = {
+             keyComboDisplay: keyComboDisplayEn,
+             keyboardShortcutEditor: keyboardShortcutEditorEn,
+             expandableCode: expandableCodeEn,
++            expandableSection: expandableSectionEn,
+             searchInput: searchInputEn,
+             numberInput: numberInputEn,
+             colorCurves: colorCurvesEn,
+@@ -403,6 +480,9 @@ const translation: Translation = {
+             chat: chatEn,
+             keyComboRecorder: keyComboRecorderEn,
+             chart: chartEn,
++            weatherChip: weatherChipEn,
++            weatherExpandable: weatherExpandableEn,
++            staggeredCheckboxes: staggeredCheckboxesEn,
+         },
+         common: {
+             selected: `selected`,

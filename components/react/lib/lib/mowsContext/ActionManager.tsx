@@ -238,18 +238,43 @@ export interface RecentAction {
     timestamp: number;
 }
 
-export interface ActionManagerConfig {
-    recentActionsStorageKey: string;
-    maxRecentActions: number;
+/**
+ * Generic JSON-typed storage slot. SettingsManager hands a slot
+ * pointing into the unified settings blob (`core.recentActions`).
+ * Tests can pass an in-memory slot. Mirrors `HotkeyConfigSlot`.
+ */
+export interface RecentActionsSlot {
+    get(): unknown;
+    set(value: RecentAction[]): void;
 }
+
+/** Discriminated union — exactly one of `recentActionsSlot` (preferred,
+ * lives in the unified blob) or `recentActionsStorageKey` (deprecated,
+ * direct localStorage) must be provided. Passing both is a wiring bug
+ * and the constructor throws. */
+export type ActionManagerConfig =
+    | {
+          readonly recentActionsSlot: RecentActionsSlot;
+          readonly recentActionsStorageKey?: never;
+          readonly maxRecentActions: number;
+      }
+    | {
+          /** @deprecated Use `recentActionsSlot` — kept for legacy test
+           * fixtures + out-of-tree consumers. */
+          readonly recentActionsStorageKey: string;
+          readonly recentActionsSlot?: never;
+          readonly maxRecentActions: number;
+      };
 
 export class ActionManager {
     private actions: Map<string, Action> = new Map();
     private recentActions: RecentAction[] = [];
     private config: ActionManagerConfig;
+    private slot: RecentActionsSlot;
 
     constructor(config: ActionManagerConfig) {
         this.config = config;
+        this.slot = resolveRecentActionsSlot(config);
     }
 
     dispatchAction = (
@@ -386,24 +411,23 @@ export class ActionManager {
     };
 
     loadRecentActions = () => {
-        const stored = localStorage.getItem(this.config.recentActionsStorageKey);
-        if (stored) {
-            try {
-                this.recentActions = JSON.parse(stored) as RecentAction[];
-            } catch (e) {
-                log.error(`Failed to parse recent actions from localStorage`, e);
-                this.recentActions = [];
-            }
-        } else {
+        const stored = this.slot.get();
+        if (!stored) {
             this.recentActions = [];
+            return;
         }
+        if (!Array.isArray(stored)) {
+            log.warn(
+                `Stored recent actions value is not an array; ignoring and starting fresh`
+            );
+            this.recentActions = [];
+            return;
+        }
+        this.recentActions = stored as RecentAction[];
     };
 
     saveRecentActions = () => {
-        localStorage.setItem(
-            this.config.recentActionsStorageKey,
-            JSON.stringify(this.recentActions)
-        );
+        this.slot.set(this.recentActions);
     };
 
     getRecentCommands = (): RecentAction[] => {
@@ -412,3 +436,35 @@ export class ActionManager {
             .slice(0, this.config.maxRecentActions);
     };
 }
+
+const resolveRecentActionsSlot = (config: ActionManagerConfig): RecentActionsSlot => {
+    if (config.recentActionsSlot && config.recentActionsStorageKey) {
+        // The discriminated union prevents this at compile time but a
+        // JS caller (or an `as any` cast) can still bypass it.
+        throw new Error(
+            `ActionManager: provide either recentActionsSlot OR recentActionsStorageKey, not both`
+        );
+    }
+    if (config.recentActionsSlot) return config.recentActionsSlot;
+    if (config.recentActionsStorageKey) {
+        const key = config.recentActionsStorageKey;
+        return {
+            get: () => {
+                const raw = localStorage.getItem(key);
+                if (!raw) return undefined;
+                try {
+                    return JSON.parse(raw) as unknown;
+                } catch (e) {
+                    log.error(`Failed to parse recent actions from localStorage at ${key}`, e);
+                    return undefined;
+                }
+            },
+            set: (value) => {
+                localStorage.setItem(key, JSON.stringify(value));
+            }
+        };
+    }
+    throw new Error(
+        `ActionManager requires either recentActionsSlot or recentActionsStorageKey in its config`
+    );
+};

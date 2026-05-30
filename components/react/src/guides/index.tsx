@@ -1,7 +1,8 @@
-import { BookOpen, Languages } from "lucide-react";
+import { BookOpen, Languages, Settings } from "lucide-react";
 import { type ComponentType, type ReactNode } from "react";
 import type { Translation } from "../languages";
 import { CreatingAppsGuide } from "./CreatingAppsGuide";
+import { SettingsSystemGuide } from "./SettingsSystemGuide";
 import { TranslationsGuide } from "./TranslationsGuide";
 import { registerGuideLinks } from "../componentLinkRegistry";
 
@@ -38,6 +39,13 @@ export const guides: ReadonlyArray<GuideEntry> = [
         label: (t) => t.example.sidebar.translationsLabel,
         icon: Languages,
         render: () => <TranslationsGuide />
+    },
+    {
+        id: `settings-system`,
+        name: `SettingsSystem`,
+        label: (t) => t.example.sidebar.settingsSystemLabel,
+        icon: Settings,
+        render: () => <SettingsSystemGuide />
     }
 ];
 

@@ -18,19 +18,42 @@ export interface HotkeyConfig {
     };
 }
 
-export interface HotkeyManagerConfig {
-    configStorageKey: string;
-    defaultHotkeys: HotkeyConfig;
+/**
+ * Generic JSON-typed storage slot. SettingsManager hands a slot
+ * pointing into the unified settings blob (`core.hotkeyConfig`) so the
+ * manager keeps its own parse/validate logic but doesn't own a
+ * standalone localStorage key. Tests can pass an in-memory slot.
+ */
+export interface HotkeyConfigSlot {
+    get(): unknown;
+    set(value: HotkeyConfig): void;
 }
+
+/** Discriminated union — exactly one of `configSlot` (preferred) or
+ * `configStorageKey` (deprecated) must be provided. */
+export type HotkeyManagerConfig =
+    | {
+          readonly configSlot: HotkeyConfigSlot;
+          readonly configStorageKey?: never;
+          readonly defaultHotkeys: HotkeyConfig;
+      }
+    | {
+          /** @deprecated Use `configSlot`. */
+          readonly configStorageKey: string;
+          readonly configSlot?: never;
+          readonly defaultHotkeys: HotkeyConfig;
+      };
 
 export class HotkeyManager {
     private actionManager: ActionManager;
     private hotkeyConfig: HotkeyConfig;
     private config: HotkeyManagerConfig;
+    private slot: HotkeyConfigSlot;
 
     constructor(actionManager: ActionManager, config: HotkeyManagerConfig) {
         this.actionManager = actionManager;
         this.config = config;
+        this.slot = resolveHotkeyConfigSlot(config);
         this.hotkeyConfig = this.loadHotkeyConfig();
         this.mergeWithDefaultHotkeys();
 
@@ -123,24 +146,56 @@ export class HotkeyManager {
     };
 
     private saveHotkeyConfig = (hotkeyConfig: HotkeyConfig): void => {
-        log.debug(`Saving custom hotkey config to localStorage:`, hotkeyConfig);
-        localStorage.setItem(this.config.configStorageKey, JSON.stringify(hotkeyConfig));
+        log.debug(`Saving custom hotkey config:`, hotkeyConfig);
+        this.slot.set(hotkeyConfig);
     };
 
     private loadHotkeyConfig = (): HotkeyConfig => {
-        const savedConfig = localStorage.getItem(this.config.configStorageKey);
-        if (!savedConfig) {
-            return {};
-        }
+        const stored = this.slot.get();
+        if (!stored || typeof stored !== `object`) return {};
         try {
-            const parsedConfig = JSON.parse(savedConfig) as HotkeyConfig;
-            return migrateLegacyModifierTokens(parsedConfig);
+            return migrateLegacyModifierTokens(stored as HotkeyConfig);
         } catch (error) {
-            log.warn(`Failed to parse stored hotkey config; starting fresh`, error);
+            log.warn(`Failed to migrate stored hotkey config; starting fresh`, error);
             return {};
         }
     };
 }
+
+/**
+ * Pick the right slot implementation from the manager config. New
+ * callers pass a `configSlot`; legacy callers (tests, older apps)
+ * still set `configStorageKey` and get a localStorage-backed slot.
+ */
+const resolveHotkeyConfigSlot = (config: HotkeyManagerConfig): HotkeyConfigSlot => {
+    if (config.configSlot && config.configStorageKey) {
+        throw new Error(
+            `HotkeyManager: provide either configSlot OR configStorageKey, not both`
+        );
+    }
+    if (config.configSlot) return config.configSlot;
+    if (config.configStorageKey) {
+        const key = config.configStorageKey;
+        return {
+            get: () => {
+                const raw = localStorage.getItem(key);
+                if (!raw) return undefined;
+                try {
+                    return JSON.parse(raw) as unknown;
+                } catch (error) {
+                    log.warn(`Failed to parse stored hotkey config at ${key}`, error);
+                    return undefined;
+                }
+            },
+            set: (value) => {
+                localStorage.setItem(key, JSON.stringify(value));
+            }
+        };
+    }
+    throw new Error(
+        `HotkeyManager requires either configSlot or configStorageKey in its config`
+    );
+};
 
 /**
  * Rewrites the platform-primary modifier in stored hotkey configs from the

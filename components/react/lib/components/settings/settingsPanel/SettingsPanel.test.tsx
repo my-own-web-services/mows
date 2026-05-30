@@ -25,6 +25,7 @@ import { defaultCodeThemes, type MowsCodeTheme } from "../../../lib/codeThemes";
 import enTranslation from "../../../lib/languages/en-US/default";
 import { defaultMapStyles, type MowsMapStyle } from "../../../lib/mapStyles";
 import { ActionManager } from "../../../lib/mowsContext/ActionManager";
+import { createAppSettingsContextValue } from "../../../lib/mowsContext/appSettings";
 import { HotkeyManager } from "../../../lib/mowsContext/HotkeyManager";
 import {
     defaultCodeEditorSettings,
@@ -32,6 +33,7 @@ import {
     MowsContext,
     type MowsContextType
 } from "../../../lib/mowsContext/MowsContext";
+import { SettingsManager, type SettingsStorageAdapter } from "../../../lib/mowsContext/SettingsManager";
 import { defaultThemes, type MowsTheme } from "../../../lib/themes";
 import SettingsPanel from "./SettingsPanel";
 
@@ -47,15 +49,33 @@ interface ContextStubs {
     toastPosition?: typeof defaultToastSettings.position;
 }
 
+const inMemoryStorage = (): SettingsStorageAdapter => {
+    const data = new Map<string, string>();
+    return {
+        getItem: (k) => data.get(k) ?? null,
+        setItem: (k, v) => {
+            data.set(k, v);
+        },
+        removeItem: (k) => {
+            data.delete(k);
+        }
+    };
+};
+
 const buildContext = (stubs: ContextStubs = {}): MowsContextType => {
+    const settingsManager = new SettingsManager({
+        storagePrefix: `test_${Math.random()}`,
+        storage: inMemoryStorage()
+    });
     const actionManager = new ActionManager({
-        recentActionsStorageKey: `s_${Math.random()}`,
+        recentActionsSlot: settingsManager.deviceSlotAdapter(`recentActions`),
         maxRecentActions: 5
     });
     const hotkeyManager = new HotkeyManager(actionManager, {
-        configStorageKey: `hk_${Math.random()}`,
+        configSlot: settingsManager.deviceSlotAdapter(`hotkeyConfig`),
         defaultHotkeys: {}
     });
+    const appSettings = createAppSettingsContextValue(settingsManager, null);
 
     const currentTheme =
         defaultThemes.find((th) => th.id === (stubs.currentThemeId ?? `light`)) ?? defaultThemes[0];
@@ -108,12 +128,19 @@ const buildContext = (stubs: ContextStubs = {}): MowsContextType => {
         setToastSettings: stubs.setToastSettings ?? (() => undefined),
         mapStyles: defaultMapStyles,
         currentMapStyle,
-        setMapStyle: stubs.setMapStyle ?? (() => undefined)
+        setMapStyle: stubs.setMapStyle ?? (() => undefined),
+        settingsManager,
+        appSettings
     };
 };
 
-const renderPanel = (stubs: ContextStubs = {}, children: ReactNode = <SettingsPanel />) =>
-    render(<MowsContext.Provider value={buildContext(stubs)}>{children}</MowsContext.Provider>);
+const renderPanel = (stubs: ContextStubs = {}, children: ReactNode = <SettingsPanel />) => {
+    const ctx = buildContext(stubs);
+    const utils = render(
+        <MowsContext.Provider value={ctx}>{children}</MowsContext.Provider>
+    );
+    return { ...utils, ctx };
+};
 
 describe(`SettingsPanel`, () => {
     it(`renders the three section headings`, () => {
@@ -133,9 +160,14 @@ describe(`SettingsPanel`, () => {
         expect(screen.getAllByText(`English`).length).toBeGreaterThan(0);
     });
 
-    it(`switches to the JSON tab and shows current settings`, async () => {
+    it(`switches to the JSON tab and shows the unified settings blob`, async () => {
         const user = userEvent.setup();
-        renderPanel({ currentThemeId: `dark`, currentCodeThemeId: `hc-black` });
+        const { ctx } = renderPanel();
+        // Seed the manager so the JSON tab has something to show — the
+        // blob shape is `{ _v, core: {...}, app: {...} }`, not the
+        // legacy flat object.
+        ctx.settingsManager.setCore(`theme`, `dark`);
+        ctx.settingsManager.setCore(`codeTheme`, `hc-black`);
 
         await user.click(screen.getByRole(`button`, { name: `JSON` }));
         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
@@ -143,31 +175,57 @@ describe(`SettingsPanel`, () => {
             (el) => !(el as HTMLTextAreaElement).readOnly
         ) as HTMLTextAreaElement;
         const parsed = JSON.parse(textarea.value);
-        expect(parsed).toMatchObject({ theme: `dark`, codeTheme: `hc-black` });
+        expect(parsed._v).toBe(1);
+        expect(parsed.core).toMatchObject({ theme: `dark`, codeTheme: `hc-black` });
     });
 
-    it(`applies edited JSON when Save is clicked`, async () => {
+    it(`pastes a wholesale blob into the JSON tab and calls replaceBlob`, async () => {
         const user = userEvent.setup();
-        const setTheme = vi.fn();
-        const setCodeTheme = vi.fn();
-        renderPanel({ setTheme, setCodeTheme });
+        const { ctx } = renderPanel();
+        const replaceSpy = vi.spyOn(ctx.settingsManager, `replaceBlob`);
 
         await user.click(screen.getByRole(`button`, { name: `JSON` }));
         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
-        const textarea = textareas.find((el) => !(el as HTMLTextAreaElement).readOnly) as HTMLTextAreaElement;
+        const textarea = textareas.find(
+            (el) => !(el as HTMLTextAreaElement).readOnly
+        ) as HTMLTextAreaElement;
 
+        const nextBlob = {
+            _v: 1,
+            core: { theme: `dark`, codeTheme: `hc-light`, language: `en-US` },
+            app: { example: { foo: `bar` } }
+        };
         await user.clear(textarea);
         await user.click(textarea);
-        await user.paste(
-            JSON.stringify({ theme: `dark`, codeTheme: `hc-light`, language: `en-US` }, null, 2)
-        );
+        await user.paste(JSON.stringify(nextBlob, null, 2));
 
         await user.click(screen.getByRole(`button`, { name: `Save` }));
 
-        expect(setTheme).toHaveBeenCalled();
-        expect(setTheme.mock.calls[0][0].id).toBe(`dark`);
-        expect(setCodeTheme).toHaveBeenCalled();
-        expect(setCodeTheme.mock.calls[0][0].id).toBe(`hc-light`);
+        expect(replaceSpy).toHaveBeenCalledTimes(1);
+        expect(replaceSpy.mock.calls[0][0]).toEqual(nextBlob);
+    });
+
+    it(`rejects a JSON paste whose _v doesn't match the current version`, async () => {
+        const user = userEvent.setup();
+        const { ctx } = renderPanel();
+        const blobBefore = ctx.settingsManager.getBlob();
+
+        await user.click(screen.getByRole(`button`, { name: `JSON` }));
+        const textareas = await screen.findAllByTestId(`codeviewer-mock`);
+        const textarea = textareas.find(
+            (el) => !(el as HTMLTextAreaElement).readOnly
+        ) as HTMLTextAreaElement;
+
+        await user.clear(textarea);
+        await user.click(textarea);
+        await user.paste(JSON.stringify({ _v: 999, core: {}, app: {} }, null, 2));
+        await user.click(screen.getByRole(`button`, { name: `Save` }));
+
+        // SettingsManager.replaceBlob throws SettingsBlobValidationError;
+        // the panel catches it, shows the error, and leaves the stored
+        // blob untouched.
+        expect(ctx.settingsManager.getBlob()).toBe(blobBefore);
+        expect(screen.getByText(/Invalid JSON/i)).toBeInTheDocument();
     });
 
     it(`renders the Notifications section with the toast position picker`, () => {
@@ -177,22 +235,22 @@ describe(`SettingsPanel`, () => {
         expect(screen.getByText(`Top left`)).toBeInTheDocument();
     });
 
-    it(`includes toast settings in the JSON view`, async () => {
+    it(`exposes the toast slot inside core in the JSON view`, async () => {
         const user = userEvent.setup();
-        renderPanel({ toastPosition: `top-center` });
+        const { ctx } = renderPanel();
+        ctx.settingsManager.setCore(`toast`, { position: `top-center` });
         await user.click(screen.getByRole(`button`, { name: `JSON` }));
         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
         const textarea = textareas.find(
             (el) => !(el as HTMLTextAreaElement).readOnly
         ) as HTMLTextAreaElement;
         const parsed = JSON.parse(textarea.value);
-        expect(parsed.toast).toEqual({ position: `top-center` });
+        expect(parsed.core.toast).toEqual({ position: `top-center` });
     });
 
-    it(`applies toast.position from edited JSON`, async () => {
+    it(`a pasted blob with core.toast lands in the manager after save`, async () => {
         const user = userEvent.setup();
-        const setToastSettings = vi.fn();
-        renderPanel({ setToastSettings });
+        const { ctx } = renderPanel();
 
         await user.click(screen.getByRole(`button`, { name: `JSON` }));
         const textareas = await screen.findAllByTestId(`codeviewer-mock`);
@@ -204,9 +262,13 @@ describe(`SettingsPanel`, () => {
         await user.paste(
             JSON.stringify(
                 {
-                    theme: `light`,
-                    codeTheme: `vs-dark`,
-                    toast: { position: `bottom-left` }
+                    _v: 1,
+                    core: {
+                        theme: `light`,
+                        codeTheme: `vs-dark`,
+                        toast: { position: `bottom-left` }
+                    },
+                    app: {}
                 },
                 null,
                 2
@@ -214,7 +276,7 @@ describe(`SettingsPanel`, () => {
         );
         await user.click(screen.getByRole(`button`, { name: `Save` }));
 
-        expect(setToastSettings).toHaveBeenCalledWith({ position: `bottom-left` });
+        expect(ctx.settingsManager.getCore(`toast`)).toEqual({ position: `bottom-left` });
     });
 
     it(`exposes a bracket-pair colorization toggle that calls setCodeEditorSettings`, async () => {
@@ -241,6 +303,168 @@ describe(`SettingsPanel`, () => {
         expect(setCodeEditorSettings).toHaveBeenCalledWith({
             bracketPairColorization: false
         });
+    });
+
+    it(`app-settings custom render escape hatch: receives value + setValue`, async () => {
+        const user = userEvent.setup();
+        const baseCtx = buildContext();
+        const renderSpy = vi.fn();
+        const schema = {
+            appKey: `filez`,
+            schema: {
+                nickname: {
+                    type: `string` as const,
+                    default: `anon`,
+                    label: `Nickname`,
+                    group: `Profile`,
+                    // Custom renderer overrides the default text Input.
+                    render: ({ value, setValue }: { value: string; setValue: (v: string) => void }) => {
+                        renderSpy(value);
+                        return (
+                            <button
+                                type={`button`}
+                                onClick={() => setValue(`${value}!`)}
+                                data-testid={`nickname-custom`}
+                            >
+                                {value}
+                            </button>
+                        );
+                    }
+                }
+            }
+        };
+        const ctx: MowsContextType = {
+            ...baseCtx,
+            appSettings: createAppSettingsContextValue(baseCtx.settingsManager, schema)
+        };
+        render(
+            <MowsContext.Provider value={ctx}>
+                <SettingsPanel />
+            </MowsContext.Provider>
+        );
+        const button = screen.getByTestId(`nickname-custom`);
+        expect(button).toHaveTextContent(`anon`);
+        expect(renderSpy).toHaveBeenCalledWith(`anon`);
+        await user.click(button);
+        expect(ctx.settingsManager.getApp(`filez`, `nickname`)).toBe(`anon!`);
+    });
+
+    it(`app-settings group label slugs are stable across special characters`, () => {
+        const baseCtx = buildContext();
+        const schema = {
+            appKey: `filez`,
+            schema: {
+                a: { type: `boolean` as const, default: false, label: `A`, group: `My  Group!` },
+                b: { type: `boolean` as const, default: false, label: `B`, group: `My  Group!` }
+            }
+        };
+        const ctx: MowsContextType = {
+            ...baseCtx,
+            appSettings: createAppSettingsContextValue(baseCtx.settingsManager, schema)
+        };
+        render(
+            <MowsContext.Provider value={ctx}>
+                <SettingsPanel />
+            </MowsContext.Provider>
+        );
+        // Both fields land in the same section (one heading rendered,
+        // not two — special chars are slugged consistently). Accessible-
+        // name matching normalises whitespace, so the double-space in
+        // the schema literal collapses to a single space here.
+        expect(screen.getAllByRole(`heading`, { name: /^My Group!$/ })).toHaveLength(1);
+    });
+
+    it(`renders an app-settings section when a schema is registered`, async () => {
+        // Build a context with a registered app schema rather than the
+        // default null. We can't use the test fixture because it always
+        // passes null — patch the appSettings field manually.
+        const baseCtx = buildContext();
+        const schema = {
+            appKey: `filez`,
+            schema: {
+                showHidden: {
+                    type: `boolean` as const,
+                    default: false,
+                    label: `Show hidden`,
+                    group: `Display`
+                },
+                defaultView: {
+                    type: `select` as const,
+                    options: [
+                        { value: `grid`, label: `Grid` },
+                        { value: `list`, label: `List` }
+                    ],
+                    default: `grid`,
+                    label: `Default view`,
+                    group: `Display`
+                }
+            }
+        };
+        const ctx: MowsContextType = {
+            ...baseCtx,
+            appSettings: createAppSettingsContextValue(baseCtx.settingsManager, schema)
+        };
+
+        render(
+            <MowsContext.Provider value={ctx}>
+                <SettingsPanel />
+            </MowsContext.Provider>
+        );
+
+        // The "Display" group becomes a section heading.
+        expect(
+            screen.getByRole(`heading`, { name: `Display` })
+        ).toBeInTheDocument();
+
+        // The boolean field renders as a Switch — clicking it persists
+        // through the settings manager.
+        const user = userEvent.setup();
+        const toggle = screen.getByRole(`switch`, { name: `Show hidden` });
+        expect(toggle).toHaveAttribute(`aria-checked`, `false`);
+        await user.click(toggle);
+        expect(ctx.settingsManager.getApp(`filez`, `showHidden`)).toBe(true);
+    });
+
+    it(`export → import round-trip: copy the JSON blob, paste into a fresh manager, blob matches`, async () => {
+        // The marquee user-facing promise: "copy this JSON, paste it
+        // anywhere, recover everything." This integration test seeds
+        // a manager, grabs the JSON-tab text, pastes it into a
+        // separately-rendered second panel, and verifies the second
+        // manager ends up with the same blob.
+        const user = userEvent.setup();
+        const { ctx: sourceCtx, unmount } = renderPanel();
+        sourceCtx.settingsManager.setCore(`theme`, `dark`);
+        sourceCtx.settingsManager.setCore(`language`, `de`);
+        sourceCtx.settingsManager.setApp(`filez`, `defaultView`, `list`);
+
+        await user.click(screen.getByRole(`button`, { name: `JSON` }));
+        const sourceTextareas = await screen.findAllByTestId(`codeviewer-mock`);
+        const sourceTextarea = sourceTextareas.find(
+            (el) => !(el as HTMLTextAreaElement).readOnly
+        ) as HTMLTextAreaElement;
+        const exported = sourceTextarea.value;
+        const exportedParsed = JSON.parse(exported);
+        unmount();
+
+        // Render a fresh, empty panel + manager (simulates another
+        // browser / install).
+        const { ctx: targetCtx } = renderPanel();
+        expect(targetCtx.settingsManager.getCore(`theme`)).toBeUndefined();
+
+        await user.click(screen.getByRole(`button`, { name: `JSON` }));
+        const targetTextareas = await screen.findAllByTestId(`codeviewer-mock`);
+        const targetTextarea = targetTextareas.find(
+            (el) => !(el as HTMLTextAreaElement).readOnly
+        ) as HTMLTextAreaElement;
+        await user.clear(targetTextarea);
+        await user.click(targetTextarea);
+        await user.paste(exported);
+        await user.click(screen.getByRole(`button`, { name: `Save` }));
+
+        expect(targetCtx.settingsManager.getBlob()).toEqual(exportedParsed);
+        expect(targetCtx.settingsManager.getCore(`theme`)).toBe(`dark`);
+        expect(targetCtx.settingsManager.getCore(`language`)).toBe(`de`);
+        expect(targetCtx.settingsManager.getApp(`filez`, `defaultView`)).toBe(`list`);
     });
 
     it(`shows an error when JSON is invalid`, async () => {
