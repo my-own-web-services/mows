@@ -1,6 +1,6 @@
 {
     "name": "@my-own-web-services/react-components",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "type": "module",
     "description": "Shared React component + context library for MOWS frontend apps (auth, theme, language, action manager, hotkeys, modals, plus a large component set built on Radix UI and shadcn/ui).",
     "license": "MIT",
@@ -69,11 +69,9 @@
     },
     "dependencies": {
         "@date-fns/tz": "1.4.1",
-        "@mkkellogg/gaussian-splats-3d": "^0.4.7",
         "@monaco-editor/react": "4.7.0",
         "@photo-sphere-viewer/core": "5.14.1",
         "@photo-sphere-viewer/markers-plugin": "^5.14.1",
-        "@preact/signals": "^2.3.1",
         "@radix-ui/react-checkbox": "^1.3.3",
         "@radix-ui/react-collapsible": "^1.1.12",
         "@radix-ui/react-context-menu": "^2.2.16",
@@ -96,8 +94,6 @@
         "@shikijs/langs": "^4.1.0",
         "@shikijs/monaco": "^4.1.0",
         "@shikijs/themes": "^4.1.0",
-        "@tailwindcss/postcss": "^4.1.13",
-        "@tailwindcss/vite": "^4.1.12",
         "@tanstack/react-table": "^8.21.3",
         "@xterm/addon-fit": "0.11.0",
         "@xterm/xterm": "6.0.0",
@@ -117,7 +113,6 @@
         "react-day-picker": "10.0.0",
         "react-dnd": "^16.0.1",
         "react-dnd-html5-backend": "^16.0.1",
-        "react-dnd-preview": "^9.0.0",
         "react-icons": "^5.5.0",
         "react-oidc-context": "^3.3.0",
         "react-resizable-panels": "^3.0.6",
@@ -130,13 +125,9 @@
         "shiki": "^4.1.0",
         "sonner": "^2.0.7",
         "tailwind-merge": "^3.3.1",
-        "tailwindcss": "^4.1.12",
         "tailwindcss-animate": "^1.0.7",
         "three": "0.179.1",
         "ts-pattern": "^5.8.0",
-        "unplugin-auto-export": "^1.0.4",
-        "vite-plugin-dts": "^4.5.4",
-        "vite-plugin-lib-inject-css": "^2.2.2",
         "vscode-material-icons": "0.1.1"
     },
     "pnpm": {
@@ -149,6 +140,8 @@
     "devDependencies": {
         "@eslint/js": "^9.33.0",
         "@playwright/test": "^1.59.1",
+        "@tailwindcss/postcss": "^4.1.13",
+        "@tailwindcss/vite": "^4.1.12",
         "@testing-library/jest-dom": "^6.8.0",
         "@testing-library/react": "^16.3.0",
         "@testing-library/user-event": "^14.6.1",
@@ -177,6 +170,8 @@
         "typescript": "~5.8.3",
         "typescript-eslint": "^8.39.1",
         "vite": "^7.1.2",
+        "vite-plugin-dts": "^4.5.4",
+        "vite-plugin-lib-inject-css": "^2.2.2",
         "vitest": "^3.2.4"
     }
 }

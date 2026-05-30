@@ -147,6 +147,15 @@ jobs:
           name: react-components-dist
           path: components/react/dist
 
+      - name: Upgrade npm to a version that supports Trusted Publishing
+        # Node 22 ships with npm 10.x. npm 10 supports `--provenance`
+        # (sigstore signing via OIDC) but the actual `PUT /registry`
+        # still expects a regular token. npm 11 added the OIDC-for-
+        # publish-credential exchange that Trusted Publishing relies on,
+        # so we pin to >=11 here. Drop this step once `actions/setup-node`
+        # defaults to a Node version that bundles npm 11+.
+        run: npm install -g npm@latest
+
       - name: Publish to npm
         working-directory: components/react
         run: |
