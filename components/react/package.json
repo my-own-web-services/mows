@@ -1,6 +1,6 @@
 {
     "name": "@my-own-web-services/react-components",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "type": "module",
     "description": "Shared React component + context library for MOWS frontend apps (auth, theme, language, action manager, hotkeys, modals, plus a large component set built on Radix UI and shadcn/ui).",
     "license": "MIT",
