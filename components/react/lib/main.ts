@@ -248,6 +248,15 @@ export {
     type SearchSelectPickerProps
 } from "./components/input/searchSelectPicker/SearchSelectPicker";
 export {
+    default as StaggeredCheckboxes,
+    collectAllIds as staggeredCheckboxesCollectAllIds,
+    collectLeafIds as staggeredCheckboxesCollectLeafIds,
+    getNodeState as staggeredCheckboxesGetNodeState,
+    type StaggeredCheckboxNode,
+    type StaggeredCheckboxState,
+    type StaggeredCheckboxesProps
+} from "./components/input/staggeredCheckboxes/StaggeredCheckboxes";
+export {
     default as EmojiPicker,
     type EmojiPickerHandle
 } from "./components/input/emojiPicker/EmojiPicker";
@@ -284,6 +293,34 @@ export {
     type MapProps,
     type MapView
 } from "./components/map/Map";
+export {
+    default as WeatherChip,
+    type WeatherChipProps
+} from "./components/map/weatherChip/WeatherChip";
+export {
+    default as WeatherExpandable,
+    type WeatherExpandableProps
+} from "./components/map/weatherExpandable/WeatherExpandable";
+export {
+    DEFAULT_WEATHER_EXPANDABLE_STRINGS,
+    resolveWeatherEmoji,
+    resolveConditionLabel as resolveWeatherExpandableConditionLabel,
+    type WeatherExpandableConditionKey,
+    type WeatherExpandableData,
+    type WeatherExpandableForecastDay,
+    type WeatherExpandableIconName,
+    type WeatherExpandableStrings
+} from "./components/map/weatherExpandable/types";
+export {
+    DEFAULT_WEATHER_CHIP_STRINGS,
+    resolveConditionLabel,
+    resolveWeatherIcon,
+    type WeatherChipStrings,
+    type WeatherConditionKey,
+    type WeatherIconName,
+    type WeatherMode,
+    type WeatherRecord
+} from "./components/map/weatherChip/types";
 
 export { default as ResourceList } from "./components/list/ResourceList/ResourceList";
 export * from "./components/list/ResourceList/ResourceListTypes";
@@ -325,6 +362,10 @@ export {
     type PageIndexItem,
     type PageIndexProps
 } from "./components/navigation/pageIndex/PageIndex";
+export {
+    default as ExpandableSection,
+    type ExpandableSectionProps
+} from "./components/navigation/expandableSection/ExpandableSection";
 export {
     default as SectionHeading,
     type SectionHeadingProps

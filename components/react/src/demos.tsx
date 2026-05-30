@@ -27,13 +27,17 @@ import ActionDisplayDocPage from "./examples/actionDisplay/ActionDisplayDocPage"
 import KeyComboDisplayDocPage from "./examples/keyComboDisplay/KeyComboDisplayDocPage";
 import KeyboardShortcutEditorDocPage from "./examples/keyboardShortcutEditor/KeyboardShortcutEditorDocPage";
 import ExpandableCodeDocPage from "./examples/expandableCode/ExpandableCodeDocPage";
+import ExpandableSectionDocPage from "./examples/expandableSection/ExpandableSectionDocPage";
 import SearchInputDocPage from "./examples/searchInput/SearchInputDocPage";
 import NumberInputDocPage from "./examples/numberInput/NumberInputDocPage";
 import OptionPickerDocPage from "./examples/optionPicker/OptionPickerDocPage";
+import StaggeredCheckboxesDocPage from "./examples/staggeredCheckboxes/StaggeredCheckboxesDocPage";
 import SearchSelectPickerDocPage from "./examples/searchSelectPicker/SearchSelectPickerDocPage";
 import LanguagePickerDocPage from "./examples/languagePicker/LanguagePickerDocPage";
 import LocationPickerDocPage from "./examples/locationPicker/LocationPickerDocPage";
 import MapDocPage from "./examples/map/MapDocPage";
+import WeatherChipDocPage from "./examples/weatherChip/WeatherChipDocPage";
+import WeatherExpandableDocPage from "./examples/weatherExpandable/WeatherExpandableDocPage";
 import MapStylePickerDocPage from "./examples/mapStylePicker/MapStylePickerDocPage";
 import ThemePickerDocPage from "./examples/themePicker/ThemePickerDocPage";
 import DateTimePickerDocPage from "./examples/dateTimePicker/DateTimePickerDocPage";
@@ -148,6 +152,7 @@ export const demos: DemoEntry[] = [
     { id: `buttonSelect`, name: `ButtonSelect`, groupKey: `input`, render: () => <ButtonSelectDocPage /> },
     { id: `colorCurves`, name: `ColorCurves`, groupKey: `input`, render: () => <ColorCurvesDocPage />, searchTags: [`curves`, `tonal`, `lightroom`, `photoshop`, `color`, `colour`, `histogram`, `photo`, `grading`] },
     { id: `optionPicker`, name: `OptionPicker`, groupKey: `input`, render: () => <OptionPickerDocPage /> },
+    { id: `staggeredCheckboxes`, name: `StaggeredCheckboxes`, groupKey: `input`, render: () => <StaggeredCheckboxesDocPage />, searchTags: [`tree`, `hierarchy`, `tri-state`, `indeterminate`, `checkbox`, `nested`] },
     { id: `copyValueButton`, name: `CopyValueButton`, groupKey: `input`, render: () => <CopyValueButtonDocPage /> },
     { id: `inlineEdit`, name: `InlineEdit`, groupKey: `input`, render: () => <InlineEditDocPage />, searchTags: [`edit`, `rename`, `contenteditable`, `inplace`] },
     { id: `numberInput`, name: `NumberInput`, groupKey: `input`, render: () => <NumberInputDocPage />, searchTags: [`number`, `numeric`, `stepper`] },
@@ -160,6 +165,8 @@ export const demos: DemoEntry[] = [
     { id: `mapStylePicker`, name: `MapStylePicker`, groupKey: `settings`, render: () => <MapStylePickerDocPage />, searchTags: [`map`, `mapbox`, `tiles`] },
     { id: `loggingConfig`, name: `LoggingConfig`, groupKey: `settings`, render: () => <LoggingConfigDocPage /> },
     { id: `map`, name: `Map`, groupKey: `map`, render: () => <MapDocPage />, searchTags: [`map`, `mapbox`, `mapbox-gl`, `maplibre`, `tiles`, `geo`] },
+    { id: `weatherChip`, name: `WeatherChip`, groupKey: `map`, render: () => <WeatherChipDocPage />, searchTags: [`weather`, `wetter`, `forecast`, `historical`, `temperature`, `meteo`, `chip`, `card`] },
+    { id: `weatherExpandable`, name: `WeatherExpandable`, groupKey: `map`, render: () => <WeatherExpandableDocPage />, searchTags: [`weather`, `wetter`, `forecast`, `expandable`, `collapsible`, `temperature`, `hourly`, `daily`] },
     { id: `resourceList`, name: `ResourceList`, groupKey: `list`, render: () => <ResourceListDocPage /> },
     { id: `chat`, name: `Chat`, groupKey: `chat`, render: () => <ChatDocPage />, searchTags: [`messages`, `messaging`, `conversation`, `reactions`, `threads`, `reply`, `inbox`, `dm`] },
     { id: `compass`, name: `Compass`, groupKey: `navigation`, render: () => <CompassDocPage />, searchTags: [`heading`, `bearing`, `yaw`, `direction`] },
@@ -174,6 +181,13 @@ export const demos: DemoEntry[] = [
         name: `SectionHeading`,
         groupKey: `navigation`,
         render: () => <SectionHeadingDocPage />
+    },
+    {
+        id: `expandableSection`,
+        name: `ExpandableSection`,
+        groupKey: `navigation`,
+        render: () => <ExpandableSectionDocPage />,
+        searchTags: [`disclosure`, `collapsible`, `accordion`, `panel`, `card`, `expand`]
     },
     ...uiDemos.map(
         (entry): DemoEntry => ({

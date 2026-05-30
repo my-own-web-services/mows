@@ -26,6 +26,7 @@ import { dateTimeRangePickerExamples } from "../dateTimeRangePicker";
 import { dialogExamples } from "../dialog";
 import { dropdownMenuExamples } from "../dropdownMenu";
 import { expandableCodeExamples } from "../expandableCode";
+import { expandableSectionExamples } from "../expandableSection";
 import { fileIconExamples } from "../fileIcon";
 import { fileViewerExamples } from "../fileViewer";
 import { globalContextMenuExamples } from "../globalContextMenu";
@@ -68,6 +69,7 @@ import { sidebarExamples } from "../sidebar";
 import { skeletonExamples } from "../skeleton";
 import { sliderExamples } from "../slider";
 import { sonnerExamples } from "../sonner";
+import { staggeredCheckboxesExamples } from "../staggeredCheckboxes";
 import { stepsExamples } from "../steps";
 import { switchExamples } from "../switch";
 import { tabsExamples } from "../tabs";
@@ -75,6 +77,7 @@ import { terminalExamples } from "../terminal";
 import { textareaExamples } from "../textarea";
 import { timelineExamples } from "../timeline";
 import { videoViewerExamples } from "../videoViewer";
+import { weatherExpandableExamples } from "../weatherExpandable";
 import type { RegisteredExample } from "./types";
 
 // Cross-registry guarantee: the source shown in the "Code" tab is the
@@ -163,7 +166,10 @@ const ALL_REGISTRIES: ReadonlyArray<{
     { name: `consoleManager`, examples: consoleManagerExamples },
     { name: `dateTimeDisplay`, examples: dateTimeDisplayExamples },
     { name: `timeline`, examples: timelineExamples },
-    { name: `nodeEditor`, examples: nodeEditorExamples }
+    { name: `nodeEditor`, examples: nodeEditorExamples },
+    { name: `staggeredCheckboxes`, examples: staggeredCheckboxesExamples },
+    { name: `weatherExpandable`, examples: weatherExpandableExamples },
+    { name: `expandableSection`, examples: expandableSectionExamples }
 ];
 
 describe(`registry integrity — code shown == code that runs`, () => {
