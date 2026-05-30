@@ -1,6 +1,6 @@
 # Action History + Undo/Redo System
 
-Status legend: `✅` done · `❌` open · `⁉️` dismissed (with reason)
+Status legend: `✅` done · `❌` open · `🚧` in progress · `⁉️` dismissed (with reason)
 
 ## Goal
 
@@ -13,18 +13,29 @@ Apps opt actions in to being reversible by adding an `invertAction` handler and 
 
 This builds on the existing `ActionManager` (`lib/lib/mowsContext/ActionManager.tsx`) — single funnel for every dispatched action already exists. The recent-actions usage tracker stays as-is; the audit log is a separate concern.
 
+## Multi-review status
+
+Plan was reviewed by 10 perspectives (`./issue.md`). 33 findings folded into this revision; 7 accepted as deferred; 5 dismissed with reason. No open findings.
+
 ## Locked design decisions
 
 | Aspect | Decision | Rationale |
 |---|---|---|
 | Stack scope | One global undo stack per app | Matches user expectation (Ctrl+Z anywhere). |
 | Audit log persistence | localStorage, shared across tabs of the same origin | A history is the user's record; cross-tab visibility is useful. |
-| Undo stack persistence | sessionStorage, per-tab | Cross-tab undo is a footgun ("tab B undoes tab A's move"). |
+| Undo stack persistence | sessionStorage, per-tab | Cross-tab undo is a footgun. |
 | Granularity | Only `dispatchAction` calls — drag-drop dispatches one action with a payload | Avoids logging raw input events; keeps log meaningful. |
 | Inverse contract | Pure-data: `forwardPayload` + `inversePayload` + `actionId`; handler exposes `executeAction` + sibling `invertAction(inversePayload)` | Closures don't survive reload; pure data does. |
-| Failure mode | On invert failure: toast + **keep** entry on the undo stack | Nothing silently lost; user retries. |
-| Payload policy | Always persist; per-handler `payloadByteBudget` (default 4 KB); global cap configurable via settings; oversized payloads dropped → entry becomes session-only-undoable | Bounded storage, app-controlled with user override. |
-| Surfaces | `mows.undo` (Ctrl+Z), `mows.redo` (Ctrl+Shift+Z), command-palette entries with dynamic labels, dedicated history panel | All three opt-in surfaces from the design discussion. |
+| Failure mode | On invert failure: toast + log.error with stack + keep entry; drop after `maxInvertRetries` retries | Nothing silently lost; bounded retry. |
+| Sensitivity opt-out | Per-handler `excludeFromAuditPayload` and `excludeFromUndoStack` flags | Byte cap is a storage limit, not redaction. Apps must opt out for credentials/tokens/PII. |
+| Payload size budget | Per-handler `payloadByteBudget` (default 4096); measured via `new Blob([JSON.stringify(payload)]).size`; oversize → audit entry without payload + no undo entry | Bounded storage; explicit measurement. |
+| Surfaces | `mows.history.undo` (mod+z), `mows.history.redo` (mod+shift+z), `mows.history.open` (no default hotkey), `<HistoryPanel>` | All three opt-in surfaces. Hotkeys overridable per user. |
+| Action ID namespace | Extend existing `CoreActionIds` enum in `coreActions.ts` with `UNDO`, `REDO`, `OPEN_HISTORY` (values: `mows.history.{undo,redo,open}`) | Reuse existing enum; matches category-qualified convention. |
+| describe shape | `{ labelKey: string; params?: Record<string, string \| number> }`; resolves via existing flat `t.actions[labelKey]`; `formatActionLabel(labelKey, params, t)` helper interpolates `{name}` placeholders | No translation resolver rewrite; existing pattern reused. |
+| HistoryPanel home | `lib/components/appShell/historyPanel/` | App chrome alongside CommandPalette + ModalHandler. |
+| ID generation | `${performance.now()}-${tabId}-${counter}`; no ULID dep | Monotonic per tab, unique cross-tab, zero deps. |
+| Compound transactions | `beginTransaction(groupKey)` / `endTransaction(groupKey)` in v1; wraps `replaceBlob` so JSON paste collapses to one undo entry | Avoids "Ctrl+Z reverts one field at a time" UX bug. |
+| Cross-tab handling | Audit shared (storage event listener in SettingsManager); per-tab `tabId` on every entry; HistoryPanel shows other-tab entries muted with no "undo to here" | Forensic visibility + no footgun. |
 
 ## Data model
 
@@ -32,30 +43,40 @@ This builds on the existing `ActionManager` (`lib/lib/mowsContext/ActionManager.
 // lib/lib/mowsContext/ActionManager.tsx (additions)
 
 export interface UndoableAction {
-    readonly actionId: string;
+    readonly id: string;
+    readonly actionId: string;                  // matches an Action.id in the registry
     readonly forwardPayload?: unknown;
     readonly inversePayload: unknown;
     readonly timestamp: number;
-    readonly describe: { key: string; params?: Record<string, string | number> };
+    readonly describe: { labelKey: string; params?: Record<string, string | number> };
+    readonly transactionGroupId?: string;       // populated inside an open transaction; undo pops whole group
 }
 
 export interface AuditEntry {
-    readonly id: string;                        // ulid-ish, monotonic per tab
+    readonly id: string;
     readonly actionId: string;
     readonly category: string;
     readonly timestamp: number;
-    readonly tabId: string;                     // distinguishes cross-tab origin
-    readonly payload?: unknown;                 // null if oversized/opted out
+    readonly tabId: string;
+    readonly payload?: unknown;                 // undefined when dropped (size or opt-out)
     readonly payloadDropped?: "oversize" | "opt-out";
     readonly modifiers: ModifierMask;
-    readonly undoableRef?: string;              // pointer to UndoableAction.id when this entry has an undo entry
+    readonly undoable: boolean;                 // historical fact: was an undo entry created at dispatch?
+    readonly transactionGroupId?: string;
+    readonly redoable?: boolean;                // reserved for v2 persisted redo
 }
 
 export interface ActionHistoryConfig {
-    readonly maxAuditEntries: number;           // hard cap (default 500)
-    readonly maxUndoStackDepth: number;         // hard cap (default 100)
-    readonly maxPayloadBytes: number;           // global cap (default 4096)
-    readonly enabled: boolean;                  // kill switch (default true)
+    /** Hard cap on audit-log entries. Drops oldest 50% when storage quota hit. Default 500. */
+    readonly maxAuditEntries: number;
+    /** Hard cap on undo stack depth. Default 100. */
+    readonly maxUndoStackDepth: number;
+    /** Per-payload byte budget (default 4096). Measured via Blob size for UTF-8 accuracy. */
+    readonly maxPayloadBytes: number;
+    /** How many times to let the user retry a failing invert before auto-dropping. Default 3. */
+    readonly maxInvertRetries: number;
+    /** Kill switch for audit-log persistence. Default true. */
+    readonly enabled: boolean;
 }
 ```
 
@@ -67,117 +88,194 @@ export interface ActionHandler {
     executeAction?: (event?, scopeElement?, payload?: unknown) =>
         void | UndoableAction;
     invertAction?: (inversePayload: unknown) => void | Promise<void>;
-    /** Per-handler byte budget; if missing, falls back to the manager-wide
-     *  `maxPayloadBytes`. Set to 0 to opt out of payload persistence
-     *  entirely (entry still logged, payload field stays empty). */
+    /** Per-handler byte budget; falls back to ActionHistoryConfig.maxPayloadBytes when missing.
+     *  Set to 0 to opt out of payload persistence entirely (entry still logged, payload field undefined). */
     readonly payloadByteBudget?: number;
+    /** When true, never persist the payload of audit entries from this handler.
+     *  Use for actions whose payload may contain credentials, tokens, file contents, or PII. */
+    readonly excludeFromAuditPayload?: boolean;
+    /** When true, never push an undo entry even if executeAction returns one.
+     *  Use for sensitive irreversible actions ("Delete account"). */
+    readonly excludeFromUndoStack?: boolean;
 }
 ```
 
 ## Storage layout
 
-Audit log → `device.auditLog` (existing SettingsManager device slot pattern, shared across tabs via localStorage).
+| Slot | Backend | Key | Owner |
+|---|---|---|---|
+| Audit log | localStorage (via SettingsManager) | `${storagePrefix}_settings → device.auditLog` | SettingsManager |
+| History config | localStorage (via SettingsManager) | `${storagePrefix}_settings → device.actionHistory` | SettingsManager |
+| Undo stack | sessionStorage (via UndoStackManager) | `${storagePrefix}_undoStack` | UndoStackManager |
+| Redo stack | in-memory only | n/a | ActionManager |
 
-Undo + redo stacks → sessionStorage under `${storagePrefix}_undo` (NEW dedicated key, not in SettingsManager). Rationale: SettingsManager wraps localStorage; mixing sessionStorage there would muddy its contract. Self-contained `UndoStackStore` class with the same get/set/subscribe shape so tests can fake it.
+`UndoStackManager` accepts an `UndoStackStorageAdapter` (mirrors `SettingsStorageAdapter`) so React Native / SSR consumers can swap backends. Default adapter wraps sessionStorage with in-memory fallback (logged once).
 
-History config → `device.actionHistory` (lives alongside audit log, defaults applied on read).
+Audit log rotation: when length exceeds `maxAuditEntries`, drop oldest. Storage quota exceeded: drop oldest 50% in one eviction; if still failing, disable persistence for the session and toast once.
 
-Audit log entry rotation: when length exceeds `maxAuditEntries`, drop oldest. Undo stack rotation: same. Redo stack: cleared on any new undoable dispatch.
+Undo stack rotation: same. Redo stack: cleared on any new undoable dispatch.
+
+## Cross-tab + storage event handling
+
+`SettingsManager` constructor subscribes to `window.addEventListener("storage", …)`, filters for its own key, re-reads the blob, and notifies subscribers. Writing-tab is naturally suppressed by the browser (storage event fires only in other tabs).
+
+Every entry includes `tabId` (sessionStorage-backed UUID per tab). HistoryPanel checks `entry.tabId === currentTabId` before enabling "undo to here".
 
 ## Component surfaces
 
-### `mows.undo` / `mows.redo` (built-in actions)
+### `mows.history.undo` / `mows.history.redo` / `mows.history.open`
 
-Defined in `lib/lib/mowsContext/coreActions.ts` (new — or extension of existing core actions module). Wired into `coreDefaultHotkeys` as `mod+z` / `mod+shift+z`. Visibility computed from undoStack/redoStack length; label rendered from the next entry's `describe`.
+Defined in `coreActions.ts` via the existing `CoreActionIds` enum. Hotkeys via `coreDefaultHotkeys` map: `mod+z` → undo, `mod+shift+z` → redo. No default hotkey for open (apps wire as needed). All overridable through the existing HotkeyManager user-override path.
 
-### `mows.history.open` (built-in action)
-
-Opens the new `<HistoryPanel>` via the existing modal manager.
+Action labels are dynamic — `formatActionLabel(entry.describe.labelKey, entry.describe.params, t)` resolves the translation and interpolates `{name}` placeholders.
 
 ### `<HistoryPanel>` (new component)
 
-Path: `lib/components/appShell/historyPanel/HistoryPanel.tsx` (lives in `appShell/` because it's app chrome alongside `CommandPalette` — flagged the option of a new `history/` group during design; defer until we have a second history-related component).
+Path: `lib/components/appShell/historyPanel/HistoryPanel.tsx`.
 
 UX:
 
-- Scrollable list, newest first.
-- Each row: icon (from the action's resolved icon), human label (`describe`), relative timestamp, "undo to here" affordance on undoable entries.
-- Group adjacent same-actionId entries visually ("3× Move file").
-- "Clear history" button (clears audit log + undo/redo stacks).
+- Scrollable virtualized list (reuses `react-window` already in repo), newest first.
+- Each row: icon (from resolved action icon, fallback if unknown), label (from `describe`), relative timestamp, "undo to here" affordance on undoable entries from the current tab.
+- Empty-state copy.
 - Filter by category, search by label.
-- Behaves like other modals: opens via `mows.history.open`, closes on Escape.
+- "Clear history" button — clears audit log + undo/redo stacks.
+- Other-tab entries rendered muted with no "undo to here" button.
+- Unknown-action entries (handler not registered in this session) rendered dimmed with generic icon + literal actionId.
+- Modal-manager-mounted, opens via `mows.history.open`, Escape closes.
+- Keyboard navigation (arrow keys + Enter), focus trap on open, focus restoration on close.
 
-Follows the docs-harness contract (CLAUDE.md "Doc pages" section): `<HistoryPanelDocPage>` with all required sections, example files in `src/examples/historyPanel/`, behaviour tests with line references.
+Follows the doc-page contract in CLAUDE.md.
 
 ## Failure + edge cases
 
 | Case | Behaviour |
 |---|---|
-| Invert handler throws / rejects | `log.warn`, toast via existing toast system, entry stays at top of undoStack so user can retry. Redo stack untouched. |
-| Invert handler missing for an undoable entry on the stack (handler unregistered between dispatch and undo) | Toast "Cannot undo: handler not available", drop the entry from the stack (this is a wiring bug, not a recoverable state). |
-| User spams Ctrl+Z while previous invert is in-flight | Single-flight lock: subsequent presses ignored until the current invert resolves. Visible "Undoing…" state on the toolbar/history panel. |
-| Payload exceeds budget | Entry logged with `payloadDropped: "oversize"`; for **undoable** actions, the `UndoableAction.inversePayload` is also dropped → entry is recorded in audit log only, **not** pushed to the undo stack (we can't reverse what we didn't capture). Log warning so the developer knows their action exceeded its budget. |
-| Same actionId re-registered with a different handler signature after reload | We don't snapshot handler signatures. Undo just calls `invertAction(inversePayload)` — if the new handler can't parse the old payload, it should throw a typed error and the standard "invert failed" path kicks in. |
-| User opens app in two tabs; tab A dispatches an undoable action | Tab A's undo stack only. Tab B's audit log shows the entry (via storage event), but Tab B's Ctrl+Z does nothing for it. |
-| sessionStorage unavailable (Safari private, embedded contexts) | Undo stack falls back to in-memory; audit log still works if localStorage works. Log one-shot warning. |
-| Storage quota exceeded on audit log write | Drop oldest 25% of entries and retry; if still failing, disable audit-log persistence for the session and toast. |
+| Invert handler throws / rejects | `log.error(err)` with stack, toast via existing toast system, increment `entry.invertRetries`. Drop entry after `maxInvertRetries`. |
+| Invert handler missing for an undoable entry | Toast "Cannot undo: handler not available", drop entry from stack. |
+| User spams Ctrl+Z while previous invert is in-flight | `ActionManager.pendingInverts: Map<actionId, Promise<void>>` — subsequent presses ignored (with `log.debug`) until current resolves. Public `isInvertInFlight(actionId?)` accessor. |
+| Payload exceeds budget | Entry logged with `payloadDropped: "oversize"`; no undo entry pushed. Developer warning logged with actionId + handler name + measured size. |
+| `excludeFromAuditPayload` set | Entry logged with `payloadDropped: "opt-out"`; payload undefined. Undo stack entry still created (the inverse payload is required for reversal; if THAT is also sensitive, set `excludeFromUndoStack`). |
+| `excludeFromUndoStack` set | No undo entry created regardless of `executeAction` return. Audit entry still logged. |
+| Same actionId re-registered with a different handler after reload | No handler signature snapshot. Undo calls `invertAction(inversePayload)`; if it throws, retry path kicks in. Apps must maintain backwards-compat on `inversePayload` (documented in CLAUDE.md). |
+| User opens app in two tabs; tab A dispatches an undoable action | Tab A's undo stack only. Tab B's audit log shows the entry via storage event, but `tabId` mismatch disables "undo to here" and Ctrl+Z is a no-op for it. |
+| sessionStorage unavailable | UndoStackManager falls back to in-memory; one-shot warning. Audit log still works if localStorage works. |
+| Storage quota exceeded on audit log write | Drop oldest 50% in one eviction. If still failing: disable persistence for the session, set internal flag, toast once "Action history will not persist for this session due to storage quota". |
+| Forged audit/undo entry injected via direct storage write | `undo()` looks up actionId in the live handler registry; absent handlers → toast + drop. No HMAC (a JS-side secret is useless against an in-page attacker). |
+| Concurrent dispatch (two undoable actions in same tick) | LIFO. Dispatch is synchronous; entries appended in call order; undo pops most recent. Tested. |
+| Audit-log entry dropped via rotation while its undo-stack entry remains | When rotating audit entries, also drop matching undo-stack entries. When rotating undo entries (depth cap), audit `undoable` flag stays true (historical fact); HistoryPanel sees missing stack entry and disables "undo to here". |
 
 ## File-level task checklist
 
 ### Phase 1 — Core mechanics
 
-- ❌ T1: `ActionManager.tsx` — add `UndoableAction`, `AuditEntry`, `ActionHistoryConfig` types; extend `ActionHandler` with `invertAction` + `payloadByteBudget`.
-- ❌ T2: `ActionManager.tsx` — capture `UndoableAction` return from `executeAction`; build audit entry; enforce byte budget; rotate caps.
-- ❌ T3: `ActionManager.tsx` — implement `undo()`, `redo()`, single-flight lock, failure semantics (toast keeps entry on stack).
-- ❌ T4: New `UndoStackStore.ts` next to ActionManager — sessionStorage-backed get/set/subscribe with in-memory fallback.
-- ❌ T5: `SettingsManager.ts` — add `device.auditLog` + `device.actionHistory` slot types. Update `validateBlob` to allow them through.
-- ❌ T6: Wire SettingsManager + UndoStackStore into ActionManager constructor (replace the existing single-slot pattern with a config bag).
-- ❌ T7: `MowsContext.tsx` — instantiate UndoStackStore with `props.storagePrefix`, pass into ActionManager.
-- ❌ T8: `ActionManager.test.ts` — exhaustive tests: dispatch → log entry, dispatch undoable → undo restores, invert failure keeps entry, oversize drops payload, rotation, single-flight lock.
+- ❌ T1: `ActionManager.tsx` — add `UndoableAction`, `AuditEntry`, `ActionHistoryConfig` types; extend `ActionHandler` with `invertAction`, `payloadByteBudget`, `excludeFromAuditPayload`, `excludeFromUndoStack`. Add `formatActionLabel` helper + `measurePayloadBytes` helper.
+- ❌ T2: `ActionManager.tsx` — extend `dispatchAction` to capture `UndoableAction` return, build `AuditEntry`, enforce byte budget + opt-out flags, rotate caps. Public accessor `isInvertInFlight(actionId?)`. Public `exportAuditLog()` and `onAuditEntry` callback config.
+- ❌ T3: `ActionManager.tsx` — `undo()`, `redo()`, `beginTransaction(groupKey)`, `endTransaction(groupKey)`, `pendingInverts` map, retry counter. Failure semantics: log.error with stack + toast + retry + auto-drop.
+- ❌ T4: HotkeyManager.tsx:66 — pass `event` through to `dispatchAction`. Update HotkeyManager.test.ts to assert the event is forwarded. (Blocking for accurate ISSUE-1.)
+- ❌ T5: `UndoStackManager.ts` (new) — sessionStorage-backed with in-memory fallback. `UndoStackStorageAdapter` interface for swappable backend. Persists only the undo stack; redo stack stays in memory.
+- ❌ T6: `SettingsManager.ts` — extend `DeviceSettings` with `auditLog?: unknown; actionHistory?: unknown`. `validateBlob` accepts them; on load, drop array entries with non-string `actionId` or missing `timestamp`. Add `storage` event listener subscribing the manager to cross-tab updates. Add `destroy()` method to unsubscribe.
+- ❌ T7: `ActionManager` constructor — accept `auditLogSlot`, `undoStackManager`, `historyConfig`, plus existing `recentActionsSlot`. Constructor wires `onAuditEntry` callback if provided.
+- ❌ T8: `MowsContext.tsx` — construct `UndoStackManager` with `props.storagePrefix`, pass with `auditLogSlot` to `ActionManager`. Call `settingsManager.destroy()` in `componentWillUnmount`.
+- ❌ T9: `ActionManager.test.ts` + `UndoStackManager.test.ts` + `SettingsManager.test.ts` extensions — exhaustive coverage:
+  - dispatch → audit entry created with correct modifiers (proves T4)
+  - dispatch undoable → undo restores → redo restores
+  - dispatch undoable → redo stack cleared on next dispatch
+  - oversize payload → no undo entry, audit `payloadDropped: "oversize"`
+  - `excludeFromAuditPayload` → audit `payloadDropped: "opt-out"`, payload undefined
+  - `excludeFromUndoStack` → audit yes, undo no
+  - async invert resolves → entry popped
+  - async invert rejects → log.error called, toast emitted, entry stays on stack, retry counter incremented, dropped after maxInvertRetries
+  - spam Ctrl+Z while invert in flight → second call ignored
+  - missing handler on undo → toast + entry dropped
+  - forged sessionStorage entry with unknown actionId → drop on undo
+  - LIFO ordering on concurrent dispatch
+  - audit rotation drops sibling undo entries
+  - sessionStorage throws → in-memory fallback + one-shot warning
+  - quota exceeded → drop oldest 50%, then disable + toast
+  - cross-tab: two ActionManager instances, shared mock audit storage, separate undo storage → tab A action visible in tab B audit, tab B undo no-op
+  - storage event from another tab → SettingsManager re-reads, notifies subscribers
+  - beginTransaction/endTransaction → one undo entry pops the group
+  - exportAuditLog returns deep clone (mutation doesn't affect internal state)
 
-### Phase 2 — Built-in actions + hotkeys
+### Phase 2 — Built-in undo/redo/history actions + hotkeys + translations
 
-- ❌ T9: `coreActions.ts` (new module or addition to existing) — define `mows.undo`, `mows.redo`, `mows.history.open` with state visibility tied to stack depth + dynamic labels from `describe`.
-- ❌ T10: `coreDefaultHotkeys` — bind `mod+z` / `mod+shift+z` (do NOT bind history-panel open by default; let app opt in).
-- ❌ T11: Translations — `de` + `en-US` defaults: `actions.mows.undo`, `actions.mows.redo`, `actions.mows.history.open`, toast strings (`undoFailed`, `undoNoHandler`, `undoBusy`).
-- ❌ T12: HotkeyManager — verify dispatch path picks up the modifier from the keydown event (it currently calls `dispatchAction` without the event; needs `event` passed through so the audit log records modifiers correctly). Add a test.
+- ❌ T10: `coreActions.ts` — extend `CoreActionIds` enum with `UNDO = "mows.history.undo"`, `REDO = "mows.history.redo"`, `OPEN_HISTORY = "mows.history.open"`. Add `CoreModalTypes.history = "history"`. Register handlers in `defineCoreActions` — undo/redo visibility tied to stack depth + dynamic labels from `describe` of next entry.
+- ❌ T11: `coreDefaultHotkeys` — bind `mod+z` → UNDO, `mod+shift+z` → REDO. OPEN_HISTORY unbound by default.
+- ❌ T12: Translations (both `lib/lib/languages/en-US/default.ts` and `lib/lib/languages/de/default.ts`):
+  - `actions["mows.history.undo"]` = "Undo" / "Rückgängig"
+  - `actions["mows.history.redo"]` = "Redo" / "Wiederholen"
+  - `actions["mows.history.open"]` = "Open history" / "Verlauf öffnen"
+  - `toast.undoFailed` = "Could not undo: {error}" / "Rückgängig fehlgeschlagen: {error}"
+  - `toast.undoNoHandler` = "Cannot undo: action not available" / "Aktion nicht verfügbar"
+  - `toast.undoDropped` = "Could not undo after {n} attempts; entry removed" / "Nach {n} Versuchen entfernt"
+  - `toast.auditPersistenceDisabled` = "Action history will not persist for this session due to storage quota" / "Speicherkontingent erreicht — Verlauf wird nicht gespeichert"
+- ❌ T13: Update `lib/lib/languages.ts` `Translation` interface schema to declare new keys (compile-time enforcement).
 
-### Phase 3 — UI surface
+### Phase 3 — HistoryPanel + DocPage
 
-- ❌ T13: `lib/components/appShell/historyPanel/HistoryPanel.tsx` — modal panel, list, filter, clear button, "undo to here". Use existing UI primitives (`Button`, `Input`, `ScrollArea`); no raw HTML controls.
-- ❌ T14: `HistoryPanel.test.tsx` — covers: renders entries, click undo-to-here pops N entries, filter narrows, clear empties stack, opens via action.
-- ❌ T15: `HistoryPanel.md` — design rationale + mounting rules (modal manager, must live inside `<MowsProvider>`).
-- ❌ T16: `src/examples/historyPanel/HistoryPanelDocPage.tsx` + mode example files + register in `src/examples/historyPanel/index.ts` + add route in App.tsx + sidebar entry + harness registry-integrity test.
-- ❌ T17: Translations for history panel (panel title, empty state, filter labels, "undo to here", clear confirmation).
+- ❌ T14: `lib/components/appShell/historyPanel/HistoryPanel.tsx` — virtualized list (react-window), filter, search, undo-to-here, clear, a11y (arrow keys, Enter, focus trap, ARIA labels), other-tab muted rendering, unknown-action fallback. Uses existing UI primitives only.
+- ❌ T15: `HistoryPanel.test.tsx` — covers:
+  - renders entries newest-first
+  - empty state
+  - filter narrows
+  - search-no-results state
+  - very-long-label overflow (no layout break)
+  - click undo-to-here pops N entries
+  - undo-to-here partial failure halts at first failing entry
+  - clear empties stack + audit
+  - opens via `mows.history.open` action
+  - keyboard nav (arrow up/down, Enter)
+  - focus trap on open, focus restoration on close
+  - XSS-safe: `describe.params` with `<img onerror=alert(1)>` renders as text
+  - other-tab entries muted, no "undo to here" button
+  - unknown-action entry dimmed with literal actionId
+- ❌ T16: `src/examples/historyPanel/{Default,Filtered,Empty}.tsx` + `HistoryPanelDocPage.tsx` + `index.ts`. Add entry to `src/demos.tsx`. DocPage follows CLAUDE.md contract.
+- ❌ T17: Translations for HistoryPanel UI:
+  - `historyPanel.title` = "Action history" / "Verlauf"
+  - `historyPanel.emptyState` = "No actions yet" / "Noch keine Aktionen"
+  - `historyPanel.searchPlaceholder` = "Search…" / "Suchen…"
+  - `historyPanel.categoryFilter` = "Filter by category" / "Nach Kategorie filtern"
+  - `historyPanel.undoToHere` = "Undo to here" / "Bis hierhin rückgängig"
+  - `historyPanel.clearButton` = "Clear history" / "Verlauf löschen"
+  - `historyPanel.clearConfirmation` = "Clear all history? This cannot be undone." / "Gesamten Verlauf löschen? Nicht widerrufbar."
+  - `historyPanel.unknownAction` = "Unknown action" / "Unbekannte Aktion"
+  - `historyPanel.otherTab` = "From another tab" / "Aus anderem Tab"
 
-### Phase 4 — Concrete worked example
+### Phase 4 — Worked example + e2e
 
-- ❌ T18: Pick one existing action with a natural inverse (candidate: settings toggles in `SettingsPanel` — e.g. theme change, language change). Add `invertAction` to its handler; verify Ctrl+Z reverts.
-- ❌ T19: E2E test (`e2e/actionHistory.spec.ts` if Playwright is wired, otherwise extend existing harness) — dispatch a real action, refresh page, hit Ctrl+Z, assert reverted state.
+- ❌ T18: Add `invertAction` to a sample action. **Choice: theme toggle** — `setTheme` already snapshots previous theme; invertAction reapplies it. Wire via `defineCoreActions` so theme-change goes through the action funnel (rather than direct `setTheme` calls). Vitest test: dispatch theme change → invert restores.
+- ❌ T19: `e2e/actionHistory.spec.ts` (Playwright):
+  - dispatch theme change → reload page → press Ctrl+Z → assert theme reverted
+  - dispatch theme change → unregister handler → press Ctrl+Z → toast appears, entry dropped
+  - open two pages → dispatch in page A → page B history shows entry as muted, Ctrl+Z is no-op
+  - wrap a `SettingsPanel` JSON paste in `beginTransaction` → press Ctrl+Z once → all fields revert together
+- ❌ T20: Wrap `SettingsManager.replaceBlob` callers in `beginTransaction("settings.replaceBlob")` / `endTransaction(...)` so JSON paste collapses to one undo entry.
 
-### Phase 5 — Docs + integrity
+### Phase 5 — Docs + final verification
 
-- ❌ T20: `CLAUDE.md` — new "Action history + undo" section explaining the contract for app authors writing actions.
-- ❌ T21: `registryIntegrity.test.ts` — ensure new translations exist for both locales.
-- ❌ T22: `pnpm build && pnpm test` clean. Run multi-review on the diff. Address findings.
+- ❌ T21: `components/react/CLAUDE.md` — new "Action history + undo" section mirroring "Settings system" structure:
+  - Overview
+  - Quick start (define an action with `invertAction`, return `UndoableAction`)
+  - Handler contract (executeAction signature, payload sensitivity flags, invert error path)
+  - Transactions (beginTransaction/endTransaction)
+  - Cross-tab + multi-tenant (storagePrefix isolation, undo stack scope)
+  - Testing
+  - Limitations (no persisted redo; reload + handler-signature drift)
+- ❌ T22: `pnpm build && pnpm test && pnpm e2e` clean. Run multi-review on the implementation diff. Address findings in a follow-up issue.md under `.plans/action-history-undo/`.
 
 ## Out of scope (v1)
 
-- Persisted **redo** stack — redo is session-only. Surviving redo across reload is rare-need and doubles the persistence surface.
-- Compound transactions (multi-action grouping into one undo step). Could be added later via a `beginTransaction()` / `endTransaction()` API; not needed for v1.
-- Server-sync of the audit log. The slot lives in `device` precisely because it shouldn't sync.
-- Per-action override of the global persistence cap from user settings (only the global cap is user-configurable in v1).
-- Audit-log export UI (raw JSON copy is enough for v1; a CSV/file export can come later).
-
-## Open questions to surface in multi-review
-
-1. Is `appShell/historyPanel/` the right home, or should we create a `history/` taxonomy group? (Plan defaults to `appShell/`; flagged.)
-2. Should `describe.key` resolve through the existing `Translation` interface (which would need a new `actions.<id>.describe` nested namespace) or via a separate `actionDescriptions` slot? (Plan defaults to nested in `Translation` for consistency.)
-3. Does the single-flight lock need a user-visible "Undoing…" affordance, or is the existing toast queue enough? (Plan defaults to no extra affordance; toast on failure only.)
-4. For the worked example (T18), is reverting a theme/language toggle a useful demo, or should we wait until a more obviously stateful action (file rename, item move) lands?
+- Persisted **redo** stack — `redoable?: boolean` field reserved on AuditEntry for v2.
+- Schema versioning for `inversePayload` across reloads — documented constraint that handlers maintain backwards-compat.
+- Group adjacent same-actionId entries visually — removed; v2 polish if needed.
+- AI-generated dynamic descriptions — `describe.labelKey` shape doesn't preclude later extension.
+- Splitting ActionManager into `AuditLogManager` + `UndoRedoManager` — deferred; code organised with section headers for future mechanical split if the file grows beyond 800 LOC.
+- Legacy `recentActionsStorageKey` / `configStorageKey` fallback cleanup — separate follow-up PR.
+- Multi-review CI automation — manual pre-merge step.
 
 ## Implementation order
 
 Phases are gated: 1 must build + test green before 2 starts, etc. Within a phase, tasks may parallelise.
 
-Total estimated diff: ~1500–2000 LOC across ~12 files (mostly in ActionManager, MowsContext wiring, new HistoryPanel component + tests + docs).
+T4 (HotkeyManager event passthrough) is in Phase 1 because audit-log modifier capture depends on it. All Phase 1 tests assume T4 is done.
