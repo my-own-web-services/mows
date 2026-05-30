@@ -22,6 +22,7 @@ pub fn build_api_router() -> OpenApiRouter<AppState> {
         .routes(routes!(policies::create::create_policy))
         .routes(routes!(policies::list::list_policies))
         .routes(routes!(policies::delete::delete_policy))
+        .routes(routes!(policies::explain::explain_access))
         .routes(routes!(dev::seed::dev_seed))
         // WebSocket endpoint — registered via raw `route()`
         // because utoipa-axum's `routes!` expects a `#[utoipa::path]`

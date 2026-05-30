@@ -217,8 +217,23 @@ task board lives in [`.plans/realtime-service/`](../realtime-service/).
      them. Engine now validated against two consumers under
      group-share.
 
-## Phase 7 — Manager-UI surface
+## Phase 7 — Cross-service authz admin service
 
+The original framing put this in the MOWS manager; corrected
+2026-05-30 — see ROADMAP.md for the architectural reason. The
+admin UI is its own cluster service (`apis/cloud/authz-admin/`)
+that calls each consumer's `/api/access_policies/*` surface.
+
+- ❌ Scaffold `apis/cloud/authz-admin/` (Rust+axum BFF + React SPA)
+- ⏸ Per-consumer `/api/access_policies/explain` endpoint
+     (returns visible resources + per-resource AuthReason).
+     **Realtime side landed** (commit pending) — exposes Owned /
+     AllowedByDirectUserPolicy / AllowedByDirectUserGroupPolicy /
+     etc. variants verbatim from `mows_auth_core::AuthEvaluation`.
+     End-to-end regression in `tests/end_to_end.rs` covers Alice
+     (Owned), Bob (AllowedByDirectUserGroupPolicy citing the
+     correct group), Carol (empty). Filez sibling endpoint
+     remains ❌ — same shape, same engine call, just wiring.
 - ❌ Per-resource share dialog
 - ❌ "What can I see?" / "Who can see X?" diagnostic panel
 - ❌ User-group directory (Phase 4 frontend ships building blocks;

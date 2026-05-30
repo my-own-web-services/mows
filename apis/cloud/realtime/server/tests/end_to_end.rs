@@ -540,6 +540,98 @@ async fn end_to_end_demo_flow() {
         "Carol (no memberships) must be denied — engine returned: {carol_check:?}",
     );
 
+    // 11. /api/access_policies/explain — the prerequisite for the
+    //     cross-service authz admin UI (Phase 7,
+    //     `apis/cloud/authz-admin/`). Verifies the endpoint returns
+    //     per-resource AuthReason variants that match what the
+    //     direct check returns, and that the answers are
+    //     subject-scoped (Alice sees Owned for her channels; Bob
+    //     sees AllowedByDirectUserGroupPolicy for the team-room).
+
+    let alice_explain: serde_json::Value = client
+        .post(format!("{base}/api/access_policies/explain"))
+        .header("x-realtime-user-id", &alice)
+        .json(&json!({"resource_type": "Channel", "action": "ChannelsList"}))
+        .send()
+        .await
+        .expect("alice explain")
+        .json()
+        .await
+        .expect("alice explain json");
+    let alice_evals = alice_explain["data"]["evaluations"]
+        .as_array()
+        .expect("alice evaluations array");
+    // Alice should at least see the team-room she just created;
+    // every entry must be allowed; the team-room must come back
+    // as Owned (her owner shortcut), not via any policy row.
+    let alice_team_room = alice_evals
+        .iter()
+        .find(|e| e["resource_id"].as_str() == Some(&team_channel_id))
+        .expect("alice's explain must include team-room");
+    assert_eq!(
+        alice_team_room["is_allowed"], true,
+        "Alice must be allowed on her own team-room",
+    );
+    assert_eq!(
+        alice_team_room["reason"], "Owned",
+        "Alice's reason on her own channel must be the Owner shortcut",
+    );
+
+    let bob_explain: serde_json::Value = client
+        .post(format!("{base}/api/access_policies/explain"))
+        .header("x-realtime-user-id", &bob)
+        .json(&json!({"resource_type": "Channel", "action": "ChannelsList"}))
+        .send()
+        .await
+        .expect("bob explain")
+        .json()
+        .await
+        .expect("bob explain json");
+    let bob_evals = bob_explain["data"]["evaluations"]
+        .as_array()
+        .expect("bob evaluations array");
+    let bob_team_room = bob_evals
+        .iter()
+        .find(|e| e["resource_id"].as_str() == Some(&team_channel_id))
+        .expect("bob's explain must include team-room (via UserGroup policy)");
+    assert_eq!(bob_team_room["is_allowed"], true);
+    // The reason must name the UserGroup variant + cite the group
+    // id we set up at step 10. The variant is internally tagged
+    // (serde default for `AuthReason`) — `{"AllowedByDirectUserGroupPolicy":{"policy_id":..,"via_user_group_id":..}}`.
+    let bob_reason_variant = bob_team_room["reason"]
+        .as_object()
+        .expect("bob's reason should be the tagged-enum object form");
+    let via_group_block = bob_reason_variant
+        .get("AllowedByDirectUserGroupPolicy")
+        .expect("bob must be allowed via DirectUserGroupPolicy, not a direct or owner shortcut");
+    assert_eq!(
+        via_group_block["via_user_group_id"]
+            .as_str()
+            .expect("via_user_group_id field"),
+        group_id.to_string(),
+        "bob's reason must cite team-a as the connecting group",
+    );
+
+    // Carol has no policy on any channel and isn't in any group,
+    // so the explain endpoint returns an empty evaluations array.
+    let carol_explain: serde_json::Value = client
+        .post(format!("{base}/api/access_policies/explain"))
+        .header("x-realtime-user-id", carol_id.to_string())
+        .json(&json!({"resource_type": "Channel", "action": "ChannelsList"}))
+        .send()
+        .await
+        .expect("carol explain")
+        .json()
+        .await
+        .expect("carol explain json");
+    let carol_evals = carol_explain["data"]["evaluations"]
+        .as_array()
+        .expect("carol evaluations array");
+    assert!(
+        carol_evals.is_empty(),
+        "Carol has no policies and no group memberships, so explain must return []. Got: {carol_evals:?}",
+    );
+
     // Cleanup.
     ws.send(Message::Close(None)).await.ok();
     server_handle.abort();

@@ -233,17 +233,30 @@ in the crate, propagated to all consumers.
 
 ## Phase 7 — Manager-UI surface
 
-**Goal.** A single UI in the manager to inspect / edit policies across
-the cluster.
+**Goal.** A single cross-service admin UI to inspect / edit policies
+across the cluster.
 
+**Architecture correction (2026-05-30).** The original wording put
+this UI inside the MOWS *manager*. That was wrong: the manager is
+bootstrap + lifecycle infrastructure for nodes/clusters, not a host
+for operational dashboards. The cross-service authz admin UI is a
+regular cluster service in its own right — own image, own
+deployment, served through traefik, talks to each consumer
+service's `access_policies` endpoints over the same network as any
+other client. Working name: `apis/cloud/authz-admin/`.
+
+- [ ] Scaffold `apis/cloud/authz-admin/` (Rust+axum BFF + React SPA)
+      following the filez/realtime shape — Cargo workspace entry,
+      Dockerfile, dev compose, MowsApp registration.
 - [ ] Per-resource share dialog (reusable across services).
-- [ ] "What can I see?" / "Who can see X?" diagnostic panel.
+- [ ] "What can I see?" / "Who can see X?" diagnostic panel,
+      backed by per-consumer `/api/access_policies/explain` endpoints.
 - [ ] User-group directory with full lifecycle UX.
 - [ ] App revocation panel (APP_AUTHORIZATION.md §7).
 - [ ] Audit log viewer (filter by user, app, resource, time).
 
 Exit: an administrator can answer any reasonable authorization question
-without `psql`.
+without `psql`, via the cluster-served admin UI.
 
 ---
 
