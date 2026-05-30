@@ -14,13 +14,23 @@ name: Publish @my-own-web-services/react-components
 #      matches package.json, builds, runs tests, and runs `npm publish`
 #      with provenance.
 #
-# Required repository secrets:
-#   NPM_TOKEN — an "Automation" or "Granular" npm access token with
-#               publish rights on the @my-own-web-services scope.
-# Required repository setup:
-#   The @my-own-web-services org must exist on npmjs.org and the
-#   publishing user/org token must have permission to publish scoped
-#   packages with public access.
+# Authentication:
+#   Uses npm Trusted Publishing (OIDC) — there is no long-lived
+#   NPM_TOKEN. The `publish` job below requests an OIDC token from
+#   GitHub (via `permissions.id-token: write`) and `npm publish
+#   --provenance` exchanges it for a short-lived publish credential.
+#
+# Required npm setup (one-time, in npmjs.com UI):
+#   On https://www.npmjs.com → Packages → @my-own-web-services/react-components
+#   → Settings → Trusted Publishers → Add publisher → GitHub Actions:
+#     Organization:        my-own-web-services
+#     Repository:          mows
+#     Workflow filename:   publish-react-components.yml
+#     Environment:         (leave blank)
+#   For the very first publish (the package doesn't exist yet),
+#   configure the trusted publisher at the @my-own-web-services org
+#   level instead, or do a one-off manual `npm publish` with a
+#   personal token and then add the trusted publisher.
 
 on:
   push:
@@ -139,13 +149,17 @@ jobs:
 
       - name: Publish to npm
         working-directory: components/react
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          # `publishConfig` in package.json already sets access=public
-          # and provenance=true; we still pass --provenance explicitly so
-          # the run fails loudly if the OIDC token isn't available.
-          npm publish --provenance --access public
+          # Auth is handled via npm Trusted Publishing (OIDC) — no
+          # NODE_AUTH_TOKEN env. `--provenance` forces npm to mint the
+          # OIDC exchange, so the run fails loudly if the publisher
+          # binding on npmjs.com isn't configured for this workflow.
+          # `--ignore-scripts` skips package.json's `prepublishOnly`
+          # (which calls pnpm). The verify job above already ran tests
+          # and built the artifact this job downloaded — re-running
+          # them here would also require installing pnpm in the
+          # publish environment for no real safety gain.
+          npm publish --provenance --access public --ignore-scripts
 
   dry-run-publish:
     needs: verify
