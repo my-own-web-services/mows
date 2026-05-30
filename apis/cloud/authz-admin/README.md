@@ -51,4 +51,20 @@ nothing to aggregate is always a misconfiguration.
   verbatim so the explain reflects the caller's view, not the
   BFF's.
 
-The React SPA at `apps/web/` is the next deliverable.
+### React SPA (apps/web/)
+
+Single-page client that consumes only this BFF. On mount it fetches
+`/api/upstreams` and renders one tab per reachable upstream; the
+active tab posts to `/api/access_policies/explain` and renders the
+returned `auth_evaluations` in a table (resource_id / allow / reason
+/ breadcrumb details). Acting-user UUID lives in localStorage and is
+sent as the appropriate dev header per upstream.
+
+Run it:
+
+```bash
+cd apps/web
+yalc add @my-own-web-services/react-components
+pnpm install
+pnpm run dev  # http://127.0.0.1:5190 — proxies /api to authz-admin
+```

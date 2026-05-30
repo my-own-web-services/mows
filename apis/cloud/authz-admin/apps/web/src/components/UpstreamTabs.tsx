@@ -1,0 +1,240 @@
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@my-own-web-services/react-components/components/ui/button";
+import { Input } from "@my-own-web-services/react-components/components/ui/input";
+import { Label } from "@my-own-web-services/react-components/components/ui/label";
+import {
+    api,
+    authReasonLabel,
+    unwrapEvaluations,
+    type AuthEvaluation,
+    type AuthReason,
+    type UpstreamStatus,
+} from "../lib/api";
+import { cn } from "../lib/cn";
+
+/** Hardcoded per-upstream (resource_type, action) pairs that
+ * authz-admin understands today. Phase 7 follow-ups will turn
+ * this into a `GET /api/upstreams/<key>/vocabulary` call so the
+ * frontend doesn't bake in upstream schema knowledge. */
+const UPSTREAM_DEFAULTS: Record<string, { resource_type: string; action: string }> = {
+    realtime: { resource_type: "Channel", action: "ChannelsList" },
+    filez: { resource_type: "File", action: "FilesGet" },
+};
+
+const DEV_HEADER_PER_UPSTREAM: Record<string, string | undefined> = {
+    realtime: "x-realtime-user-id",
+    filez: "x-filez-user-id",
+};
+
+interface UpstreamTabsProps {
+    /** Resolved upstreams from `/api/upstreams`. */
+    readonly upstreams: UpstreamStatus[];
+    /** Acting user UUID — sent verbatim as the upstream's dev
+     * identity header (`x-realtime-user-id` for realtime, etc.).
+     * Production replaces this with a Bearer token. */
+    readonly actingUser: string;
+}
+
+export default function UpstreamTabs({ upstreams, actingUser }: UpstreamTabsProps) {
+    const reachable = useMemo(() => upstreams.filter((u) => u.reachable), [upstreams]);
+    const [active, setActive] = useState<string | null>(reachable[0]?.key ?? null);
+
+    useEffect(() => {
+        if (!active && reachable.length > 0) setActive(reachable[0].key);
+    }, [active, reachable]);
+
+    if (upstreams.length === 0) {
+        return (
+            <div className="rounded-md border border-border bg-card p-6 text-sm text-muted-foreground">
+                No upstreams configured. Set <code>REALTIME_BASE_URL</code> /{" "}
+                <code>FILEZ_BASE_URL</code> on the authz-admin-server deploy.
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-3">
+            <div role="tablist" className="flex flex-wrap items-center gap-1 border-b border-border">
+                {upstreams.map((up) => (
+                    <button
+                        key={up.key}
+                        role="tab"
+                        aria-selected={active === up.key}
+                        disabled={!up.reachable}
+                        onClick={() => setActive(up.key)}
+                        className={cn(
+                            "rounded-t-md px-3 py-2 text-sm",
+                            active === up.key
+                                ? "border border-border border-b-0 bg-card text-foreground"
+                                : "text-muted-foreground hover:text-foreground",
+                            !up.reachable && "cursor-not-allowed opacity-50"
+                        )}
+                    >
+                        {up.key}
+                        {!up.reachable && (
+                            <span className="ml-2 text-xs text-destructive">
+                                unreachable
+                            </span>
+                        )}
+                    </button>
+                ))}
+            </div>
+            {active && (
+                <ExplainPanel
+                    key={active}
+                    upstream={active}
+                    actingUser={actingUser}
+                />
+            )}
+        </div>
+    );
+}
+
+interface ExplainPanelProps {
+    readonly upstream: string;
+    readonly actingUser: string;
+}
+
+function ExplainPanel({ upstream, actingUser }: ExplainPanelProps) {
+    const defaults = UPSTREAM_DEFAULTS[upstream] ?? {
+        resource_type: "",
+        action: "",
+    };
+    const [resourceType, setResourceType] = useState(defaults.resource_type);
+    const [action, setAction] = useState(defaults.action);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [upstreamStatus, setUpstreamStatus] = useState<number | null>(null);
+    const [evaluations, setEvaluations] = useState<AuthEvaluation[]>([]);
+
+    const run = async () => {
+        if (!actingUser.trim()) {
+            setError("Set acting user UUID above before running an explain.");
+            return;
+        }
+        setLoading(true);
+        setError(null);
+        try {
+            const devHeader = DEV_HEADER_PER_UPSTREAM[upstream];
+            const headers: Array<[string, string]> = devHeader
+                ? [[devHeader, actingUser.trim()]]
+                : [];
+            const res = await api.explain(
+                { upstream, resource_type: resourceType, action },
+                headers
+            );
+            setUpstreamStatus(res.upstream_status);
+            setEvaluations(unwrapEvaluations(res.upstream_body));
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-4 rounded-md border border-border bg-card p-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor={`${upstream}-rt`}>resource_type</Label>
+                    <Input
+                        id={`${upstream}-rt`}
+                        value={resourceType}
+                        onChange={(e) => setResourceType(e.target.value)}
+                        placeholder={defaults.resource_type}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor={`${upstream}-act`}>action</Label>
+                    <Input
+                        id={`${upstream}-act`}
+                        value={action}
+                        onChange={(e) => setAction(e.target.value)}
+                        placeholder={defaults.action}
+                    />
+                </div>
+                <Button onClick={() => void run()} disabled={loading}>
+                    {loading ? "running…" : "explain"}
+                </Button>
+            </div>
+
+            {error && (
+                <p className="text-sm text-destructive">{error}</p>
+            )}
+
+            {upstreamStatus !== null && (
+                <p className="text-xs text-muted-foreground">
+                    upstream returned HTTP {upstreamStatus} ·{" "}
+                    {evaluations.length} evaluation
+                    {evaluations.length === 1 ? "" : "s"}
+                </p>
+            )}
+
+            <EvaluationsTable evaluations={evaluations} />
+        </div>
+    );
+}
+
+function EvaluationsTable({ evaluations }: { evaluations: AuthEvaluation[] }) {
+    if (evaluations.length === 0) {
+        return (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+                No evaluations yet — run an explain above.
+            </p>
+        );
+    }
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                        <th className="px-2 py-2">resource_id</th>
+                        <th className="px-2 py-2">allowed</th>
+                        <th className="px-2 py-2">reason</th>
+                        <th className="px-2 py-2">detail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {evaluations.map((ev, i) => (
+                        <tr
+                            key={(ev.resource_id ?? "type-level") + i}
+                            className="border-b border-border/50"
+                        >
+                            <td className="px-2 py-2 font-mono text-xs">
+                                {ev.resource_id ?? <em>type-level</em>}
+                            </td>
+                            <td className="px-2 py-2">
+                                <span
+                                    className={cn(
+                                        "inline-flex h-2 w-2 rounded-full",
+                                        ev.is_allowed ? "bg-green-500" : "bg-destructive"
+                                    )}
+                                />
+                                <span className="ml-2 text-xs">
+                                    {ev.is_allowed ? "allow" : "deny"}
+                                </span>
+                            </td>
+                            <td className="px-2 py-2">{authReasonLabel(ev.reason)}</td>
+                            <td className="px-2 py-2 font-mono text-xs text-muted-foreground">
+                                <ReasonDetail reason={ev.reason} />
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+function ReasonDetail({ reason }: { reason: AuthReason }) {
+    if (typeof reason === "string") return null;
+    const inner = Object.values(reason)[0] as Record<string, string> | undefined;
+    if (!inner) return null;
+    return (
+        <span>
+            {Object.entries(inner)
+                .map(([k, v]) => `${k}=${v.toString().slice(0, 8)}…`)
+                .join(" · ")}
+        </span>
+    );
+}
