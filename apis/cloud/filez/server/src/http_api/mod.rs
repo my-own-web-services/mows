@@ -30,6 +30,7 @@ pub mod access_policies {
     pub mod check_resource_access;
     pub mod create;
     pub mod delete;
+    pub mod explain;
     pub mod get;
     pub mod list;
     pub mod revoke;

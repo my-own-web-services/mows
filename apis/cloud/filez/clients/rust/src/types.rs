@@ -214,6 +214,14 @@ pub struct ApiResponseEndSessionResponseBody {
     pub status: ApiResponseStatus,
 }
 
+// ApiResponse_ExplainAccessResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiResponseExplainAccessResponseBody {
+    pub data: ExplainAccessResponseBody,
+    pub message: String,
+    pub status: ApiResponseStatus,
+}
+
 // ApiResponse_FileVersionSizeExceededErrorBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponseFileVersionSizeExceededErrorBody {
@@ -860,6 +868,19 @@ pub struct EndSessionRequestBody {}
 // EndSessionResponseBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EndSessionResponseBody {}
+
+// ExplainAccessRequestBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExplainAccessRequestBody {
+    pub access_policy_action: AccessPolicyAction,
+    pub access_policy_resource_type: AccessPolicyResourceType,
+}
+
+// ExplainAccessResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExplainAccessResponseBody {
+    pub auth_evaluations: Vec<AuthEvaluation>,
+}
 
 // FileGroup
 #[derive(Debug, Clone, Serialize, Deserialize)]

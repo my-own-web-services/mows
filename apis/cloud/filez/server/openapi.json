@@ -124,6 +124,44 @@
         }
       }
     },
+    "/api/access_policies/explain": {
+      "post": {
+        "description": "Returns the AuthReason for every resource of the given type that the caller has any policy on. Sibling of realtime-server's endpoint; both emit the same shape so the cross-service admin UI can fan out without per-service adapters.",
+        "operationId": "explain_access",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplainAccessRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Per-resource evaluations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ExplainAccessResponseBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/access_policies/get": {
       "post": {
         "description": "Get access policies from the server by their IDs",
@@ -3826,6 +3864,35 @@
           }
         }
       },
+      "ApiResponse_ExplainAccessResponseBody": {
+        "type": "object",
+        "required": [
+          "message",
+          "status"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "auth_evaluations"
+            ],
+            "properties": {
+              "auth_evaluations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AuthEvaluation"
+                }
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
       "ApiResponse_FileVersionSizeExceededErrorBody": {
         "type": "object",
         "required": [
@@ -6048,6 +6115,35 @@
       },
       "EndSessionResponseBody": {
         "type": "object"
+      },
+      "ExplainAccessRequestBody": {
+        "type": "object",
+        "required": [
+          "access_policy_resource_type",
+          "access_policy_action"
+        ],
+        "properties": {
+          "access_policy_action": {
+            "$ref": "#/components/schemas/AccessPolicyAction"
+          },
+          "access_policy_resource_type": {
+            "$ref": "#/components/schemas/AccessPolicyResourceType"
+          }
+        }
+      },
+      "ExplainAccessResponseBody": {
+        "type": "object",
+        "required": [
+          "auth_evaluations"
+        ],
+        "properties": {
+          "auth_evaluations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthEvaluation"
+            }
+          }
+        }
       },
       "FileGroup": {
         "type": "object",

@@ -404,6 +404,14 @@ export interface ApiResponseEndSessionResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseExplainAccessResponseBody {
+  data?: {
+    auth_evaluations: AuthEvaluation[];
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseFileVersionSizeExceededErrorBody {
   data?: {
     /**
@@ -1137,6 +1145,15 @@ export type EmptyApiResponse = object;
 export type EndSessionRequestBody = object;
 
 export type EndSessionResponseBody = object;
+
+export interface ExplainAccessRequestBody {
+  access_policy_action: AccessPolicyAction;
+  access_policy_resource_type: AccessPolicyResourceType;
+}
+
+export interface ExplainAccessResponseBody {
+  auth_evaluations: AuthEvaluation[];
+}
 
 export interface FileGroup {
   /** @format date-time */
@@ -2542,6 +2559,28 @@ export class Api<
       this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/access_policies/delete/${accessPolicyId}`,
         method: "DELETE",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Returns the AuthReason for every resource of the given type that the caller has any policy on. Sibling of realtime-server's endpoint; both emit the same shape so the cross-service admin UI can fan out without per-service adapters.
+     *
+     * @name ExplainAccess
+     * @request POST:/api/access_policies/explain
+     */
+    explainAccess: (
+      data: ExplainAccessRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        ApiResponseExplainAccessResponseBody,
+        ApiResponseEmptyApiResponse
+      >({
+        path: `/api/access_policies/explain`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
