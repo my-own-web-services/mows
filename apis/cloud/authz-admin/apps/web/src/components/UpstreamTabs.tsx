@@ -197,7 +197,7 @@ function EvaluationsTable({ evaluations }: { evaluations: AuthEvaluation[] }) {
                 <tbody>
                     {evaluations.map((ev, i) => (
                         <tr
-                            key={(ev.resource_id ?? "type-level") + i}
+                            key={evaluationKey(ev, i)}
                             className="border-b border-border/50"
                         >
                             <td className="px-2 py-2 font-mono text-xs">
@@ -224,6 +224,21 @@ function EvaluationsTable({ evaluations }: { evaluations: AuthEvaluation[] }) {
             </table>
         </div>
     );
+}
+
+/** Build a stable React key for an evaluation row. Prefers the
+ * policy_id from the reason (every non-Owner / non-Public-with-
+ * sentinel variant carries one), falls back to the resource_id
+ * plus index for owner shortcuts / type-level evaluations.
+ * Without this, two type-level rows collide on
+ * `"type-level0"`/`"type-level1"` keys and React reuses DOM
+ * nodes across them — caught by review-3 R7 / TECH-9. */
+function evaluationKey(ev: AuthEvaluation, index: number): string {
+    if (typeof ev.reason !== "string") {
+        const inner = Object.values(ev.reason)[0] as { policy_id?: string } | undefined;
+        if (inner?.policy_id) return `${ev.resource_id ?? "type"}:${inner.policy_id}`;
+    }
+    return `${ev.resource_id ?? "type-level"}:${index}`;
 }
 
 function ReasonDetail({ reason }: { reason: AuthReason }) {

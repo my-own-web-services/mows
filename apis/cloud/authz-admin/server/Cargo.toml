@@ -34,3 +34,4 @@ tower-http = { workspace = true, features = ["cors", "fs", "trace", "compression
 uuid = { workspace = true, features = ["v4", "v7", "serde"] }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 futures = { workspace = true }
+url = { workspace = true }

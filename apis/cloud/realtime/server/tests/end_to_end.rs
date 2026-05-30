@@ -612,6 +612,20 @@ async fn end_to_end_demo_flow() {
         "bob's reason must cite team-a as the connecting group",
     );
 
+    // Explicit negative assertion (review-3 R12 / QA-5): the
+    // owner shortcut must NOT fire for bob's row. The positive
+    // check above proves "the right answer is in the response",
+    // but if a regression let bob inherit the owner shortcut on
+    // alice's channel (the worst kind of authorization leak —
+    // grants Bob the same powers as Alice), the positive check
+    // would still pass while the privilege escalation went
+    // undetected.
+    assert_ne!(
+        bob_team_room["reason"], serde_json::json!("Owned"),
+        "bob is NOT the owner of team-room — Owned would mean the engine \
+         silently inherited Alice's owner shortcut into Bob's evaluation",
+    );
+
     // Carol has no policy on any channel and isn't in any group,
     // so the explain endpoint returns an empty evaluations array.
     let carol_explain: serde_json::Value = client

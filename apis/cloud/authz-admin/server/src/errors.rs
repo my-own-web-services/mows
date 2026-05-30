@@ -10,6 +10,8 @@ pub enum AuthzAdminError {
     Upstream(String),
     #[error("bad request: {0}")]
     BadRequest(String),
+    #[error("unauthorized: {0}")]
+    Unauthorized(String),
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -19,6 +21,7 @@ impl IntoResponse for AuthzAdminError {
         let (status, kind) = match &self {
             AuthzAdminError::Upstream(_) => (StatusCode::BAD_GATEWAY, "Upstream"),
             AuthzAdminError::BadRequest(_) => (StatusCode::BAD_REQUEST, "BadRequest"),
+            AuthzAdminError::Unauthorized(_) => (StatusCode::UNAUTHORIZED, "Unauthorized"),
             AuthzAdminError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal"),
         };
         let body = ApiResponse::<()> {

@@ -98,32 +98,44 @@ export type AuthReason =
     | { DeniedByOwnedByOwnerPolicy: { policy_id: Uuid } }
     | { DeniedByAccessibleByOwnerPolicy: { policy_id: Uuid } };
 
-/** Maps `upstream_body` to a normalised AuthEvaluation array. The
- * two consumer services use slightly different field names
- * (realtime: `evaluations`, filez: `auth_evaluations`) — this is
- * the single place that papers over the diff. */
+/** Extract the evaluations array from an upstream response.
+ * After review-3 R4 both realtime + filez emit
+ * `{ data: { evaluations: AuthEvaluation[] } }`, so this just
+ * walks the envelope; a stale upstream that still uses the old
+ * `auth_evaluations` name will return [], the empty-state
+ * placeholder will render, and the developer notices
+ * immediately. */
 export function unwrapEvaluations(upstream_body: unknown): AuthEvaluation[] {
     if (
         upstream_body &&
         typeof upstream_body === "object" &&
         "data" in upstream_body &&
         upstream_body.data &&
-        typeof upstream_body.data === "object"
+        typeof upstream_body.data === "object" &&
+        "evaluations" in upstream_body.data &&
+        Array.isArray((upstream_body.data as Record<string, unknown>).evaluations)
     ) {
-        const data = upstream_body.data as Record<string, unknown>;
-        const evals = data.evaluations ?? data.auth_evaluations;
-        if (Array.isArray(evals)) return evals as AuthEvaluation[];
+        return (upstream_body.data as { evaluations: AuthEvaluation[] }).evaluations;
     }
     return [];
 }
 
 /** Render `AuthReason` as a short human label for table cells.
  * Detailed `policy_id` / `via_user_group_id` rendering belongs in
- * a row-detail expander; this is the at-a-glance form. */
+ * a row-detail expander; this is the at-a-glance form.
+ *
+ * The `_exhaustive` line is the TypeScript escape hatch that
+ * turns a future Rust-side AuthReason addition into a compile
+ * error here — if `mows_auth_core::AuthReason` gains a variant
+ * that isn't in this file, the assignment to `never` fails and
+ * the build surfaces the drift. Catches review-3 R8 / TECH-12
+ * / SLOP-4 the next time anyone touches this file. */
 export function authReasonLabel(reason: AuthReason): string {
     if (typeof reason === "string") return reason;
-    const key = Object.keys(reason)[0] ?? "Unknown";
-    return key;
+    const key = Object.keys(reason)[0];
+    if (key) return key;
+    const _exhaustive: never = reason as never;
+    return String(_exhaustive);
 }
 
 const DEFAULT_USER_HEADERS: Array<[string, string]> = [];

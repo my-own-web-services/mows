@@ -406,7 +406,7 @@ export interface ApiResponseEndSessionResponseBody {
 
 export interface ApiResponseExplainAccessResponseBody {
   data?: {
-    auth_evaluations: AuthEvaluation[];
+    evaluations: AuthEvaluation[];
   };
   message: string;
   status: ApiResponseStatus;
@@ -1146,13 +1146,21 @@ export type EndSessionRequestBody = object;
 
 export type EndSessionResponseBody = object;
 
+/**
+ * Wire shape matches realtime-server's explain endpoint exactly
+ * (`resource_type` / `action` / `evaluations`) so the cross-service
+ * admin BFF (`apis/cloud/authz-admin/`) doesn't need to translate
+ * between consumers. Phase-7 review R4 dropped the prior
+ * `access_policy_` prefix from this struct + renamed
+ * `auth_evaluations` → `evaluations` for the same reason.
+ */
 export interface ExplainAccessRequestBody {
-  access_policy_action: AccessPolicyAction;
-  access_policy_resource_type: AccessPolicyResourceType;
+  action: AccessPolicyAction;
+  resource_type: AccessPolicyResourceType;
 }
 
 export interface ExplainAccessResponseBody {
-  auth_evaluations: AuthEvaluation[];
+  evaluations: AuthEvaluation[];
 }
 
 export interface FileGroup {

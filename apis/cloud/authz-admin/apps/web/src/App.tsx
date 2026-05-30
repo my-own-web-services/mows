@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@my-own-web-services/react-components/components/ui/button";
 import { Input } from "@my-own-web-services/react-components/components/ui/input";
 import { Label } from "@my-own-web-services/react-components/components/ui/label";
@@ -28,9 +28,19 @@ export default function App() {
         }
     }, []);
 
+    // Stable ref to refreshUpstreams so the boot effect's deps
+    // stay `[]` even if a future refactor adds a useCallback dep
+    // here. Without the ref, adding any dep (e.g. `[actingUser]`)
+    // would turn the boot fetch into a fetch-every-render loop.
+    // (review-3 R6 / TECH-7)
+    const refreshRef = useRef(refreshUpstreams);
     useEffect(() => {
-        void refreshUpstreams();
+        refreshRef.current = refreshUpstreams;
     }, [refreshUpstreams]);
+
+    useEffect(() => {
+        void refreshRef.current();
+    }, []);
 
     useEffect(() => {
         if (actingUser) localStorage.setItem(STORAGE_ACTING_USER, actingUser);

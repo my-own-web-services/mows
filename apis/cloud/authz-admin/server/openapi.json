@@ -35,7 +35,10 @@
             }
           },
           "400": {
-            "description": "Unknown upstream / oversize body"
+            "description": "Unknown upstream / oversize body / missing-field request"
+          },
+          "401": {
+            "description": "Missing identity header (Authorization or x-realtime-user-id or x-filez-user-id)"
           },
           "502": {
             "description": "Upstream request failed"

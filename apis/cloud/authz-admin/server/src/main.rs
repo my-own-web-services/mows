@@ -42,7 +42,8 @@ async fn main() -> anyhow::Result<()> {
     let cfg = get_current_config_cloned!(config());
     info!(listen_port = cfg.listen_port, "authz-admin starting");
 
-    let registry = Registry::from_config(&cfg);
+    let registry = Registry::from_config(&cfg)
+        .context("validating upstream URLs at boot")?;
     if registry.upstreams.is_empty() {
         // A BFF with zero upstreams is a misconfigured deploy —
         // it would only return empty aggregations. Refuse to
@@ -65,18 +66,23 @@ async fn main() -> anyhow::Result<()> {
     //                     tracing_subscriber init above renders
     //                     them to stdout.
     //   * CORS          — admin UI runs on a different origin
-    //                     than the BFF in production (separate
-    //                     subdomain). Mirror the request's
-    //                     Origin (the BFF doesn't issue
-    //                     credentialed cross-origin requests
-    //                     itself, so reflecting is safe and
-    //                     simpler than an allowlist).
+    //                     than the BFF in production. Mirror
+    //                     the request Origin so a per-tenant
+    //                     subdomain works without an explicit
+    //                     allowlist. **No `allow_credentials`**:
+    //                     the BFF carries no cookies of its own
+    //                     and the SPA sends `fetch` without
+    //                     `credentials: "include"` — adding
+    //                     credentials here would tell the
+    //                     browser "this response is safe for
+    //                     ANY origin to read with credentials,"
+    //                     which is the classic Origin-reflection
+    //                     vuln. (review-3 R1 / SEC-1)
     //   * Compression   — both directions; admin responses can
     //                     be JSON payloads of tens of KB once
     //                     filez's full visible set is in flight.
     let cors = CorsLayer::new()
         .allow_origin(AllowOrigin::mirror_request())
-        .allow_credentials(true)
         .allow_headers(tower_http::cors::Any)
         .allow_methods(tower_http::cors::Any);
     let axum_router = axum_router

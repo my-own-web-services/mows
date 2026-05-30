@@ -3874,10 +3874,10 @@
           "data": {
             "type": "object",
             "required": [
-              "auth_evaluations"
+              "evaluations"
             ],
             "properties": {
-              "auth_evaluations": {
+              "evaluations": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/AuthEvaluation"
@@ -6118,15 +6118,16 @@
       },
       "ExplainAccessRequestBody": {
         "type": "object",
+        "description": "Wire shape matches realtime-server's explain endpoint exactly\n(`resource_type` / `action` / `evaluations`) so the cross-service\nadmin BFF (`apis/cloud/authz-admin/`) doesn't need to translate\nbetween consumers. Phase-7 review R4 dropped the prior\n`access_policy_` prefix from this struct + renamed\n`auth_evaluations` → `evaluations` for the same reason.",
         "required": [
-          "access_policy_resource_type",
-          "access_policy_action"
+          "resource_type",
+          "action"
         ],
         "properties": {
-          "access_policy_action": {
+          "action": {
             "$ref": "#/components/schemas/AccessPolicyAction"
           },
-          "access_policy_resource_type": {
+          "resource_type": {
             "$ref": "#/components/schemas/AccessPolicyResourceType"
           }
         }
@@ -6134,10 +6135,10 @@
       "ExplainAccessResponseBody": {
         "type": "object",
         "required": [
-          "auth_evaluations"
+          "evaluations"
         ],
         "properties": {
-          "auth_evaluations": {
+          "evaluations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AuthEvaluation"

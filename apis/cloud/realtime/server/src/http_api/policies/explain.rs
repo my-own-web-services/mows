@@ -35,19 +35,51 @@ use crate::{
     types::{ApiResponse, ApiResponseStatus},
 };
 
-#[derive(Deserialize, ToSchema, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub struct ExplainRequest {
     pub resource_type: AccessPolicyResourceType,
     pub action: AccessPolicyAction,
 }
 
-#[derive(Serialize, ToSchema, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub struct ExplainResponse {
     /// One entry per resource the caller has any policy on
     /// (Allow OR Deny) for the requested `(resource_type, action)`
     /// pair. Resources the caller owns are included as
     /// `AuthReason::Owned` even when no explicit policy exists.
     pub evaluations: Vec<AuthEvaluation>,
+}
+
+#[cfg(test)]
+mod wire_shape_guard {
+    //! See `filez-server`'s sibling test for context. Pins the
+    //! `(resource_type, action) → {evaluations}` wire shape so
+    //! the `authz-admin` BFF stays a no-translator forwarder.
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn request_body_uses_shared_field_names() {
+        let parsed: ExplainRequest = serde_json::from_value(json!({
+            "resource_type": "Channel",
+            "action": "ChannelsList",
+        }))
+        .expect("must accept the canonical (resource_type, action) shape");
+        let back = serde_json::to_value(&parsed).expect("round-trip");
+        assert_eq!(back["resource_type"], "Channel");
+        assert_eq!(back["action"], "ChannelsList");
+    }
+
+    #[test]
+    fn response_body_uses_shared_field_names() {
+        let body = ExplainResponse { evaluations: vec![] };
+        let serialised = serde_json::to_value(&body).expect("serialise");
+        assert!(serialised.get("evaluations").is_some());
+        assert!(
+            serialised.get("auth_evaluations").is_none(),
+            "the sibling filez name must not leak into realtime"
+        );
+    }
 }
 
 #[utoipa::path(

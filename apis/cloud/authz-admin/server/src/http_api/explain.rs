@@ -65,7 +65,8 @@ pub struct ExplainResponse {
     description = "Forward an explain query to a single upstream consumer and return its response verbatim. Frontend fans out by calling this once per upstream in parallel.",
     responses(
         (status = 200, body = ApiResponse<ExplainResponse>),
-        (status = 400, description = "Unknown upstream / oversize body"),
+        (status = 400, description = "Unknown upstream / oversize body / missing-field request"),
+        (status = 401, description = "Missing identity header (Authorization or x-realtime-user-id or x-filez-user-id)"),
         (status = 502, description = "Upstream request failed"),
     )
 )]
@@ -95,9 +96,36 @@ pub async fn forward_explain(
             ))
         })?;
 
-    // Forward identity-bearing headers verbatim. Whitelist rather
-    // than passthrough-all to avoid leaking BFF-internal headers
-    // (e.g. routing cookies) into upstream services.
+    // R2 — require at least one identity-bearing header before
+    // we forward anything. The upstream services accept anonymous
+    // requests (Subject::Anonymous → only Public policies match);
+    // letting the BFF surface that result without an identity
+    // assertion turns it into an anonymous fingerprinting probe.
+    // The acceptable headers are exactly the ones the BFF
+    // forwards downstream — `Authorization` for production
+    // Bearer flow, `x-{realtime,filez}-user-id` for dev. (SEC-2)
+    let identity_present = ["authorization", "x-realtime-user-id", "x-filez-user-id"]
+        .iter()
+        .any(|n| parts.headers.contains_key(*n));
+    if !identity_present {
+        return Err(AuthzAdminError::Unauthorized(
+            "explain requires at least one identity header: Authorization \
+             (production Bearer token) or x-realtime-user-id / \
+             x-filez-user-id (dev). The BFF refuses to forward anonymous \
+             explain requests so it can't be used as a fingerprinting \
+             probe — see review-3 R2 / SEC-2."
+                .to_string(),
+        ));
+    }
+
+    // Whitelist identity-header passthrough. Specifically NOT
+    // passthrough-all — that would forward BFF-internal headers
+    // (traefik routing cookies, ingress request-id metadata,
+    // session cookies if any are ever set) to upstreams as if
+    // the caller had supplied them. The risk is concrete:
+    // a misconfigured ingress that injects a `cookie:
+    // _admin_session=...` header would otherwise be auth'd as
+    // that admin against the upstream. (SLOP-9 / SEC review)
     let mut fwd_headers = HeaderMap::new();
     for name in [
         "authorization",
@@ -113,28 +141,17 @@ pub async fn forward_explain(
         HeaderValue::from_static("application/json"),
     );
 
-    // Upstream's own /api/access_policies/explain shape. The two
-    // consumer endpoints already use field names that match
-    // exactly what the operator would put in our `resource_type`
-    // / `action` fields (case-sensitive), so we hand them through
-    // by JSON re-shape rather than wrestling with typed enums
-    // here — the BFF deliberately doesn't know each upstream's
-    // vocabulary.
-    let upstream_body = match req.upstream.as_str() {
-        "realtime" => serde_json::json!({
-            "resource_type": req.resource_type,
-            "action": req.action,
-        }),
-        "filez" => serde_json::json!({
-            "access_policy_resource_type": req.resource_type,
-            "access_policy_action": req.action,
-        }),
-        other => {
-            return Err(AuthzAdminError::BadRequest(format!(
-                "no body adapter registered for upstream {other:?}"
-            )));
-        }
-    };
+    // After review-3 R4 both upstream explain endpoints agree on
+    // the wire shape (`{resource_type, action}` request,
+    // `{evaluations}` response). The BFF hands the body through
+    // verbatim — no per-upstream `match` adapter, no SPA-side
+    // `unwrapEvaluations` workaround. A third consumer is
+    // expected to publish the same shape; if it doesn't, the
+    // proper fix is to align it, not re-grow a BFF translator.
+    let upstream_body = serde_json::json!({
+        "resource_type": req.resource_type,
+        "action": req.action,
+    });
 
     let resp = state
         .http

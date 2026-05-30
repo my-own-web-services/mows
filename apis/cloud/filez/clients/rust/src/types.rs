@@ -870,16 +870,22 @@ pub struct EndSessionRequestBody {}
 pub struct EndSessionResponseBody {}
 
 // ExplainAccessRequestBody
+/// Wire shape matches realtime-server's explain endpoint exactly
+/// (`resource_type` / `action` / `evaluations`) so the cross-service
+/// admin BFF (`apis/cloud/authz-admin/`) doesn't need to translate
+/// between consumers. Phase-7 review R4 dropped the prior
+/// `access_policy_` prefix from this struct + renamed
+/// `auth_evaluations` → `evaluations` for the same reason.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExplainAccessRequestBody {
-    pub access_policy_action: AccessPolicyAction,
-    pub access_policy_resource_type: AccessPolicyResourceType,
+    pub action: AccessPolicyAction,
+    pub resource_type: AccessPolicyResourceType,
 }
 
 // ExplainAccessResponseBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExplainAccessResponseBody {
-    pub auth_evaluations: Vec<AuthEvaluation>,
+    pub evaluations: Vec<AuthEvaluation>,
 }
 
 // FileGroup
