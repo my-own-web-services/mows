@@ -11,6 +11,12 @@
 
 use anyhow::Context;
 use mows_common_rust::get_current_config_cloned;
+use tower_http::{
+    compression::CompressionLayer,
+    cors::{AllowOrigin, CorsLayer},
+    decompression::DecompressionLayer,
+    trace::TraceLayer,
+};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 use utoipa_axum::router::OpenApiRouter;
@@ -52,6 +58,32 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState::new(registry)?;
     let router = build_api_router().with_state(state);
     let (axum_router, _openapi) = OpenApiRouter::split_for_parts(router);
+
+    // tower layers:
+    //   * TraceLayer    — structured per-request spans (latency,
+    //                     status, method, path). The
+    //                     tracing_subscriber init above renders
+    //                     them to stdout.
+    //   * CORS          — admin UI runs on a different origin
+    //                     than the BFF in production (separate
+    //                     subdomain). Mirror the request's
+    //                     Origin (the BFF doesn't issue
+    //                     credentialed cross-origin requests
+    //                     itself, so reflecting is safe and
+    //                     simpler than an allowlist).
+    //   * Compression   — both directions; admin responses can
+    //                     be JSON payloads of tens of KB once
+    //                     filez's full visible set is in flight.
+    let cors = CorsLayer::new()
+        .allow_origin(AllowOrigin::mirror_request())
+        .allow_credentials(true)
+        .allow_headers(tower_http::cors::Any)
+        .allow_methods(tower_http::cors::Any);
+    let axum_router = axum_router
+        .layer(TraceLayer::new_for_http())
+        .layer(CompressionLayer::new())
+        .layer(DecompressionLayer::new())
+        .layer(cors);
 
     let bind = format!("{}:{}", cfg.bind_address, cfg.listen_port);
     let listener = tokio::net::TcpListener::bind(&bind)

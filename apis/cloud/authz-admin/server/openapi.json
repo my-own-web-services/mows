@@ -1,0 +1,296 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "authz-admin",
+    "description": "Cross-service authorization admin BFF (Phase 7). Aggregates `/api/access_policies/*` surfaces across consumer services (realtime, filez, ...) so a single operator UI can answer 'who can see what + why' without per-service tabs.",
+    "license": {
+      "name": ""
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/access_policies/explain": {
+      "post": {
+        "description": "Forward an explain query to a single upstream consumer and return its response verbatim. Frontend fans out by calling this once per upstream in parallel.",
+        "operationId": "forward_explain",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ExplainResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown upstream / oversize body"
+          },
+          "502": {
+            "description": "Upstream request failed"
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "description": "Process liveness probe. Returns 200 once axum is serving — does NOT verify upstream reachability (that's `/api/upstreams`).",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upstreams": {
+      "get": {
+        "description": "List configured upstreams with a live reachability probe. The first thing the admin UI calls; drives which per-consumer panels render.",
+        "operationId": "list_upstreams",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_UpstreamsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseStatus": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "Success"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "Error"
+            ],
+            "properties": {
+              "Error": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "description": "Matches realtime-server's wire shape: `Success` serialises to\nthe bare string `\"Success\"`; `Error(\"...\")` serialises to\n`{\"Error\": \"...\"}`. Keeping the shape identical means the\n`@my-own-web-services/react-components` envelope parser\ndoesn't need a per-service branch."
+      },
+      "ApiResponse_ExplainResponse": {
+        "type": "object",
+        "description": "Standard envelope shared across MOWS services. authz-admin uses\nthe same shape as realtime / filez so frontend code that lives\nin `@my-own-web-services/react-components` can keep one parser.",
+        "required": [
+          "status",
+          "message"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "upstream",
+              "upstream_status",
+              "upstream_body"
+            ],
+            "properties": {
+              "upstream": {
+                "type": "string"
+              },
+              "upstream_body": {
+                "$ref": "#/components/schemas/Value",
+                "description": "Verbatim JSON the upstream returned. Shape varies by\nupstream (realtime returns `{evaluations}`, filez returns\n`{auth_evaluations}`); the frontend handles the per-key\nbranch."
+              },
+              "upstream_status": {
+                "type": "integer",
+                "format": "int32",
+                "description": "HTTP status the upstream returned. The BFF surfaces it\nso the frontend can distinguish 200 / 403 / 5xx without\nre-parsing the upstream envelope.",
+                "minimum": 0
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
+      "ApiResponse_HealthResponse": {
+        "type": "object",
+        "description": "Standard envelope shared across MOWS services. authz-admin uses\nthe same shape as realtime / filez so frontend code that lives\nin `@my-own-web-services/react-components` can keep one parser.",
+        "required": [
+          "status",
+          "message"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "type": "string"
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
+      "ApiResponse_UpstreamsResponse": {
+        "type": "object",
+        "description": "Standard envelope shared across MOWS services. authz-admin uses\nthe same shape as realtime / filez so frontend code that lives\nin `@my-own-web-services/react-components` can keep one parser.",
+        "required": [
+          "status",
+          "message"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "upstreams"
+            ],
+            "properties": {
+              "upstreams": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UpstreamStatus"
+                }
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
+      "ExplainRequest": {
+        "type": "object",
+        "required": [
+          "upstream",
+          "resource_type",
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Upstream-specific action identifier — passed through\nverbatim."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "Upstream-specific resource type identifier — passed through\nto the upstream's `/api/access_policies/explain` verbatim."
+          },
+          "upstream": {
+            "type": "string",
+            "description": "Which upstream to forward to. Must match a `key` from\n`/api/upstreams` (`\"realtime\"`, `\"filez\"`)."
+          }
+        }
+      },
+      "ExplainResponse": {
+        "type": "object",
+        "required": [
+          "upstream",
+          "upstream_status",
+          "upstream_body"
+        ],
+        "properties": {
+          "upstream": {
+            "type": "string"
+          },
+          "upstream_body": {
+            "$ref": "#/components/schemas/Value",
+            "description": "Verbatim JSON the upstream returned. Shape varies by\nupstream (realtime returns `{evaluations}`, filez returns\n`{auth_evaluations}`); the frontend handles the per-key\nbranch."
+          },
+          "upstream_status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "HTTP status the upstream returned. The BFF surfaces it\nso the frontend can distinguish 200 / 403 / 5xx without\nre-parsing the upstream envelope.",
+            "minimum": 0
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "UpstreamStatus": {
+        "type": "object",
+        "required": [
+          "key",
+          "base_url",
+          "reachable"
+        ],
+        "properties": {
+          "base_url": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "reachable": {
+            "type": "boolean",
+            "description": "Whether the upstream answered its `/api/health` with 200\nat the moment of the probe. The probe is fired in parallel\nper upstream; total response time is bounded by the\nslowest upstream (or its timeout — 10 s, set in\n`AppState::new`)."
+          }
+        }
+      },
+      "UpstreamsResponse": {
+        "type": "object",
+        "required": [
+          "upstreams"
+        ],
+        "properties": {
+          "upstreams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpstreamStatus"
+            }
+          }
+        }
+      },
+      "Value": {}
+    }
+  }
+}
