@@ -224,7 +224,17 @@ The original framing put this in the MOWS manager; corrected
 admin UI is its own cluster service (`apis/cloud/authz-admin/`)
 that calls each consumer's `/api/access_policies/*` surface.
 
-- ❌ Scaffold `apis/cloud/authz-admin/` (Rust+axum BFF + React SPA)
+- ✅ Scaffold `apis/cloud/authz-admin/` (Rust+axum BFF + React SPA).
+     Three commits this session: `da864de3` (server skeleton +
+     config + upstream registry + health/upstreams endpoints),
+     `0e82ee3c` (single-upstream `/api/access_policies/explain`
+     forwarder with auth passthrough), `c620fae5` (React SPA with
+     per-upstream tab, explain table, AuthReason breadcrumbs).
+     Browser-verified end-to-end against running realtime-server:
+     Alice's owned channels render as `Owned`; Bob's
+     UserGroup-shared channel renders as
+     `AllowedByDirectUserGroupPolicy` with the citing group id
+     in the detail column.
 - ✅ Per-consumer `/api/access_policies/explain` endpoint
      (returns visible resources + per-resource AuthReason).
      **Realtime side** (commit `3653a7cc`) — exposes Owned /
@@ -239,8 +249,17 @@ that calls each consumer's `/api/access_policies/*` surface.
      `AccessPolicy::check`. openapi.json regenerated;
      typescript client republished via yalc to filez/web +
      filez/components/react.
-- ❌ Per-resource share dialog
-- ❌ "What can I see?" / "Who can see X?" diagnostic panel
+- ❌ Per-resource share dialog (generic primitive that fans out
+     to the right consumer; the chat app's ShareDialog is
+     channel-only and lives in apis/cloud/realtime/apps/chat)
+- ⏸ "What can I see?" diagnostic panel — landed via the explain
+     endpoint + per-upstream tab in `c620fae5`; renders allow/deny
+     + AuthReason variant + policy_id + via_user_group_id
+     breadcrumb. The **inverse** "Who can see X?" question
+     (given a resource id, list every subject with access) is
+     ❌ — needs a new
+     `POST /api/access_policies/by_resource` per consumer that
+     returns the policies pinned to that resource.
 - ❌ User-group directory (Phase 4 frontend ships building blocks;
      host-app routing/mounting is Phase 7)
 - ❌ App revocation panel
