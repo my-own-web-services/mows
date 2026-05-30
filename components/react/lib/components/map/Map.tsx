@@ -249,15 +249,23 @@ export default class Map extends PureComponent<MapProps, MapState> {
 
         this.appliedStyleId = style.id;
 
-        // Projection isn't a constructor option in maplibre-gl — apply
-        // it via setProjection. Calling before the first style is loaded
-        // is supported and persists across subsequent setStyle() calls,
-        // so a settings-panel style switch keeps the globe.
-        try {
-            this.map.setProjection({ type: projection });
-        } catch (err) {
-            log.warn(`setProjection failed; falling back to mercator`, err);
-        }
+        // Projection isn't a constructor option in maplibre-gl. Calling
+        // setProjection() before the first style finishes loading races
+        // the style-spec loader — for v8 styles without a `projection`
+        // field (e.g. every OpenFreeMap style) maplibre re-applies its
+        // default (mercator) once the style lands, silently flattening
+        // the globe. Re-asserting on every `style.load` makes the
+        // projection survive both the initial mount and any later
+        // setStyle() (settings-panel style switch).
+        const applyProjection = () => {
+            if (!this.map) return;
+            try {
+                this.map.setProjection({ type: projection });
+            } catch (err) {
+                log.warn(`setProjection failed; falling back to mercator`, err);
+            }
+        };
+        this.map.on(`style.load`, applyProjection);
 
         this.map.on(`load`, () => {
             this.setState({ status: `ready` });

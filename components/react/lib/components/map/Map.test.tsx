@@ -199,6 +199,10 @@ const renderMap = (props: Partial<MowsMapProps> = {}, context?: MowsContextType)
 
 const waitForReady = async () => {
     await waitFor(() => expect(mapInstances).toHaveLength(1));
+    // Mirror maplibre's real event order — `style.load` fires before
+    // `load` so the projection has been re-asserted by the time the
+    // component flips into the `ready` state.
+    act(() => mapInstances[0]!.fire(`style.load`));
     act(() => mapInstances[0]!.fire(`load`));
 };
 
@@ -395,16 +399,38 @@ describe(`<Map>`, () => {
         }
     });
 
-    it(`defaults the camera to globe projection`, async () => {
+    it(`defaults the camera to globe projection on style.load`, async () => {
         renderMap();
         await waitFor(() => expect(mapInstances).toHaveLength(1));
+        // No projection call until the style fires `style.load` — calling
+        // setProjection before the v8 style finishes loading races the
+        // style-spec loader and gets clobbered back to mercator.
+        expect(mapInstances[0]!.setProjectionCalls).toEqual([]);
+        act(() => mapInstances[0]!.fire(`style.load`));
         expect(mapInstances[0]!.setProjectionCalls).toEqual([{ type: `globe` }]);
     });
 
     it(`switches to mercator projection when explicitly requested`, async () => {
         renderMap({ projection: `mercator` });
         await waitFor(() => expect(mapInstances).toHaveLength(1));
+        act(() => mapInstances[0]!.fire(`style.load`));
         expect(mapInstances[0]!.setProjectionCalls).toEqual([{ type: `mercator` }]);
+    });
+
+    it(`re-applies the projection on every subsequent style.load`, async () => {
+        // Settings-panel style switch fires setStyle, which fires another
+        // style.load. The flat-map regression that motivated this test
+        // was exactly that the projection wasn't re-asserted on the
+        // second style.load, so a switch from Liberty → Dark dropped
+        // back to mercator silently.
+        renderMap();
+        await waitFor(() => expect(mapInstances).toHaveLength(1));
+        act(() => mapInstances[0]!.fire(`style.load`));
+        act(() => mapInstances[0]!.fire(`style.load`));
+        expect(mapInstances[0]!.setProjectionCalls).toEqual([
+            { type: `globe` },
+            { type: `globe` }
+        ]);
     });
 
     it(`disables maplibre's native attribution control`, async () => {
