@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>realtime-server demo</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+        }
+        body {
+            max-width: 960px;
+            margin: 1.5rem auto;
+            padding: 0 1rem;
+            line-height: 1.45;
+        }
+        header { display: flex; gap: 1rem; align-items: baseline; }
+        h1 { font-size: 1.25rem; margin: 0; }
+        h2 { font-size: 1rem; margin-top: 0; }
+        button, input, select, textarea {
+            font: inherit;
+            padding: .35rem .6rem;
+            border: 1px solid #888;
+            border-radius: .25rem;
+            background: transparent;
+            color: inherit;
+        }
+        textarea { width: 100%; min-height: 4.5rem; font-family: ui-monospace, monospace; }
+        button { cursor: pointer; }
+        button:hover { background: rgba(127, 127, 127, .15); }
+        .pane {
+            border: 1px solid #888;
+            border-radius: .5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+        .events {
+            max-height: 320px;
+            overflow-y: auto;
+            border: 1px solid #888;
+            border-radius: .25rem;
+            padding: .5rem;
+            font-family: ui-monospace, monospace;
+            font-size: .8rem;
+        }
+        .event {
+            padding: .25rem 0;
+            border-bottom: 1px dashed #ccc;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .event:last-child { border-bottom: none; }
+        .event-kind { display: inline-block; padding: 0 .3rem; border-radius: .25rem; background: rgba(127, 127, 127, .2); }
+        .channel-row { display: flex; gap: .5rem; align-items: center; padding: .25rem 0; }
+        .channel-row strong { flex: 1; }
+        .live-dot {
+            display: inline-block;
+            width: .5rem;
+            height: .5rem;
+            border-radius: 50%;
+            background: #999;
+            margin-right: .25rem;
+        }
+        .live-dot.on { background: #2bbd3a; }
+        .log {
+            font-size: .8rem;
+            opacity: .7;
+            white-space: pre-wrap;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        small { opacity: .7; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>realtime-server demo</h1>
+        <small>generic pub/sub channels — chat, WebRTC signaling, presence, anything</small>
+    </header>
+
+    <section class="pane">
+        <h2>1. Identity</h2>
+        <div class="row">
+            <button id="seed-btn">Seed Alice + Bob</button>
+            <span id="seed-status"></span>
+        </div>
+        <div class="row" style="margin-top: .5rem;">
+            <label>Acting as:
+                <select id="acting-user">
+                    <option value="">(anonymous)</option>
+                </select>
+            </label>
+            <span><span id="live-dot" class="live-dot"></span><small>WS</small></span>
+        </div>
+    </section>
+
+    <section class="pane">
+        <h2>2. Channels</h2>
+        <div class="row">
+            <input id="new-channel-name" placeholder="channel name">
+            <input id="new-channel-topic" placeholder="topic (optional)">
+            <button id="create-channel">Create</button>
+            <button id="reload-channels">Reload list</button>
+        </div>
+        <div id="channel-list" style="margin-top: .75rem;"></div>
+    </section>
+
+    <section class="pane" id="channel-pane" hidden>
+        <h2>3. Channel: <span id="active-channel-name"></span></h2>
+        <div class="row">
+            <small>id: <code id="active-channel-id"></code></small>
+            <button id="leave-channel">Close</button>
+        </div>
+        <div class="row" style="margin-top: .5rem;">
+            <label>Share with user:
+                <select id="share-user"></select>
+            </label>
+            <label>Actions:
+                <select id="share-actions" multiple size="2">
+                    <option value="ChannelsRead" selected>ChannelsRead</option>
+                    <option value="ChannelsPublish" selected>ChannelsPublish</option>
+                </select>
+            </label>
+            <button id="share-btn">Grant</button>
+        </div>
+        <div id="events" class="events" style="margin-top: .75rem;"></div>
+        <div class="row" style="margin-top: .5rem; align-items: flex-start;">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: .25rem;">
+                <input id="new-event-kind" placeholder="event_kind (e.g. chat.message, webrtc.offer, presence.heartbeat)" value="chat.message">
+                <textarea id="new-event-payload" placeholder='payload JSON, e.g. {"body":"hi"}'>{"body":"hi"}</textarea>
+            </div>
+            <button id="publish-event">Publish</button>
+        </div>
+    </section>
+
+    <section class="pane">
+        <h2>Activity log</h2>
+        <div id="log" class="log"></div>
+    </section>
+
+    <script type="module" src="./realtime.js"></script>
+</body>
+</html>

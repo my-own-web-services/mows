@@ -1319,42 +1319,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "chat-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "axum 0.8.4",
- "axum-extra",
- "chrono",
- "diesel",
- "diesel-async",
- "diesel-enum",
- "diesel_migrations",
- "futures",
- "futures-util",
- "mows-auth-core",
- "mows-common-rust",
- "openidconnect",
- "reqwest 0.12.24",
- "serde",
- "serde_json",
- "thiserror 2.0.12",
- "tokio",
- "tokio-tungstenite",
- "tower 0.5.2",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "url",
- "utoipa",
- "utoipa-axum",
- "utoipa-swagger-ui",
- "uuid",
- "zitadel",
-]
-
-[[package]]
 name = "chrono"
 version = "0.4.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6857,6 +6821,42 @@ dependencies = [
  "rustls-pki-types",
  "time",
  "yasna",
+]
+
+[[package]]
+name = "realtime-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum 0.8.4",
+ "axum-extra",
+ "chrono",
+ "diesel",
+ "diesel-async",
+ "diesel-enum",
+ "diesel_migrations",
+ "futures",
+ "futures-util",
+ "mows-auth-core",
+ "mows-common-rust",
+ "openidconnect",
+ "reqwest 0.12.24",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-tungstenite",
+ "tower 0.5.2",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "utoipa",
+ "utoipa-axum",
+ "utoipa-swagger-ui",
+ "uuid",
+ "zitadel",
 ]
 
 [[package]]

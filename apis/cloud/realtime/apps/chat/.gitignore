@@ -1,0 +1,23 @@
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Build + cache artefacts
+node_modules
+dist
+dist-ssr
+.vite
+*.tsbuildinfo
+
+# Local overrides
+*.local
+
+# Yalc (local linked packages)
+.yalc
+yalc.lock
+
+# Editor / OS cruft
+.idea
+.DS_Store
+*.sw?
