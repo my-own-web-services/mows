@@ -41,6 +41,14 @@ nothing to aggregate is always a misconfiguration.
 - `GET /api/health` — process liveness.
 - `GET /api/upstreams` — list configured upstreams with a parallel
   reachability probe against each one's `/api/health`.
+- `POST /api/access_policies/explain` — forwards an explain query
+  to a single upstream. Single-upstream rather than auto-fanout
+  because each upstream's `(resource_type, action)` vocabulary
+  differs (realtime → Channel/User/…; filez → File/FileGroup/…);
+  the frontend drives concurrency by calling this once per
+  upstream tab. Authentication-bearing headers (`Authorization`,
+  `x-realtime-user-id`, `x-filez-user-id`) are forwarded
+  verbatim so the explain reflects the caller's view, not the
+  BFF's.
 
-The aggregating `/api/access_policies/explain` endpoint lands in the
-next commit; the React SPA after that.
+The React SPA at `apps/web/` is the next deliverable.
