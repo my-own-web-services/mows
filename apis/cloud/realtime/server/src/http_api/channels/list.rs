@@ -8,7 +8,7 @@ use crate::{
     http_api::authentication::middleware::AuthenticationInformation,
     models::{
         access_policies::{
-            check::{engine_resource_registry, subject_from_chat},
+            check::{engine_resource_registry, subject_from_realtime},
             store::RealtimePolicyStore, AccessPolicyAction, AccessPolicyResourceType,
         },
         channels::{Channel, ChannelId},
@@ -43,7 +43,8 @@ pub async fn list_channels(
                     .to_string(),
             ))
         })?;
-    let subject = subject_from_chat(auth.requesting_user.as_ref());
+    let subject =
+        subject_from_realtime(auth.requesting_user.as_ref(), &auth.requesting_user_groups);
     let app_view = mows_auth_core::AppView {
         id: auth.context_app.id.0,
         trusted: auth.context_app.trusted,

@@ -23,7 +23,7 @@
 
 use std::time::Duration;
 
-use realtime_server_lib::{api_router::build_api_router, state::AppState};
+use realtime_server_lib::{api_router::build_api_router, errors::AuthResultExt, state::AppState};
 use diesel_async::async_connection_wrapper::AsyncConnectionWrapper;
 use diesel_async::{AsyncConnection, AsyncPgConnection};
 use diesel_migrations::MigrationHarness;
@@ -59,6 +59,11 @@ async fn end_to_end_demo_flow() {
     let state = AppState::new(&db_url)
         .await
         .expect("AppState::new failed");
+    // Extra clone for the Round 7 section, which goes around the
+    // HTTP surface and hits the database / engine directly. Has to
+    // happen here because the original `state` is moved into the
+    // middleware layer below.
+    let state_for_round_7 = state.clone();
 
     let router = build_api_router().with_state(state.clone());
     let (axum_router, _) = OpenApiRouter::split_for_parts(router);
@@ -323,6 +328,216 @@ async fn end_to_end_demo_flow() {
         traversal.status().as_u16(),
         200,
         "ServeDir should refuse path-traversal requests",
+    );
+
+    // 10. Phase 6 Round 7 — share a channel with a *user-group*,
+    //     not a single User. Proves the UserGroup-subject path
+    //     works end-to-end: the middleware resolves Bob's
+    //     memberships, the engine matches the UserGroup policy
+    //     against Bob's groups, and Bob sees the channel that
+    //     Alice never shared with him directly.
+    use diesel::prelude::*;
+    use diesel_async::RunQueryDsl;
+    use realtime_server_lib::{
+        models::{
+            access_policies::{check::check_resources_access_control, AccessPolicyAction, AccessPolicyResourceType},
+            users::{User as TestUser, UserId as TestUserId},
+        },
+        schema as test_schema,
+    };
+
+    // Insert Carol via raw SQL. dev/seed only knows Alice + Bob;
+    // we need a third user who is in NO group so we can confirm
+    // the negative case (Carol must NOT see the group-shared
+    // channel).
+    let carol_id = uuid::Uuid::from_u128(0xCAA0_0000_0000_0000_0000_0000_0000_0001);
+    let group_id = uuid::Uuid::from_u128(0x6900_0000_0000_0000_0000_0000_0000_0001);
+    let alice_uuid: uuid::Uuid = alice.parse().expect("alice uuid");
+    let bob_uuid: uuid::Uuid = bob.parse().expect("bob uuid");
+    let mut conn = state_for_round_7
+        .database
+        .get_connection()
+        .await
+        .expect("conn for round-7 setup");
+
+    let now = chrono::Utc::now().naive_utc();
+    let carol = TestUser {
+        id: TestUserId(carol_id),
+        external_user_id: None,
+        display_name: "Carol".to_string(),
+        created_time: now,
+        modified_time: now,
+        deleted: false,
+        user_type: 0,
+        idp_id: uuid::Uuid::from_u128(0x7a17_ade1_0000_0000_0000_0000_0000_0001),
+    };
+    diesel::insert_into(test_schema::users::table)
+        .values(&carol)
+        .execute(&mut conn)
+        .await
+        .expect("insert carol");
+
+    // user_group "team-a", owned by Alice, with Bob as the only
+    // member. No UI / endpoint creates user_groups in realtime
+    // today (Round 7 lands the schema; group-mgmt UX is later);
+    // direct inserts are the contract.
+    diesel::sql_query(
+        "INSERT INTO user_groups (id, owner_id, name, created_time, modified_time) \
+         VALUES ($1, $2, 'team-a', $3, $3)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(group_id)
+    .bind::<diesel::sql_types::Uuid, _>(alice_uuid)
+    .bind::<diesel::sql_types::Timestamp, _>(now)
+    .execute(&mut conn)
+    .await
+    .expect("insert user_group");
+    diesel::sql_query(
+        "INSERT INTO user_user_group_members (user_id, user_group_id, joined_at) \
+         VALUES ($1, $2, $3)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(bob_uuid)
+    .bind::<diesel::sql_types::Uuid, _>(group_id)
+    .bind::<diesel::sql_types::Timestamp, _>(now)
+    .execute(&mut conn)
+    .await
+    .expect("insert membership");
+
+    // Alice creates a fresh channel + grants the user_group
+    // ChannelsRead + ChannelsList. (We can't reuse `channel_id`
+    // from earlier because the previous policy was revoked at
+    // step 8; a fresh channel keeps the test independent of step
+    // ordering.)
+    let team_channel_resp: serde_json::Value = client
+        .post(format!("{base}/api/channels/create"))
+        .header("x-realtime-user-id", &alice)
+        .json(&json!({"name": "team-room", "topic": null}))
+        .send()
+        .await
+        .expect("alice create team-room")
+        .json()
+        .await
+        .expect("team-room json");
+    let team_channel_id =
+        team_channel_resp["data"]["channel"]["id"].as_str().unwrap().to_string();
+
+    let group_grant = client
+        .post(format!("{base}/api/access_policies/create"))
+        .header("x-realtime-user-id", &alice)
+        .json(&json!({
+            "name": "team-a-on-team-room",
+            "subject_type": "UserGroup",
+            "subject_id": group_id,
+            "resource_type": "Channel",
+            "resource_id": team_channel_id,
+            "actions": ["ChannelsRead", "ChannelsList"],
+            "effect": "Allow",
+        }))
+        .send()
+        .await
+        .expect("group grant");
+    assert_eq!(
+        group_grant.status().as_u16(),
+        200,
+        "UserGroup-subject policy must be createable via the REST surface",
+    );
+
+    // Bob's /channels/list must include the team-room. This is
+    // the proof that the engine's UserGroup-subject path runs
+    // through `RealtimePolicyStore::list_visible_resource_ids`,
+    // matches the policy against Bob's resolved groups, and
+    // returns the channel id.
+    let bob_visible: serde_json::Value = client
+        .post(format!("{base}/api/channels/list"))
+        .header("x-realtime-user-id", &bob)
+        .send()
+        .await
+        .expect("bob list")
+        .json()
+        .await
+        .expect("bob list json");
+    let bob_visible_ids: Vec<String> = bob_visible["data"]["channels"]
+        .as_array()
+        .expect("channels array")
+        .iter()
+        .map(|c| c["id"].as_str().unwrap().to_string())
+        .collect();
+    assert!(
+        bob_visible_ids.contains(&team_channel_id),
+        "Bob (member of team-a) must see the team-room — got: {bob_visible_ids:?}",
+    );
+
+    // Carol (not in team-a) must NOT see the team-room. This
+    // catches a class of failure modes where the UserGroup
+    // policy would leak to non-members (e.g. an `OR TRUE` in
+    // the subject filter, or the middleware ignoring its
+    // resolved groups).
+    let carol_visible: serde_json::Value = client
+        .post(format!("{base}/api/channels/list"))
+        .header("x-realtime-user-id", carol_id.to_string())
+        .send()
+        .await
+        .expect("carol list")
+        .json()
+        .await
+        .expect("carol list json");
+    let carol_visible_ids: Vec<String> = carol_visible["data"]["channels"]
+        .as_array()
+        .expect("channels array (carol)")
+        .iter()
+        .map(|c| c["id"].as_str().unwrap().to_string())
+        .collect();
+    assert!(
+        !carol_visible_ids.contains(&team_channel_id),
+        "Carol (non-member) must NOT see the team-room — got: {carol_visible_ids:?}",
+    );
+
+    // And the engine-level check_resources_access_control —
+    // called directly — must agree: Bob is allowed, Carol is
+    // denied. Mirrors the REST list assertion but exercises the
+    // check_access code path explicitly so a future regression
+    // that breaks `check` without breaking `list_visible` (or
+    // vice versa) still surfaces.
+    let team_channel_uuid: uuid::Uuid = team_channel_id.parse().expect("team channel uuid");
+    let bob_groups = vec![group_id];
+    let bob_user: TestUser = test_schema::users::table
+        .filter(test_schema::users::id.eq(TestUserId(bob_uuid)))
+        .select(TestUser::as_select())
+        .first::<TestUser>(&mut conn)
+        .await
+        .expect("load bob");
+    let carol_user: TestUser = test_schema::users::table
+        .filter(test_schema::users::id.eq(TestUserId(carol_id)))
+        .select(TestUser::as_select())
+        .first::<TestUser>(&mut conn)
+        .await
+        .expect("load carol");
+    let bob_check = check_resources_access_control(
+        &state_for_round_7.database,
+        Some(&bob_user),
+        &bob_groups,
+        &state_for_round_7.context_app,
+        AccessPolicyResourceType::Channel,
+        Some(&[team_channel_uuid]),
+        AccessPolicyAction::ChannelsRead,
+    )
+    .await
+    .expect("bob check");
+    bob_check.verify().expect("Bob must be allowed via UserGroup policy");
+
+    let carol_check = check_resources_access_control(
+        &state_for_round_7.database,
+        Some(&carol_user),
+        &[], // Carol has zero memberships
+        &state_for_round_7.context_app,
+        AccessPolicyResourceType::Channel,
+        Some(&[team_channel_uuid]),
+        AccessPolicyAction::ChannelsRead,
+    )
+    .await
+    .expect("carol check");
+    assert!(
+        carol_check.verify().is_err(),
+        "Carol (no memberships) must be denied — engine returned: {carol_check:?}",
     );
 
     // Cleanup.

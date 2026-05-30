@@ -71,6 +71,7 @@ pub async fn list_events(
     check_resources_access_control(
         &state.database,
         auth.requesting_user.as_ref(),
+        &auth.requesting_user_groups,
         &auth.context_app,
         AccessPolicyResourceType::Channel,
         Some(&[channel_id]),

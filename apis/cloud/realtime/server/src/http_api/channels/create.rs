@@ -64,6 +64,7 @@ pub async fn create_channel(
     check_resources_access_control(
         &state.database,
         Some(user),
+        &auth.requesting_user_groups,
         &auth.context_app,
         AccessPolicyResourceType::Channel,
         None,

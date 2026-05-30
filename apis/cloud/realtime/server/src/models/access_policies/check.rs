@@ -15,10 +15,11 @@ use crate::{
 
 pub use mows_auth_core::AuthResult;
 
-#[tracing::instrument(skip(database), level = "trace")]
+#[tracing::instrument(skip(database, requesting_user_groups), level = "trace")]
 pub async fn check_resources_access_control(
     database: &Database,
     maybe_requesting_user: Option<&User>,
+    requesting_user_groups: &[uuid::Uuid],
     context_app: &MowsApp,
     resource_type: AccessPolicyResourceType,
     maybe_requested_resource_ids: Option<&[uuid::Uuid]>,
@@ -28,12 +29,12 @@ pub async fn check_resources_access_control(
         .lookup(resource_type as u32)
         .ok_or_else(|| {
             RealtimeError::AuthCoreError(mows_auth_core::AuthError::Evaluation(format!(
-                "resource_type {} not in chat registry — bootstrap miswire?",
+                "resource_type {} not in realtime registry — bootstrap miswire?",
                 resource_type as u32
             )))
         })?;
 
-    let subject = subject_from_chat(maybe_requesting_user);
+    let subject = subject_from_realtime(maybe_requesting_user, requesting_user_groups);
     let app = mows_auth_core::AppView {
         id: context_app.id.0,
         trusted: context_app.trusted,
@@ -51,21 +52,26 @@ pub async fn check_resources_access_control(
     .await?)
 }
 
-/// Boundary: chat's user representation → engine's `Subject`.
+/// Boundary: realtime's user representation → engine's `Subject`.
 ///
-/// `groups` is always empty in chat v1 — the user_groups schema
-/// lands in Round 4. Until then, UserGroup-subject policies are
-/// schematically representable but inert (the engine's WHERE
-/// `subject_id = ANY(groups)` matches nothing).
+/// `groups` is supplied by the auth middleware, which resolves the
+/// caller's `user_user_group_members` rows once per request and
+/// hands the result in via `AuthenticationInformation`. Phase 6
+/// Round 7 wired this on; before then the field was always empty
+/// and UserGroup-subject policies were inert.
 ///
-/// `is_super_admin` is always false for now; chat doesn't ship a
-/// super-admin role until the cluster-wide identity story crystalises.
-pub fn subject_from_chat(user: Option<&User>) -> mows_auth_core::Subject {
+/// `is_super_admin` is always false for now; realtime doesn't ship
+/// a super-admin role until the cluster-wide identity story
+/// crystalises.
+pub fn subject_from_realtime(
+    user: Option<&User>,
+    groups: &[uuid::Uuid],
+) -> mows_auth_core::Subject {
     match user {
         None => mows_auth_core::Subject::Anonymous,
         Some(u) => mows_auth_core::Subject::User {
             user_id: u.id.0,
-            groups: vec![],
+            groups: groups.to_vec(),
             is_super_admin: false,
         },
     }
@@ -143,7 +149,37 @@ mod tests {
 
     #[test]
     fn anonymous_subject_for_no_user() {
-        let s = subject_from_chat(None);
+        let s = subject_from_realtime(None, &[]);
         matches!(s, mows_auth_core::Subject::Anonymous);
+    }
+
+    #[test]
+    fn user_subject_carries_groups() {
+        // Phase 6 Round 7 regression: when the middleware resolves a
+        // caller's group memberships, they flow through into the
+        // engine's Subject so UserGroup-subject policies match.
+        use crate::models::users::UserId;
+        let now = chrono::Utc::now().naive_utc();
+        let u = User {
+            id: UserId(uuid::Uuid::from_u128(0xA)),
+            external_user_id: None,
+            display_name: "alice".to_string(),
+            created_time: now,
+            modified_time: now,
+            deleted: false,
+            user_type: 0,
+            idp_id: uuid::Uuid::from_u128(0xB),
+        };
+        let g1 = uuid::Uuid::from_u128(0xC);
+        let g2 = uuid::Uuid::from_u128(0xD);
+        let s = subject_from_realtime(Some(&u), &[g1, g2]);
+        match s {
+            mows_auth_core::Subject::User { user_id, groups, is_super_admin } => {
+                assert_eq!(user_id, uuid::Uuid::from_u128(0xA));
+                assert_eq!(groups, vec![g1, g2]);
+                assert!(!is_super_admin);
+            }
+            _ => panic!("expected Subject::User"),
+        }
     }
 }

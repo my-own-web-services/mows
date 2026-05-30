@@ -103,6 +103,7 @@ pub async fn publish_event(
     check_resources_access_control(
         &state.database,
         Some(author),
+        &auth.requesting_user_groups,
         &auth.context_app,
         AccessPolicyResourceType::Channel,
         Some(&[channel_id]),

@@ -199,12 +199,23 @@ task board lives in [`.plans/realtime-service/`](../realtime-service/).
      received → demo path-traversal 404. SQL-only test suite for
      channel visibility (mirrors filez's pgTAP tests) is **❌
      remaining work** for full Round 6 close-out.
-- ❌ Round 7 — cross-service E2E (share a channel with a
-     user-group; every member sees it via list). Requires adding
-     user_groups + user_user_group_members + cover tables to the
-     realtime-server schema, wiring `ChatPolicyStore` to honor
-     group membership, and a SQL test asserting parity with
-     filez's group-share behaviour.
+- ✅ Round 7 — cross-service E2E (share a channel with a
+     user-group; every member sees it via list). Landed the
+     minimal schema slice (migration 00000000000002 adds
+     `user_groups` + `user_user_group_members`); the auth
+     middleware resolves caller memberships once per request and
+     hands them to `mows_auth_core::Subject::User.groups` so
+     `RealtimePolicyStore` matches `UserGroup`-subject policies
+     against the resolved set. End-to-end regression in
+     `tests/end_to_end.rs` proves both directions: Bob (member of
+     team-a) sees a group-shared channel via `/api/channels/list`;
+     Carol (non-member) does not; the direct
+     `check_resources_access_control` call mirrors the verdict.
+     Group-lifecycle UX (invite / leave / request-to-join) +
+     cover-tables stay deferred — realtime-server has no
+     group-management surface yet and the engine validates without
+     them. Engine now validated against two consumers under
+     group-share.
 
 ## Phase 7 — Manager-UI surface
 

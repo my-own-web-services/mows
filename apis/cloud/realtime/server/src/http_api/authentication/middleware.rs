@@ -46,12 +46,19 @@ pub const REALTIME_USER_HEADER: &str = "x-realtime-user-id";
 #[derive(Clone, Debug)]
 pub struct AuthenticationInformation {
     /// `None` for anonymous requests; `Some(...)` after the header
-    /// or token resolves to a chat-side `User` row.
+    /// or token resolves to a realtime-side `User` row.
     pub requesting_user: Option<User>,
-    /// The configured chat MowsApp. Acts as the
+    /// Group memberships of `requesting_user`, resolved once per
+    /// request and passed to `mows_auth_core::Subject::User.groups`
+    /// so the engine can match `UserGroup`-subject policies. Empty
+    /// for anonymous requests and for users in no groups. Phase 6
+    /// Round 7 wired this on; before then the field was always
+    /// `vec![]` and group-share policies were inert.
+    pub requesting_user_groups: Vec<Uuid>,
+    /// The configured realtime MowsApp. Acts as the
     /// `context_app_ids` filter for `mows-auth-core`'s
-    /// `check_access` — every request is "as the chat app" since
-    /// chat is a single-app service today.
+    /// `check_access` — every request is "as the realtime app"
+    /// since realtime is a single-app service today.
     pub context_app: MowsApp,
 }
 
@@ -120,8 +127,31 @@ pub async fn authentication_middleware(
         }
     };
 
+    // Resolve group memberships once per request so handlers don't
+    // need a database round-trip for every `check_resources_access_control`
+    // they call. Skipped for anonymous; an authenticated user with
+    // no group memberships gets an empty Vec (and engine treats
+    // UserGroup-subject policies as non-matching).
+    let requesting_user_groups: Vec<Uuid> = match &requesting_user {
+        None => Vec::new(),
+        Some(user) => {
+            let mut connection = state
+                .database
+                .get_connection()
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            schema::user_user_group_members::table
+                .filter(schema::user_user_group_members::user_id.eq(user.id))
+                .select(schema::user_user_group_members::user_group_id)
+                .load::<Uuid>(&mut connection)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        }
+    };
+
     let auth = AuthenticationInformation {
         requesting_user,
+        requesting_user_groups,
         context_app: state.context_app.clone(),
     };
     request.extensions_mut().insert(auth);

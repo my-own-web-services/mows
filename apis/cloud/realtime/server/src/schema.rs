@@ -70,6 +70,27 @@ diesel::table! {
 diesel::joinable!(access_policies -> users (owner_id));
 
 diesel::table! {
+    user_groups (id) {
+        id -> Uuid,
+        owner_id -> Uuid,
+        name -> Text,
+        created_time -> Timestamp,
+        modified_time -> Timestamp,
+    }
+}
+diesel::joinable!(user_groups -> users (owner_id));
+
+diesel::table! {
+    user_user_group_members (user_id, user_group_id) {
+        user_id -> Uuid,
+        user_group_id -> Uuid,
+        joined_at -> Timestamp,
+    }
+}
+diesel::joinable!(user_user_group_members -> user_groups (user_group_id));
+diesel::joinable!(user_user_group_members -> users (user_id));
+
+diesel::table! {
     channels (id) {
         id -> Uuid,
         owner_id -> Uuid,
@@ -99,6 +120,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     users,
     apps,
     access_policies,
+    user_groups,
+    user_user_group_members,
     channels,
     channel_events,
 );
