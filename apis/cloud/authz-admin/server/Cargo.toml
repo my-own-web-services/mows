@@ -1,0 +1,36 @@
+[package]
+name = "authz-admin-server"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "authz-admin-server"
+path = "src/main.rs"
+
+[[bin]]
+name = "openapi_dump"
+path = "src/build/openapi_dump.rs"
+
+[lib]
+name = "authz_admin_server_lib"
+path = "src/lib.rs"
+
+[dependencies]
+serde = { workspace = true, features = ["default", "derive"] }
+serde_json = { workspace = true, features = ["default"] }
+utoipa = { workspace = true, features = ["chrono", "uuid", "openapi_extensions"] }
+utoipa-axum = { workspace = true }
+utoipa-swagger-ui = { workspace = true, features = ["axum", "debug-embed", "vendored"] }
+axum = { workspace = true, features = ["default", "macros", "json"] }
+mows-common-rust = { workspace = true, features = ["default"] }
+mows-auth-core = { workspace = true }
+tokio = { workspace = true, features = ["default", "macros", "rt-multi-thread", "sync"] }
+thiserror = { workspace = true, features = ["default"] }
+anyhow = { workspace = true, features = ["default"] }
+tracing = { workspace = true, features = ["default"] }
+tracing-subscriber = { workspace = true, features = ["env-filter", "chrono"] }
+tower-http = { workspace = true, features = ["cors", "fs", "trace", "compression-full", "decompression-full"] }
+uuid = { workspace = true, features = ["v4", "v7", "serde"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+futures = { workspace = true }

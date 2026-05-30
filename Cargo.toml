@@ -11,6 +11,7 @@ members = [
     "apis/cloud/filez/apps/backend/metadata",
     "apis/cloud/filez/clients/rust",
     "apis/cloud/realtime/server",
+    "apis/cloud/authz-admin/server",
 
 ]
 exclude = [
