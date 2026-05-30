@@ -10,7 +10,7 @@ use mows_auth_core::ResourceTypeRegistry;
 
 use super::{AccessPolicyAction, AccessPolicyResourceType};
 use crate::{
-    database::Database, errors::ChatError, models::apps::MowsApp, models::users::FilezUser,
+    database::Database, errors::ChatError, models::apps::MowsApp, models::users::ChatUser,
 };
 
 pub use mows_auth_core::AuthResult;
@@ -18,7 +18,7 @@ pub use mows_auth_core::AuthResult;
 #[tracing::instrument(skip(database), level = "trace")]
 pub async fn check_resources_access_control(
     database: &Database,
-    maybe_requesting_user: Option<&FilezUser>,
+    maybe_requesting_user: Option<&ChatUser>,
     context_app: &MowsApp,
     resource_type: AccessPolicyResourceType,
     maybe_requested_resource_ids: Option<&[uuid::Uuid]>,
@@ -26,7 +26,12 @@ pub async fn check_resources_access_control(
 ) -> Result<AuthResult, ChatError> {
     let resource_auth_info = engine_resource_registry()
         .lookup(resource_type as u32)
-        .expect("resource type registered in engine registry");
+        .ok_or_else(|| {
+            ChatError::AuthCoreError(mows_auth_core::AuthError::Evaluation(format!(
+                "resource_type {} not in chat registry — bootstrap miswire?",
+                resource_type as u32
+            )))
+        })?;
 
     let subject = subject_from_chat(maybe_requesting_user);
     let app = mows_auth_core::AppView {
@@ -55,7 +60,7 @@ pub async fn check_resources_access_control(
 ///
 /// `is_super_admin` is always false for now; chat doesn't ship a
 /// super-admin role until the cluster-wide identity story crystalises.
-pub fn subject_from_chat(user: Option<&FilezUser>) -> mows_auth_core::Subject {
+pub fn subject_from_chat(user: Option<&ChatUser>) -> mows_auth_core::Subject {
     match user {
         None => mows_auth_core::Subject::Anonymous,
         Some(u) => mows_auth_core::Subject::User {

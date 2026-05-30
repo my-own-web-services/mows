@@ -63,9 +63,10 @@ for WebSocket subscribers is **in-process only** for v1.
 3. The handler extracts `AuthenticationInformation` + the typed
    request body.
 4. The handler calls
-   `AccessPolicy::check(&database, &auth, ResourceType::Channel,
-   resource_ids, action).await?.verify()?` — the `verify()` call
-   returns `Err(FilezError::AuthDenied)` on deny.
+   `check_resources_access_control(&database, &auth.requesting_user,
+   &auth.context_app, ResourceType::Channel, resource_ids,
+   action).await?.verify()?` — the `verify()` call returns
+   `Err(ChatError::AuthEvaluationAccessDenied)` on deny.
 5. The handler performs the domain action (insert / select).
 6. The handler writes an `audit_log` row when the action is
    security-relevant (create / delete / share / explicit deny).

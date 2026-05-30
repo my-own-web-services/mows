@@ -76,7 +76,7 @@ fn action_from_u32(v: u32) -> Option<AccessPolicyAction> {
 /// `Subject` is allowed to "see" as matching against itself.
 /// Mirrors filez's `filter_subject_access_policies!` macro,
 /// inlined because chat's `Subject` carries the user_id + groups
-/// directly (no FilezUser indirection).
+/// directly (no ChatUser indirection).
 ///
 /// `Anonymous` → only `Public` policies.
 /// `User { user_id, groups, .. }` → Public + ServerMember + this
@@ -173,9 +173,15 @@ impl<'a> PolicyStore for ChatPolicyStore<'a> {
         resource_ids: &[Uuid],
     ) -> Result<Vec<PolicyView>, AuthError> {
         let resource_type_enum = AccessPolicyResourceType::from_u32(auth_info.resource_type)
-            .expect("resource_type registered");
-        let action_enum =
-            action_from_u32(action).expect("AccessPolicyAction value out of range");
+            .ok_or_else(|| {
+                AuthError::Evaluation(format!(
+                    "resource_type {} not registered in chat",
+                    auth_info.resource_type
+                ))
+            })?;
+        let action_enum = action_from_u32(action).ok_or_else(|| {
+            AuthError::Evaluation(format!("AccessPolicyAction {action} not registered in chat"))
+        })?;
         let app_id = MowsAppId(app.id);
         let mut connection = self
             .database
@@ -231,9 +237,15 @@ impl<'a> PolicyStore for ChatPolicyStore<'a> {
         action: u32,
     ) -> Result<Vec<PolicyView>, AuthError> {
         let resource_type_enum = AccessPolicyResourceType::from_u32(auth_info.resource_type)
-            .expect("resource_type registered");
-        let action_enum =
-            action_from_u32(action).expect("AccessPolicyAction value out of range");
+            .ok_or_else(|| {
+                AuthError::Evaluation(format!(
+                    "resource_type {} not registered in chat",
+                    auth_info.resource_type
+                ))
+            })?;
+        let action_enum = action_from_u32(action).ok_or_else(|| {
+            AuthError::Evaluation(format!("AccessPolicyAction {action} not registered in chat"))
+        })?;
         let app_id = MowsAppId(app.id);
         let mut connection = self
             .database
@@ -266,9 +278,15 @@ impl<'a> PolicyStore for ChatPolicyStore<'a> {
         action: u32,
     ) -> Result<Vec<(Uuid, Effect)>, AuthError> {
         let resource_type_enum = AccessPolicyResourceType::from_u32(auth_info.resource_type)
-            .expect("resource_type registered");
-        let action_enum =
-            action_from_u32(action).expect("AccessPolicyAction value out of range");
+            .ok_or_else(|| {
+                AuthError::Evaluation(format!(
+                    "resource_type {} not registered in chat",
+                    auth_info.resource_type
+                ))
+            })?;
+        let action_enum = action_from_u32(action).ok_or_else(|| {
+            AuthError::Evaluation(format!("AccessPolicyAction {action} not registered in chat"))
+        })?;
         let app_id = MowsAppId(app.id);
         let mut connection = self
             .database

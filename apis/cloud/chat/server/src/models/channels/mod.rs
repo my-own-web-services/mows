@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 
 use crate::{
     database::Database, errors::ChatError, impl_typed_uuid,
-    models::users::FilezUserId, schema, utils::get_current_timestamp,
+    models::users::ChatUserId, schema, utils::get_current_timestamp,
 };
 
 impl_typed_uuid!(ChannelId);
@@ -19,7 +19,7 @@ impl_typed_uuid!(ChannelId);
 #[diesel(check_for_backend(Pg))]
 pub struct Channel {
     pub id: ChannelId,
-    pub owner_id: FilezUserId,
+    pub owner_id: ChatUserId,
     pub name: String,
     pub topic: Option<String>,
     pub created_time: chrono::NaiveDateTime,
@@ -27,7 +27,7 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new(owner_id: FilezUserId, name: impl Into<String>, topic: Option<String>) -> Self {
+    pub fn new(owner_id: ChatUserId, name: impl Into<String>, topic: Option<String>) -> Self {
         let now = get_current_timestamp();
         Self {
             id: ChannelId::new(),

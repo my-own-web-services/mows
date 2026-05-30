@@ -5,6 +5,7 @@ pub mod errors;
 pub mod http_api;
 pub mod macros;
 pub mod models;
+pub mod realtime;
 pub mod schema;
 pub mod state;
 pub mod types;

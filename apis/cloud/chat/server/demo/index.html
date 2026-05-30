@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>chat-server demo</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+        }
+        body {
+            max-width: 920px;
+            margin: 1.5rem auto;
+            padding: 0 1rem;
+            line-height: 1.45;
+        }
+        header { display: flex; gap: 1rem; align-items: baseline; }
+        h1 { font-size: 1.25rem; margin: 0; }
+        nav { display: flex; gap: .5rem; flex-wrap: wrap; }
+        button, input, select {
+            font: inherit;
+            padding: .35rem .6rem;
+            border: 1px solid #888;
+            border-radius: .25rem;
+            background: transparent;
+            color: inherit;
+        }
+        button { cursor: pointer; }
+        button:hover { background: rgba(127, 127, 127, .15); }
+        .pane {
+            border: 1px solid #888;
+            border-radius: .5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+        .messages {
+            max-height: 320px;
+            overflow-y: auto;
+            border: 1px solid #888;
+            border-radius: .25rem;
+            padding: .5rem;
+            font-family: ui-monospace, monospace;
+            font-size: .85rem;
+        }
+        .message { padding: .25rem 0; border-bottom: 1px dashed #ccc; }
+        .message:last-child { border-bottom: none; }
+        .channel-row { display: flex; gap: .5rem; align-items: center; padding: .25rem 0; }
+        .channel-row strong { flex: 1; }
+        .live-dot {
+            display: inline-block;
+            width: .5rem;
+            height: .5rem;
+            border-radius: 50%;
+            background: #999;
+            margin-right: .25rem;
+        }
+        .live-dot.on { background: #2bbd3a; }
+        .log {
+            font-size: .8rem;
+            opacity: .7;
+            white-space: pre-wrap;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        small { opacity: .7; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>chat-server demo</h1>
+        <small>second consumer of mows-auth-core — Phase 6 demo client</small>
+    </header>
+
+    <section class="pane">
+        <h2>1. Identity</h2>
+        <div class="row">
+            <button id="seed-btn">Seed Alice + Bob</button>
+            <span id="seed-status"></span>
+        </div>
+        <div class="row" style="margin-top: .5rem;">
+            <label>Acting as:
+                <select id="acting-user">
+                    <option value="">(anonymous)</option>
+                </select>
+            </label>
+            <span><span id="live-dot" class="live-dot"></span><small>WS</small></span>
+        </div>
+    </section>
+
+    <section class="pane">
+        <h2>2. Channels</h2>
+        <div class="row">
+            <input id="new-channel-name" placeholder="channel name">
+            <input id="new-channel-topic" placeholder="topic (optional)">
+            <button id="create-channel">Create</button>
+            <button id="reload-channels">Reload list</button>
+        </div>
+        <div id="channel-list" style="margin-top: .75rem;"></div>
+    </section>
+
+    <section class="pane" id="channel-pane" hidden>
+        <h2>3. Channel: <span id="active-channel-name"></span></h2>
+        <div class="row">
+            <small>id: <code id="active-channel-id"></code></small>
+            <button id="leave-channel">Close</button>
+        </div>
+        <div class="row" style="margin-top: .5rem;">
+            <label>Share with user:
+                <select id="share-user"></select>
+            </label>
+            <label>Actions:
+                <select id="share-actions" multiple size="2">
+                    <option value="ChannelsRead" selected>ChannelsRead</option>
+                    <option value="ChannelsPost" selected>ChannelsPost</option>
+                </select>
+            </label>
+            <button id="share-btn">Grant</button>
+        </div>
+        <div id="messages" class="messages" style="margin-top: .75rem;"></div>
+        <div class="row" style="margin-top: .5rem;">
+            <input id="new-message" placeholder="type a message" style="flex: 1;">
+            <button id="send-message">Send</button>
+        </div>
+    </section>
+
+    <section class="pane">
+        <h2>Activity log</h2>
+        <div id="log" class="log"></div>
+    </section>
+
+    <script type="module" src="./chat.js"></script>
+</body>
+</html>

@@ -50,6 +50,7 @@ tower-http = { workspace = true, features = [
     "cors",
     "compression-full",
     "decompression-full",
+    "fs",
     "trace",
 ] }
 tower = { workspace = true }
@@ -82,6 +83,11 @@ async-trait = { workspace = true }
 futures = { workspace = true, features = ["default"] }
 futures-util = { workspace = true, features = ["default"] }
 openidconnect = { workspace = true, features = ["default"] }
+
+[dev-dependencies]
+reqwest = { workspace = true, default-features = false, features = ["json", "rustls-tls"] }
+tokio-tungstenite = { workspace = true, features = ["connect"] }
+url = { workspace = true }
 
 [lints]
 workspace = true

@@ -36,7 +36,7 @@ use crate::{
     database::Database,
     errors::ChatError,
     impl_typed_uuid,
-    models::{apps::MowsAppId, users::FilezUserId},
+    models::{apps::MowsAppId, users::ChatUserId},
     schema,
     utils::{get_current_timestamp, InvalidEnumType},
 };
@@ -134,7 +134,7 @@ pub enum AccessPolicyAction {
 #[diesel(table_name = schema::access_policies)]
 pub struct AccessPolicy {
     pub id: AccessPolicyId,
-    pub owner_id: FilezUserId,
+    pub owner_id: ChatUserId,
     pub name: String,
     pub created_time: chrono::NaiveDateTime,
     pub modified_time: chrono::NaiveDateTime,
@@ -155,7 +155,7 @@ impl AccessPolicy {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: &str,
-        owner_id: FilezUserId,
+        owner_id: ChatUserId,
         subject_type: SubjectType,
         subject_id: Uuid,
         context_app_ids: Vec<MowsAppId>,
@@ -184,12 +184,12 @@ impl AccessPolicy {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(database))]
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(level = "trace", skip(database))]
     pub async fn create_one(
         database: &Database,
         name: &str,
-        owner_id: FilezUserId,
+        owner_id: ChatUserId,
         subject_type: SubjectType,
         subject_id: Uuid,
         context_app_ids: Vec<MowsAppId>,
@@ -216,5 +216,53 @@ impl AccessPolicy {
             .get_result::<AccessPolicy>(&mut connection)
             .await?;
         Ok(created)
+    }
+}
+
+#[cfg(test)]
+mod wire_stability_guard {
+    //! Discriminants on `AccessPolicyResourceType` and
+    //! `AccessPolicyAction` are SMALLINT-backed and part of the
+    //! durable on-disk shape of every `access_policies` row.
+    //! Renumbering or removing a variant silently corrupts every
+    //! stored policy. Pin the exact values so a careless refactor
+    //! trips here before it ships. Review A11 / QA-3.
+    use super::*;
+
+    #[test]
+    fn resource_type_discriminants_are_stable() {
+        assert_eq!(AccessPolicyResourceType::Channel as i16, 0);
+        assert_eq!(AccessPolicyResourceType::User as i16, 1);
+        assert_eq!(AccessPolicyResourceType::AccessPolicy as i16, 2);
+        assert_eq!(AccessPolicyResourceType::MowsApp as i16, 3);
+    }
+
+    #[test]
+    fn action_discriminants_are_stable() {
+        assert_eq!(AccessPolicyAction::ChannelsCreate as i16, 100);
+        assert_eq!(AccessPolicyAction::ChannelsGet as i16, 110);
+        assert_eq!(AccessPolicyAction::ChannelsUpdate as i16, 120);
+        assert_eq!(AccessPolicyAction::ChannelsDelete as i16, 130);
+        assert_eq!(AccessPolicyAction::ChannelsList as i16, 140);
+        assert_eq!(AccessPolicyAction::ChannelsRead as i16, 150);
+        assert_eq!(AccessPolicyAction::ChannelsPost as i16, 160);
+        assert_eq!(AccessPolicyAction::AccessPoliciesCreate as i16, 200);
+        assert_eq!(AccessPolicyAction::AccessPoliciesGet as i16, 210);
+        assert_eq!(AccessPolicyAction::AccessPoliciesUpdate as i16, 220);
+        assert_eq!(AccessPolicyAction::AccessPoliciesDelete as i16, 230);
+        assert_eq!(AccessPolicyAction::AccessPoliciesList as i16, 240);
+    }
+
+    #[test]
+    fn resource_type_from_u32_round_trip_covers_every_variant() {
+        for rt in [
+            AccessPolicyResourceType::Channel,
+            AccessPolicyResourceType::User,
+            AccessPolicyResourceType::AccessPolicy,
+            AccessPolicyResourceType::MowsApp,
+        ] {
+            assert_eq!(AccessPolicyResourceType::from_u32(rt as u32), Some(rt));
+        }
+        assert_eq!(AccessPolicyResourceType::from_u32(99), None);
     }
 }

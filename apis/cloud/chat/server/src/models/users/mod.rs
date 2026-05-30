@@ -18,7 +18,7 @@ use uuid::Uuid;
 
 use crate::{impl_typed_uuid, schema};
 
-impl_typed_uuid!(FilezUserId);
+impl_typed_uuid!(ChatUserId);
 
 /// All-zero sentinel — engine convention (see filez migration
 /// 00010). Used as the `owner_id` placeholder on system-initiated
@@ -28,8 +28,8 @@ pub const NOBODY_USER_ID: Uuid = Uuid::nil();
 #[derive(Serialize, Deserialize, Queryable, Selectable, Insertable, ToSchema, Clone, Debug)]
 #[diesel(table_name = schema::users)]
 #[diesel(check_for_backend(Pg))]
-pub struct FilezUser {
-    pub id: FilezUserId,
+pub struct ChatUser {
+    pub id: ChatUserId,
     pub external_user_id: Option<String>,
     pub display_name: String,
     pub created_time: chrono::NaiveDateTime,

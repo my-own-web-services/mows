@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 
 use crate::{
     database::Database, errors::ChatError, impl_typed_uuid,
-    models::{channels::ChannelId, users::FilezUserId},
+    models::{channels::ChannelId, users::ChatUserId},
     schema,
     utils::get_current_timestamp,
 };
@@ -20,13 +20,13 @@ impl_typed_uuid!(ChannelMessageId);
 pub struct ChannelMessage {
     pub id: ChannelMessageId,
     pub channel_id: ChannelId,
-    pub author_id: FilezUserId,
+    pub author_id: ChatUserId,
     pub body: String,
     pub sent_at: chrono::NaiveDateTime,
 }
 
 impl ChannelMessage {
-    pub fn new(channel_id: ChannelId, author_id: FilezUserId, body: impl Into<String>) -> Self {
+    pub fn new(channel_id: ChannelId, author_id: ChatUserId, body: impl Into<String>) -> Self {
         Self {
             id: ChannelMessageId::new(),
             channel_id,
