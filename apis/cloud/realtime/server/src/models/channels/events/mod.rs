@@ -26,6 +26,13 @@ use crate::{
 
 impl_typed_uuid!(ChannelEventId);
 
+/// Max length of an `event_kind` tag, in bytes. Enforced by both
+/// `publish_event` (rejecting publishes) and `list_events`
+/// (rejecting filters) so callers can always filter by every tag
+/// they could ever have published. Lives here so the two handlers
+/// can't drift. (review C3)
+pub const MAX_EVENT_KIND_LEN: usize = 64;
+
 #[derive(Serialize, Deserialize, Queryable, Selectable, Insertable, ToSchema, Clone, Debug)]
 #[diesel(table_name = schema::channel_events)]
 #[diesel(check_for_backend(Pg))]

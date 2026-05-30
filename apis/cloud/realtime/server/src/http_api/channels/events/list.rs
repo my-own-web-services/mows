@@ -14,7 +14,10 @@ use crate::{
             check::check_resources_access_control, AccessPolicyAction,
             AccessPolicyResourceType,
         },
-        channels::{events::ChannelEvent, ChannelId},
+        channels::{
+            events::{ChannelEvent, MAX_EVENT_KIND_LEN},
+            ChannelId,
+        },
     },
     state::AppState,
     types::{ApiResponse, ApiResponseStatus},
@@ -22,9 +25,6 @@ use crate::{
 
 const DEFAULT_LIMIT: i64 = 50;
 const MAX_LIMIT: i64 = 500;
-/// Mirrors the cap on `publish` so callers can filter by every
-/// valid tag they could ever have published (review B8 / SEC-1).
-const MAX_EVENT_KIND_LEN: usize = 64;
 
 #[derive(Deserialize, IntoParams, Debug, Default)]
 pub struct ListEventsQuery {

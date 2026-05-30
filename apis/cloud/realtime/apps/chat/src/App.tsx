@@ -56,9 +56,15 @@ export default function App() {
                     setKnownUsers(
                         e.newValue ? (JSON.parse(e.newValue) as KnownUser[]) : []
                     );
-                } catch {
-                    // Corrupt JSON in the foreign tab — ignore the
-                    // event rather than crash this tab's identity.
+                } catch (parseErr) {
+                    // Corrupt JSON in the foreign tab — keep this
+                    // tab's identity intact, but surface the
+                    // corruption so a developer can diagnose how
+                    // the bad value got written. (review C7)
+                    console.warn(
+                        "[chat] dropped cross-tab known-users update with unparseable JSON",
+                        { raw: e.newValue, parseErr }
+                    );
                 }
             } else if (e.key === null) {
                 // localStorage.clear() in another tab — reset both.

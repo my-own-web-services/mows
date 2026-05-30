@@ -188,6 +188,92 @@ async fn end_to_end_demo_flow() {
     assert_eq!(frame_json["event"]["payload"]["body"], "hello realtime");
     assert_eq!(frame_json["event"]["author_id"], bob);
 
+    // 7b. Input-validation regression suite (review C5). Alice
+    // is the channel owner so all of these come back as 400, not
+    // 403 — we're pinning the input contracts, not authz.
+
+    // B8: oversize event_kind (filter) is rejected.
+    let kind_too_long = "k".repeat(65);
+    let oversize_filter = client
+        .get(format!(
+            "{base}/api/channels/{channel_id}/events?event_kind={kind_too_long}"
+        ))
+        .header("x-realtime-user-id", &alice)
+        .send()
+        .await
+        .expect("list events oversize filter");
+    assert_eq!(
+        oversize_filter.status().as_u16(),
+        400,
+        "list_events should reject event_kind > 64 chars",
+    );
+
+    // B8: empty event_kind (filter) is rejected.
+    let empty_filter = client
+        .get(format!("{base}/api/channels/{channel_id}/events?event_kind="))
+        .header("x-realtime-user-id", &alice)
+        .send()
+        .await
+        .expect("list events empty filter");
+    assert_eq!(
+        empty_filter.status().as_u16(),
+        400,
+        "list_events should reject empty event_kind",
+    );
+
+    // B8: oversize event_kind on publish is rejected.
+    let publish_kind_too_long = client
+        .post(format!("{base}/api/channels/{channel_id}/events/publish"))
+        .header("x-realtime-user-id", &alice)
+        .json(&json!({
+            "event_kind": kind_too_long,
+            "payload": {"body": "hi"},
+        }))
+        .send()
+        .await
+        .expect("publish oversize kind");
+    assert_eq!(
+        publish_kind_too_long.status().as_u16(),
+        400,
+        "publish should reject event_kind > 64 chars",
+    );
+
+    // B9: payload above the 64 KB cap is rejected.
+    let huge_body = "x".repeat(65 * 1024);
+    let huge_publish = client
+        .post(format!("{base}/api/channels/{channel_id}/events/publish"))
+        .header("x-realtime-user-id", &alice)
+        .json(&json!({
+            "event_kind": "chat.message",
+            "payload": {"body": huge_body},
+        }))
+        .send()
+        .await
+        .expect("publish huge");
+    assert_eq!(
+        huge_publish.status().as_u16(),
+        400,
+        "publish should reject payloads > 64 KB",
+    );
+
+    // B9: JSON null payload is rejected — an event with nothing
+    // in it is almost always a caller bug we want surfaced.
+    let null_publish = client
+        .post(format!("{base}/api/channels/{channel_id}/events/publish"))
+        .header("x-realtime-user-id", &alice)
+        .json(&json!({
+            "event_kind": "chat.message",
+            "payload": serde_json::Value::Null,
+        }))
+        .send()
+        .await
+        .expect("publish null");
+    assert_eq!(
+        null_publish.status().as_u16(),
+        400,
+        "publish should reject JSON null payload",
+    );
+
     // 8. Revoke the policy — Bob loses access. Proves the
     //    lifecycle filter (`revoked = false`) is wired through
     //    list_visible + check + the engine fold. Review A12 /

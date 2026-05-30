@@ -33,10 +33,10 @@ const CHAT_EVENT_KIND = "chat.message";
 /// Postgres + reachable via REST when older messages are needed.
 const MAX_RENDERED_EVENTS = 500;
 
-/** De-duplicate events by id while preserving order. Newer
- * occurrences of the same id win (a re-broadcast after a `lagged`
- * frame may carry updated server-side state). Capped at
- * MAX_RENDERED_EVENTS. (review B6) */
+/** De-duplicate events by id, sort chronologically, and cap at
+ * MAX_RENDERED_EVENTS. Newer occurrences of the same id win
+ * (a re-broadcast after a `lagged` frame may carry updated
+ * server-side state). (review B6 + C1) */
 function mergeEvents(
     current: ChannelEvent[],
     incoming: ChannelEvent[]
@@ -44,7 +44,18 @@ function mergeEvents(
     const map = new Map<string, ChannelEvent>();
     for (const ev of current) map.set(ev.id, ev);
     for (const ev of incoming) map.set(ev.id, ev);
-    const out = Array.from(map.values());
+    // Sort by sent_at: a lagged-triggered reload can bring in older
+    // events that were missed live, and pure insertion order would
+    // append them after the newer live events that already sit in
+    // `current`. ISO-8601 timestamps sort lexicographically, but
+    // we use Date for clarity + tie-break by id for stability when
+    // the server emits two events in the same millisecond.
+    const out = Array.from(map.values()).sort((a, b) => {
+        const ta = Date.parse(a.sent_at);
+        const tb = Date.parse(b.sent_at);
+        if (ta !== tb) return ta - tb;
+        return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
     return out.length > MAX_RENDERED_EVENTS
         ? out.slice(out.length - MAX_RENDERED_EVENTS)
         : out;

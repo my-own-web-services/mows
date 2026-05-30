@@ -15,7 +15,10 @@ use crate::{
             check::check_resources_access_control, AccessPolicyAction,
             AccessPolicyResourceType,
         },
-        channels::{events::ChannelEvent, ChannelId},
+        channels::{
+            events::{ChannelEvent, MAX_EVENT_KIND_LEN},
+            ChannelId,
+        },
     },
     state::AppState,
     types::{ApiResponse, ApiResponseStatus},
@@ -26,11 +29,6 @@ use crate::{
 /// tight enough that no single publish can exhaust the broadcast
 /// channel's 256-event buffer with one massive event.
 const MAX_PAYLOAD_BYTES: usize = 64 * 1024;
-
-/// Tag length cap. Event-kind tags are typically short
-/// (`"chat.message"`, `"webrtc.offer"`); 64 chars covers every
-/// realistic case without inviting abuse.
-const MAX_EVENT_KIND_LEN: usize = 64;
 
 #[derive(Deserialize, ToSchema, Debug)]
 pub struct PublishEventRequest {
@@ -154,12 +152,14 @@ fn approx_json_size(v: &serde_json::Value) -> usize {
         }
     }
     let mut counter = Counter(0);
-    // Errors here are unreachable for `Value` (no IO failures from
-    // a memory counter); if they happen the counter just stays at
-    // its last value, which is a fail-open in the conservative
-    // direction (returns "smaller than reality" → caller might
-    // accept a slightly-too-big payload; axum's body cap is the
-    // real backstop).
+    // `serde_json::to_writer` only fails when the underlying writer
+    // returns an io::Error. Our `Counter` impl always returns Ok,
+    // so this call is infallible in practice for any `serde_json::Value`.
+    // If a future code path ever did return an error here, the
+    // counter would simply under-report and let a slightly-too-large
+    // payload through — axum's request-body cap (set at the layer
+    // above) is the final defence. We don't propagate the error
+    // because there's no realistic failure mode to act on. (review C4)
     let _ = serde_json::to_writer(&mut counter, v);
     counter.0
 }

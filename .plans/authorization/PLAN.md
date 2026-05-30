@@ -152,38 +152,59 @@ unstarted. Cross-reference per-phase multi-reviews in
 
 ## Phase 6 — Second consumer
 
-Service decision: **new `chat-server`** (realtime messaging) instead
-of Pektin / manager. Both candidates required a multi-week
-infrastructure shift to land Postgres before any auth wiring could
-start (Pektin is Redis-only, manager is in-memory). A clean-slate
-chat service is the fastest path to "engine validated against two
-consumers" + ships with the right shape (per-resource ownership,
-per-resource read/write actions, group-shared resources). Full
-design + multi-round task board lives in
-[`.plans/chat-service/`](../chat-service/).
+Service decision: **new `realtime-server`** (general per-channel
+event API; chat is one app on top) instead of Pektin / manager.
+Both candidates required a multi-week infrastructure shift to land
+Postgres before any auth wiring could start (Pektin is Redis-only,
+manager is in-memory). A clean-slate realtime service is the
+fastest path to "engine validated against two consumers" + ships
+with the right shape (per-resource ownership, per-resource
+read/write actions, group-shared resources). The original
+`chat-server` design was generalized to `realtime-server` after
+Round 5 once the use-case set widened to cover WebRTC signaling,
+presence, and arbitrary event-kind fanout. Full design + multi-round
+task board lives in [`.plans/realtime-service/`](../realtime-service/).
 
-- ✅ Pick service — chat (see `.plans/chat-service/IDEA.md`)
+- ✅ Pick service — realtime (see `.plans/realtime-service/IDEA.md`)
 - ✅ Round 1 scaffolding (`Cargo.toml` + workspace registration +
      bootstrap modules + initial migration + boot-then-health
      verified against the dev DB)
-- ✅ Round 2 — engine schema + registration (`chat-server` ships
+- ✅ Round 2 — engine schema + registration (`realtime-server` ships
      its own consolidated `access_policies` migration; user_groups
-     / audit_log / cover-tables deferred to Round 4 to keep the
+     / audit_log / cover-tables deferred to Round 7 to keep the
      MVP slice tight). `ChatPolicyStore` impl of all 5
      `mows_auth_core::PolicyStore` methods landed in the same
      round; ResourceTypeRegistry with `Channel = 0` and 3 other
      types boot-validated. Duplication finding tracked in
-     `.plans/chat-service/IDEA.md` as the trigger for extracting
+     `.plans/realtime-service/IDEA.md` as the trigger for extracting
      `EngineBackedPolicyStore` into the engine when a third
      consumer arrives.
-- ❌ Round 4 — REST handlers wired through `AccessPolicy::check`
-     + `list_visible`
-- ❌ Round 5 — WebSocket `/api/channels/{id}/live` with
-     in-process `tokio::broadcast` fanout
-- ❌ Round 6 — SQL test suite (channel visibility + post
-     authorization) + Rust WS round-trip test
+- ✅ Round 4 — REST handlers wired through `check_resources_access_control`
+     + `list_visible_resource_ids` (channels::create/get/list/update/
+     delete + channels::events::publish/list + policies::create/list/
+     delete + dev::seed). Every handler that touches a Channel calls
+     into mows-auth-core; no auth SQL is hand-rolled in realtime-server.
+     Two-pane demo client at `/demo/` + standalone React app at
+     `apps/chat/` both exercise the surface.
+- ✅ Round 5 — WebSocket `/api/channels/{id}/live` with in-process
+     `tokio::broadcast` fanout. Explicit `Ready` handshake frame
+     eliminates the subscribe-vs-publish race; `Lagged` frame
+     reports per-subscriber drops; payload reshape (Round 7-prep)
+     generalised messages → `channel_events` with opaque JSONB +
+     optional `event_kind` so chat / WebRTC signaling / presence
+     all ride the same primitive.
+- ✅ Round 6 — Rust end-to-end test (`tests/end_to_end.rs::end_to_end_demo_flow`)
+     covers: seed → create channel → publish chat event → REST list
+     → WS subscribe → Ready handshake → publish via WS → frame
+     received → demo path-traversal 404. SQL-only test suite for
+     channel visibility (mirrors filez's pgTAP tests) is **❌
+     remaining work** for full Round 6 close-out.
 - ❌ Round 7 — cross-service E2E (share a channel with a
-     user-group; every member sees it via list)
+     user-group; every member sees it via list). Requires adding
+     user_groups + user_user_group_members + cover tables to the
+     realtime-server schema, wiring `ChatPolicyStore` to honor
+     group membership, and a SQL test asserting parity with
+     filez's group-share behaviour.
 
 ## Phase 7 — Manager-UI surface
 
