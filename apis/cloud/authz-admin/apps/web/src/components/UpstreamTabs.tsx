@@ -5,9 +5,12 @@ import { Label } from "@my-own-web-services/react-components/components/ui/label
 import {
     api,
     authReasonLabel,
+    unwrapByResource,
     unwrapEvaluations,
     type AuthEvaluation,
     type AuthReason,
+    type ByResourcePolicy,
+    type ByResourceUpstreamBody,
     type UpstreamStatus,
 } from "../lib/api";
 import { cn } from "../lib/cn";
@@ -18,13 +21,28 @@ import { cn } from "../lib/cn";
  * frontend doesn't bake in upstream schema knowledge. */
 const UPSTREAM_DEFAULTS: Record<string, { resource_type: string; action: string }> = {
     realtime: { resource_type: "Channel", action: "ChannelsList" },
-    filez: { resource_type: "File", action: "FilesGet" },
+    filez: { resource_type: "File", action: "FilezFilesGet" },
+};
+
+/** Per-upstream defaults for the "Who can see X?" panel. Same
+ * resource_type vocabulary as explain (no `action` because
+ * by_resource enumerates *all* policies pinning the resource,
+ * not a per-action verdict). */
+const BY_RESOURCE_DEFAULTS: Record<string, { resource_type: string }> = {
+    realtime: { resource_type: "Channel" },
+    filez: { resource_type: "File" },
 };
 
 const DEV_HEADER_PER_UPSTREAM: Record<string, string | undefined> = {
     realtime: "x-realtime-user-id",
     filez: "x-filez-user-id",
 };
+
+/** Sentinel value the engine uses as the `subject_id` for the
+ * `Public` / `ServerMember` subject types. Surfacing the literal
+ * nil UUID to the operator is noisy; renderers replace it with the
+ * subject-type keyword. Review R13. */
+const NIL_UUID = "00000000-0000-0000-0000-000000000000";
 
 interface UpstreamTabsProps {
     /** Resolved upstreams from `/api/upstreams`. */
@@ -80,11 +98,18 @@ export default function UpstreamTabs({ upstreams, actingUser }: UpstreamTabsProp
                 ))}
             </div>
             {active && (
-                <ExplainPanel
-                    key={active}
-                    upstream={active}
-                    actingUser={actingUser}
-                />
+                <div className="flex flex-col gap-6">
+                    <ExplainPanel
+                        key={`explain:${active}`}
+                        upstream={active}
+                        actingUser={actingUser}
+                    />
+                    <ByResourcePanel
+                        key={`by-resource:${active}`}
+                        upstream={active}
+                        actingUser={actingUser}
+                    />
+                </div>
             )}
         </div>
     );
@@ -252,4 +277,199 @@ function ReasonDetail({ reason }: { reason: AuthReason }) {
                 .join(" · ")}
         </span>
     );
+}
+
+interface ByResourcePanelProps {
+    readonly upstream: string;
+    readonly actingUser: string;
+}
+
+/** "Who can see X?" panel — given a resource_id, lists every
+ * non-revoked, non-expired policy pinning access to it plus the
+ * resource's owner. Backed by the upstream's
+ * /api/access_policies/by_resource (the inverse of /explain).
+ *
+ * Upstream collapses "doesn't exist" and "exists but not yours"
+ * into one 403, so the operator sees the same response whether
+ * they typo'd or aren't the owner — a deliberate trade-off to
+ * defeat UUID-fingerprinting. The UI reflects that via the
+ * upstream_status line. */
+function ByResourcePanel({ upstream, actingUser }: ByResourcePanelProps) {
+    const defaults = BY_RESOURCE_DEFAULTS[upstream] ?? { resource_type: "" };
+    const [resourceType, setResourceType] = useState(defaults.resource_type);
+    const [resourceId, setResourceId] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [upstreamStatus, setUpstreamStatus] = useState<number | null>(null);
+    const [payload, setPayload] = useState<ByResourceUpstreamBody | null>(null);
+
+    const run = async () => {
+        if (!actingUser.trim()) {
+            setError("Set acting user UUID above before asking who can see X.");
+            return;
+        }
+        if (!resourceId.trim()) {
+            setError("resource_id is required.");
+            return;
+        }
+        setLoading(true);
+        setError(null);
+        try {
+            const devHeader = DEV_HEADER_PER_UPSTREAM[upstream];
+            const headers: Array<[string, string]> = devHeader
+                ? [[devHeader, actingUser.trim()]]
+                : [];
+            const res = await api.byResource(
+                {
+                    upstream,
+                    resource_type: resourceType,
+                    resource_id: resourceId.trim(),
+                },
+                headers
+            );
+            setUpstreamStatus(res.upstream_status);
+            setPayload(unwrapByResource(res.upstream_body));
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-4 rounded-md border border-border bg-card p-4">
+            <div className="flex flex-col gap-1">
+                <h2 className="text-sm font-medium">Who can see X?</h2>
+                <p className="text-xs text-muted-foreground">
+                    Lists every policy pinning access to one resource.
+                    The upstream refuses to disclose anything unless you
+                    own the resource — non-existence and non-ownership
+                    return the same 403 so a non-owner can't enumerate
+                    which ids exist.
+                </p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr_auto] sm:items-end">
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor={`${upstream}-bres-rt`}>resource_type</Label>
+                    <Input
+                        id={`${upstream}-bres-rt`}
+                        value={resourceType}
+                        onChange={(e) => setResourceType(e.target.value)}
+                        placeholder={defaults.resource_type}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <Label htmlFor={`${upstream}-bres-id`}>resource_id</Label>
+                    <Input
+                        id={`${upstream}-bres-id`}
+                        value={resourceId}
+                        onChange={(e) => setResourceId(e.target.value)}
+                        placeholder="00000000-0000-0000-0000-000000000000"
+                    />
+                </div>
+                <Button onClick={() => void run()} disabled={loading}>
+                    {loading ? "running…" : "who can see X?"}
+                </Button>
+            </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            {upstreamStatus !== null && upstreamStatus !== 200 && (
+                <p className="text-xs text-destructive">
+                    upstream returned HTTP {upstreamStatus} — the request
+                    was rejected (often "no such resource OR you're not
+                    the owner", deliberately indistinguishable to defeat
+                    UUID-fingerprinting).
+                </p>
+            )}
+            {upstreamStatus === 200 && payload !== null && (
+                <p className="text-xs text-muted-foreground">
+                    owner{" "}
+                    <span className="font-mono">
+                        {payload.resource_owner_id ?? "<none>"}
+                    </span>
+                    {" · "}
+                    {payload.policies.length} polic
+                    {payload.policies.length === 1 ? "y" : "ies"}
+                </p>
+            )}
+
+            <PoliciesTable payload={payload} />
+        </div>
+    );
+}
+
+function PoliciesTable({ payload }: { payload: ByResourceUpstreamBody | null }) {
+    if (payload === null) {
+        return (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+                No data yet — enter a resource id and run the query.
+            </p>
+        );
+    }
+    if (payload.policies.length === 0) {
+        return (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+                Owner is the only one with access — no policies pin this
+                resource.
+            </p>
+        );
+    }
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                        <th className="px-2 py-2">policy_id</th>
+                        <th className="px-2 py-2">effect</th>
+                        <th className="px-2 py-2">subject_type</th>
+                        <th className="px-2 py-2">subject_id</th>
+                        <th className="px-2 py-2">actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {payload.policies.map((p) => (
+                        <tr key={p.id} className="border-b border-border/50">
+                            <td className="px-2 py-2 font-mono text-xs">
+                                {p.id.slice(0, 8)}…
+                            </td>
+                            <td className="px-2 py-2">
+                                <span
+                                    className={cn(
+                                        "inline-flex h-2 w-2 rounded-full",
+                                        p.effect === "Allow"
+                                            ? "bg-green-500"
+                                            : "bg-destructive"
+                                    )}
+                                />
+                                <span className="ml-2 text-xs">{p.effect}</span>
+                            </td>
+                            <td className="px-2 py-2">{p.subject_type}</td>
+                            <td className="px-2 py-2 font-mono text-xs">
+                                {formatSubjectId(p)}
+                            </td>
+                            <td className="px-2 py-2 text-xs">
+                                {(p.actions ?? []).join(", ") || (
+                                    <em className="text-muted-foreground">all</em>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+/** `Public` and `ServerMember` carry the nil UUID as a sentinel
+ * subject_id — surfacing that nil to the operator is pointless
+ * and misleading. Render the sentinel as the subject_type
+ * keyword instead. */
+function formatSubjectId(p: ByResourcePolicy): string {
+    if (p.subject_id === NIL_UUID) {
+        return p.subject_type === "Public" || p.subject_type === "ServerMember"
+            ? `<${p.subject_type.toLowerCase()}>`
+            : NIL_UUID;
+    }
+    return `${p.subject_id.slice(0, 8)}…`;
 }

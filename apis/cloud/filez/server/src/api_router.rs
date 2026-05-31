@@ -122,6 +122,9 @@ pub fn build_api_router() -> OpenApiRouter<ServerState> {
             http_api::access_policies::explain::explain_access
         ))
         .routes(routes!(
+            http_api::access_policies::by_resource::by_resource
+        ))
+        .routes(routes!(
             http_api::access_policies::create::create_access_policy
         ))
         .routes(routes!(http_api::access_policies::get::get_access_policy))

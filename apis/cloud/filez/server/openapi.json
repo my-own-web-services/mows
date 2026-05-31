@@ -9,6 +9,50 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/access_policies/by_resource": {
+      "post": {
+        "description": "Returns every policy pinning access to one resource, plus the resource's owner. Sibling of realtime-server's endpoint; both emit the same shape so the authz-admin BFF stays translator-free. Caller must own the resource; non-existence and non-ownership are collapsed into one 403.",
+        "operationId": "by_resource",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ByResourceRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Owner + policies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ByResourceResponseBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Anonymous request"
+          },
+          "403": {
+            "description": "Resource does not exist OR caller is not its owner — deliberately indistinguishable"
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/access_policies/check": {
       "post": {
         "description": "Check if the user has access to the requested resources",
@@ -3591,6 +3635,43 @@
           }
         ]
       },
+      "ApiResponse_ByResourceResponseBody": {
+        "type": "object",
+        "required": [
+          "message",
+          "status"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "policies"
+            ],
+            "properties": {
+              "policies": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AccessPolicy"
+                }
+              },
+              "resource_owner_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "`Some(user_id)` for resources with an owner column (File,\nFileGroup); reserved as `None` for future owner-less\nresource types that may reach this surface. Matches the\nrealtime sibling's nullability contract verbatim (review\nR15) — both ship `Some` today, both ship `None` only when\nan owner-less type lands."
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
       "ApiResponse_CheckResourceAccessResponseBody": {
         "type": "object",
         "required": [
@@ -5504,6 +5585,45 @@
           }
         ],
         "description": "Why `check_access` returned the answer it did. One variant per\ndistinguishable code path — services can switch on this for audit\nlog enrichment and for \"why was I denied?\" UI."
+      },
+      "ByResourceRequestBody": {
+        "type": "object",
+        "description": "Wire shape matches realtime-server's by_resource endpoint exactly\n(`resource_type` / `resource_id` / `resource_owner_id` /\n`policies`) so the cross-service admin BFF\n(`apis/cloud/authz-admin/`) doesn't need to translate between\nconsumers. Drift here forces a per-upstream adapter back into\nthe BFF and surfaces as silent empty panels — the same class of\nbug the /explain wire_shape_guard tests pin.",
+        "required": [
+          "resource_type",
+          "resource_id"
+        ],
+        "properties": {
+          "resource_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resource_type": {
+            "$ref": "#/components/schemas/AccessPolicyResourceType"
+          }
+        }
+      },
+      "ByResourceResponseBody": {
+        "type": "object",
+        "required": [
+          "policies"
+        ],
+        "properties": {
+          "policies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessPolicy"
+            }
+          },
+          "resource_owner_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "`Some(user_id)` for resources with an owner column (File,\nFileGroup); reserved as `None` for future owner-less\nresource types that may reach this surface. Matches the\nrealtime sibling's nullability contract verbatim (review\nR15) — both ship `Some` today, both ship `None` only when\nan owner-less type lands."
+          }
+        }
       },
       "CheckResourceAccessRequestBody": {
         "type": "object",

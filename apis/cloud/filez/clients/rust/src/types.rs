@@ -126,6 +126,14 @@ pub enum ApiResponseStatus {
     Error(String),
 }
 
+// ApiResponse_ByResourceResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiResponseByResourceResponseBody {
+    pub data: ByResourceResponseBody,
+    pub message: String,
+    pub status: ApiResponseStatus,
+}
+
 // ApiResponse_CheckResourceAccessResponseBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponseCheckResourceAccessResponseBody {
@@ -640,6 +648,33 @@ pub enum AuthReason {
     /// returning the same HTTP status to the outside world (see
     /// `OPEN_QUESTIONS.md` Q14).
     ResourceNotFound,
+}
+
+// ByResourceRequestBody
+/// Wire shape matches realtime-server's by_resource endpoint exactly
+/// (`resource_type` / `resource_id` / `resource_owner_id` /
+/// `policies`) so the cross-service admin BFF
+/// (`apis/cloud/authz-admin/`) doesn't need to translate between
+/// consumers. Drift here forces a per-upstream adapter back into
+/// the BFF and surfaces as silent empty panels — the same class of
+/// bug the /explain wire_shape_guard tests pin.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ByResourceRequestBody {
+    pub resource_id: Uuid,
+    pub resource_type: AccessPolicyResourceType,
+}
+
+// ByResourceResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ByResourceResponseBody {
+    pub policies: Vec<AccessPolicy>,
+    /// `Some(user_id)` for resources with an owner column (File,
+    /// FileGroup); reserved as `None` for future owner-less
+    /// resource types that may reach this surface. Matches the
+    /// realtime sibling's nullability contract verbatim (review
+    /// R15) — both ship `Some` today, both ship `None` only when
+    /// an owner-less type lands.
+    pub resource_owner_id: Option<Uuid>,
 }
 
 // CheckResourceAccessRequestBody

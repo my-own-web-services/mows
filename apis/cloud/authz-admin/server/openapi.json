@@ -9,6 +9,43 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/access_policies/by_resource": {
+      "post": {
+        "description": "Forward a 'who can see X?' query to a single upstream consumer and return its response verbatim. Frontend fans out by calling this once per upstream tab in parallel.",
+        "operationId": "forward_by_resource",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ByResourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ByResourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown upstream / oversize body / missing-field request"
+          },
+          "401": {
+            "description": "Missing identity header (Authorization or x-realtime-user-id or x-filez-user-id)"
+          },
+          "502": {
+            "description": "Upstream request failed"
+          }
+        }
+      }
+    },
     "/api/access_policies/explain": {
       "post": {
         "description": "Forward an explain query to a single upstream consumer and return its response verbatim. Frontend fans out by calling this once per upstream in parallel.",
@@ -107,6 +144,45 @@
         ],
         "description": "Matches realtime-server's wire shape: `Success` serialises to\nthe bare string `\"Success\"`; `Error(\"...\")` serialises to\n`{\"Error\": \"...\"}`. Keeping the shape identical means the\n`@my-own-web-services/react-components` envelope parser\ndoesn't need a per-service branch."
       },
+      "ApiResponse_ByResourceResponse": {
+        "type": "object",
+        "description": "Standard envelope shared across MOWS services. authz-admin uses\nthe same shape as realtime / filez so frontend code that lives\nin `@my-own-web-services/react-components` can keep one parser.",
+        "required": [
+          "status",
+          "message"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "upstream",
+              "upstream_status",
+              "upstream_body"
+            ],
+            "properties": {
+              "upstream": {
+                "type": "string"
+              },
+              "upstream_body": {
+                "$ref": "#/components/schemas/Value",
+                "description": "Verbatim JSON the upstream returned. Shape:\n`{status, message, data: {resource_owner_id, policies}}`\nfor 200; the upstream's error envelope otherwise."
+              },
+              "upstream_status": {
+                "type": "integer",
+                "format": "int32",
+                "description": "HTTP status the upstream returned. Surfaced so the frontend\ncan distinguish 200 (owner sees policies) / 403 (not the\nowner, or no such resource — deliberately collapsed by the\nupstreams) / 401 (no identity) without re-parsing the\nupstream envelope.",
+                "minimum": 0
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
       "ApiResponse_ExplainResponse": {
         "type": "object",
         "description": "Standard envelope shared across MOWS services. authz-admin uses\nthe same shape as realtime / filez so frontend code that lives\nin `@my-own-web-services/react-components` can keep one parser.",
@@ -128,7 +204,7 @@
               },
               "upstream_body": {
                 "$ref": "#/components/schemas/Value",
-                "description": "Verbatim JSON the upstream returned. Shape varies by\nupstream (realtime returns `{evaluations}`, filez returns\n`{auth_evaluations}`); the frontend handles the per-key\nbranch."
+                "description": "Verbatim JSON the upstream returned. After review-1 R4\nboth realtime + filez emit `{ data: { evaluations: [...] } }`\nin the response, so the frontend just walks the envelope.\nA stale upstream that still uses the old `auth_evaluations`\nname will surface as the SPA's empty-state placeholder —\nthe wire_shape_guard unit tests in each upstream pin the\ncanonical name to catch drift before deploy."
               },
               "upstream_status": {
                 "type": "integer",
@@ -203,6 +279,52 @@
           }
         }
       },
+      "ByResourceRequest": {
+        "type": "object",
+        "required": [
+          "upstream",
+          "resource_type",
+          "resource_id"
+        ],
+        "properties": {
+          "resource_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The id of the resource to inspect. Deserialized as a `Uuid`\nso an invalid input (e.g. \"not-a-uuid\") becomes a clean BFF\n400 with a typed message instead of a 500 from the upstream's\nparse error. Review R9."
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "Upstream-specific resource type identifier — passed through\nto the upstream's `/api/access_policies/by_resource`\nverbatim. Realtime accepts `\"Channel\"` etc., filez accepts\n`\"File\"` / `\"FileGroup\"`."
+          },
+          "upstream": {
+            "type": "string",
+            "description": "Which upstream to forward to. Must match a `key` from\n`/api/upstreams` (`\"realtime\"`, `\"filez\"`)."
+          }
+        }
+      },
+      "ByResourceResponse": {
+        "type": "object",
+        "required": [
+          "upstream",
+          "upstream_status",
+          "upstream_body"
+        ],
+        "properties": {
+          "upstream": {
+            "type": "string"
+          },
+          "upstream_body": {
+            "$ref": "#/components/schemas/Value",
+            "description": "Verbatim JSON the upstream returned. Shape:\n`{status, message, data: {resource_owner_id, policies}}`\nfor 200; the upstream's error envelope otherwise."
+          },
+          "upstream_status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "HTTP status the upstream returned. Surfaced so the frontend\ncan distinguish 200 (owner sees policies) / 403 (not the\nowner, or no such resource — deliberately collapsed by the\nupstreams) / 401 (no identity) without re-parsing the\nupstream envelope.",
+            "minimum": 0
+          }
+        }
+      },
       "ExplainRequest": {
         "type": "object",
         "required": [
@@ -238,7 +360,7 @@
           },
           "upstream_body": {
             "$ref": "#/components/schemas/Value",
-            "description": "Verbatim JSON the upstream returned. Shape varies by\nupstream (realtime returns `{evaluations}`, filez returns\n`{auth_evaluations}`); the frontend handles the per-key\nbranch."
+            "description": "Verbatim JSON the upstream returned. After review-1 R4\nboth realtime + filez emit `{ data: { evaluations: [...] } }`\nin the response, so the frontend just walks the envelope.\nA stale upstream that still uses the old `auth_evaluations`\nname will surface as the SPA's empty-state placeholder —\nthe wire_shape_guard unit tests in each upstream pin the\ncanonical name to catch drift before deploy."
           },
           "upstream_status": {
             "type": "integer",

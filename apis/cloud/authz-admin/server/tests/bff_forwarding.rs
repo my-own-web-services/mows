@@ -340,6 +340,299 @@ async fn explain_rejects_missing_required_field() {
     );
 }
 
+// ---------------------------------------------------------------
+// by_resource — Phase 7 "Who can see X?" forwarder. Same shape as
+// the explain tests; deliberately verbose rather than parameterised
+// so each test name documents one contract that ships.
+// ---------------------------------------------------------------
+
+async fn mock_by_resource(
+    State(state): State<MockState>,
+    headers: axum::http::HeaderMap,
+    axum::Json(_body): axum::Json<Value>,
+) -> axum::Json<Value> {
+    let uid = headers
+        .get("x-realtime-user-id")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+    *state.last_user_header.lock().await = uid.clone();
+    axum::Json(json!({
+        "status": "Success",
+        "message": "mocked by_resource",
+        "data": {
+            "resource_owner_id": "a11ce000-0000-0000-0000-000000000001",
+            "policies": [
+                {
+                    "id": "00000000-0000-0000-0000-000000000099",
+                    "subject_type": "User",
+                    "subject_id": "b0b00000-0000-0000-0000-000000000002",
+                    "effect": "Allow",
+                    "actions": ["ChannelsRead"]
+                }
+            ]
+        }
+    }))
+}
+
+async fn spawn_mock_with_by_resource() -> (SocketAddr, MockState) {
+    let state = MockState::default();
+    let router = Router::new()
+        .route("/api/health", get(mock_health))
+        .route("/api/access_policies/explain", post(mock_explain))
+        .route("/api/access_policies/by_resource", post(mock_by_resource))
+        .with_state(state.clone());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind mock");
+    let addr = listener.local_addr().expect("local_addr");
+    tokio::spawn(async move {
+        axum::serve(listener, router).await.expect("mock serve");
+    });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    (addr, state)
+}
+
+#[tokio::test]
+async fn by_resource_forwards_identity_header_and_returns_policies() {
+    let (mock_addr, mock_state) = spawn_mock_with_by_resource().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "resource_type": "Channel",
+            "resource_id": "00000000-0000-0000-0000-000000000042",
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 200);
+    let body: Value = resp.json().await.expect("json");
+
+    assert_eq!(body["data"]["upstream"], "realtime");
+    assert_eq!(body["data"]["upstream_status"], 200);
+    // Wire shape — the SPA reads exactly these keys.
+    let upstream_data = &body["data"]["upstream_body"]["data"];
+    assert_eq!(
+        upstream_data["resource_owner_id"],
+        "a11ce000-0000-0000-0000-000000000001",
+    );
+    let policies = upstream_data["policies"]
+        .as_array()
+        .expect("policies array");
+    assert_eq!(policies.len(), 1);
+    assert_eq!(policies[0]["subject_type"], "User");
+
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert_eq!(seen.as_deref(), Some("a11ce000-0000-0000-0000-000000000001"));
+}
+
+#[tokio::test]
+async fn by_resource_rejects_anonymous_caller_with_401() {
+    let (mock_addr, mock_state) = spawn_mock_with_by_resource().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
+        .json(&json!({
+            "upstream": "realtime",
+            "resource_type": "Channel",
+            "resource_id": "00000000-0000-0000-0000-000000000042",
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 401);
+
+    // Same anti-fingerprinting check as explain: the upstream must
+    // not have been touched at all on an anonymous request.
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert!(
+        seen.is_none(),
+        "BFF must not call upstream on anonymous by_resource; mock saw: {seen:?}",
+    );
+}
+
+#[tokio::test]
+async fn by_resource_rejects_unknown_upstream_with_typed_error() {
+    let (mock_addr, _) = spawn_mock_with_by_resource().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
+        .header("x-realtime-user-id", "00000000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "ghost",
+            "resource_type": "Channel",
+            "resource_id": "00000000-0000-0000-0000-000000000042",
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 400);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["status"]["Error"], "BadRequest");
+    assert!(
+        body["message"].as_str().unwrap_or("").contains("ghost"),
+        "error message should name the offending upstream key, got: {body:?}",
+    );
+}
+
+#[tokio::test]
+async fn by_resource_surfaces_upstream_403_under_upstream_status() {
+    // Upstream returns 403 (the canonical "no such resource OR not
+    // your resource" collapse). BFF itself must reply 200 with the
+    // 403 surfaced via upstream_status so the SPA can render
+    // "the upstream said 403" rather than misreporting "no
+    // policies".
+    let mock_state = MockState::default();
+    let router = Router::new()
+        .route("/api/health", get(mock_health))
+        .route(
+            "/api/access_policies/by_resource",
+            post(|axum::Json(_): axum::Json<Value>| async {
+                (
+                    axum::http::StatusCode::FORBIDDEN,
+                    axum::Json(json!({
+                        "status": {"Error": "Forbidden"},
+                        "message": "no such resource, or caller is not its owner",
+                        "data": null
+                    })),
+                )
+            }),
+        )
+        .with_state(mock_state);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mock_addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "resource_type": "Channel",
+            "resource_id": "00000000-0000-0000-0000-000000000042",
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 200);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["data"]["upstream_status"], 403);
+    assert!(
+        body["data"]["upstream_body"]["message"]
+            .as_str()
+            .unwrap_or("")
+            .contains("no such resource"),
+        "the BFF must surface the upstream's 403 envelope verbatim, got: {body:?}",
+    );
+}
+
+#[tokio::test]
+async fn by_resource_rejects_invalid_uuid_with_400() {
+    // Review R9 — BFF parses resource_id as Uuid, so a non-UUID
+    // input fails at deserialization (clean 400) instead of being
+    // forwarded as a String and 500-ing on the upstream's parse.
+    let (mock_addr, mock_state) = spawn_mock_with_by_resource().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "resource_type": "Channel",
+            "resource_id": "not-a-uuid",
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 400);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["status"]["Error"], "BadRequest");
+    assert!(
+        body["message"].as_str().unwrap_or("").contains("body parse"),
+        "expected a body-parse failure naming the bad uuid, got: {body:?}",
+    );
+    // Critical: the upstream must NOT have been touched. A malformed
+    // request is rejected at the BFF without burning an upstream
+    // call.
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert!(
+        seen.is_none(),
+        "BFF must not call upstream when resource_id parsing fails; mock saw: {seen:?}",
+    );
+}
+
+#[tokio::test]
+async fn by_resource_rejects_oversize_body() {
+    // Review R2 / QA-1 — the shared `read_bounded_body` 16 KB cap
+    // must also fire on the by_resource path. Sibling of
+    // `explain_rejects_oversize_body`; we keep both even though the
+    // forwarder code is shared, because a future refactor that
+    // moves body-reading into per-endpoint layers would otherwise
+    // regress by_resource silently.
+    let (mock_addr, _) = spawn_mock_with_by_resource().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let huge_resource_type = "x".repeat(64 * 1024); // 64 KB > 16 KB cap
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "resource_type": huge_resource_type,
+            "resource_id": "00000000-0000-0000-0000-000000000042",
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 400);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["status"]["Error"], "BadRequest");
+    assert!(
+        body["message"].as_str().unwrap_or("").contains("body read"),
+        "expected a body-read error, got: {body:?}",
+    );
+}
+
+#[tokio::test]
+async fn by_resource_rejects_missing_required_field() {
+    let (mock_addr, _) = spawn_mock_with_by_resource().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        // Omits `resource_id`.
+        .json(&json!({
+            "upstream": "realtime",
+            "resource_type": "Channel",
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 400);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["status"]["Error"], "BadRequest");
+    assert!(
+        body["message"].as_str().unwrap_or("").contains("body parse"),
+        "error should be a body-parse failure, got: {body:?}",
+    );
+}
+
 /// review-3 R11 / QA-4 (c): the inbound body cap should fire on
 /// payloads above `MAX_BODY_BYTES` (16 KB today). A request
 /// shaped like a tiny JSON object but with megabytes of padding

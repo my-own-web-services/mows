@@ -252,14 +252,29 @@ that calls each consumer's `/api/access_policies/*` surface.
 - ❌ Per-resource share dialog (generic primitive that fans out
      to the right consumer; the chat app's ShareDialog is
      channel-only and lives in apis/cloud/realtime/apps/chat)
-- ⏸ "What can I see?" diagnostic panel — landed via the explain
+- ✅ "What can I see?" diagnostic panel — landed via the explain
      endpoint + per-upstream tab in `c620fae5`; renders allow/deny
      + AuthReason variant + policy_id + via_user_group_id
-     breadcrumb. The **inverse** "Who can see X?" question
-     (given a resource id, list every subject with access) is
-     ❌ — needs a new
-     `POST /api/access_policies/by_resource` per consumer that
-     returns the policies pinned to that resource.
+     breadcrumb.
+- ✅ "Who can see X?" diagnostic panel — landed via the
+     `POST /api/access_policies/by_resource` endpoint on both
+     realtime + filez (shared `{resource_type, resource_id}` ->
+     `{resource_owner_id, policies}` wire shape) + a single-upstream
+     forwarder on the authz-admin BFF + a `ByResourcePanel` in the
+     SPA below the existing explain table. Owner-only gate
+     (existence + ownership collapsed into one 403 to defeat UUID
+     fingerprinting), `revoked` + expiration filter mirrors the
+     engine, ownership-check + policy-fetch wrapped in one
+     diesel-async transaction so the OwnedByOwner filter sees a
+     consistent snapshot. 15 BFF integration tests (incl. 6 new
+     for by_resource: happy path, anonymous-401, unknown-upstream,
+     upstream-403 surfacing, missing-field, oversize body,
+     invalid-uuid 400), realtime e2e regression covers happy path,
+     non-owner forbidden, anonymous, bogus-id 403 collapse,
+     revoked-policy-filtered, owner-shortcut-not-as-row negative
+     assertion. Multi-review round 1 dispositions in
+     `.plans/authorization/phase7-by-resource-review/issue.md`
+     (16 findings — all actionable items addressed, 7 deferred).
 - ❌ User-group directory (Phase 4 frontend ships building blocks;
      host-app routing/mounting is Phase 7)
 - ❌ App revocation panel

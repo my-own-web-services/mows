@@ -320,6 +320,24 @@ export type ApiResponseStatus =
       Error: string;
     };
 
+export interface ApiResponseByResourceResponseBody {
+  data?: {
+    policies: AccessPolicy[];
+    /**
+     * `Some(user_id)` for resources with an owner column (File,
+     * FileGroup); reserved as `None` for future owner-less
+     * resource types that may reach this surface. Matches the
+     * realtime sibling's nullability contract verbatim (review
+     * R15) — both ship `Some` today, both ship `None` only when
+     * an owner-less type lands.
+     * @format uuid
+     */
+    resource_owner_id?: string | null;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseCheckResourceAccessResponseBody {
   data?: {
     auth_evaluations: AuthEvaluation[];
@@ -934,6 +952,35 @@ export type AuthReason =
     }
   | "NoMatchingAllowPolicy"
   | "ResourceNotFound";
+
+/**
+ * Wire shape matches realtime-server's by_resource endpoint exactly
+ * (`resource_type` / `resource_id` / `resource_owner_id` /
+ * `policies`) so the cross-service admin BFF
+ * (`apis/cloud/authz-admin/`) doesn't need to translate between
+ * consumers. Drift here forces a per-upstream adapter back into
+ * the BFF and surfaces as silent empty panels — the same class of
+ * bug the /explain wire_shape_guard tests pin.
+ */
+export interface ByResourceRequestBody {
+  /** @format uuid */
+  resource_id: string;
+  resource_type: AccessPolicyResourceType;
+}
+
+export interface ByResourceResponseBody {
+  policies: AccessPolicy[];
+  /**
+   * `Some(user_id)` for resources with an owner column (File,
+   * FileGroup); reserved as `None` for future owner-less
+   * resource types that may reach this surface. Matches the
+   * realtime sibling's nullability contract verbatim (review
+   * R15) — both ship `Some` today, both ship `None` only when
+   * an owner-less type lands.
+   * @format uuid
+   */
+  resource_owner_id?: string | null;
+}
 
 export interface CheckResourceAccessRequestBody {
   access_policy_action: AccessPolicyAction;
@@ -2510,6 +2557,25 @@ export class Api<
   SecurityDataType extends unknown,
 > extends HttpClient<SecurityDataType> {
   api = {
+    /**
+     * @description Returns every policy pinning access to one resource, plus the resource's owner. Sibling of realtime-server's endpoint; both emit the same shape so the authz-admin BFF stays translator-free. Caller must own the resource; non-existence and non-ownership are collapsed into one 403.
+     *
+     * @name ByResource
+     * @request POST:/api/access_policies/by_resource
+     */
+    byResource: (data: ByResourceRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseByResourceResponseBody,
+        void | ApiResponseEmptyApiResponse
+      >({
+        path: `/api/access_policies/by_resource`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
     /**
      * @description Check if the user has access to the requested resources
      *

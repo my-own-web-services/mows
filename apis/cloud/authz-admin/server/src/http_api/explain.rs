@@ -14,22 +14,18 @@
 //! unchanged so the explain answer reflects the *caller's* view,
 //! not the BFF's.
 
-use axum::body::to_bytes;
 use axum::extract::{Request, State};
-use axum::http::{HeaderMap, HeaderValue};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use utoipa::ToSchema;
 
 use crate::errors::AuthzAdminError;
+use crate::http_api::forwarder::{
+    build_forwarding_headers, read_bounded_body, require_identity_header,
+};
 use crate::state::AppState;
 use crate::types::{ApiResponse, ApiResponseStatus};
-
-/// Maximum body size we accept on the inbound side. The explain
-/// payload is small (resource_type + action + upstream key); a
-/// caller sending megabytes is misbehaving.
-const MAX_BODY_BYTES: usize = 16 * 1024;
 
 #[derive(Deserialize, ToSchema, Debug)]
 pub struct ExplainRequest {
@@ -51,10 +47,13 @@ pub struct ExplainResponse {
     /// so the frontend can distinguish 200 / 403 / 5xx without
     /// re-parsing the upstream envelope.
     pub upstream_status: u16,
-    /// Verbatim JSON the upstream returned. Shape varies by
-    /// upstream (realtime returns `{evaluations}`, filez returns
-    /// `{auth_evaluations}`); the frontend handles the per-key
-    /// branch.
+    /// Verbatim JSON the upstream returned. After review-1 R4
+    /// both realtime + filez emit `{ data: { evaluations: [...] } }`
+    /// in the response, so the frontend just walks the envelope.
+    /// A stale upstream that still uses the old `auth_evaluations`
+    /// name will surface as the SPA's empty-state placeholder —
+    /// the wire_shape_guard unit tests in each upstream pin the
+    /// canonical name to catch drift before deploy.
     pub upstream_body: JsonValue,
 }
 
@@ -78,9 +77,7 @@ pub async fn forward_explain(
     // we pull the body out manually and parse it ourselves; the
     // headers extractor wants the request before extraction.
     let (parts, body) = request.into_parts();
-    let bytes = to_bytes(body, MAX_BODY_BYTES)
-        .await
-        .map_err(|e| AuthzAdminError::BadRequest(format!("body read: {e}")))?;
+    let bytes = read_bounded_body(body).await?;
     let req: ExplainRequest = serde_json::from_slice(&bytes)
         .map_err(|e| AuthzAdminError::BadRequest(format!("body parse: {e}")))?;
 
@@ -96,50 +93,11 @@ pub async fn forward_explain(
             ))
         })?;
 
-    // R2 — require at least one identity-bearing header before
-    // we forward anything. The upstream services accept anonymous
-    // requests (Subject::Anonymous → only Public policies match);
-    // letting the BFF surface that result without an identity
-    // assertion turns it into an anonymous fingerprinting probe.
-    // The acceptable headers are exactly the ones the BFF
-    // forwards downstream — `Authorization` for production
-    // Bearer flow, `x-{realtime,filez}-user-id` for dev. (SEC-2)
-    let identity_present = ["authorization", "x-realtime-user-id", "x-filez-user-id"]
-        .iter()
-        .any(|n| parts.headers.contains_key(*n));
-    if !identity_present {
-        return Err(AuthzAdminError::Unauthorized(
-            "explain requires at least one identity header: Authorization \
-             (production Bearer token) or x-realtime-user-id / \
-             x-filez-user-id (dev). The BFF refuses to forward anonymous \
-             explain requests so it can't be used as a fingerprinting \
-             probe — see review-3 R2 / SEC-2."
-                .to_string(),
-        ));
-    }
-
-    // Whitelist identity-header passthrough. Specifically NOT
-    // passthrough-all — that would forward BFF-internal headers
-    // (traefik routing cookies, ingress request-id metadata,
-    // session cookies if any are ever set) to upstreams as if
-    // the caller had supplied them. The risk is concrete:
-    // a misconfigured ingress that injects a `cookie:
-    // _admin_session=...` header would otherwise be auth'd as
-    // that admin against the upstream. (SLOP-9 / SEC review)
-    let mut fwd_headers = HeaderMap::new();
-    for name in [
-        "authorization",
-        "x-realtime-user-id",
-        "x-filez-user-id",
-    ] {
-        if let Some(v) = parts.headers.get(name) {
-            fwd_headers.insert(name, v.clone());
-        }
-    }
-    fwd_headers.insert(
-        "content-type",
-        HeaderValue::from_static("application/json"),
-    );
+    // SEC-2 / review-1 R2 — refuse anonymous; build the whitelisted
+    // header passthrough. See `http_api::forwarder` for the
+    // rationale. Identical guard sits in front of by_resource.
+    require_identity_header(&parts.headers)?;
+    let fwd_headers = build_forwarding_headers(&parts.headers);
 
     // After review-3 R4 both upstream explain endpoints agree on
     // the wire shape (`{resource_type, action}` request,

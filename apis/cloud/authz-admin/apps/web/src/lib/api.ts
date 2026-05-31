@@ -165,6 +165,92 @@ async function call<T>(
     return envelope.data;
 }
 
+/** One row of the `/by_resource` response. Mirrors the upstream's
+ * `AccessPolicy` shape — both realtime and filez serialize the
+ * same wire fields out of their own typed structs (same `id`,
+ * `subject_type`, `subject_id`, `effect`, `actions`); upstream-
+ * specific fields like `resource_scope` / `revoked` are surfaced
+ * as `unknown` so the table renders defensively against schema
+ * drift instead of throwing on a missing property.
+ *
+ * @example Realtime emits `{id, owner_id, name, created_time,
+ *   modified_time, subject_type, subject_id, context_app_ids,
+ *   resource_type, resource_id, actions, effect, resource_scope,
+ *   expires_at, revoked, policy_bundle_id}` per its
+ *   `AccessPolicy` struct.
+ * @example Filez emits the same shape plus filez-specific
+ *   typing (e.g. `subject_id` is `AccessPolicySubjectId`, which
+ *   serialises as a Uuid string).
+ *
+ * Fields outside `id` / `subject_type` / `subject_id` / `effect`
+ * are optional in this interface — the table renders defensively
+ * via `?? ""` / `?? []`. Review R16. */
+export interface ByResourcePolicy {
+    id: Uuid;
+    name?: string;
+    subject_type: "User" | "UserGroup" | "ServerMember" | "Public";
+    subject_id: Uuid;
+    effect: "Allow" | "Deny";
+    actions?: string[];
+    resource_scope?: "Single" | "OwnedByOwner" | "AccessibleByOwner";
+    revoked?: boolean;
+    expires_at?: string | null;
+    /** Upstream-specific fields (e.g. filez's `context_app_ids`,
+     * `policy_bundle_id`) land here without breaking the table. */
+    [extra: string]: unknown;
+}
+
+/** Body of an upstream `/by_resource` 200 response. */
+export interface ByResourceUpstreamBody {
+    resource_owner_id: Uuid | null;
+    policies: ByResourcePolicy[];
+}
+
+export interface ByResourceResponse {
+    upstream: string;
+    upstream_status: number;
+    upstream_body: unknown;
+}
+
+/** Pull the `{ resource_owner_id, policies }` payload out of the
+ * BFF's envelope. Returns null when the upstream replied with an
+ * error envelope (e.g. 403 collapsed not-found-or-not-yours), so
+ * the SPA can render "the upstream said HTTP 403" instead of a
+ * misleading empty table.
+ *
+ * Validates the payload shape defensively:
+ *   - `resource_owner_id` only kept if it's a string or null;
+ *     any other type from a regressed upstream falls back to null
+ *     instead of being cast through silently (review R5 / TECH-6).
+ *   - policies missing a string `id` are dropped — the React
+ *     table keys on `policy.id` and an undefined key collides
+ *     across rows, corrupting DOM state on hover/focus
+ *     (review R6 / TECH-7). */
+export function unwrapByResource(upstream_body: unknown): ByResourceUpstreamBody | null {
+    if (
+        upstream_body &&
+        typeof upstream_body === "object" &&
+        "data" in upstream_body &&
+        upstream_body.data &&
+        typeof upstream_body.data === "object" &&
+        "policies" in upstream_body.data &&
+        Array.isArray((upstream_body.data as Record<string, unknown>).policies)
+    ) {
+        const data = upstream_body.data as Record<string, unknown>;
+        const owner = data.resource_owner_id;
+        const validOwner: Uuid | null =
+            typeof owner === "string" || owner === null ? (owner as Uuid | null) : null;
+        const policies = (data.policies as ByResourcePolicy[]).filter(
+            (p) => p && typeof p === "object" && typeof p.id === "string" && p.id.length > 0
+        );
+        return {
+            resource_owner_id: validOwner,
+            policies,
+        };
+    }
+    return null;
+}
+
 export const api = {
     listUpstreams: () => call<UpstreamsResponse>("/api/upstreams", { method: "GET" }),
 
@@ -179,6 +265,22 @@ export const api = {
     ) =>
         call<ExplainResponse>(
             "/api/access_policies/explain",
+            { method: "POST", body: JSON.stringify(body) },
+            devUserHeaders
+        ),
+
+    /** "Who can see X?" — forwarded to one upstream's
+     * /api/access_policies/by_resource. Upstream collapses
+     * not-found into 403 to defeat UUID-fingerprinting, so an
+     * operator who hasn't shared the resource will see a 403 in
+     * `upstream_status` without any disclosure of whether the
+     * id exists. */
+    byResource: (
+        body: { upstream: string; resource_type: string; resource_id: string },
+        devUserHeaders: Array<[string, string]> = DEFAULT_USER_HEADERS
+    ) =>
+        call<ByResourceResponse>(
+            "/api/access_policies/by_resource",
             { method: "POST", body: JSON.stringify(body) },
             devUserHeaders
         ),

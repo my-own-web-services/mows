@@ -27,6 +27,7 @@ pub mod users {
 }
 
 pub mod access_policies {
+    pub mod by_resource;
     pub mod check_resource_access;
     pub mod create;
     pub mod delete;

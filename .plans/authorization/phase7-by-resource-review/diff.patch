@@ -1,0 +1,861 @@
+diff --git a/apis/cloud/authz-admin/apps/web/src/components/UpstreamTabs.tsx b/apis/cloud/authz-admin/apps/web/src/components/UpstreamTabs.tsx
+index dbd0d127..a3c19316 100644
+--- a/apis/cloud/authz-admin/apps/web/src/components/UpstreamTabs.tsx
++++ b/apis/cloud/authz-admin/apps/web/src/components/UpstreamTabs.tsx
+@@ -5,9 +5,12 @@ import { Label } from "@my-own-web-services/react-components/components/ui/label
+ import {
+     api,
+     authReasonLabel,
++    unwrapByResource,
+     unwrapEvaluations,
+     type AuthEvaluation,
+     type AuthReason,
++    type ByResourcePolicy,
++    type ByResourceUpstreamBody,
+     type UpstreamStatus,
+ } from "../lib/api";
+ import { cn } from "../lib/cn";
+@@ -18,7 +21,16 @@ import { cn } from "../lib/cn";
+  * frontend doesn't bake in upstream schema knowledge. */
+ const UPSTREAM_DEFAULTS: Record<string, { resource_type: string; action: string }> = {
+     realtime: { resource_type: "Channel", action: "ChannelsList" },
+-    filez: { resource_type: "File", action: "FilesGet" },
++    filez: { resource_type: "File", action: "FilezFilesGet" },
++};
++
++/** Per-upstream defaults for the "Who can see X?" panel. Same
++ * resource_type vocabulary as explain (no `action` because
++ * by_resource enumerates *all* policies pinning the resource,
++ * not a per-action verdict). */
++const BY_RESOURCE_DEFAULTS: Record<string, { resource_type: string }> = {
++    realtime: { resource_type: "Channel" },
++    filez: { resource_type: "File" },
+ };
+ 
+ const DEV_HEADER_PER_UPSTREAM: Record<string, string | undefined> = {
+@@ -80,11 +92,18 @@ export default function UpstreamTabs({ upstreams, actingUser }: UpstreamTabsProp
+                 ))}
+             </div>
+             {active && (
+-                <ExplainPanel
+-                    key={active}
+-                    upstream={active}
+-                    actingUser={actingUser}
+-                />
++                <div className="flex flex-col gap-6">
++                    <ExplainPanel
++                        key={`explain:${active}`}
++                        upstream={active}
++                        actingUser={actingUser}
++                    />
++                    <ByResourcePanel
++                        key={`by-resource:${active}`}
++                        upstream={active}
++                        actingUser={actingUser}
++                    />
++                </div>
+             )}
+         </div>
+     );
+@@ -253,3 +272,203 @@ function ReasonDetail({ reason }: { reason: AuthReason }) {
+         </span>
+     );
+ }
++
++interface ByResourcePanelProps {
++    readonly upstream: string;
++    readonly actingUser: string;
++}
++
++/** "Who can see X?" panel — given a resource_id, lists every
++ * non-revoked, non-expired policy pinning access to it plus the
++ * resource's owner. Backed by the upstream's
++ * /api/access_policies/by_resource (the inverse of /explain).
++ *
++ * Upstream collapses "doesn't exist" and "exists but not yours"
++ * into one 403, so the operator sees the same response whether
++ * they typo'd or aren't the owner — a deliberate trade-off to
++ * defeat UUID-fingerprinting. The UI reflects that via the
++ * upstream_status line. */
++function ByResourcePanel({ upstream, actingUser }: ByResourcePanelProps) {
++    const defaults = BY_RESOURCE_DEFAULTS[upstream] ?? { resource_type: "" };
++    const [resourceType, setResourceType] = useState(defaults.resource_type);
++    const [resourceId, setResourceId] = useState("");
++    const [loading, setLoading] = useState(false);
++    const [error, setError] = useState<string | null>(null);
++    const [upstreamStatus, setUpstreamStatus] = useState<number | null>(null);
++    const [payload, setPayload] = useState<ByResourceUpstreamBody | null>(null);
++
++    const run = async () => {
++        if (!actingUser.trim()) {
++            setError("Set acting user UUID above before asking who can see X.");
++            return;
++        }
++        if (!resourceId.trim()) {
++            setError("resource_id is required.");
++            return;
++        }
++        setLoading(true);
++        setError(null);
++        try {
++            const devHeader = DEV_HEADER_PER_UPSTREAM[upstream];
++            const headers: Array<[string, string]> = devHeader
++                ? [[devHeader, actingUser.trim()]]
++                : [];
++            const res = await api.byResource(
++                {
++                    upstream,
++                    resource_type: resourceType,
++                    resource_id: resourceId.trim(),
++                },
++                headers
++            );
++            setUpstreamStatus(res.upstream_status);
++            setPayload(unwrapByResource(res.upstream_body));
++        } catch (e) {
++            setError(e instanceof Error ? e.message : String(e));
++        } finally {
++            setLoading(false);
++        }
++    };
++
++    return (
++        <div className="flex flex-col gap-4 rounded-md border border-border bg-card p-4">
++            <div className="flex flex-col gap-1">
++                <h2 className="text-sm font-medium">Who can see X?</h2>
++                <p className="text-xs text-muted-foreground">
++                    Lists every policy pinning access to one resource.
++                    The upstream refuses to disclose anything unless you
++                    own the resource — non-existence and non-ownership
++                    return the same 403 so a non-owner can't enumerate
++                    which ids exist.
++                </p>
++            </div>
++            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr_auto] sm:items-end">
++                <div className="flex flex-col gap-1">
++                    <Label htmlFor={`${upstream}-bres-rt`}>resource_type</Label>
++                    <Input
++                        id={`${upstream}-bres-rt`}
++                        value={resourceType}
++                        onChange={(e) => setResourceType(e.target.value)}
++                        placeholder={defaults.resource_type}
++                    />
++                </div>
++                <div className="flex flex-col gap-1">
++                    <Label htmlFor={`${upstream}-bres-id`}>resource_id</Label>
++                    <Input
++                        id={`${upstream}-bres-id`}
++                        value={resourceId}
++                        onChange={(e) => setResourceId(e.target.value)}
++                        placeholder="00000000-0000-0000-0000-000000000000"
++                    />
++                </div>
++                <Button onClick={() => void run()} disabled={loading}>
++                    {loading ? "running…" : "who can see X?"}
++                </Button>
++            </div>
++
++            {error && <p className="text-sm text-destructive">{error}</p>}
++
++            {upstreamStatus !== null && (
++                <p className="text-xs text-muted-foreground">
++                    upstream returned HTTP {upstreamStatus}
++                    {payload === null && upstreamStatus !== 200 && (
++                        <>
++                            {" "}· no <code>policies</code> in response — the
++                            upstream rejected the query (often "no such
++                            resource OR you're not the owner")
++                        </>
++                    )}
++                    {payload !== null && (
++                        <>
++                            {" "}· owner{" "}
++                            <span className="font-mono">
++                                {payload.resource_owner_id ?? "<none>"}
++                            </span>
++                            {" · "}
++                            {payload.policies.length} polic
++                            {payload.policies.length === 1 ? "y" : "ies"}
++                        </>
++                    )}
++                </p>
++            )}
++
++            <PoliciesTable payload={payload} />
++        </div>
++    );
++}
++
++function PoliciesTable({ payload }: { payload: ByResourceUpstreamBody | null }) {
++    if (payload === null) {
++        return (
++            <p className="py-6 text-center text-sm text-muted-foreground">
++                No data yet — enter a resource id and run the query.
++            </p>
++        );
++    }
++    if (payload.policies.length === 0) {
++        return (
++            <p className="py-6 text-center text-sm text-muted-foreground">
++                Owner is the only one with access — no policies pin this
++                resource.
++            </p>
++        );
++    }
++    return (
++        <div className="overflow-x-auto">
++            <table className="w-full text-left text-sm">
++                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
++                    <tr>
++                        <th className="px-2 py-2">policy_id</th>
++                        <th className="px-2 py-2">effect</th>
++                        <th className="px-2 py-2">subject_type</th>
++                        <th className="px-2 py-2">subject_id</th>
++                        <th className="px-2 py-2">actions</th>
++                    </tr>
++                </thead>
++                <tbody>
++                    {payload.policies.map((p) => (
++                        <tr key={p.id} className="border-b border-border/50">
++                            <td className="px-2 py-2 font-mono text-xs">
++                                {p.id.slice(0, 8)}…
++                            </td>
++                            <td className="px-2 py-2">
++                                <span
++                                    className={cn(
++                                        "inline-flex h-2 w-2 rounded-full",
++                                        p.effect === "Allow"
++                                            ? "bg-green-500"
++                                            : "bg-destructive"
++                                    )}
++                                />
++                                <span className="ml-2 text-xs">{p.effect}</span>
++                            </td>
++                            <td className="px-2 py-2">{p.subject_type}</td>
++                            <td className="px-2 py-2 font-mono text-xs">
++                                {formatSubjectId(p)}
++                            </td>
++                            <td className="px-2 py-2 text-xs">
++                                {(p.actions ?? []).join(", ") || (
++                                    <em className="text-muted-foreground">all</em>
++                                )}
++                            </td>
++                        </tr>
++                    ))}
++                </tbody>
++            </table>
++        </div>
++    );
++}
++
++/** `Public` and `ServerMember` carry the nil UUID as a sentinel
++ * subject_id — surfacing that nil to the operator is pointless
++ * and misleading. Render the sentinel as the subject_type
++ * keyword instead. */
++function formatSubjectId(p: ByResourcePolicy): string {
++    const nil = "00000000-0000-0000-0000-000000000000";
++    if (p.subject_id === nil) {
++        return p.subject_type === "Public" || p.subject_type === "ServerMember"
++            ? `<${p.subject_type.toLowerCase()}>`
++            : nil;
++    }
++    return `${p.subject_id.slice(0, 8)}…`;
++}
+diff --git a/apis/cloud/authz-admin/apps/web/src/lib/api.ts b/apis/cloud/authz-admin/apps/web/src/lib/api.ts
+index 607222f7..5f736475 100644
+--- a/apis/cloud/authz-admin/apps/web/src/lib/api.ts
++++ b/apis/cloud/authz-admin/apps/web/src/lib/api.ts
+@@ -165,6 +165,64 @@ async function call<T>(
+     return envelope.data;
+ }
+ 
++/** One row of the `/by_resource` response. Mirrors the upstream's
++ * `AccessPolicy` shape — both realtime and filez serialize the
++ * same wire fields out of their own typed structs (same `id`,
++ * `subject_type`, `subject_id`, `effect`, `actions`); upstream-
++ * specific fields like `resource_scope` / `revoked` are surfaced
++ * as `unknown` so the table renders defensively against schema
++ * drift instead of throwing on a missing property. */
++export interface ByResourcePolicy {
++    id: Uuid;
++    name?: string;
++    subject_type: "User" | "UserGroup" | "ServerMember" | "Public";
++    subject_id: Uuid;
++    effect: "Allow" | "Deny";
++    actions?: string[];
++    resource_scope?: "Single" | "OwnedByOwner" | "AccessibleByOwner";
++    revoked?: boolean;
++    expires_at?: string | null;
++    /** Upstream-specific fields (e.g. filez's `context_app_ids`,
++     * `policy_bundle_id`) land here without breaking the table. */
++    [extra: string]: unknown;
++}
++
++/** Body of an upstream `/by_resource` 200 response. */
++export interface ByResourceUpstreamBody {
++    resource_owner_id: Uuid | null;
++    policies: ByResourcePolicy[];
++}
++
++export interface ByResourceResponse {
++    upstream: string;
++    upstream_status: number;
++    upstream_body: unknown;
++}
++
++/** Pull the `{ resource_owner_id, policies }` payload out of the
++ * BFF's envelope. Returns null when the upstream replied with an
++ * error envelope (e.g. 403 collapsed not-found-or-not-yours), so
++ * the SPA can render "the upstream said HTTP 403" instead of a
++ * misleading empty table. */
++export function unwrapByResource(upstream_body: unknown): ByResourceUpstreamBody | null {
++    if (
++        upstream_body &&
++        typeof upstream_body === "object" &&
++        "data" in upstream_body &&
++        upstream_body.data &&
++        typeof upstream_body.data === "object" &&
++        "policies" in upstream_body.data &&
++        Array.isArray((upstream_body.data as Record<string, unknown>).policies)
++    ) {
++        const data = upstream_body.data as Record<string, unknown>;
++        return {
++            resource_owner_id: (data.resource_owner_id as Uuid | null) ?? null,
++            policies: data.policies as ByResourcePolicy[],
++        };
++    }
++    return null;
++}
++
+ export const api = {
+     listUpstreams: () => call<UpstreamsResponse>("/api/upstreams", { method: "GET" }),
+ 
+@@ -182,4 +240,20 @@ export const api = {
+             { method: "POST", body: JSON.stringify(body) },
+             devUserHeaders
+         ),
++
++    /** "Who can see X?" — forwarded to one upstream's
++     * /api/access_policies/by_resource. Upstream collapses
++     * not-found into 403 to defeat UUID-fingerprinting, so an
++     * operator who hasn't shared the resource will see a 403 in
++     * `upstream_status` without any disclosure of whether the
++     * id exists. */
++    byResource: (
++        body: { upstream: string; resource_type: string; resource_id: string },
++        devUserHeaders: Array<[string, string]> = DEFAULT_USER_HEADERS
++    ) =>
++        call<ByResourceResponse>(
++            "/api/access_policies/by_resource",
++            { method: "POST", body: JSON.stringify(body) },
++            devUserHeaders
++        ),
+ };
+diff --git a/apis/cloud/authz-admin/server/src/api_router.rs b/apis/cloud/authz-admin/server/src/api_router.rs
+index 7068538a..c19ccaf9 100644
+--- a/apis/cloud/authz-admin/server/src/api_router.rs
++++ b/apis/cloud/authz-admin/server/src/api_router.rs
+@@ -1,7 +1,7 @@
+ use utoipa_axum::{router::OpenApiRouter, routes};
+ 
+ use crate::{
+-    http_api::{explain, health, upstreams},
++    http_api::{by_resource, explain, health, upstreams},
+     state::AppState,
+     types::AuthzAdminApiDoc,
+ };
+@@ -11,4 +11,5 @@ pub fn build_api_router() -> OpenApiRouter<AppState> {
+         .routes(routes!(health::health))
+         .routes(routes!(upstreams::list_upstreams))
+         .routes(routes!(explain::forward_explain))
++        .routes(routes!(by_resource::forward_by_resource))
+ }
+diff --git a/apis/cloud/authz-admin/server/src/http_api/explain.rs b/apis/cloud/authz-admin/server/src/http_api/explain.rs
+index e2b49138..b6a2a62e 100644
+--- a/apis/cloud/authz-admin/server/src/http_api/explain.rs
++++ b/apis/cloud/authz-admin/server/src/http_api/explain.rs
+@@ -14,23 +14,19 @@
+ //! unchanged so the explain answer reflects the *caller's* view,
+ //! not the BFF's.
+ 
+-use axum::body::to_bytes;
+ use axum::extract::{Request, State};
+-use axum::http::{HeaderMap, HeaderValue};
+ use axum::Json;
+ use serde::{Deserialize, Serialize};
+ use serde_json::Value as JsonValue;
+ use utoipa::ToSchema;
+ 
+ use crate::errors::AuthzAdminError;
++use crate::http_api::forwarder::{
++    build_forwarding_headers, read_bounded_body, require_identity_header,
++};
+ use crate::state::AppState;
+ use crate::types::{ApiResponse, ApiResponseStatus};
+ 
+-/// Maximum body size we accept on the inbound side. The explain
+-/// payload is small (resource_type + action + upstream key); a
+-/// caller sending megabytes is misbehaving.
+-const MAX_BODY_BYTES: usize = 16 * 1024;
+-
+ #[derive(Deserialize, ToSchema, Debug)]
+ pub struct ExplainRequest {
+     /// Which upstream to forward to. Must match a `key` from
+@@ -78,9 +74,7 @@ pub async fn forward_explain(
+     // we pull the body out manually and parse it ourselves; the
+     // headers extractor wants the request before extraction.
+     let (parts, body) = request.into_parts();
+-    let bytes = to_bytes(body, MAX_BODY_BYTES)
+-        .await
+-        .map_err(|e| AuthzAdminError::BadRequest(format!("body read: {e}")))?;
++    let bytes = read_bounded_body(body).await?;
+     let req: ExplainRequest = serde_json::from_slice(&bytes)
+         .map_err(|e| AuthzAdminError::BadRequest(format!("body parse: {e}")))?;
+ 
+@@ -96,50 +90,11 @@ pub async fn forward_explain(
+             ))
+         })?;
+ 
+-    // R2 — require at least one identity-bearing header before
+-    // we forward anything. The upstream services accept anonymous
+-    // requests (Subject::Anonymous → only Public policies match);
+-    // letting the BFF surface that result without an identity
+-    // assertion turns it into an anonymous fingerprinting probe.
+-    // The acceptable headers are exactly the ones the BFF
+-    // forwards downstream — `Authorization` for production
+-    // Bearer flow, `x-{realtime,filez}-user-id` for dev. (SEC-2)
+-    let identity_present = ["authorization", "x-realtime-user-id", "x-filez-user-id"]
+-        .iter()
+-        .any(|n| parts.headers.contains_key(*n));
+-    if !identity_present {
+-        return Err(AuthzAdminError::Unauthorized(
+-            "explain requires at least one identity header: Authorization \
+-             (production Bearer token) or x-realtime-user-id / \
+-             x-filez-user-id (dev). The BFF refuses to forward anonymous \
+-             explain requests so it can't be used as a fingerprinting \
+-             probe — see review-3 R2 / SEC-2."
+-                .to_string(),
+-        ));
+-    }
+-
+-    // Whitelist identity-header passthrough. Specifically NOT
+-    // passthrough-all — that would forward BFF-internal headers
+-    // (traefik routing cookies, ingress request-id metadata,
+-    // session cookies if any are ever set) to upstreams as if
+-    // the caller had supplied them. The risk is concrete:
+-    // a misconfigured ingress that injects a `cookie:
+-    // _admin_session=...` header would otherwise be auth'd as
+-    // that admin against the upstream. (SLOP-9 / SEC review)
+-    let mut fwd_headers = HeaderMap::new();
+-    for name in [
+-        "authorization",
+-        "x-realtime-user-id",
+-        "x-filez-user-id",
+-    ] {
+-        if let Some(v) = parts.headers.get(name) {
+-            fwd_headers.insert(name, v.clone());
+-        }
+-    }
+-    fwd_headers.insert(
+-        "content-type",
+-        HeaderValue::from_static("application/json"),
+-    );
++    // SEC-2 / review-1 R2 — refuse anonymous; build the whitelisted
++    // header passthrough. See `http_api::forwarder` for the
++    // rationale. Identical guard sits in front of by_resource.
++    require_identity_header(&parts.headers)?;
++    let fwd_headers = build_forwarding_headers(&parts.headers);
+ 
+     // After review-3 R4 both upstream explain endpoints agree on
+     // the wire shape (`{resource_type, action}` request,
+diff --git a/apis/cloud/authz-admin/server/src/http_api/mod.rs b/apis/cloud/authz-admin/server/src/http_api/mod.rs
+index c2f3865a..0fcbcffa 100644
+--- a/apis/cloud/authz-admin/server/src/http_api/mod.rs
++++ b/apis/cloud/authz-admin/server/src/http_api/mod.rs
+@@ -1,3 +1,5 @@
++pub mod by_resource;
+ pub mod explain;
++pub mod forwarder;
+ pub mod health;
+ pub mod upstreams;
+diff --git a/apis/cloud/authz-admin/server/tests/bff_forwarding.rs b/apis/cloud/authz-admin/server/tests/bff_forwarding.rs
+index f015da99..7e5397b1 100644
+--- a/apis/cloud/authz-admin/server/tests/bff_forwarding.rs
++++ b/apis/cloud/authz-admin/server/tests/bff_forwarding.rs
+@@ -340,6 +340,229 @@ async fn explain_rejects_missing_required_field() {
+     );
+ }
+ 
++// ---------------------------------------------------------------
++// by_resource — Phase 7 "Who can see X?" forwarder. Same shape as
++// the explain tests; deliberately verbose rather than parameterised
++// so each test name documents one contract that ships.
++// ---------------------------------------------------------------
++
++async fn mock_by_resource(
++    State(state): State<MockState>,
++    headers: axum::http::HeaderMap,
++    axum::Json(_body): axum::Json<Value>,
++) -> axum::Json<Value> {
++    let uid = headers
++        .get("x-realtime-user-id")
++        .and_then(|v| v.to_str().ok())
++        .map(|s| s.to_string());
++    *state.last_user_header.lock().await = uid.clone();
++    axum::Json(json!({
++        "status": "Success",
++        "message": "mocked by_resource",
++        "data": {
++            "resource_owner_id": "a11ce000-0000-0000-0000-000000000001",
++            "policies": [
++                {
++                    "id": "00000000-0000-0000-0000-000000000099",
++                    "subject_type": "User",
++                    "subject_id": "b0b00000-0000-0000-0000-000000000002",
++                    "effect": "Allow",
++                    "actions": ["ChannelsRead"]
++                }
++            ]
++        }
++    }))
++}
++
++async fn spawn_mock_with_by_resource() -> (SocketAddr, MockState) {
++    let state = MockState::default();
++    let router = Router::new()
++        .route("/api/health", get(mock_health))
++        .route("/api/access_policies/explain", post(mock_explain))
++        .route("/api/access_policies/by_resource", post(mock_by_resource))
++        .with_state(state.clone());
++    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
++        .await
++        .expect("bind mock");
++    let addr = listener.local_addr().expect("local_addr");
++    tokio::spawn(async move {
++        axum::serve(listener, router).await.expect("mock serve");
++    });
++    tokio::time::sleep(Duration::from_millis(50)).await;
++    (addr, state)
++}
++
++#[tokio::test]
++async fn by_resource_forwards_identity_header_and_returns_policies() {
++    let (mock_addr, mock_state) = spawn_mock_with_by_resource().await;
++    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
++
++    let client = reqwest::Client::new();
++    let resp = client
++        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
++        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
++        .json(&json!({
++            "upstream": "realtime",
++            "resource_type": "Channel",
++            "resource_id": "00000000-0000-0000-0000-000000000042",
++        }))
++        .send()
++        .await
++        .expect("send");
++    assert_eq!(resp.status().as_u16(), 200);
++    let body: Value = resp.json().await.expect("json");
++
++    assert_eq!(body["data"]["upstream"], "realtime");
++    assert_eq!(body["data"]["upstream_status"], 200);
++    // Wire shape — the SPA reads exactly these keys.
++    let upstream_data = &body["data"]["upstream_body"]["data"];
++    assert_eq!(
++        upstream_data["resource_owner_id"],
++        "a11ce000-0000-0000-0000-000000000001",
++    );
++    let policies = upstream_data["policies"]
++        .as_array()
++        .expect("policies array");
++    assert_eq!(policies.len(), 1);
++    assert_eq!(policies[0]["subject_type"], "User");
++
++    let seen = mock_state.last_user_header.lock().await.clone();
++    assert_eq!(seen.as_deref(), Some("a11ce000-0000-0000-0000-000000000001"));
++}
++
++#[tokio::test]
++async fn by_resource_rejects_anonymous_caller_with_401() {
++    let (mock_addr, mock_state) = spawn_mock_with_by_resource().await;
++    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
++
++    let client = reqwest::Client::new();
++    let resp = client
++        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
++        .json(&json!({
++            "upstream": "realtime",
++            "resource_type": "Channel",
++            "resource_id": "00000000-0000-0000-0000-000000000042",
++        }))
++        .send()
++        .await
++        .expect("send");
++    assert_eq!(resp.status().as_u16(), 401);
++
++    // Same anti-fingerprinting check as explain: the upstream must
++    // not have been touched at all on an anonymous request.
++    let seen = mock_state.last_user_header.lock().await.clone();
++    assert!(
++        seen.is_none(),
++        "BFF must not call upstream on anonymous by_resource; mock saw: {seen:?}",
++    );
++}
++
++#[tokio::test]
++async fn by_resource_rejects_unknown_upstream_with_typed_error() {
++    let (mock_addr, _) = spawn_mock_with_by_resource().await;
++    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
++
++    let client = reqwest::Client::new();
++    let resp = client
++        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
++        .header("x-realtime-user-id", "00000000-0000-0000-0000-000000000001")
++        .json(&json!({
++            "upstream": "ghost",
++            "resource_type": "Channel",
++            "resource_id": "00000000-0000-0000-0000-000000000042",
++        }))
++        .send()
++        .await
++        .expect("send");
++    assert_eq!(resp.status().as_u16(), 400);
++    let body: Value = resp.json().await.expect("json");
++    assert_eq!(body["status"]["Error"], "BadRequest");
++    assert!(
++        body["message"].as_str().unwrap_or("").contains("ghost"),
++        "error message should name the offending upstream key, got: {body:?}",
++    );
++}
++
++#[tokio::test]
++async fn by_resource_surfaces_upstream_403_under_upstream_status() {
++    // Upstream returns 403 (the canonical "no such resource OR not
++    // your resource" collapse). BFF itself must reply 200 with the
++    // 403 surfaced via upstream_status so the SPA can render
++    // "the upstream said 403" rather than misreporting "no
++    // policies".
++    let mock_state = MockState::default();
++    let router = Router::new()
++        .route("/api/health", get(mock_health))
++        .route(
++            "/api/access_policies/by_resource",
++            post(|axum::Json(_): axum::Json<Value>| async {
++                (
++                    axum::http::StatusCode::FORBIDDEN,
++                    axum::Json(json!({
++                        "status": {"Error": "Forbidden"},
++                        "message": "no such resource, or caller is not its owner",
++                        "data": null
++                    })),
++                )
++            }),
++        )
++        .with_state(mock_state);
++    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++    let mock_addr = listener.local_addr().unwrap();
++    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
++    tokio::time::sleep(Duration::from_millis(50)).await;
++
++    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
++    let client = reqwest::Client::new();
++    let resp = client
++        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
++        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
++        .json(&json!({
++            "upstream": "realtime",
++            "resource_type": "Channel",
++            "resource_id": "00000000-0000-0000-0000-000000000042",
++        }))
++        .send()
++        .await
++        .expect("send");
++    assert_eq!(resp.status().as_u16(), 200);
++    let body: Value = resp.json().await.expect("json");
++    assert_eq!(body["data"]["upstream_status"], 403);
++    assert!(
++        body["data"]["upstream_body"]["message"]
++            .as_str()
++            .unwrap_or("")
++            .contains("no such resource"),
++        "the BFF must surface the upstream's 403 envelope verbatim, got: {body:?}",
++    );
++}
++
++#[tokio::test]
++async fn by_resource_rejects_missing_required_field() {
++    let (mock_addr, _) = spawn_mock_with_by_resource().await;
++    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
++
++    let client = reqwest::Client::new();
++    let resp = client
++        .post(format!("http://{bff_addr}/api/access_policies/by_resource"))
++        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
++        // Omits `resource_id`.
++        .json(&json!({
++            "upstream": "realtime",
++            "resource_type": "Channel",
++        }))
++        .send()
++        .await
++        .expect("send");
++    assert_eq!(resp.status().as_u16(), 400);
++    let body: Value = resp.json().await.expect("json");
++    assert_eq!(body["status"]["Error"], "BadRequest");
++    assert!(
++        body["message"].as_str().unwrap_or("").contains("body parse"),
++        "error should be a body-parse failure, got: {body:?}",
++    );
++}
++
+ /// review-3 R11 / QA-4 (c): the inbound body cap should fire on
+ /// payloads above `MAX_BODY_BYTES` (16 KB today). A request
+ /// shaped like a tiny JSON object but with megabytes of padding
+diff --git a/apis/cloud/filez/server/src/api_router.rs b/apis/cloud/filez/server/src/api_router.rs
+index 8c9068bc..27db6a1d 100644
+--- a/apis/cloud/filez/server/src/api_router.rs
++++ b/apis/cloud/filez/server/src/api_router.rs
+@@ -121,6 +121,9 @@ pub fn build_api_router() -> OpenApiRouter<ServerState> {
+         .routes(routes!(
+             http_api::access_policies::explain::explain_access
+         ))
++        .routes(routes!(
++            http_api::access_policies::by_resource::by_resource
++        ))
+         .routes(routes!(
+             http_api::access_policies::create::create_access_policy
+         ))
+diff --git a/apis/cloud/filez/server/src/http_api/mod.rs b/apis/cloud/filez/server/src/http_api/mod.rs
+index bcb5aca1..4f8ec6c7 100644
+--- a/apis/cloud/filez/server/src/http_api/mod.rs
++++ b/apis/cloud/filez/server/src/http_api/mod.rs
+@@ -27,6 +27,7 @@ pub mod users {
+ }
+ 
+ pub mod access_policies {
++    pub mod by_resource;
+     pub mod check_resource_access;
+     pub mod create;
+     pub mod delete;
+diff --git a/apis/cloud/realtime/server/src/api_router.rs b/apis/cloud/realtime/server/src/api_router.rs
+index 68021950..81d53ba7 100644
+--- a/apis/cloud/realtime/server/src/api_router.rs
++++ b/apis/cloud/realtime/server/src/api_router.rs
+@@ -23,6 +23,7 @@ pub fn build_api_router() -> OpenApiRouter<AppState> {
+         .routes(routes!(policies::list::list_policies))
+         .routes(routes!(policies::delete::delete_policy))
+         .routes(routes!(policies::explain::explain_access))
++        .routes(routes!(policies::by_resource::by_resource))
+         .routes(routes!(dev::seed::dev_seed))
+         // WebSocket endpoint — registered via raw `route()`
+         // because utoipa-axum's `routes!` expects a `#[utoipa::path]`
+diff --git a/apis/cloud/realtime/server/src/http_api/policies/mod.rs b/apis/cloud/realtime/server/src/http_api/policies/mod.rs
+index e2224545..99b69311 100644
+--- a/apis/cloud/realtime/server/src/http_api/policies/mod.rs
++++ b/apis/cloud/realtime/server/src/http_api/policies/mod.rs
+@@ -1,3 +1,4 @@
++pub mod by_resource;
+ pub mod create;
+ pub mod delete;
+ pub mod explain;
+diff --git a/apis/cloud/realtime/server/tests/end_to_end.rs b/apis/cloud/realtime/server/tests/end_to_end.rs
+index 6c16c984..f60f9c7c 100644
+--- a/apis/cloud/realtime/server/tests/end_to_end.rs
++++ b/apis/cloud/realtime/server/tests/end_to_end.rs
+@@ -646,6 +646,95 @@ async fn end_to_end_demo_flow() {
+         "Carol has no policies and no group memberships, so explain must return []. Got: {carol_evals:?}",
+     );
+ 
++    // 12. /api/access_policies/by_resource — the inverse of /explain.
++    //     Given a single channel id, the owner must see every policy
++    //     pinned to it (here: the UserGroup-share targeting team-a)
++    //     plus the synthetic resource_owner_id field. Non-owners
++    //     (Bob, Carol) get 403 — the diagnostic mirrors the share
++    //     gate at policies/create.rs (only the owner may audit).
++
++    let alice_by_resource: serde_json::Value = client
++        .post(format!("{base}/api/access_policies/by_resource"))
++        .header("x-realtime-user-id", &alice)
++        .json(&json!({"resource_type": "Channel", "resource_id": &team_channel_id}))
++        .send()
++        .await
++        .expect("alice by_resource")
++        .json()
++        .await
++        .expect("alice by_resource json");
++    assert_eq!(
++        alice_by_resource["data"]["resource_owner_id"].as_str(),
++        Some(alice.as_str()),
++        "Alice's owner field must match her own id",
++    );
++    let alice_policies = alice_by_resource["data"]["policies"]
++        .as_array()
++        .expect("alice policies array");
++    let team_a_share_pinned = alice_policies.iter().any(|p| {
++        p["subject_type"].as_str() == Some("UserGroup")
++            && p["subject_id"].as_str() == Some(&group_id.to_string())
++            && p["resource_id"].as_str() == Some(&team_channel_id)
++    });
++    assert!(
++        team_a_share_pinned,
++        "the UserGroup share for team-a must appear in the panel. Got: {alice_policies:?}",
++    );
++
++    // Bob owns no channels here (he's only a member of team-a, not
++    // the team-room owner). by_resource must refuse to disclose the
++    // share list to a non-owner.
++    let bob_by_resource = client
++        .post(format!("{base}/api/access_policies/by_resource"))
++        .header("x-realtime-user-id", &bob)
++        .json(&json!({"resource_type": "Channel", "resource_id": &team_channel_id}))
++        .send()
++        .await
++        .expect("bob by_resource send");
++    assert_eq!(
++        bob_by_resource.status().as_u16(),
++        403,
++        "Bob is a member, not the owner — by_resource must 403",
++    );
++
++    // Anonymous probe must 401. Same fingerprinting hardening the
++    // BFF applies in front of /explain (review-1 SEC-2); the
++    // upstream itself also refuses, so the BFF stance is
++    // defence-in-depth rather than the only barrier.
++    let anonymous_by_resource = client
++        .post(format!("{base}/api/access_policies/by_resource"))
++        .json(&json!({"resource_type": "Channel", "resource_id": &team_channel_id}))
++        .send()
++        .await
++        .expect("anonymous by_resource send");
++    assert_eq!(
++        anonymous_by_resource.status().as_u16(),
++        401,
++        "anonymous callers must not learn whether a resource exists or who owns it",
++    );
++
++    // A bogus resource id must 403 (NOT 404). Existence and
++    // ownership are deliberately collapsed into one response so a
++    // non-owner cannot probe UUID space to enumerate which channel
++    // ids exist. This means even the owner cannot distinguish "I
++    // typed the wrong UUID" from "I'm not the owner" via API
++    // response alone — for the typical authz-admin flow that's
++    // fine because the resource was selected from the user's own
++    // list. Same defence the engine applies via NoMatchingAllowPolicy.
++    let bogus = uuid::Uuid::nil().to_string();
++    let bogus_by_resource = client
++        .post(format!("{base}/api/access_policies/by_resource"))
++        .header("x-realtime-user-id", &alice)
++        .json(&json!({"resource_type": "Channel", "resource_id": &bogus}))
++        .send()
++        .await
++        .expect("bogus by_resource send");
++    assert_eq!(
++        bogus_by_resource.status().as_u16(),
++        403,
++        "a non-existent resource id must be indistinguishable from a not-owned existing one — both 403",
++    );
++
+     // Cleanup.
+     ws.send(Message::Close(None)).await.ok();
+     server_handle.abort();

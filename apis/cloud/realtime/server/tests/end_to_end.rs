@@ -646,6 +646,209 @@ async fn end_to_end_demo_flow() {
         "Carol has no policies and no group memberships, so explain must return []. Got: {carol_evals:?}",
     );
 
+    // 12. /api/access_policies/by_resource — the inverse of /explain.
+    //     Given a single channel id, the owner must see every policy
+    //     pinned to it (here: the UserGroup-share targeting team-a)
+    //     plus the synthetic resource_owner_id field. Non-owners
+    //     (Bob, Carol) get 403 — the diagnostic mirrors the share
+    //     gate at policies/create.rs (only the owner may audit).
+
+    let alice_by_resource: serde_json::Value = client
+        .post(format!("{base}/api/access_policies/by_resource"))
+        .header("x-realtime-user-id", &alice)
+        .json(&json!({"resource_type": "Channel", "resource_id": &team_channel_id}))
+        .send()
+        .await
+        .expect("alice by_resource")
+        .json()
+        .await
+        .expect("alice by_resource json");
+    assert_eq!(
+        alice_by_resource["data"]["resource_owner_id"].as_str(),
+        Some(alice.as_str()),
+        "Alice's owner field must match her own id",
+    );
+    let alice_policies = alice_by_resource["data"]["policies"]
+        .as_array()
+        .expect("alice policies array");
+    let team_a_share_pinned = alice_policies.iter().any(|p| {
+        p["subject_type"].as_str() == Some("UserGroup")
+            && p["subject_id"].as_str() == Some(&group_id.to_string())
+            && p["resource_id"].as_str() == Some(&team_channel_id)
+    });
+    assert!(
+        team_a_share_pinned,
+        "the UserGroup share for team-a must appear in the panel. Got: {alice_policies:?}",
+    );
+
+    // Negative assertion (review R3 / QA-2): the owner-shortcut
+    // must NOT be rendered as a synthetic policy row. The SPA
+    // surfaces `resource_owner_id` as a separate Owner row above
+    // the policies list; if the backend slips an "Owner"-typed
+    // row into `policies`, the SPA would double-render the owner.
+    assert!(
+        !alice_policies.iter().any(|p| {
+            let subj = p["subject_type"].as_str().unwrap_or("");
+            // The owner has no policy row of their own — only
+            // User / UserGroup / ServerMember / Public subject
+            // types are legitimate here. Anything else means the
+            // backend added a synthetic owner row.
+            !matches!(subj, "User" | "UserGroup" | "ServerMember" | "Public")
+        }),
+        "by_resource.policies must contain only real policy rows — the owner is surfaced via \
+         resource_owner_id, never as a synthetic row. Got: {alice_policies:?}",
+    );
+
+    // Bob owns no channels here (he's only a member of team-a, not
+    // the team-room owner). by_resource must refuse to disclose the
+    // share list to a non-owner.
+    let bob_by_resource = client
+        .post(format!("{base}/api/access_policies/by_resource"))
+        .header("x-realtime-user-id", &bob)
+        .json(&json!({"resource_type": "Channel", "resource_id": &team_channel_id}))
+        .send()
+        .await
+        .expect("bob by_resource send");
+    assert_eq!(
+        bob_by_resource.status().as_u16(),
+        403,
+        "Bob is a member, not the owner — by_resource must 403",
+    );
+
+    // Anonymous probe must 401. Same fingerprinting hardening the
+    // BFF applies in front of /explain (review-1 SEC-2); the
+    // upstream itself also refuses, so the BFF stance is
+    // defence-in-depth rather than the only barrier.
+    let anonymous_by_resource = client
+        .post(format!("{base}/api/access_policies/by_resource"))
+        .json(&json!({"resource_type": "Channel", "resource_id": &team_channel_id}))
+        .send()
+        .await
+        .expect("anonymous by_resource send");
+    assert_eq!(
+        anonymous_by_resource.status().as_u16(),
+        401,
+        "anonymous callers must not learn whether a resource exists or who owns it",
+    );
+
+    // Revoked + expired policies must not appear in the panel
+    // (review R4 / QA-4). The handler mirrors the engine's
+    // `revoked = false` + expiration filter; without a regression
+    // test, dropping that filter would let dead rows leak into
+    // the SPA without breaking any other test.
+    {
+        // Create a second policy on the team-room (Public-shared
+        // with ChannelsRead) so we have something to revoke.
+        let extra_policy: serde_json::Value = client
+            .post(format!("{base}/api/access_policies/create"))
+            .header("x-realtime-user-id", &alice)
+            .json(&json!({
+                "name": "throwaway-for-revoke-test",
+                "subject_type": "Public",
+                "subject_id": uuid::Uuid::nil().to_string(),
+                "resource_type": "Channel",
+                "resource_id": &team_channel_id,
+                "actions": ["ChannelsRead"],
+                "effect": "Allow",
+            }))
+            .send()
+            .await
+            .expect("create extra policy")
+            .json()
+            .await
+            .expect("create extra policy json");
+        let extra_policy_id = extra_policy["data"]["policy"]["id"]
+            .as_str()
+            .expect("extra policy id")
+            .to_string();
+
+        // Verify it shows up before revocation.
+        let before: serde_json::Value = client
+            .post(format!("{base}/api/access_policies/by_resource"))
+            .header("x-realtime-user-id", &alice)
+            .json(&json!({"resource_type": "Channel", "resource_id": &team_channel_id}))
+            .send()
+            .await
+            .expect("by_resource pre-revoke")
+            .json()
+            .await
+            .expect("by_resource pre-revoke json");
+        let before_count = before["data"]["policies"].as_array().unwrap().len();
+        assert!(
+            before["data"]["policies"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|p| p["id"].as_str() == Some(&extra_policy_id)),
+            "the extra policy must show up before revocation",
+        );
+
+        // Flip revoked directly via SQL. The realtime HTTP surface
+        // hard-deletes policies; we want the soft-delete (revoked
+        // = true) path tested, so go around the handler.
+        let test_db_url = std::env::var("REALTIME_TEST_DB_URL")
+            .expect("REALTIME_TEST_DB_URL");
+        let mut admin_conn =
+            AsyncPgConnection::establish(&test_db_url).await.expect("admin conn");
+        let extra_uuid = uuid::Uuid::parse_str(&extra_policy_id).expect("parse policy id");
+        diesel::update(
+            realtime_server_lib::schema::access_policies::table.filter(
+                realtime_server_lib::schema::access_policies::id
+                    .eq(realtime_server_lib::models::access_policies::AccessPolicyId(extra_uuid)),
+            ),
+        )
+        .set(realtime_server_lib::schema::access_policies::revoked.eq(true))
+        .execute(&mut admin_conn)
+        .await
+        .expect("flip revoked");
+
+        let after: serde_json::Value = client
+            .post(format!("{base}/api/access_policies/by_resource"))
+            .header("x-realtime-user-id", &alice)
+            .json(&json!({"resource_type": "Channel", "resource_id": &team_channel_id}))
+            .send()
+            .await
+            .expect("by_resource post-revoke")
+            .json()
+            .await
+            .expect("by_resource post-revoke json");
+        let after_policies = after["data"]["policies"].as_array().unwrap();
+        assert_eq!(
+            after_policies.len(),
+            before_count - 1,
+            "revoking the throwaway policy must drop exactly one row from the panel",
+        );
+        assert!(
+            !after_policies
+                .iter()
+                .any(|p| p["id"].as_str() == Some(&extra_policy_id)),
+            "the revoked policy must be filtered out — handler mirrors the engine's \
+             revoked=false predicate. Got: {after_policies:?}",
+        );
+    }
+
+    // A bogus resource id must 403 (NOT 404). Existence and
+    // ownership are deliberately collapsed into one response so a
+    // non-owner cannot probe UUID space to enumerate which channel
+    // ids exist. This means even the owner cannot distinguish "I
+    // typed the wrong UUID" from "I'm not the owner" via API
+    // response alone — for the typical authz-admin flow that's
+    // fine because the resource was selected from the user's own
+    // list. Same defence the engine applies via NoMatchingAllowPolicy.
+    let bogus = uuid::Uuid::nil().to_string();
+    let bogus_by_resource = client
+        .post(format!("{base}/api/access_policies/by_resource"))
+        .header("x-realtime-user-id", &alice)
+        .json(&json!({"resource_type": "Channel", "resource_id": &bogus}))
+        .send()
+        .await
+        .expect("bogus by_resource send");
+    assert_eq!(
+        bogus_by_resource.status().as_u16(),
+        403,
+        "a non-existent resource id must be indistinguishable from a not-owned existing one — both 403",
+    );
+
     // Cleanup.
     ws.send(Message::Close(None)).await.ok();
     server_handle.abort();

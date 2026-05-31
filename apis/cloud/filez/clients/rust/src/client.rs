@@ -122,6 +122,46 @@ impl ApiClient {
         Ok(headers)
     }
 
+    /// Returns every policy pinning access to one resource, plus the resource's owner. Sibling of realtime-server's endpoint; both emit the same shape so the authz-admin BFF stays translator-free. Caller must own the resource; non-existence and non-ownership are collapsed into one 403.
+    #[tracing::instrument(level = "trace")]
+    pub async fn by_resource(
+        &self,
+        request_body: ByResourceRequestBody,
+    ) -> Result<ApiResponseByResourceResponseBody, ApiClientError> {
+        let full_url = format!("{}/api/access_policies/by_resource", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .json(&request_body)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
     /// Check if the user has access to the requested resources
     #[tracing::instrument(level = "trace")]
     pub async fn check_resource_access(
@@ -2548,13 +2588,12 @@ impl ApiClient {
         Ok(response)
     }
 
-    /// Invite a user to a group. Idempotent — re-invites are a no-op.
+    /// Owner-facing: list pending invitations for a group.
     #[tracing::instrument(level = "trace")]
-    pub async fn invite_to_user_group(
+    pub async fn list_group_invitations(
         &self,
         user_group_id: UserGroupId,
-        request_body: InviteToUserGroupRequestBody,
-    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    ) -> Result<ApiResponseListInvitationsResponseBody, ApiClientError> {
         let full_url = format!(
             "{}/api/user_groups/{user_group_id}/invitations",
             self.base_url
@@ -2563,9 +2602,8 @@ impl ApiClient {
 
         let response = self
             .client
-            .post(full_url)
+            .get(full_url)
             .headers(self.add_auth_headers()?)
-            .json(&request_body)
             .send()
             .await?;
 
@@ -2592,12 +2630,13 @@ impl ApiClient {
         Ok(response)
     }
 
-    /// Owner-facing: list pending invitations for a group.
+    /// Invite a user to a group. Idempotent — re-invites are a no-op.
     #[tracing::instrument(level = "trace")]
-    pub async fn list_group_invitations(
+    pub async fn invite_to_user_group(
         &self,
         user_group_id: UserGroupId,
-    ) -> Result<ApiResponseListInvitationsResponseBody, ApiClientError> {
+        request_body: InviteToUserGroupRequestBody,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         let full_url = format!(
             "{}/api/user_groups/{user_group_id}/invitations",
             self.base_url
@@ -2606,8 +2645,9 @@ impl ApiClient {
 
         let response = self
             .client
-            .get(full_url)
+            .post(full_url)
             .headers(self.add_auth_headers()?)
+            .json(&request_body)
             .send()
             .await?;
 
@@ -2718,12 +2758,13 @@ impl ApiClient {
         Ok(response)
     }
 
-    /// Owner-facing: list pending join requests for a group.
+    /// Request to join a user group; direct-joins OpenJoin groups.
     #[tracing::instrument(level = "trace")]
-    pub async fn list_group_join_requests(
+    pub async fn request_to_join_user_group(
         &self,
         user_group_id: UserGroupId,
-    ) -> Result<ApiResponseListJoinRequestsResponseBody, ApiClientError> {
+        request_body: RequestJoinUserGroupRequestBody,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         let full_url = format!(
             "{}/api/user_groups/{user_group_id}/join_requests",
             self.base_url
@@ -2732,8 +2773,9 @@ impl ApiClient {
 
         let response = self
             .client
-            .get(full_url)
+            .post(full_url)
             .headers(self.add_auth_headers()?)
+            .json(&request_body)
             .send()
             .await?;
 
@@ -2760,13 +2802,12 @@ impl ApiClient {
         Ok(response)
     }
 
-    /// Request to join a user group; direct-joins OpenJoin groups.
+    /// Owner-facing: list pending join requests for a group.
     #[tracing::instrument(level = "trace")]
-    pub async fn request_to_join_user_group(
+    pub async fn list_group_join_requests(
         &self,
         user_group_id: UserGroupId,
-        request_body: RequestJoinUserGroupRequestBody,
-    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    ) -> Result<ApiResponseListJoinRequestsResponseBody, ApiClientError> {
         let full_url = format!(
             "{}/api/user_groups/{user_group_id}/join_requests",
             self.base_url
@@ -2775,9 +2816,8 @@ impl ApiClient {
 
         let response = self
             .client
-            .post(full_url)
+            .get(full_url)
             .headers(self.add_auth_headers()?)
-            .json(&request_body)
             .send()
             .await?;
 
