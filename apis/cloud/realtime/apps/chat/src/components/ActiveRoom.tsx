@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@my-own-web-services/react-components/components/ui/button";
 import { Input } from "@my-own-web-services/react-components/components/ui/input";
-import ShareDialog from "./ShareDialog";
+import {
+    ShareDialog,
+    type ShareActionOption,
+    type ShareSubjectOption
+} from "@my-own-web-services/react-components";
 import { cn } from "../lib/cn";
 import {
     openChannelLiveSocket,
@@ -28,6 +32,37 @@ interface ActiveRoomProps {
 }
 
 const CHAT_EVENT_KIND = "chat.message";
+
+/// The 3 chat actions we surface in the share dialog. `ChannelsRead`
+/// implies `ChannelsList` because granting Read without List would
+/// share a room the grantee can read but never see in their sidebar
+/// (the chat review B2 / SEC-4 bug pattern — the generic dialog's
+/// implication propagation enforces this so we can't ship the bug
+/// again).
+type ChatActionId = "ChannelsRead" | "ChannelsList" | "ChannelsPublish";
+const CHAT_ACTION_IDS: ReadonlySet<ChatActionId> = new Set<ChatActionId>([
+    "ChannelsRead",
+    "ChannelsList",
+    "ChannelsPublish"
+]);
+const CHAT_SHARE_ACTIONS: ShareActionOption[] = [
+    {
+        id: "ChannelsRead",
+        label: "Read",
+        description: "Read messages and see this channel in the sidebar.",
+        implies: ["ChannelsList"]
+    },
+    {
+        id: "ChannelsList",
+        label: "List only",
+        description: "Make the channel appear in the sidebar without read access."
+    },
+    {
+        id: "ChannelsPublish",
+        label: "Publish",
+        description: "Send messages to this channel."
+    }
+];
 /// Cap the rendered event list so a long-lived room doesn't grow an
 /// in-memory array forever (review B5). The durable log is in
 /// Postgres + reachable via REST when older messages are needed.
@@ -257,12 +292,41 @@ export default function ActiveRoom({
             <ShareDialog
                 open={shareOpen}
                 onOpenChange={setShareOpen}
-                channelName={channel.name}
-                knownUsers={knownUsers}
-                actingUser={actingUser}
-                onConfirm={async (targetUserId, actions) => {
-                    await onShare(channel.id, targetUserId, actions);
-                    setShareOpen(false);
+                resourceLabel={`channel #${channel.name}`}
+                resourceDescription="Grant another user permission to read and / or publish in this room. Backed by a single access_policies row."
+                subjects={knownUsers.map<ShareSubjectOption>((u) => ({
+                    kind: "user",
+                    id: u.id,
+                    label: u.label,
+                    description: u.id.slice(0, 8) + "…"
+                }))}
+                excludeSubjectIds={[actingUser]}
+                actions={CHAT_SHARE_ACTIONS}
+                onShare={async (input) => {
+                    // The dialog's onShare hand-back is generic
+                    // {subject, actions[], effect}; the chat
+                    // backend's CreatePolicyRequest takes
+                    // (targetUserId, actions[]) so we narrow here.
+                    // Safe-by-construction (only the 3 chat action
+                    // ids ship in CHAT_SHARE_ACTIONS) AND safe-by-
+                    // runtime (the guard below throws on any
+                    // unknown id so a future bug — wider action
+                    // vocab, dialog adapter regression — can't
+                    // silently forward a bogus action to the
+                    // backend). Review R8 / SEC-5.
+                    const invalid = input.actions.filter(
+                        (a) => !CHAT_ACTION_IDS.has(a as ChatActionId)
+                    );
+                    if (invalid.length > 0) {
+                        throw new Error(
+                            `ShareDialog returned non-chat action(s): ${invalid.join(", ")}`
+                        );
+                    }
+                    await onShare(
+                        channel.id,
+                        input.subject.id,
+                        input.actions as ChatActionId[]
+                    );
                 }}
             />
         </section>

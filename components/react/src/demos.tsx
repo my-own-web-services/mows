@@ -23,17 +23,20 @@ import SidebarDocPage from "./examples/sidebar/SidebarDocPage";
 import TabsDocPage from "./examples/tabs/TabsDocPage";
 import CompassDocPage from "./examples/compass/CompassDocPage";
 import AvatarDocPage from "./examples/avatar/AvatarDocPage";
+import IconBadgeDocPage from "./examples/iconBadge/IconBadgeDocPage";
 import ActionDisplayDocPage from "./examples/actionDisplay/ActionDisplayDocPage";
 import KeyComboDisplayDocPage from "./examples/keyComboDisplay/KeyComboDisplayDocPage";
 import KeyboardShortcutEditorDocPage from "./examples/keyboardShortcutEditor/KeyboardShortcutEditorDocPage";
 import ExpandableCodeDocPage from "./examples/expandableCode/ExpandableCodeDocPage";
 import ExpandableSectionDocPage from "./examples/expandableSection/ExpandableSectionDocPage";
+import ShareDialogDocPage from "./examples/shareDialog/ShareDialogDocPage";
 import SearchInputDocPage from "./examples/searchInput/SearchInputDocPage";
 import NumberInputDocPage from "./examples/numberInput/NumberInputDocPage";
 import OptionPickerDocPage from "./examples/optionPicker/OptionPickerDocPage";
 import StaggeredCheckboxesDocPage from "./examples/staggeredCheckboxes/StaggeredCheckboxesDocPage";
 import SearchSelectPickerDocPage from "./examples/searchSelectPicker/SearchSelectPickerDocPage";
 import LanguagePickerDocPage from "./examples/languagePicker/LanguagePickerDocPage";
+import CoordinateLinksDocPage from "./examples/coordinateLinks/CoordinateLinksDocPage";
 import LocationPickerDocPage from "./examples/locationPicker/LocationPickerDocPage";
 import MapDocPage from "./examples/map/MapDocPage";
 import WeatherChipDocPage from "./examples/weatherChip/WeatherChipDocPage";
@@ -48,6 +51,7 @@ import OpeningHoursDocPage from "./examples/openingHours/OpeningHoursDocPage";
 import TimelineDocPage from "./examples/timeline/TimelineDocPage";
 import LoggingConfigDocPage from "./examples/loggingConfig/LoggingConfigDocPage";
 import CommandPaletteDocPage from "./examples/commandPalette/CommandPaletteDocPage";
+import HistoryPanelDocPage from "./examples/historyPanel/HistoryPanelDocPage";
 import ModalHandlerDocPage from "./examples/modalHandler/ModalHandlerDocPage";
 import FileViewerDocPage from "./examples/fileViewer/FileViewerDocPage";
 import Image360ViewerDocPage from "./examples/image360Viewer/Image360ViewerDocPage";
@@ -91,6 +95,7 @@ export const demos: DemoEntry[] = [
     { id: `commandPalette`, name: `CommandPalette`, groupKey: `appShell`, render: () => <CommandPaletteDocPage /> },
     { id: `globalContextMenu`, name: `GlobalContextMenu`, groupKey: `appShell`, render: () => <GlobalContextMenuDocPage /> },
     { id: `modalHandler`, name: `ModalHandler`, groupKey: `appShell`, render: () => <ModalHandlerDocPage /> },
+    { id: `historyPanel`, name: `HistoryPanel`, groupKey: `appShell`, render: () => <HistoryPanelDocPage />, searchTags: [`undo`, `redo`, `history`, `audit`, `log`, `ctrl-z`] },
     { id: `codeViewer`, name: `CodeViewer`, groupKey: `code`, render: () => <CodeViewerDocPage /> },
     {
         id: `codeSnippet`,
@@ -148,6 +153,7 @@ export const demos: DemoEntry[] = [
         searchTags: [`video`, `shaka`, `dash`, `hls`, `player`, `streaming`, `mp4`, `webm`]
     },
     { id: `avatar`, name: `Avatar`, groupKey: `identity`, render: () => <AvatarDocPage /> },
+    { id: `iconBadge`, name: `IconBadge`, groupKey: `identity`, render: () => <IconBadgeDocPage />, searchTags: [`icon`, `badge`, `overlay`, `sub-icon`, `corner`, `indicator`, `status`, `mask`, `cutout`] },
     { id: `searchInput`, name: `SearchInput`, groupKey: `input`, render: () => <SearchInputDocPage /> },
     { id: `buttonSelect`, name: `ButtonSelect`, groupKey: `input`, render: () => <ButtonSelectDocPage /> },
     { id: `colorCurves`, name: `ColorCurves`, groupKey: `input`, render: () => <ColorCurvesDocPage />, searchTags: [`curves`, `tonal`, `lightroom`, `photoshop`, `color`, `colour`, `histogram`, `photo`, `grading`] },
@@ -165,6 +171,7 @@ export const demos: DemoEntry[] = [
     { id: `mapStylePicker`, name: `MapStylePicker`, groupKey: `settings`, render: () => <MapStylePickerDocPage />, searchTags: [`map`, `mapbox`, `tiles`] },
     { id: `loggingConfig`, name: `LoggingConfig`, groupKey: `settings`, render: () => <LoggingConfigDocPage /> },
     { id: `map`, name: `Map`, groupKey: `map`, render: () => <MapDocPage />, searchTags: [`map`, `mapbox`, `mapbox-gl`, `maplibre`, `tiles`, `geo`] },
+    { id: `coordinateLinks`, name: `CoordinateLinks`, groupKey: `map`, render: () => <CoordinateLinksDocPage />, searchTags: [`map`, `coordinate`, `coordinates`, `lat`, `lng`, `latitude`, `longitude`, `geo`, `links`, `provider`, `google`, `osm`, `apple`, `bing`, `waze`, `here`, `yandex`, `geohack`] },
     { id: `weatherChip`, name: `WeatherChip`, groupKey: `map`, render: () => <WeatherChipDocPage />, searchTags: [`weather`, `wetter`, `forecast`, `historical`, `temperature`, `meteo`, `chip`, `card`] },
     { id: `weatherExpandable`, name: `WeatherExpandable`, groupKey: `map`, render: () => <WeatherExpandableDocPage />, searchTags: [`weather`, `wetter`, `forecast`, `expandable`, `collapsible`, `temperature`, `hourly`, `daily`] },
     { id: `resourceList`, name: `ResourceList`, groupKey: `list`, render: () => <ResourceListDocPage /> },
@@ -188,6 +195,13 @@ export const demos: DemoEntry[] = [
         groupKey: `navigation`,
         render: () => <ExpandableSectionDocPage />,
         searchTags: [`disclosure`, `collapsible`, `accordion`, `panel`, `card`, `expand`]
+    },
+    {
+        id: `shareDialog`,
+        name: `ShareDialog`,
+        groupKey: `identity`,
+        render: () => <ShareDialogDocPage />,
+        searchTags: [`share`, `policy`, `subject`, `access`, `authorize`, `permission`]
     },
     ...uiDemos.map(
         (entry): DemoEntry => ({

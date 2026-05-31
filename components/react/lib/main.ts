@@ -12,6 +12,7 @@ export {
 
 export { default as CommandPalette } from "./components/appShell/commandPalette/CommandPalette";
 export { default as GlobalContextMenu } from "./components/appShell/globalContextMenu/GlobalContextMenu";
+export { default as HistoryPanel } from "./components/appShell/historyPanel/HistoryPanel";
 export { default as ModalHandler } from "./components/appShell/modalHandler/ModalHandler";
 export {
     default as PrimaryMenu,
@@ -198,6 +199,24 @@ export {
 } from "./components/files/fileViewer/formats/videoViewer/VideoViewer";
 
 export { default as Avatar } from "./components/identity/avatar/Avatar";
+export {
+    default as IconBadge,
+    type IconBadgeProps,
+    type IconBadgeCorner
+} from "./components/identity/iconBadge/IconBadge";
+export {
+    ShareDialog,
+    SENTINEL_UUID,
+    type ShareDialogProps,
+    type ShareDialogStrings
+} from "./components/identity/shareDialog";
+export type {
+    ShareActionOption,
+    ShareDialogSubmit,
+    ShareEffect,
+    ShareSubjectKind,
+    ShareSubjectOption
+} from "./components/identity/shareDialog";
 
 export { default as ButtonSelect } from "./components/input/buttonSelect/ButtonSelect";
 export {
@@ -292,6 +311,17 @@ export {
     type MapProps,
     type MapView
 } from "./components/map/Map";
+export {
+    default as CoordinateLinks,
+    type CoordinateLinksProps
+} from "./components/map/coordinateLinks/CoordinateLinks";
+export {
+    BUILTIN_MAP_PROVIDERS,
+    DEFAULT_PROVIDER_ORDER,
+    resolveProviders,
+    type MapProvider,
+    type MapProviderId
+} from "./components/map/coordinateLinks/providers";
 export {
     default as WeatherChip,
     type WeatherChipProps

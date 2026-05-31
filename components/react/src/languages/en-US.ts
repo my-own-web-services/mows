@@ -31,6 +31,7 @@ import { dropdownMenuEn } from "../examples/dropdownMenu/translations";
 import { emojiPickerEn } from "../examples/emojiPicker/translations";
 import { expandableCodeEn } from "../examples/expandableCode/translations";
 import { expandableSectionEn } from "../examples/expandableSection/translations";
+import { shareDialogEn } from "../examples/shareDialog/translations";
 import { fileIconEn } from "../examples/fileIcon/translations";
 import { fileViewerEn } from "../examples/fileViewer/translations";
 import { globalContextMenuEn } from "../examples/globalContextMenu/translations";
@@ -44,6 +45,8 @@ import { keyComboRecorderEn } from "../examples/keyComboRecorder/translations";
 import { keyboardShortcutEditorEn } from "../examples/keyboardShortcutEditor/translations";
 import { labelEn } from "../examples/label/translations";
 import { languagePickerEn } from "../examples/languagePicker/translations";
+import { coordinateLinksEn } from "../examples/coordinateLinks/translations";
+import { iconBadgeEn } from "../examples/iconBadge/translations";
 import { locationPickerEn } from "../examples/locationPicker/translations";
 import { logViewEn } from "../examples/logView/translations";
 import { loggingConfigEn } from "../examples/loggingConfig/translations";
@@ -68,6 +71,7 @@ import { searchInputEn } from "../examples/searchInput/translations";
 import { searchSelectPickerEn } from "../examples/searchSelectPicker/translations";
 import { sectionHeadingEn } from "../examples/sectionHeading/translations";
 import { selectEn } from "../examples/select/translations";
+import { historyPanelEn } from "../examples/historyPanel/translations";
 import { settingsPanelEn } from "../examples/settingsPanel/translations";
 import { sidebarEn } from "../examples/sidebar/translations";
 import { skeletonEn } from "../examples/skeleton/translations";
@@ -414,6 +418,7 @@ const translation: Translation = {
             copyValueButton: copyValueButtonEn,
             buttonSelect: buttonSelectEn,
             settingsPanel: settingsPanelEn,
+            historyPanel: historyPanelEn,
             terminal: terminalEn,
             logView: logViewEn,
             machineMonitor: machineMonitorEn,
@@ -450,6 +455,7 @@ const translation: Translation = {
             keyboardShortcutEditor: keyboardShortcutEditorEn,
             expandableCode: expandableCodeEn,
             expandableSection: expandableSectionEn,
+            shareDialog: shareDialogEn,
             searchInput: searchInputEn,
             numberInput: numberInputEn,
             colorCurves: colorCurvesEn,
@@ -460,6 +466,8 @@ const translation: Translation = {
             mapStylePicker: mapStylePickerEn,
             map: mapEn,
             locationPicker: locationPickerEn,
+            coordinateLinks: coordinateLinksEn,
+            iconBadge: iconBadgeEn,
             dateTimePicker: dateTimePickerEn,
             timePicker: timePickerEn,
             timezoneSelector: timezoneSelectorEn,

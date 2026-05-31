@@ -32,6 +32,7 @@ import type { DropdownMenuTranslation } from "./examples/dropdownMenu/translatio
 import type { EmojiPickerTranslation } from "./examples/emojiPicker/translations";
 import type { ExpandableCodeTranslation } from "./examples/expandableCode/translations";
 import type { ExpandableSectionTranslation } from "./examples/expandableSection/translations";
+import type { ShareDialogTranslation } from "./examples/shareDialog/translations";
 import type { FileIconTranslation } from "./examples/fileIcon/translations";
 import type { FileViewerTranslation } from "./examples/fileViewer/translations";
 import type { GlobalContextMenuTranslation } from "./examples/globalContextMenu/translations";
@@ -45,6 +46,8 @@ import type { KeyComboRecorderTranslation } from "./examples/keyComboRecorder/tr
 import type { KeyboardShortcutEditorTranslation } from "./examples/keyboardShortcutEditor/translations";
 import type { LabelTranslation } from "./examples/label/translations";
 import type { LanguagePickerTranslation } from "./examples/languagePicker/translations";
+import type { CoordinateLinksTranslation } from "./examples/coordinateLinks/translations";
+import type { IconBadgeTranslation } from "./examples/iconBadge/translations";
 import type { LocationPickerTranslation } from "./examples/locationPicker/translations";
 import type { LogViewTranslation } from "./examples/logView/translations";
 import type { LoggingConfigTranslation } from "./examples/loggingConfig/translations";
@@ -69,6 +72,7 @@ import type { SearchInputTranslation } from "./examples/searchInput/translations
 import type { SearchSelectPickerTranslation } from "./examples/searchSelectPicker/translations";
 import type { SectionHeadingTranslation } from "./examples/sectionHeading/translations";
 import type { SelectTranslation } from "./examples/select/translations";
+import type { HistoryPanelTranslation } from "./examples/historyPanel/translations";
 import type { SettingsPanelTranslation } from "./examples/settingsPanel/translations";
 import type { SidebarTranslation } from "./examples/sidebar/translations";
 import type { SkeletonTranslation } from "./examples/skeleton/translations";
@@ -287,6 +291,7 @@ declare module "../lib/lib/languages" {
                 copyValueButton: CopyValueButtonTranslation;
                 buttonSelect: ButtonSelectTranslation;
                 settingsPanel: SettingsPanelTranslation;
+                historyPanel: HistoryPanelTranslation;
                 terminal: TerminalTranslation;
                 logView: LogViewTranslation;
                 machineMonitor: MachineMonitorTranslation;
@@ -323,6 +328,7 @@ declare module "../lib/lib/languages" {
                 keyboardShortcutEditor: KeyboardShortcutEditorTranslation;
                 expandableCode: ExpandableCodeTranslation;
                 expandableSection: ExpandableSectionTranslation;
+                shareDialog: ShareDialogTranslation;
                 searchInput: SearchInputTranslation;
                 numberInput: NumberInputTranslation;
                 colorCurves: ColorCurvesTranslation;
@@ -333,6 +339,8 @@ declare module "../lib/lib/languages" {
                 mapStylePicker: MapStylePickerTranslation;
                 map: MapTranslation;
                 locationPicker: LocationPickerTranslation;
+                coordinateLinks: CoordinateLinksTranslation;
+                iconBadge: IconBadgeTranslation;
                 dateTimePicker: DateTimePickerTranslation;
                 timePicker: TimePickerTranslation;
                 timezoneSelector: TimezoneSelectorTranslation;
