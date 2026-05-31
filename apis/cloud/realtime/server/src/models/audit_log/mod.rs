@@ -128,6 +128,24 @@ pub enum AuditEvent {
         subject_id: Uuid,
         actions: Vec<String>,
     },
+    /// A user bulk-revoked every policy they had previously
+    /// granted to one app. APP_AUTHORIZATION.md §7 — one UPDATE
+    /// flips revoked=true on each matching row. The audit row
+    /// here is the *summary* of the action; per-policy rows are
+    /// not duplicated (the admin can see the affected policies
+    /// via the audit log's `resource_id` field — set to the
+    /// `context_app_id` of the bulk operation).
+    AppPoliciesRevoked {
+        /// The app the caller revoked their consent to.
+        context_app_id: Uuid,
+        /// Count of `access_policies` rows flipped to `revoked
+        /// = TRUE` by this operation. A subsequent
+        /// AppPoliciesRevoked call for the same caller + app
+        /// returns 0 (already-revoked rows aren't re-flipped),
+        /// which is also written as an audit row so the
+        /// no-op call is still visible in the timeline.
+        revoked_count: usize,
+    },
 }
 
 impl AuditEvent {
@@ -142,6 +160,7 @@ impl AuditEvent {
             AuditEvent::ChannelDeleted { .. } => "channel_deleted",
             AuditEvent::AccessPolicyCreated { .. } => "access_policy_created",
             AuditEvent::AccessPolicyDeleted { .. } => "access_policy_deleted",
+            AuditEvent::AppPoliciesRevoked { .. } => "app_policies_revoked",
         }
     }
 }
@@ -294,6 +313,19 @@ mod event_wire_stability_guard {
     }
 
     #[test]
+    fn app_policies_revoked_event_type_is_stable() {
+        let e = AuditEvent::AppPoliciesRevoked {
+            context_app_id: Uuid::nil(),
+            revoked_count: 0,
+        };
+        assert_eq!(e.event_type(), "app_policies_revoked");
+        assert_eq!(
+            serde_json::to_value(&e).unwrap()["event_type"],
+            "app_policies_revoked"
+        );
+    }
+
+    #[test]
     fn event_type_helper_matches_serde_tag() {
         // The `event_type()` method must agree with the serde
         // discriminator for every variant — otherwise the
@@ -316,6 +348,10 @@ mod event_wire_stability_guard {
                 subject_type: "User".into(),
                 subject_id: Uuid::nil(),
                 actions: vec![],
+            },
+            AuditEvent::AppPoliciesRevoked {
+                context_app_id: Uuid::nil(),
+                revoked_count: 0,
             },
         ] {
             let serialised = serde_json::to_value(&event).unwrap();
@@ -368,6 +404,21 @@ mod metadata_field_stability_guard {
         assert_eq!(json["subject_id"], "22222222-2222-2222-2222-222222222222");
         assert_eq!(json["actions"][0], "ChannelsRead");
         assert_eq!(json["actions"][1], "ChannelsList");
+    }
+
+    #[test]
+    fn app_policies_revoked_metadata_shape() {
+        let e = AuditEvent::AppPoliciesRevoked {
+            context_app_id: uuid::uuid!("44444444-4444-4444-4444-444444444444"),
+            revoked_count: 7,
+        };
+        let json = serde_json::to_value(&e).unwrap();
+        assert_eq!(
+            json["context_app_id"],
+            "44444444-4444-4444-4444-444444444444"
+        );
+        assert_eq!(json["revoked_count"], 7);
+        assert_eq!(json["event_type"], "app_policies_revoked");
     }
 
     #[test]

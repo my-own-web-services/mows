@@ -626,6 +626,19 @@ export interface ApiResponseListFilesResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseListGrantedAppsResponseBody {
+  data?: {
+    /**
+     * Ordered by `policy_count DESC, app_id` so the SPA panel
+     * surfaces the most-shared apps first; the tie-break by id
+     * keeps the order stable across requests.
+     */
+    apps: GrantedApp[];
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseListInvitationsResponseBody {
   data?: {
     invitations: UserUserGroupInvitation[];
@@ -727,6 +740,15 @@ export interface ApiResponseRefreshSessionResponseBody {
   data?: {
     /** @format int64 */
     inactivity_timeout_seconds: number;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
+export interface ApiResponseRevokeByAppResponseBody {
+  data?: {
+    /** @min 0 */
+    revoked_count: number;
   };
   message: string;
   status: ApiResponseStatus;
@@ -1556,6 +1578,13 @@ export interface GetUsersResponseBody {
   users_meta: Record<string, UserMeta>;
 }
 
+export interface GrantedApp {
+  /** @format uuid */
+  app_id: string;
+  /** @format int64 */
+  policy_count: number;
+}
+
 export interface HealthResBody {
   all_healthy: boolean;
   controller: ControllerHealthStatus;
@@ -1779,6 +1808,17 @@ export interface ListFilesStoredSortOrder {
   direction?: null | SortDirection;
   /** @format uuid */
   stored_sort_order_id: string;
+}
+
+export type ListGrantedAppsRequestBody = object;
+
+export interface ListGrantedAppsResponseBody {
+  /**
+   * Ordered by `policy_count DESC, app_id` so the SPA panel
+   * surfaces the most-shared apps first; the tie-break by id
+   * keeps the order stable across requests.
+   */
+  apps: GrantedApp[];
 }
 
 export interface ListInvitationsResponseBody {
@@ -2046,6 +2086,16 @@ export interface RequestJoinUserGroupRequestBody {
    * @maxLength 1024
    */
   message?: string | null;
+}
+
+export interface RevokeByAppRequestBody {
+  /** @format uuid */
+  context_app_id: string;
+}
+
+export interface RevokeByAppResponseBody {
+  /** @min 0 */
+  revoked_count: number;
 }
 
 export type StartSessionRequestBody = object;
@@ -2740,6 +2790,28 @@ export class Api<
       }),
 
     /**
+     * @description List every app the caller has granted at least one non-revoked policy to, with the per-app count. Sibling of realtime-server's endpoint; both emit the same wire shape so the authz-admin BFF forwards verbatim.
+     *
+     * @name ListGrantedApps
+     * @request POST:/api/access_policies/granted_apps/list
+     */
+    listGrantedApps: (
+      data: ListGrantedAppsRequestBody,
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        ApiResponseListGrantedAppsResponseBody,
+        void | ApiResponseEmptyApiResponse
+      >({
+        path: `/api/access_policies/granted_apps/list`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
      * @description List access policies from the server
      *
      * @name ListAccessPolicies
@@ -2774,6 +2846,25 @@ export class Api<
       this.request<ApiResponseEmptyApiResponse, ApiResponseEmptyApiResponse>({
         path: `/api/access_policies/revoke/${accessPolicyId}`,
         method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Bulk-revoke every non-revoked policy the caller has granted to one app (APP_AUTHORIZATION.md §7). Idempotent — a second call after everything is already revoked returns 0.
+     *
+     * @name RevokeByApp
+     * @request POST:/api/access_policies/revoke_by_app
+     */
+    revokeByApp: (data: RevokeByAppRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseRevokeByAppResponseBody,
+        void | ApiResponseEmptyApiResponse
+      >({
+        path: `/api/access_policies/revoke_by_app`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),

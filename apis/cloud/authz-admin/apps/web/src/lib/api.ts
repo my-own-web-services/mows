@@ -305,7 +305,109 @@ export const api = {
             { method: "POST", body: JSON.stringify(body) },
             devUserHeaders
         ),
+
+    /** App-revocation panel: list the caller's granted apps. */
+    grantedApps: (
+        body: { upstream: string },
+        devUserHeaders: Array<[string, string]> = DEFAULT_USER_HEADERS
+    ) =>
+        call<GrantedAppsResponse>(
+            "/api/access_policies/granted_apps/list",
+            { method: "POST", body: JSON.stringify(body) },
+            devUserHeaders
+        ),
+
+    /** App-revocation panel: bulk-revoke every non-revoked policy
+     * the caller has granted to one app. Idempotent — calling
+     * after every policy is already revoked returns
+     * `revoked_count: 0`. */
+    revokeByApp: (
+        body: { upstream: string; context_app_id: string },
+        devUserHeaders: Array<[string, string]> = DEFAULT_USER_HEADERS
+    ) =>
+        call<RevokeByAppResponse>(
+            "/api/access_policies/revoke_by_app",
+            { method: "POST", body: JSON.stringify(body) },
+            devUserHeaders
+        ),
 };
+
+/** One row of the upstream granted_apps response. */
+export interface GrantedApp {
+    app_id: Uuid;
+    policy_count: number;
+}
+
+export interface GrantedAppsUpstreamBody {
+    apps: GrantedApp[];
+}
+
+export interface GrantedAppsResponse {
+    upstream: string;
+    upstream_status: number;
+    upstream_body: unknown;
+}
+
+export interface RevokeByAppUpstreamBody {
+    revoked_count: number;
+}
+
+export interface RevokeByAppResponse {
+    upstream: string;
+    upstream_status: number;
+    upstream_body: unknown;
+}
+
+/** Pull `{apps: [...]}` out of the granted_apps envelope; null on
+ * upstream-error envelope. Defensive filter drops malformed rows
+ * (missing app_id / non-numeric policy_count) so the React key
+ * never collides and the table never renders garbage — same R6 /
+ * R8 pattern as the other unwrappers. */
+export function unwrapGrantedApps(
+    upstream_body: unknown
+): GrantedAppsUpstreamBody | null {
+    if (
+        upstream_body &&
+        typeof upstream_body === "object" &&
+        "data" in upstream_body &&
+        upstream_body.data &&
+        typeof upstream_body.data === "object" &&
+        "apps" in upstream_body.data &&
+        Array.isArray((upstream_body.data as Record<string, unknown>).apps)
+    ) {
+        const apps = ((upstream_body.data as Record<string, unknown>).apps as GrantedApp[]).filter(
+            (a) =>
+                a &&
+                typeof a === "object" &&
+                typeof a.app_id === "string" &&
+                a.app_id.length > 0 &&
+                typeof a.policy_count === "number"
+        );
+        return { apps };
+    }
+    return null;
+}
+
+/** Pull `{revoked_count: n}` out of the revoke_by_app envelope.
+ * Returns null on an upstream-error envelope; numeric otherwise. */
+export function unwrapRevokeByApp(
+    upstream_body: unknown
+): RevokeByAppUpstreamBody | null {
+    if (
+        upstream_body &&
+        typeof upstream_body === "object" &&
+        "data" in upstream_body &&
+        upstream_body.data &&
+        typeof upstream_body.data === "object" &&
+        "revoked_count" in upstream_body.data &&
+        typeof (upstream_body.data as Record<string, unknown>).revoked_count === "number"
+    ) {
+        return {
+            revoked_count: (upstream_body.data as { revoked_count: number }).revoked_count
+        };
+    }
+    return null;
+}
 
 /** One row of the upstream audit_log response. Mirrors the AuditLog
  * struct on both upstreams — `metadata` is upstream-specific JSON,

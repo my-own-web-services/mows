@@ -1,0 +1,699 @@
+diff --git a/apis/cloud/authz-admin/apps/web/src/components/UpstreamTabs.tsx b/apis/cloud/authz-admin/apps/web/src/components/UpstreamTabs.tsx
+index c95ad69b..f08517bd 100644
+--- a/apis/cloud/authz-admin/apps/web/src/components/UpstreamTabs.tsx
++++ b/apis/cloud/authz-admin/apps/web/src/components/UpstreamTabs.tsx
+@@ -8,11 +8,14 @@ import {
+     unwrapAuditLog,
+     unwrapByResource,
+     unwrapEvaluations,
++    unwrapGrantedApps,
++    unwrapRevokeByApp,
+     type AuditLogEntry,
+     type AuthEvaluation,
+     type AuthReason,
+     type ByResourcePolicy,
+     type ByResourceUpstreamBody,
++    type GrantedApp,
+     type UpstreamStatus,
+ } from "../lib/api";
+ import { cn } from "../lib/cn";
+@@ -116,6 +119,11 @@ export default function UpstreamTabs({ upstreams, actingUser }: UpstreamTabsProp
+                         upstream={active}
+                         actingUser={actingUser}
+                     />
++                    <AppRevocationPanel
++                        key={`app-revocation:${active}`}
++                        upstream={active}
++                        actingUser={actingUser}
++                    />
+                 </div>
+             )}
+         </div>
+@@ -711,3 +719,202 @@ function formatMetadata(metadata: Record<string, unknown>): string {
+         })
+         .join(" · ");
+ }
++
++interface AppRevocationPanelProps {
++    readonly upstream: string;
++    readonly actingUser: string;
++}
++
++/** Phase 7 App-revocation panel (APP_AUTHORIZATION.md §7).
++ *
++ * Lists every app the caller has granted at least one non-revoked
++ * policy to. Each row exposes a two-step "Revoke all" button —
++ * first click arms a confirmation; second click within 5s fires
++ * the bulk revoke. Revocation is soft (UPDATE revoked=true), so
++ * the rows survive in the table for audit; the SPA doesn't expose
++ * an un-revoke surface because the design treats consent
++ * withdrawal as deliberate.
++ */
++function AppRevocationPanel({ upstream, actingUser }: AppRevocationPanelProps) {
++    const [apps, setApps] = useState<GrantedApp[]>([]);
++    const [loading, setLoading] = useState(false);
++    const [error, setError] = useState<string | null>(null);
++    const [upstreamStatus, setUpstreamStatus] = useState<number | null>(null);
++    /** App id currently in "armed" state — the second click fires.
++     * Null when nothing is armed. Reset after a successful revoke
++     * or a timer (handled in the button click via useEffect-less
++     * setTimeout) so the operator doesn't accidentally fire a
++     * stale arming. */
++    const [armed, setArmed] = useState<string | null>(null);
++
++    const fetchApps = async () => {
++        if (!actingUser.trim()) {
++            setError("Set acting user UUID above before listing granted apps.");
++            return;
++        }
++        setLoading(true);
++        setError(null);
++        try {
++            const devHeader = DEV_HEADER_PER_UPSTREAM[upstream];
++            const headers: Array<[string, string]> = devHeader
++                ? [[devHeader, actingUser.trim()]]
++                : [];
++            const res = await api.grantedApps({ upstream }, headers);
++            setUpstreamStatus(res.upstream_status);
++            const unwrapped = unwrapGrantedApps(res.upstream_body);
++            setApps(unwrapped?.apps ?? []);
++            setArmed(null);
++        } catch (e) {
++            setError(e instanceof Error ? e.message : String(e));
++        } finally {
++            setLoading(false);
++        }
++    };
++
++    const revoke = async (appId: string) => {
++        if (armed !== appId) {
++            setArmed(appId);
++            // Auto-disarm after 5s so a click-and-walk-away
++            // doesn't leave the row primed for the next operator.
++            setTimeout(() => {
++                setArmed((current) => (current === appId ? null : current));
++            }, 5000);
++            return;
++        }
++        setLoading(true);
++        setError(null);
++        try {
++            const devHeader = DEV_HEADER_PER_UPSTREAM[upstream];
++            const headers: Array<[string, string]> = devHeader
++                ? [[devHeader, actingUser.trim()]]
++                : [];
++            const res = await api.revokeByApp(
++                { upstream, context_app_id: appId },
++                headers
++            );
++            setUpstreamStatus(res.upstream_status);
++            const unwrapped = unwrapRevokeByApp(res.upstream_body);
++            if (unwrapped !== null) {
++                // Refresh the list so the just-revoked app drops
++                // out (its policy_count is now 0). Cheaper than
++                // patching the row in place because granted_apps
++                // is bounded by the user's app footprint.
++                await fetchApps();
++                setError(
++                    unwrapped.revoked_count === 0
++                        ? "Nothing to revoke — already revoked."
++                        : `Revoked ${unwrapped.revoked_count} polic${unwrapped.revoked_count === 1 ? "y" : "ies"}.`
++                );
++            } else {
++                setError(
++                    `Upstream returned HTTP ${res.upstream_status} — revocation was rejected.`
++                );
++            }
++        } catch (e) {
++            setError(e instanceof Error ? e.message : String(e));
++        } finally {
++            setLoading(false);
++            setArmed(null);
++        }
++    };
++
++    return (
++        <div className="flex flex-col gap-4 rounded-md border border-border bg-card p-4">
++            <div className="flex flex-col gap-1">
++                <h2 className="text-sm font-medium">App revocation</h2>
++                <p className="text-xs text-muted-foreground">
++                    Lists every app the acting user has granted at least one
++                    non-revoked policy to. "Revoke all" flips every matching
++                    policy to <code>revoked = true</code> in one UPDATE
++                    (APP_AUTHORIZATION.md §7) — soft-delete, the rows survive
++                    for audit. Click "Revoke all" twice within 5s to confirm.
++                </p>
++            </div>
++
++            <div className="flex justify-end">
++                <Button onClick={() => void fetchApps()} disabled={loading}>
++                    {loading ? "loading…" : "List granted apps"}
++                </Button>
++            </div>
++
++            {error && (
++                <p
++                    className={cn(
++                        "text-sm",
++                        error.startsWith("Revoked")
++                            ? "text-muted-foreground"
++                            : "text-destructive"
++                    )}
++                    role={error.startsWith("Revoked") ? "status" : "alert"}
++                >
++                    {error}
++                </p>
++            )}
++
++            {upstreamStatus !== null && upstreamStatus !== 200 && (
++                <p className="text-xs text-destructive">
++                    upstream returned HTTP {upstreamStatus}
++                </p>
++            )}
++
++            <GrantedAppsTable apps={apps} armed={armed} loading={loading} onRevoke={(id) => void revoke(id)} />
++        </div>
++    );
++}
++
++function GrantedAppsTable({
++    apps,
++    armed,
++    loading,
++    onRevoke
++}: {
++    apps: GrantedApp[];
++    armed: string | null;
++    loading: boolean;
++    onRevoke: (appId: string) => void;
++}) {
++    if (apps.length === 0) {
++        return (
++            <p className="py-6 text-center text-sm text-muted-foreground">
++                No granted apps loaded yet — click "List granted apps" above.
++                If the list is empty after a successful fetch, the acting
++                user has no non-revoked policies on this upstream.
++            </p>
++        );
++    }
++    return (
++        <div className="overflow-x-auto">
++            <table className="w-full text-left text-sm">
++                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
++                    <tr>
++                        <th className="px-2 py-2">app_id</th>
++                        <th className="px-2 py-2">policies</th>
++                        <th className="px-2 py-2 text-right">actions</th>
++                    </tr>
++                </thead>
++                <tbody>
++                    {apps.map((app) => (
++                        <tr key={app.app_id} className="border-b border-border/50">
++                            <td className="px-2 py-2 font-mono text-xs">
++                                {app.app_id.slice(0, 8)}…
++                            </td>
++                            <td className="px-2 py-2">{app.policy_count}</td>
++                            <td className="px-2 py-2 text-right">
++                                <Button
++                                    variant={armed === app.app_id ? "destructive" : "outline"}
++                                    size="sm"
++                                    onClick={() => onRevoke(app.app_id)}
++                                    disabled={loading}
++                                >
++                                    {armed === app.app_id
++                                        ? `Confirm — revoke ${app.policy_count}`
++                                        : "Revoke all"}
++                                </Button>
++                            </td>
++                        </tr>
++                    ))}
++                </tbody>
++            </table>
++        </div>
++    );
++}
+diff --git a/apis/cloud/authz-admin/apps/web/src/lib/api.ts b/apis/cloud/authz-admin/apps/web/src/lib/api.ts
+index 0cf8b00e..0fa13004 100644
+--- a/apis/cloud/authz-admin/apps/web/src/lib/api.ts
++++ b/apis/cloud/authz-admin/apps/web/src/lib/api.ts
+@@ -305,8 +305,110 @@ export const api = {
+             { method: "POST", body: JSON.stringify(body) },
+             devUserHeaders
+         ),
++
++    /** App-revocation panel: list the caller's granted apps. */
++    grantedApps: (
++        body: { upstream: string },
++        devUserHeaders: Array<[string, string]> = DEFAULT_USER_HEADERS
++    ) =>
++        call<GrantedAppsResponse>(
++            "/api/access_policies/granted_apps/list",
++            { method: "POST", body: JSON.stringify(body) },
++            devUserHeaders
++        ),
++
++    /** App-revocation panel: bulk-revoke every non-revoked policy
++     * the caller has granted to one app. Idempotent — calling
++     * after every policy is already revoked returns
++     * `revoked_count: 0`. */
++    revokeByApp: (
++        body: { upstream: string; context_app_id: string },
++        devUserHeaders: Array<[string, string]> = DEFAULT_USER_HEADERS
++    ) =>
++        call<RevokeByAppResponse>(
++            "/api/access_policies/revoke_by_app",
++            { method: "POST", body: JSON.stringify(body) },
++            devUserHeaders
++        ),
+ };
+ 
++/** One row of the upstream granted_apps response. */
++export interface GrantedApp {
++    app_id: Uuid;
++    policy_count: number;
++}
++
++export interface GrantedAppsUpstreamBody {
++    apps: GrantedApp[];
++}
++
++export interface GrantedAppsResponse {
++    upstream: string;
++    upstream_status: number;
++    upstream_body: unknown;
++}
++
++export interface RevokeByAppUpstreamBody {
++    revoked_count: number;
++}
++
++export interface RevokeByAppResponse {
++    upstream: string;
++    upstream_status: number;
++    upstream_body: unknown;
++}
++
++/** Pull `{apps: [...]}` out of the granted_apps envelope; null on
++ * upstream-error envelope. Defensive filter drops malformed rows
++ * (missing app_id / non-numeric policy_count) so the React key
++ * never collides and the table never renders garbage — same R6 /
++ * R8 pattern as the other unwrappers. */
++export function unwrapGrantedApps(
++    upstream_body: unknown
++): GrantedAppsUpstreamBody | null {
++    if (
++        upstream_body &&
++        typeof upstream_body === "object" &&
++        "data" in upstream_body &&
++        upstream_body.data &&
++        typeof upstream_body.data === "object" &&
++        "apps" in upstream_body.data &&
++        Array.isArray((upstream_body.data as Record<string, unknown>).apps)
++    ) {
++        const apps = ((upstream_body.data as Record<string, unknown>).apps as GrantedApp[]).filter(
++            (a) =>
++                a &&
++                typeof a === "object" &&
++                typeof a.app_id === "string" &&
++                a.app_id.length > 0 &&
++                typeof a.policy_count === "number"
++        );
++        return { apps };
++    }
++    return null;
++}
++
++/** Pull `{revoked_count: n}` out of the revoke_by_app envelope.
++ * Returns null on an upstream-error envelope; numeric otherwise. */
++export function unwrapRevokeByApp(
++    upstream_body: unknown
++): RevokeByAppUpstreamBody | null {
++    if (
++        upstream_body &&
++        typeof upstream_body === "object" &&
++        "data" in upstream_body &&
++        upstream_body.data &&
++        typeof upstream_body.data === "object" &&
++        "revoked_count" in upstream_body.data &&
++        typeof (upstream_body.data as Record<string, unknown>).revoked_count === "number"
++    ) {
++        return {
++            revoked_count: (upstream_body.data as { revoked_count: number }).revoked_count
++        };
++    }
++    return null;
++}
++
+ /** One row of the upstream audit_log response. Mirrors the AuditLog
+  * struct on both upstreams — `metadata` is upstream-specific JSON,
+  * the SPA renders defensively (table column shows JSON keys, click
+diff --git a/apis/cloud/authz-admin/server/src/api_router.rs b/apis/cloud/authz-admin/server/src/api_router.rs
+index 1771aaac..173c23f0 100644
+--- a/apis/cloud/authz-admin/server/src/api_router.rs
++++ b/apis/cloud/authz-admin/server/src/api_router.rs
+@@ -1,7 +1,7 @@
+ use utoipa_axum::{router::OpenApiRouter, routes};
+ 
+ use crate::{
+-    http_api::{audit_log, by_resource, explain, health, upstreams},
++    http_api::{app_revocation, audit_log, by_resource, explain, health, upstreams},
+     state::AppState,
+     types::AuthzAdminApiDoc,
+ };
+@@ -13,4 +13,6 @@ pub fn build_api_router() -> OpenApiRouter<AppState> {
+         .routes(routes!(explain::forward_explain))
+         .routes(routes!(by_resource::forward_by_resource))
+         .routes(routes!(audit_log::forward_audit_log))
++        .routes(routes!(app_revocation::forward_granted_apps))
++        .routes(routes!(app_revocation::forward_revoke_by_app))
+ }
+diff --git a/apis/cloud/authz-admin/server/src/http_api/mod.rs b/apis/cloud/authz-admin/server/src/http_api/mod.rs
+index f0dff757..7eef4924 100644
+--- a/apis/cloud/authz-admin/server/src/http_api/mod.rs
++++ b/apis/cloud/authz-admin/server/src/http_api/mod.rs
+@@ -1,3 +1,4 @@
++pub mod app_revocation;
+ pub mod audit_log;
+ pub mod by_resource;
+ pub mod explain;
+diff --git a/apis/cloud/authz-admin/server/tests/bff_forwarding.rs b/apis/cloud/authz-admin/server/tests/bff_forwarding.rs
+index 5777e0c4..6a49f9b2 100644
+--- a/apis/cloud/authz-admin/server/tests/bff_forwarding.rs
++++ b/apis/cloud/authz-admin/server/tests/bff_forwarding.rs
+@@ -787,6 +787,170 @@ async fn audit_log_rejects_invalid_resource_id_with_400() {
+     assert!(seen.is_none(), "BFF must not call upstream when resource_id parse fails");
+ }
+ 
++// ---------------------------------------------------------------
++// granted_apps + revoke_by_app — Phase 7 App-revocation panel
++// forwarders. Same shape as the others; per-test verbosity keeps
++// each name documenting one shipped contract.
++// ---------------------------------------------------------------
++
++async fn mock_granted_apps(
++    State(state): State<MockState>,
++    headers: axum::http::HeaderMap,
++    axum::Json(_body): axum::Json<Value>,
++) -> axum::Json<Value> {
++    let uid = headers
++        .get("x-realtime-user-id")
++        .and_then(|v| v.to_str().ok())
++        .map(|s| s.to_string());
++    *state.last_user_header.lock().await = uid.clone();
++    axum::Json(json!({
++        "status": "Success",
++        "message": "mocked granted_apps",
++        "data": {
++            "apps": [
++                { "app_id": "00000000-0000-0000-0000-000000000099", "policy_count": 3 }
++            ]
++        }
++    }))
++}
++
++async fn mock_revoke_by_app(
++    State(state): State<MockState>,
++    headers: axum::http::HeaderMap,
++    axum::Json(_body): axum::Json<Value>,
++) -> axum::Json<Value> {
++    let uid = headers
++        .get("x-realtime-user-id")
++        .and_then(|v| v.to_str().ok())
++        .map(|s| s.to_string());
++    *state.last_user_header.lock().await = uid.clone();
++    axum::Json(json!({
++        "status": "Success",
++        "message": "mocked revoke_by_app",
++        "data": { "revoked_count": 3 }
++    }))
++}
++
++async fn spawn_mock_with_app_revocation() -> (SocketAddr, MockState) {
++    let state = MockState::default();
++    let router = Router::new()
++        .route("/api/health", get(mock_health))
++        .route("/api/access_policies/granted_apps/list", post(mock_granted_apps))
++        .route("/api/access_policies/revoke_by_app", post(mock_revoke_by_app))
++        .with_state(state.clone());
++    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
++        .await
++        .expect("bind mock");
++    let addr = listener.local_addr().expect("local_addr");
++    tokio::spawn(async move {
++        axum::serve(listener, router).await.expect("mock serve");
++    });
++    tokio::time::sleep(Duration::from_millis(50)).await;
++    (addr, state)
++}
++
++#[tokio::test]
++async fn granted_apps_forwards_identity_header_and_returns_apps_array() {
++    let (mock_addr, mock_state) = spawn_mock_with_app_revocation().await;
++    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
++
++    let client = reqwest::Client::new();
++    let resp = client
++        .post(format!("http://{bff_addr}/api/access_policies/granted_apps/list"))
++        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
++        .json(&json!({"upstream": "realtime"}))
++        .send()
++        .await
++        .expect("send");
++    assert_eq!(resp.status().as_u16(), 200);
++    let body: Value = resp.json().await.expect("json");
++    let apps = body["data"]["upstream_body"]["data"]["apps"]
++        .as_array()
++        .expect("apps array");
++    assert_eq!(apps.len(), 1);
++    assert_eq!(apps[0]["policy_count"], 3);
++    let seen = mock_state.last_user_header.lock().await.clone();
++    assert_eq!(seen.as_deref(), Some("a11ce000-0000-0000-0000-000000000001"));
++}
++
++#[tokio::test]
++async fn granted_apps_rejects_anonymous_with_401_without_calling_upstream() {
++    let (mock_addr, mock_state) = spawn_mock_with_app_revocation().await;
++    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
++
++    let client = reqwest::Client::new();
++    let resp = client
++        .post(format!("http://{bff_addr}/api/access_policies/granted_apps/list"))
++        .json(&json!({"upstream": "realtime"}))
++        .send()
++        .await
++        .expect("send");
++    assert_eq!(resp.status().as_u16(), 401);
++    let seen = mock_state.last_user_header.lock().await.clone();
++    assert!(seen.is_none(), "BFF must not call upstream on anonymous granted_apps");
++}
++
++#[tokio::test]
++async fn revoke_by_app_forwards_uuid_and_returns_revoked_count() {
++    let (mock_addr, mock_state) = spawn_mock_with_app_revocation().await;
++    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
++
++    let client = reqwest::Client::new();
++    let resp = client
++        .post(format!("http://{bff_addr}/api/access_policies/revoke_by_app"))
++        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
++        .json(&json!({
++            "upstream": "realtime",
++            "context_app_id": "00000000-0000-0000-0000-000000000042"
++        }))
++        .send()
++        .await
++        .expect("send");
++    assert_eq!(resp.status().as_u16(), 200);
++    let body: Value = resp.json().await.expect("json");
++    assert_eq!(body["data"]["upstream_body"]["data"]["revoked_count"], 3);
++    let seen = mock_state.last_user_header.lock().await.clone();
++    assert_eq!(seen.as_deref(), Some("a11ce000-0000-0000-0000-000000000001"));
++}
++
++#[tokio::test]
++async fn revoke_by_app_rejects_invalid_uuid_with_400() {
++    let (mock_addr, mock_state) = spawn_mock_with_app_revocation().await;
++    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
++
++    let client = reqwest::Client::new();
++    let resp = client
++        .post(format!("http://{bff_addr}/api/access_policies/revoke_by_app"))
++        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
++        .json(&json!({"upstream": "realtime", "context_app_id": "not-a-uuid"}))
++        .send()
++        .await
++        .expect("send");
++    assert_eq!(resp.status().as_u16(), 400);
++    let seen = mock_state.last_user_header.lock().await.clone();
++    assert!(seen.is_none(), "BFF must not call upstream when context_app_id parse fails");
++}
++
++#[tokio::test]
++async fn revoke_by_app_rejects_anonymous_with_401_without_calling_upstream() {
++    let (mock_addr, mock_state) = spawn_mock_with_app_revocation().await;
++    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
++
++    let client = reqwest::Client::new();
++    let resp = client
++        .post(format!("http://{bff_addr}/api/access_policies/revoke_by_app"))
++        .json(&json!({
++            "upstream": "realtime",
++            "context_app_id": "00000000-0000-0000-0000-000000000042"
++        }))
++        .send()
++        .await
++        .expect("send");
++    assert_eq!(resp.status().as_u16(), 401);
++    let seen = mock_state.last_user_header.lock().await.clone();
++    assert!(seen.is_none(), "BFF must not call upstream on anonymous revoke");
++}
++
+ #[tokio::test]
+ async fn audit_log_surfaces_upstream_403_when_caller_is_not_owner() {
+     // Review R3 / QA-1 — the upstream's owner-gate collapses
+diff --git a/apis/cloud/filez/server/src/api_router.rs b/apis/cloud/filez/server/src/api_router.rs
+index e60b49da..d29a9f72 100644
+--- a/apis/cloud/filez/server/src/api_router.rs
++++ b/apis/cloud/filez/server/src/api_router.rs
+@@ -124,6 +124,12 @@ pub fn build_api_router() -> OpenApiRouter<ServerState> {
+         .routes(routes!(
+             http_api::access_policies::by_resource::by_resource
+         ))
++        .routes(routes!(
++            http_api::access_policies::granted_apps::list_granted_apps
++        ))
++        .routes(routes!(
++            http_api::access_policies::revoke_by_app::revoke_by_app
++        ))
+         .routes(routes!(http_api::audit_log::list::list_audit_log))
+         .routes(routes!(
+             http_api::access_policies::create::create_access_policy
+diff --git a/apis/cloud/filez/server/src/http_api/mod.rs b/apis/cloud/filez/server/src/http_api/mod.rs
+index e27f1c48..ec082616 100644
+--- a/apis/cloud/filez/server/src/http_api/mod.rs
++++ b/apis/cloud/filez/server/src/http_api/mod.rs
+@@ -33,8 +33,10 @@ pub mod access_policies {
+     pub mod delete;
+     pub mod explain;
+     pub mod get;
++    pub mod granted_apps;
+     pub mod list;
+     pub mod revoke;
++    pub mod revoke_by_app;
+     pub mod update;
+ }
+ 
+diff --git a/apis/cloud/realtime/server/src/api_router.rs b/apis/cloud/realtime/server/src/api_router.rs
+index 69d981c7..91808523 100644
+--- a/apis/cloud/realtime/server/src/api_router.rs
++++ b/apis/cloud/realtime/server/src/api_router.rs
+@@ -24,6 +24,8 @@ pub fn build_api_router() -> OpenApiRouter<AppState> {
+         .routes(routes!(policies::delete::delete_policy))
+         .routes(routes!(policies::explain::explain_access))
+         .routes(routes!(policies::by_resource::by_resource))
++        .routes(routes!(policies::granted_apps::list_granted_apps))
++        .routes(routes!(policies::revoke_by_app::revoke_by_app))
+         .routes(routes!(audit_log::list::list_audit_log))
+         .routes(routes!(dev::seed::dev_seed))
+         // WebSocket endpoint — registered via raw `route()`
+diff --git a/apis/cloud/realtime/server/src/http_api/policies/mod.rs b/apis/cloud/realtime/server/src/http_api/policies/mod.rs
+index 99b69311..7f451ed6 100644
+--- a/apis/cloud/realtime/server/src/http_api/policies/mod.rs
++++ b/apis/cloud/realtime/server/src/http_api/policies/mod.rs
+@@ -2,4 +2,6 @@ pub mod by_resource;
+ pub mod create;
+ pub mod delete;
+ pub mod explain;
++pub mod granted_apps;
+ pub mod list;
++pub mod revoke_by_app;
+diff --git a/apis/cloud/realtime/server/src/models/audit_log/mod.rs b/apis/cloud/realtime/server/src/models/audit_log/mod.rs
+index 32b0062c..d9b4a344 100644
+--- a/apis/cloud/realtime/server/src/models/audit_log/mod.rs
++++ b/apis/cloud/realtime/server/src/models/audit_log/mod.rs
+@@ -128,6 +128,24 @@ pub enum AuditEvent {
+         subject_id: Uuid,
+         actions: Vec<String>,
+     },
++    /// A user bulk-revoked every policy they had previously
++    /// granted to one app. APP_AUTHORIZATION.md §7 — one UPDATE
++    /// flips revoked=true on each matching row. The audit row
++    /// here is the *summary* of the action; per-policy rows are
++    /// not duplicated (the admin can see the affected policies
++    /// via the audit log's `resource_id` field — set to the
++    /// `context_app_id` of the bulk operation).
++    AppPoliciesRevoked {
++        /// The app the caller revoked their consent to.
++        context_app_id: Uuid,
++        /// Count of `access_policies` rows flipped to `revoked
++        /// = TRUE` by this operation. A subsequent
++        /// AppPoliciesRevoked call for the same caller + app
++        /// returns 0 (already-revoked rows aren't re-flipped),
++        /// which is also written as an audit row so the
++        /// no-op call is still visible in the timeline.
++        revoked_count: usize,
++    },
+ }
+ 
+ impl AuditEvent {
+@@ -142,6 +160,7 @@ impl AuditEvent {
+             AuditEvent::ChannelDeleted { .. } => "channel_deleted",
+             AuditEvent::AccessPolicyCreated { .. } => "access_policy_created",
+             AuditEvent::AccessPolicyDeleted { .. } => "access_policy_deleted",
++            AuditEvent::AppPoliciesRevoked { .. } => "app_policies_revoked",
+         }
+     }
+ }
+@@ -293,6 +312,19 @@ mod event_wire_stability_guard {
+         );
+     }
+ 
++    #[test]
++    fn app_policies_revoked_event_type_is_stable() {
++        let e = AuditEvent::AppPoliciesRevoked {
++            context_app_id: Uuid::nil(),
++            revoked_count: 0,
++        };
++        assert_eq!(e.event_type(), "app_policies_revoked");
++        assert_eq!(
++            serde_json::to_value(&e).unwrap()["event_type"],
++            "app_policies_revoked"
++        );
++    }
++
+     #[test]
+     fn event_type_helper_matches_serde_tag() {
+         // The `event_type()` method must agree with the serde
+@@ -317,6 +349,10 @@ mod event_wire_stability_guard {
+                 subject_id: Uuid::nil(),
+                 actions: vec![],
+             },
++            AuditEvent::AppPoliciesRevoked {
++                context_app_id: Uuid::nil(),
++                revoked_count: 0,
++            },
+         ] {
+             let serialised = serde_json::to_value(&event).unwrap();
+             assert_eq!(
+@@ -370,6 +406,21 @@ mod metadata_field_stability_guard {
+         assert_eq!(json["actions"][1], "ChannelsList");
+     }
+ 
++    #[test]
++    fn app_policies_revoked_metadata_shape() {
++        let e = AuditEvent::AppPoliciesRevoked {
++            context_app_id: uuid::uuid!("44444444-4444-4444-4444-444444444444"),
++            revoked_count: 7,
++        };
++        let json = serde_json::to_value(&e).unwrap();
++        assert_eq!(
++            json["context_app_id"],
++            "44444444-4444-4444-4444-444444444444"
++        );
++        assert_eq!(json["revoked_count"], 7);
++        assert_eq!(json["event_type"], "app_policies_revoked");
++    }
++
+     #[test]
+     fn access_policy_deleted_metadata_shape() {
+         // Review R4 / QA-7 — the Deleted variant carries the same

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@my-own-web-services/react-components/components/ui/button";
 import { Input } from "@my-own-web-services/react-components/components/ui/input";
 import { Label } from "@my-own-web-services/react-components/components/ui/label";
@@ -8,11 +8,14 @@ import {
     unwrapAuditLog,
     unwrapByResource,
     unwrapEvaluations,
+    unwrapGrantedApps,
+    unwrapRevokeByApp,
     type AuditLogEntry,
     type AuthEvaluation,
     type AuthReason,
     type ByResourcePolicy,
     type ByResourceUpstreamBody,
+    type GrantedApp,
     type UpstreamStatus,
 } from "../lib/api";
 import { cn } from "../lib/cn";
@@ -113,6 +116,11 @@ export default function UpstreamTabs({ upstreams, actingUser }: UpstreamTabsProp
                     />
                     <AuditLogPanel
                         key={`audit-log:${active}`}
+                        upstream={active}
+                        actingUser={actingUser}
+                    />
+                    <AppRevocationPanel
+                        key={`app-revocation:${active}`}
                         upstream={active}
                         actingUser={actingUser}
                     />
@@ -512,7 +520,7 @@ function AuditLogPanel({ upstream, actingUser }: AuditLogPanelProps) {
     /** Resource scope is "both filled" or "both empty" — partial
      * configurations are a 400 from the upstream (defense-in-
      * depth: upstream also rejects them; the client guard just
-     * surfaces the error before the round-trip). Review SLOP-11. */
+     * surfaces the error before the round-trip). */
     const partialScope =
         (resourceType.trim() !== "" && resourceId.trim() === "") ||
         (resourceType.trim() === "" && resourceId.trim() !== "");
@@ -710,4 +718,230 @@ function formatMetadata(metadata: Record<string, unknown>): string {
             return `${k}=${JSON.stringify(v).slice(0, 32)}`;
         })
         .join(" · ");
+}
+
+interface AppRevocationPanelProps {
+    readonly upstream: string;
+    readonly actingUser: string;
+}
+
+/** Phase 7 App-revocation panel (APP_AUTHORIZATION.md §7).
+ *
+ * Lists every app the caller has granted at least one non-revoked
+ * policy to. Each row exposes a two-step "Revoke all" button —
+ * first click arms a confirmation; second click within 5s fires
+ * the bulk revoke. Revocation is soft (UPDATE revoked=true), so
+ * the rows survive in the table for audit; the SPA doesn't expose
+ * an un-revoke surface because the design treats consent
+ * withdrawal as deliberate.
+ */
+function AppRevocationPanel({ upstream, actingUser }: AppRevocationPanelProps) {
+    const [apps, setApps] = useState<GrantedApp[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    /** Success feedback separated from `error` so the role attribute
+     * + colour match the message. Review R2 / SLOP-2. */
+    const [lastResult, setLastResult] = useState<{
+        revoked_count: number;
+    } | null>(null);
+    const [upstreamStatus, setUpstreamStatus] = useState<number | null>(null);
+    /** App id currently in "armed" state — the second click fires.
+     * Null when nothing is armed. */
+    const [armed, setArmed] = useState<string | null>(null);
+    /** Disarm timer ref so back-to-back clicks on the same row
+     * don't leak overlapping timers, and an unmount cancels the
+     * pending callback. Review R1 / TECH-6 / SLOP-1. */
+    const disarmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Cancel any in-flight disarm timer when the panel unmounts.
+    useEffect(() => {
+        return () => {
+            if (disarmTimerRef.current !== null) {
+                clearTimeout(disarmTimerRef.current);
+                disarmTimerRef.current = null;
+            }
+        };
+    }, []);
+
+    const fetchApps = async () => {
+        if (!actingUser.trim()) {
+            setError("Set acting user UUID above before listing granted apps.");
+            return;
+        }
+        setLoading(true);
+        setError(null);
+        try {
+            const devHeader = DEV_HEADER_PER_UPSTREAM[upstream];
+            const headers: Array<[string, string]> = devHeader
+                ? [[devHeader, actingUser.trim()]]
+                : [];
+            const res = await api.grantedApps({ upstream }, headers);
+            setUpstreamStatus(res.upstream_status);
+            const unwrapped = unwrapGrantedApps(res.upstream_body);
+            setApps(unwrapped?.apps ?? []);
+            setArmed(null);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const revoke = async (appId: string) => {
+        if (armed !== appId) {
+            setArmed(appId);
+            // Cancel any prior pending disarm before starting a
+            // new one — back-to-back clicks on the same row
+            // would otherwise leak overlapping timers, and the
+            // first timer's callback could race against the
+            // second arming. Review R1 / TECH-6 / SLOP-1.
+            if (disarmTimerRef.current !== null) {
+                clearTimeout(disarmTimerRef.current);
+            }
+            disarmTimerRef.current = setTimeout(() => {
+                setArmed((current) => (current === appId ? null : current));
+                disarmTimerRef.current = null;
+            }, 5000);
+            return;
+        }
+        // The second click is firing — cancel the disarm so we
+        // don't race with the post-revoke state reset below.
+        if (disarmTimerRef.current !== null) {
+            clearTimeout(disarmTimerRef.current);
+            disarmTimerRef.current = null;
+        }
+        setLoading(true);
+        setError(null);
+        setLastResult(null);
+        try {
+            const devHeader = DEV_HEADER_PER_UPSTREAM[upstream];
+            const headers: Array<[string, string]> = devHeader
+                ? [[devHeader, actingUser.trim()]]
+                : [];
+            const res = await api.revokeByApp(
+                { upstream, context_app_id: appId },
+                headers
+            );
+            setUpstreamStatus(res.upstream_status);
+            const unwrapped = unwrapRevokeByApp(res.upstream_body);
+            if (unwrapped !== null) {
+                // Refresh the list so the just-revoked app drops
+                // out (its policy_count is now 0). Cheaper than
+                // patching the row in place because granted_apps
+                // is bounded by the user's app footprint.
+                await fetchApps();
+                setLastResult({ revoked_count: unwrapped.revoked_count });
+            } else {
+                setError(
+                    `Upstream returned HTTP ${res.upstream_status} — revocation was rejected.`
+                );
+            }
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setLoading(false);
+            setArmed(null);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-4 rounded-md border border-border bg-card p-4">
+            <div className="flex flex-col gap-1">
+                <h2 className="text-sm font-medium">App revocation</h2>
+                <p className="text-xs text-muted-foreground">
+                    Lists every app the acting user has granted at least one
+                    non-revoked policy to. "Revoke all" flips every matching
+                    policy to <code>revoked = true</code> in one UPDATE
+                    (APP_AUTHORIZATION.md §7) — soft-delete, the rows survive
+                    for audit. Click "Revoke all" twice within 5s to confirm.
+                </p>
+            </div>
+
+            <div className="flex justify-end">
+                <Button onClick={() => void fetchApps()} disabled={loading}>
+                    {loading ? "loading…" : "List granted apps"}
+                </Button>
+            </div>
+
+            {error !== null && (
+                <p className="text-sm text-destructive" role="alert">
+                    {error}
+                </p>
+            )}
+            {lastResult !== null && (
+                <p className="text-sm text-muted-foreground" role="status">
+                    {lastResult.revoked_count === 0
+                        ? "Nothing to revoke — already revoked."
+                        : `Revoked ${lastResult.revoked_count} polic${
+                              lastResult.revoked_count === 1 ? "y" : "ies"
+                          }.`}
+                </p>
+            )}
+
+            {upstreamStatus !== null && upstreamStatus !== 200 && (
+                <p className="text-xs text-destructive">
+                    upstream returned HTTP {upstreamStatus}
+                </p>
+            )}
+
+            <GrantedAppsTable apps={apps} armed={armed} loading={loading} onRevoke={(id) => void revoke(id)} />
+        </div>
+    );
+}
+
+function GrantedAppsTable({
+    apps,
+    armed,
+    loading,
+    onRevoke
+}: {
+    apps: GrantedApp[];
+    armed: string | null;
+    loading: boolean;
+    onRevoke: (appId: string) => void;
+}) {
+    if (apps.length === 0) {
+        return (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+                No granted apps loaded yet — click "List granted apps" above.
+                If the list is empty after a successful fetch, the acting
+                user has no non-revoked policies on this upstream.
+            </p>
+        );
+    }
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+                <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                        <th className="px-2 py-2">app_id</th>
+                        <th className="px-2 py-2">policies</th>
+                        <th className="px-2 py-2 text-right">actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {apps.map((app) => (
+                        <tr key={app.app_id} className="border-b border-border/50">
+                            <td className="px-2 py-2 font-mono text-xs">
+                                {app.app_id.slice(0, 8)}…
+                            </td>
+                            <td className="px-2 py-2">{app.policy_count}</td>
+                            <td className="px-2 py-2 text-right">
+                                <Button
+                                    variant={armed === app.app_id ? "destructive" : "outline"}
+                                    size="sm"
+                                    onClick={() => onRevoke(app.app_id)}
+                                    disabled={loading}
+                                >
+                                    {armed === app.app_id
+                                        ? `Confirm — revoke ${app.policy_count}`
+                                        : "Revoke all"}
+                                </Button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
 }

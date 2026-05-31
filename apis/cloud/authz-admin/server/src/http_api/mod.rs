@@ -1,3 +1,4 @@
+pub mod app_revocation;
 pub mod audit_log;
 pub mod by_resource;
 pub mod explain;

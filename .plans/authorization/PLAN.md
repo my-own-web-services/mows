@@ -284,7 +284,27 @@ that calls each consumer's `/api/access_policies/*` surface.
      (16 findings — all actionable items addressed, 7 deferred).
 - ❌ User-group directory (Phase 4 frontend ships building blocks;
      host-app routing/mounting is Phase 7)
-- ❌ App revocation panel
+- ✅ App revocation panel (APP_AUTHORIZATION.md §7). Two new
+     endpoints per upstream: `POST /api/access_policies/granted_apps/list`
+     (returns every app the caller has granted at least one
+     non-revoked policy to, with per-app count) and `POST
+     /api/access_policies/revoke_by_app` (bulk-flips
+     `revoked = TRUE` on every matching row in one UPDATE,
+     idempotent — a no-op second call returns 0). Realtime emits
+     `AppPoliciesRevoked` audit rows on every call (incl.
+     no-ops) so the timeline shows the operator's intent; filez
+     audit row is a tracked Phase-7 follow-up. Authz-admin BFF
+     forwards both via the shared http_api::forwarder helpers
+     (identity-header guard, body-size cap, header passthrough).
+     SPA's fourth per-upstream panel lists granted apps + offers
+     a two-step confirm (Revoke all → 5s armed → Confirm)
+     with timer cleanup via useRef so back-to-back clicks +
+     unmounts don't leak callbacks. 9 new BFF integration tests
+     (incl. unknown-upstream + 500-surfacing parity with the
+     other 3 forwarders), debug-query SQL guards on both
+     upstreams pin the load-bearing `owner_id = caller AND
+     revoked = false` filter. Multi-review round 1 dispositions
+     in `.plans/authorization/phase7-app-revocation-review/issue.md`.
 - ✅ Audit log viewer. Realtime ships a new audit_log table
      (migration 00000000000003) + AuditEvent enum (5 variants:
      ChannelCreated/Updated/Deleted + AccessPolicyCreated/Deleted)

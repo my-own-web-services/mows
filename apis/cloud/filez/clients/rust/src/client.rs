@@ -364,6 +364,46 @@ impl ApiClient {
         Ok(response)
     }
 
+    /// List every app the caller has granted at least one non-revoked policy to, with the per-app count. Sibling of realtime-server's endpoint; both emit the same wire shape so the authz-admin BFF forwards verbatim.
+    #[tracing::instrument(level = "trace")]
+    pub async fn list_granted_apps(
+        &self,
+        request_body: ListGrantedAppsRequestBody,
+    ) -> Result<ApiResponseListGrantedAppsResponseBody, ApiClientError> {
+        let full_url = format!("{}/api/access_policies/granted_apps/list", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .json(&request_body)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
     /// List access policies from the server
     #[tracing::instrument(level = "trace")]
     pub async fn list_access_policies(
@@ -420,6 +460,46 @@ impl ApiClient {
             .client
             .post(full_url)
             .headers(self.add_auth_headers()?)
+            .send()
+            .await?;
+
+        if response.status().is_client_error() || response.status().is_server_error() {
+            let text_response = response.text().await?;
+            error!(text_response = %text_response, "API returned error");
+
+            return Err(ApiClientError::ApiError(text_response));
+        }
+
+        let text_response = response.text().await?;
+
+        let response = match serde_json::from_str(&text_response) {
+            Ok(parsed_response) => {
+                trace!(text_response = %text_response, "API response text");
+                parsed_response
+            }
+            Err(parse_error) => {
+                error!(parse_error = ?parse_error, "Failed to parse API response");
+                error!(text_response = %text_response, "API response text");
+                return Err(ApiClientError::ParseError(parse_error));
+            }
+        };
+        Ok(response)
+    }
+
+    /// Bulk-revoke every non-revoked policy the caller has granted to one app (APP_AUTHORIZATION.md §7). Idempotent — a second call after everything is already revoked returns 0.
+    #[tracing::instrument(level = "trace")]
+    pub async fn revoke_by_app(
+        &self,
+        request_body: RevokeByAppRequestBody,
+    ) -> Result<ApiResponseRevokeByAppResponseBody, ApiClientError> {
+        let full_url = format!("{}/api/access_policies/revoke_by_app", self.base_url);
+        let full_url = Url::parse(&full_url).unwrap();
+
+        let response = self
+            .client
+            .post(full_url)
+            .headers(self.add_auth_headers()?)
+            .json(&request_body)
             .send()
             .await?;
 
@@ -2798,12 +2878,13 @@ impl ApiClient {
         Ok(response)
     }
 
-    /// Owner-facing: list pending join requests for a group.
+    /// Request to join a user group; direct-joins OpenJoin groups.
     #[tracing::instrument(level = "trace")]
-    pub async fn list_group_join_requests(
+    pub async fn request_to_join_user_group(
         &self,
         user_group_id: UserGroupId,
-    ) -> Result<ApiResponseListJoinRequestsResponseBody, ApiClientError> {
+        request_body: RequestJoinUserGroupRequestBody,
+    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
         let full_url = format!(
             "{}/api/user_groups/{user_group_id}/join_requests",
             self.base_url
@@ -2812,8 +2893,9 @@ impl ApiClient {
 
         let response = self
             .client
-            .get(full_url)
+            .post(full_url)
             .headers(self.add_auth_headers()?)
+            .json(&request_body)
             .send()
             .await?;
 
@@ -2840,13 +2922,12 @@ impl ApiClient {
         Ok(response)
     }
 
-    /// Request to join a user group; direct-joins OpenJoin groups.
+    /// Owner-facing: list pending join requests for a group.
     #[tracing::instrument(level = "trace")]
-    pub async fn request_to_join_user_group(
+    pub async fn list_group_join_requests(
         &self,
         user_group_id: UserGroupId,
-        request_body: RequestJoinUserGroupRequestBody,
-    ) -> Result<ApiResponseEmptyApiResponse, ApiClientError> {
+    ) -> Result<ApiResponseListJoinRequestsResponseBody, ApiClientError> {
         let full_url = format!(
             "{}/api/user_groups/{user_group_id}/join_requests",
             self.base_url
@@ -2855,9 +2936,8 @@ impl ApiClient {
 
         let response = self
             .client
-            .post(full_url)
+            .get(full_url)
             .headers(self.add_auth_headers()?)
-            .json(&request_body)
             .send()
             .await?;
 

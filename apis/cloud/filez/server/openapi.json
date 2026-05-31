@@ -244,6 +244,47 @@
         }
       }
     },
+    "/api/access_policies/granted_apps/list": {
+      "post": {
+        "description": "List every app the caller has granted at least one non-revoked policy to, with the per-app count. Sibling of realtime-server's endpoint; both emit the same wire shape so the authz-admin BFF forwards verbatim.",
+        "operationId": "list_granted_apps",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListGrantedAppsRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Granted apps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ListGrantedAppsResponseBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Anonymous request"
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/access_policies/list": {
       "post": {
         "description": "List access policies from the server",
@@ -317,6 +358,47 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access_policies/revoke_by_app": {
+      "post": {
+        "description": "Bulk-revoke every non-revoked policy the caller has granted to one app (APP_AUTHORIZATION.md §7). Idempotent — a second call after everything is already revoked returns 0.",
+        "operationId": "revoke_by_app",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeByAppRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_RevokeByAppResponseBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Anonymous request"
           },
           "500": {
             "description": "Internal server error",
@@ -4664,6 +4746,36 @@
           }
         }
       },
+      "ApiResponse_ListGrantedAppsResponseBody": {
+        "type": "object",
+        "required": [
+          "message",
+          "status"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "apps"
+            ],
+            "properties": {
+              "apps": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/GrantedApp"
+                },
+                "description": "Ordered by `policy_count DESC, app_id` so the SPA panel\nsurfaces the most-shared apps first; the tie-break by id\nkeeps the order stable across requests."
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
       "ApiResponse_ListInvitationsResponseBody": {
         "type": "object",
         "required": [
@@ -4972,6 +5084,33 @@
               "inactivity_timeout_seconds": {
                 "type": "integer",
                 "format": "int64"
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
+      "ApiResponse_RevokeByAppResponseBody": {
+        "type": "object",
+        "required": [
+          "message",
+          "status"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "revoked_count"
+            ],
+            "properties": {
+              "revoked_count": {
+                "type": "integer",
+                "minimum": 0
               }
             }
           },
@@ -7246,6 +7385,23 @@
           }
         }
       },
+      "GrantedApp": {
+        "type": "object",
+        "required": [
+          "app_id",
+          "policy_count"
+        ],
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "policy_count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "GroupJoinPolicy": {
         "type": "string",
         "description": "User-group join policy axis (USER_GROUPS.md §1).",
@@ -7934,6 +8090,24 @@
           "stored_sort_order_id": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "ListGrantedAppsRequestBody": {
+        "type": "object"
+      },
+      "ListGrantedAppsResponseBody": {
+        "type": "object",
+        "required": [
+          "apps"
+        ],
+        "properties": {
+          "apps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GrantedApp"
+            },
+            "description": "Ordered by `policy_count DESC, app_id` so the SPA panel\nsurfaces the most-shared apps first; the tie-break by id\nkeeps the order stable across requests."
           }
         }
       },
@@ -8666,6 +8840,30 @@
           "OwnedByOwner",
           "AccessibleByOwner"
         ]
+      },
+      "RevokeByAppRequestBody": {
+        "type": "object",
+        "required": [
+          "context_app_id"
+        ],
+        "properties": {
+          "context_app_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "RevokeByAppResponseBody": {
+        "type": "object",
+        "required": [
+          "revoked_count"
+        ],
+        "properties": {
+          "revoked_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
       },
       "SortDirection": {
         "type": "string",

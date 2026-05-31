@@ -787,6 +787,295 @@ async fn audit_log_rejects_invalid_resource_id_with_400() {
     assert!(seen.is_none(), "BFF must not call upstream when resource_id parse fails");
 }
 
+// ---------------------------------------------------------------
+// granted_apps + revoke_by_app — Phase 7 App-revocation panel
+// forwarders. Same shape as the others; per-test verbosity keeps
+// each name documenting one shipped contract.
+// ---------------------------------------------------------------
+
+async fn mock_granted_apps(
+    State(state): State<MockState>,
+    headers: axum::http::HeaderMap,
+    axum::Json(_body): axum::Json<Value>,
+) -> axum::Json<Value> {
+    let uid = headers
+        .get("x-realtime-user-id")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+    *state.last_user_header.lock().await = uid.clone();
+    axum::Json(json!({
+        "status": "Success",
+        "message": "mocked granted_apps",
+        "data": {
+            "apps": [
+                { "app_id": "00000000-0000-0000-0000-000000000099", "policy_count": 3 }
+            ]
+        }
+    }))
+}
+
+async fn mock_revoke_by_app(
+    State(state): State<MockState>,
+    headers: axum::http::HeaderMap,
+    axum::Json(_body): axum::Json<Value>,
+) -> axum::Json<Value> {
+    let uid = headers
+        .get("x-realtime-user-id")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+    *state.last_user_header.lock().await = uid.clone();
+    axum::Json(json!({
+        "status": "Success",
+        "message": "mocked revoke_by_app",
+        "data": { "revoked_count": 3 }
+    }))
+}
+
+async fn spawn_mock_with_app_revocation() -> (SocketAddr, MockState) {
+    let state = MockState::default();
+    let router = Router::new()
+        .route("/api/health", get(mock_health))
+        .route("/api/access_policies/granted_apps/list", post(mock_granted_apps))
+        .route("/api/access_policies/revoke_by_app", post(mock_revoke_by_app))
+        .with_state(state.clone());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind mock");
+    let addr = listener.local_addr().expect("local_addr");
+    tokio::spawn(async move {
+        axum::serve(listener, router).await.expect("mock serve");
+    });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    (addr, state)
+}
+
+#[tokio::test]
+async fn granted_apps_forwards_identity_header_and_returns_apps_array() {
+    let (mock_addr, mock_state) = spawn_mock_with_app_revocation().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/granted_apps/list"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({"upstream": "realtime"}))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 200);
+    let body: Value = resp.json().await.expect("json");
+    let apps = body["data"]["upstream_body"]["data"]["apps"]
+        .as_array()
+        .expect("apps array");
+    assert_eq!(apps.len(), 1);
+    assert_eq!(apps[0]["policy_count"], 3);
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert_eq!(seen.as_deref(), Some("a11ce000-0000-0000-0000-000000000001"));
+}
+
+#[tokio::test]
+async fn granted_apps_rejects_anonymous_with_401_without_calling_upstream() {
+    let (mock_addr, mock_state) = spawn_mock_with_app_revocation().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/granted_apps/list"))
+        .json(&json!({"upstream": "realtime"}))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 401);
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert!(seen.is_none(), "BFF must not call upstream on anonymous granted_apps");
+}
+
+#[tokio::test]
+async fn revoke_by_app_forwards_uuid_and_returns_revoked_count() {
+    let (mock_addr, mock_state) = spawn_mock_with_app_revocation().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/revoke_by_app"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "context_app_id": "00000000-0000-0000-0000-000000000042"
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 200);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["data"]["upstream_body"]["data"]["revoked_count"], 3);
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert_eq!(seen.as_deref(), Some("a11ce000-0000-0000-0000-000000000001"));
+}
+
+#[tokio::test]
+async fn revoke_by_app_rejects_invalid_uuid_with_400() {
+    let (mock_addr, mock_state) = spawn_mock_with_app_revocation().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/revoke_by_app"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({"upstream": "realtime", "context_app_id": "not-a-uuid"}))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 400);
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert!(seen.is_none(), "BFF must not call upstream when context_app_id parse fails");
+}
+
+#[tokio::test]
+async fn revoke_by_app_rejects_anonymous_with_401_without_calling_upstream() {
+    let (mock_addr, mock_state) = spawn_mock_with_app_revocation().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/revoke_by_app"))
+        .json(&json!({
+            "upstream": "realtime",
+            "context_app_id": "00000000-0000-0000-0000-000000000042"
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 401);
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert!(seen.is_none(), "BFF must not call upstream on anonymous revoke");
+}
+
+#[tokio::test]
+async fn granted_apps_rejects_unknown_upstream_with_400() {
+    // Review R3 / QA-1 — parity with the other forwarders.
+    let (mock_addr, _) = spawn_mock_with_app_revocation().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/granted_apps/list"))
+        .header("x-realtime-user-id", "00000000-0000-0000-0000-000000000001")
+        .json(&json!({"upstream": "ghost"}))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 400);
+    let body: Value = resp.json().await.expect("json");
+    assert!(
+        body["message"].as_str().unwrap_or("").contains("ghost"),
+        "error must name the offending upstream key, got: {body:?}",
+    );
+}
+
+#[tokio::test]
+async fn revoke_by_app_rejects_unknown_upstream_with_400() {
+    let (mock_addr, _) = spawn_mock_with_app_revocation().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/revoke_by_app"))
+        .header("x-realtime-user-id", "00000000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "ghost",
+            "context_app_id": "00000000-0000-0000-0000-000000000042"
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 400);
+    let body: Value = resp.json().await.expect("json");
+    assert!(
+        body["message"].as_str().unwrap_or("").contains("ghost"),
+        "error must name the offending upstream key, got: {body:?}",
+    );
+}
+
+#[tokio::test]
+async fn granted_apps_surfaces_upstream_500_under_upstream_status() {
+    // Review R3 / QA-1 — same pattern as the other forwarders'
+    // upstream-error tests. The BFF returns 200 with the
+    // upstream's 500 surfaced via upstream_status so the SPA
+    // renders a real error instead of misreporting "no apps".
+    let mock_state = MockState::default();
+    let router = Router::new()
+        .route("/api/health", get(mock_health))
+        .route(
+            "/api/access_policies/granted_apps/list",
+            post(|axum::Json(_): axum::Json<Value>| async {
+                (
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    axum::Json(json!({
+                        "status": {"Error": "InternalServerError"},
+                        "message": "DB unreachable",
+                        "data": null
+                    })),
+                )
+            }),
+        )
+        .with_state(mock_state);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mock_addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/granted_apps/list"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({"upstream": "realtime"}))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 200);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["data"]["upstream_status"], 500);
+}
+
+#[tokio::test]
+async fn revoke_by_app_surfaces_upstream_500_under_upstream_status() {
+    let mock_state = MockState::default();
+    let router = Router::new()
+        .route("/api/health", get(mock_health))
+        .route(
+            "/api/access_policies/revoke_by_app",
+            post(|axum::Json(_): axum::Json<Value>| async {
+                (
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    axum::Json(json!({
+                        "status": {"Error": "InternalServerError"},
+                        "message": "DB unreachable",
+                        "data": null
+                    })),
+                )
+            }),
+        )
+        .with_state(mock_state);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mock_addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/access_policies/revoke_by_app"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "context_app_id": "00000000-0000-0000-0000-000000000042"
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 200);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["data"]["upstream_status"], 500);
+}
+
 #[tokio::test]
 async fn audit_log_surfaces_upstream_403_when_caller_is_not_owner() {
     // Review R3 / QA-1 — the upstream's owner-gate collapses

@@ -24,6 +24,8 @@ pub fn build_api_router() -> OpenApiRouter<AppState> {
         .routes(routes!(policies::delete::delete_policy))
         .routes(routes!(policies::explain::explain_access))
         .routes(routes!(policies::by_resource::by_resource))
+        .routes(routes!(policies::granted_apps::list_granted_apps))
+        .routes(routes!(policies::revoke_by_app::revoke_by_app))
         .routes(routes!(audit_log::list::list_audit_log))
         .routes(routes!(dev::seed::dev_seed))
         // WebSocket endpoint — registered via raw `route()`

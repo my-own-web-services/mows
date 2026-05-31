@@ -83,6 +83,80 @@
         }
       }
     },
+    "/api/access_policies/granted_apps/list": {
+      "post": {
+        "description": "Forward a granted-apps query to one upstream consumer. The frontend fans out per upstream tab.",
+        "operationId": "forward_granted_apps",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantedAppsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_GrantedAppsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown upstream / oversize body / missing-field request"
+          },
+          "401": {
+            "description": "Missing identity header"
+          },
+          "502": {
+            "description": "Upstream request failed"
+          }
+        }
+      }
+    },
+    "/api/access_policies/revoke_by_app": {
+      "post": {
+        "description": "Forward a bulk-revoke-by-app to one upstream consumer.",
+        "operationId": "forward_revoke_by_app",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeByAppRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_RevokeByAppResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown upstream / invalid uuid / oversize body"
+          },
+          "401": {
+            "description": "Missing identity header"
+          },
+          "502": {
+            "description": "Upstream request failed"
+          }
+        }
+      }
+    },
     "/api/audit_log/list": {
       "post": {
         "description": "Forward an audit-log query to a single upstream consumer and return its response verbatim. Frontend fans out by calling this once per upstream tab.",
@@ -298,6 +372,44 @@
           }
         }
       },
+      "ApiResponse_GrantedAppsResponse": {
+        "type": "object",
+        "description": "Standard envelope shared across MOWS services. authz-admin uses\nthe same shape as realtime / filez so frontend code that lives\nin `@my-own-web-services/react-components` can keep one parser.",
+        "required": [
+          "status",
+          "message"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "upstream",
+              "upstream_status",
+              "upstream_body"
+            ],
+            "properties": {
+              "upstream": {
+                "type": "string"
+              },
+              "upstream_body": {
+                "$ref": "#/components/schemas/Value",
+                "description": "Verbatim JSON from the upstream — shape:\n`{status, message, data: {apps: [{app_id, policy_count}]}}`\non 200."
+              },
+              "upstream_status": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
       "ApiResponse_HealthResponse": {
         "type": "object",
         "description": "Standard envelope shared across MOWS services. authz-admin uses\nthe same shape as realtime / filez so frontend code that lives\nin `@my-own-web-services/react-components` can keep one parser.",
@@ -314,6 +426,43 @@
             "properties": {
               "status": {
                 "type": "string"
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
+      "ApiResponse_RevokeByAppResponse": {
+        "type": "object",
+        "description": "Standard envelope shared across MOWS services. authz-admin uses\nthe same shape as realtime / filez so frontend code that lives\nin `@my-own-web-services/react-components` can keep one parser.",
+        "required": [
+          "status",
+          "message"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "upstream",
+              "upstream_status",
+              "upstream_body"
+            ],
+            "properties": {
+              "upstream": {
+                "type": "string"
+              },
+              "upstream_body": {
+                "$ref": "#/components/schemas/Value"
+              },
+              "upstream_status": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0
               }
             }
           },
@@ -511,6 +660,40 @@
           }
         }
       },
+      "GrantedAppsRequest": {
+        "type": "object",
+        "required": [
+          "upstream"
+        ],
+        "properties": {
+          "upstream": {
+            "type": "string",
+            "description": "Upstream key from `/api/upstreams` (`\"realtime\"` / `\"filez\"`)."
+          }
+        }
+      },
+      "GrantedAppsResponse": {
+        "type": "object",
+        "required": [
+          "upstream",
+          "upstream_status",
+          "upstream_body"
+        ],
+        "properties": {
+          "upstream": {
+            "type": "string"
+          },
+          "upstream_body": {
+            "$ref": "#/components/schemas/Value",
+            "description": "Verbatim JSON from the upstream — shape:\n`{status, message, data: {apps: [{app_id, policy_count}]}}`\non 200."
+          },
+          "upstream_status": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
       "HealthResponse": {
         "type": "object",
         "required": [
@@ -519,6 +702,44 @@
         "properties": {
           "status": {
             "type": "string"
+          }
+        }
+      },
+      "RevokeByAppRequest": {
+        "type": "object",
+        "required": [
+          "upstream",
+          "context_app_id"
+        ],
+        "properties": {
+          "context_app_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Typed as Uuid at the BFF deserializer — same R9 / SEC-5\nstance as the other forwarders: malformed input becomes a\nclean 400 from the BFF, never reaches the upstream."
+          },
+          "upstream": {
+            "type": "string"
+          }
+        }
+      },
+      "RevokeByAppResponse": {
+        "type": "object",
+        "required": [
+          "upstream",
+          "upstream_status",
+          "upstream_body"
+        ],
+        "properties": {
+          "upstream": {
+            "type": "string"
+          },
+          "upstream_body": {
+            "$ref": "#/components/schemas/Value"
+          },
+          "upstream_status": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           }
         }
       },

@@ -390,6 +390,14 @@ pub struct ApiResponseListFilesResponseBody {
     pub status: ApiResponseStatus,
 }
 
+// ApiResponse_ListGrantedAppsResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiResponseListGrantedAppsResponseBody {
+    pub data: ListGrantedAppsResponseBody,
+    pub message: String,
+    pub status: ApiResponseStatus,
+}
+
 // ApiResponse_ListInvitationsResponseBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponseListInvitationsResponseBody {
@@ -466,6 +474,14 @@ pub struct ApiResponsePickupJobResponseBody {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponseRefreshSessionResponseBody {
     pub data: RefreshSessionResponseBody,
+    pub message: String,
+    pub status: ApiResponseStatus,
+}
+
+// ApiResponse_RevokeByAppResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiResponseRevokeByAppResponseBody {
+    pub data: RevokeByAppResponseBody,
     pub message: String,
     pub status: ApiResponseStatus,
 }
@@ -1278,6 +1294,13 @@ pub struct GetUsersResponseBody {
     pub users_meta: HashMap<Uuid, UserMeta>,
 }
 
+// GrantedApp
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GrantedApp {
+    pub app_id: Uuid,
+    pub policy_count: i64,
+}
+
 // GroupJoinPolicy
 /// User-group join policy axis (USER_GROUPS.md §1).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1537,6 +1560,19 @@ pub enum ListFilesSorting {
 pub struct ListFilesStoredSortOrder {
     pub direction: Option<SortDirection>,
     pub stored_sort_order_id: Uuid,
+}
+
+// ListGrantedAppsRequestBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListGrantedAppsRequestBody {}
+
+// ListGrantedAppsResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListGrantedAppsResponseBody {
+    /// Ordered by `policy_count DESC, app_id` so the SPA panel
+    /// surfaces the most-shared apps first; the tie-break by id
+    /// keeps the order stable across requests.
+    pub apps: Vec<GrantedApp>,
 }
 
 // ListInvitationsResponseBody
@@ -1843,6 +1879,18 @@ pub enum ResourceScope {
     Single,
     OwnedByOwner,
     AccessibleByOwner,
+}
+
+// RevokeByAppRequestBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RevokeByAppRequestBody {
+    pub context_app_id: Uuid,
+}
+
+// RevokeByAppResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RevokeByAppResponseBody {
+    pub revoked_count: i64,
 }
 
 // SortDirection

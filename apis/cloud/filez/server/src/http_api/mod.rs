@@ -33,8 +33,10 @@ pub mod access_policies {
     pub mod delete;
     pub mod explain;
     pub mod get;
+    pub mod granted_apps;
     pub mod list;
     pub mod revoke;
+    pub mod revoke_by_app;
     pub mod update;
 }
 
