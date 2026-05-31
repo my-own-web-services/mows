@@ -10,6 +10,7 @@ use crate::{
             check::check_resources_access_control, AccessPolicyAction,
             AccessPolicyResourceType,
         },
+        audit_log::{AuditEvent, AuditLog},
         channels::Channel,
     },
     state::AppState,
@@ -76,6 +77,22 @@ pub async fn create_channel(
     let channel = Channel::new(user.id, name, body.topic.clone())
         .insert(&state.database)
         .await?;
+
+    // Audit the create. The write is outside the create transaction
+    // — if it fails, the channel still exists; we surface the error
+    // via the standard ?-propagation so the caller knows the audit
+    // trail is incomplete. Fire-and-forget would hide a broken
+    // audit pipeline, which the Phase-7 admin UI relies on.
+    AuditLog::insert(
+        &state.database,
+        AuditEvent::ChannelCreated {
+            name: channel.name.clone(),
+        },
+        Some(&user.id),
+        AccessPolicyResourceType::Channel,
+        Some(channel.id.0),
+    )
+    .await?;
 
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,

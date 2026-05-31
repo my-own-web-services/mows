@@ -16,6 +16,7 @@ use crate::{
             check::check_resources_access_control, AccessPolicyAction,
             AccessPolicyResourceType,
         },
+        audit_log::{AuditEvent, AuditLog},
         channels::ChannelId,
     },
     schema,
@@ -59,25 +60,30 @@ pub async fn delete_channel(
     // Drop the channel + every access_policies row that targeted
     // this specific channel in a single transaction so a failure
     // halfway can't leave orphan policies (review A10 / QA-5).
+    //
+    // The DELETE on channels uses RETURNING to capture the name in
+    // the same round-trip — no separate "fetch-before-delete" SELECT
+    // that would open a race window where a concurrent rename
+    // landed between the read and the write (review R2 / SLOP-5).
     let mut connection = state.database.get_connection().await?;
-    let rows_deleted = {
+    let (channel_name, dropped_subject_policies): (String, usize) = {
         use diesel_async::scoped_futures::ScopedFutureExt;
         use diesel_async::AsyncConnection;
         connection
-            .transaction::<i64, RealtimeError, _>(|conn| {
+            .transaction::<(String, usize), RealtimeError, _>(|conn| {
                 async move {
-                    let n = diesel::delete(
+                    let deleted_name = diesel::delete(
                         schema::channels::table
                             .filter(schema::channels::id.eq(ChannelId(channel_id))),
                     )
-                    .execute(conn)
-                    .await? as i64;
-                    if n == 0 {
-                        return Err(RealtimeError::NotFound(format!(
-                            "channel {channel_id}"
-                        )));
-                    }
-                    diesel::delete(
+                    .returning(schema::channels::name)
+                    .get_result::<String>(conn)
+                    .await
+                    .optional()?
+                    .ok_or_else(|| {
+                        RealtimeError::NotFound(format!("channel {channel_id}"))
+                    })?;
+                    let dropped = diesel::delete(
                         schema::access_policies::table.filter(
                             schema::access_policies::resource_type
                                 .eq(AccessPolicyResourceType::Channel)
@@ -89,13 +95,26 @@ pub async fn delete_channel(
                     )
                     .execute(conn)
                     .await?;
-                    Ok(n)
+                    Ok((deleted_name, dropped))
                 }
                 .scope_boxed()
             })
             .await?
     };
-    let _ = rows_deleted; // count is just used for the assert above
+
+    if let Some(actor) = auth.requesting_user.as_ref() {
+        AuditLog::insert(
+            &state.database,
+            AuditEvent::ChannelDeleted {
+                name: channel_name,
+                dropped_subject_policies,
+            },
+            Some(&actor.id),
+            AccessPolicyResourceType::Channel,
+            Some(channel_id),
+        )
+        .await?;
+    }
 
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,

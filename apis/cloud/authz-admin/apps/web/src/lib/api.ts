@@ -284,4 +284,92 @@ export const api = {
             { method: "POST", body: JSON.stringify(body) },
             devUserHeaders
         ),
+
+    /** Audit-log timeline — forwarded to one upstream's
+     * /api/audit_log/list. Two modes: resource-scoped (caller
+     * passes resource_type + resource_id, must own the resource)
+     * or self-scoped (no filters, caller sees their own actions).
+     * Keyset pagination via the `cursor` field. */
+    auditLog: (
+        body: {
+            upstream: string;
+            resource_type?: string;
+            resource_id?: string;
+            limit?: number;
+            cursor?: string;
+        },
+        devUserHeaders: Array<[string, string]> = DEFAULT_USER_HEADERS
+    ) =>
+        call<AuditLogResponse>(
+            "/api/audit_log/list",
+            { method: "POST", body: JSON.stringify(body) },
+            devUserHeaders
+        ),
 };
+
+/** One row of the upstream audit_log response. Mirrors the AuditLog
+ * struct on both upstreams — `metadata` is upstream-specific JSON,
+ * the SPA renders defensively (table column shows JSON keys, click
+ * for full body in a future iteration). */
+export interface AuditLogEntry {
+    id: Uuid;
+    event_type: string;
+    actor_id: Uuid | null;
+    resource_type: string;
+    resource_id: Uuid | null;
+    ts: string;
+    metadata: Record<string, unknown>;
+}
+
+export interface AuditLogUpstreamBody {
+    entries: AuditLogEntry[];
+    next_cursor: string | null;
+}
+
+export interface AuditLogResponse {
+    upstream: string;
+    upstream_status: number;
+    upstream_body: unknown;
+}
+
+/** Pull the `{ entries, next_cursor }` payload out of the BFF
+ * envelope. Returns null when the upstream replied with an error
+ * envelope (e.g. 403 collapsed not-found-or-not-yours), same
+ * pattern as `unwrapByResource`. Filters out entries missing
+ * required string fields so the React table key never collides
+ * on `undefined` ids — same R6 defence the by_resource unwrapper
+ * applies, plus an R8 actor_id type guard so a regressed upstream
+ * that emits `actor_id: 42` doesn't feed garbage into the table. */
+export function unwrapAuditLog(upstream_body: unknown): AuditLogUpstreamBody | null {
+    if (
+        upstream_body &&
+        typeof upstream_body === "object" &&
+        "data" in upstream_body &&
+        upstream_body.data &&
+        typeof upstream_body.data === "object" &&
+        "entries" in upstream_body.data &&
+        Array.isArray((upstream_body.data as Record<string, unknown>).entries)
+    ) {
+        const data = upstream_body.data as Record<string, unknown>;
+        const next = data.next_cursor;
+        const entries = (data.entries as AuditLogEntry[]).filter(
+            (entry) =>
+                entry &&
+                typeof entry === "object" &&
+                typeof entry.id === "string" &&
+                entry.id.length > 0 &&
+                typeof entry.event_type === "string" &&
+                typeof entry.ts === "string" &&
+                // R8 — actor_id is nullable; reject anything that's
+                // neither a string nor null so the table renderer
+                // never gets a number / boolean / object slipped
+                // through by a regressed upstream.
+                (typeof entry.actor_id === "string" || entry.actor_id === null)
+        );
+        return {
+            entries,
+            next_cursor: typeof next === "string" ? next : null
+        };
+    }
+    return null;
+}

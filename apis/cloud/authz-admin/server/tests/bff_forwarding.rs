@@ -633,6 +633,298 @@ async fn by_resource_rejects_missing_required_field() {
     );
 }
 
+// ---------------------------------------------------------------
+// audit_log/list — Phase 7 audit-log timeline forwarder. Same shape
+// as the explain + by_resource forwarders. Deliberately verbose
+// per-test so each name documents one shipped contract.
+// ---------------------------------------------------------------
+
+async fn mock_audit_log(
+    State(state): State<MockState>,
+    headers: axum::http::HeaderMap,
+    axum::Json(_body): axum::Json<Value>,
+) -> axum::Json<Value> {
+    let uid = headers
+        .get("x-realtime-user-id")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+    *state.last_user_header.lock().await = uid.clone();
+    axum::Json(json!({
+        "status": "Success",
+        "message": "mocked audit_log",
+        "data": {
+            "entries": [
+                {
+                    "id": "00000000-0000-0000-0000-000000000099",
+                    "event_type": "channel_created",
+                    "actor_id": "a11ce000-0000-0000-0000-000000000001",
+                    "resource_type": "Channel",
+                    "resource_id": "00000000-0000-0000-0000-000000000042",
+                    "ts": "2026-05-31T12:00:00",
+                    "metadata": { "name": "team-room" }
+                }
+            ],
+            "next_cursor": null
+        }
+    }))
+}
+
+async fn spawn_mock_with_audit_log() -> (SocketAddr, MockState) {
+    let state = MockState::default();
+    let router = Router::new()
+        .route("/api/health", get(mock_health))
+        .route("/api/access_policies/explain", post(mock_explain))
+        .route("/api/audit_log/list", post(mock_audit_log))
+        .with_state(state.clone());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind mock");
+    let addr = listener.local_addr().expect("local_addr");
+    tokio::spawn(async move {
+        axum::serve(listener, router).await.expect("mock serve");
+    });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    (addr, state)
+}
+
+#[tokio::test]
+async fn audit_log_forwards_identity_header_and_returns_entries() {
+    let (mock_addr, mock_state) = spawn_mock_with_audit_log().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/audit_log/list"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "resource_type": "Channel",
+            "resource_id": "00000000-0000-0000-0000-000000000042",
+            "limit": 25
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 200);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["data"]["upstream"], "realtime");
+    assert_eq!(body["data"]["upstream_status"], 200);
+    let entries = body["data"]["upstream_body"]["data"]["entries"]
+        .as_array()
+        .expect("entries array");
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0]["event_type"], "channel_created");
+    assert_eq!(entries[0]["metadata"]["name"], "team-room");
+    // The identity header reached the upstream — proves the
+    // forwarder's whitelist is wired the same way as explain +
+    // by_resource (the shared http_api::forwarder helpers).
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert_eq!(seen.as_deref(), Some("a11ce000-0000-0000-0000-000000000001"));
+}
+
+#[tokio::test]
+async fn audit_log_rejects_anonymous_caller_with_401() {
+    let (mock_addr, mock_state) = spawn_mock_with_audit_log().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/audit_log/list"))
+        .json(&json!({"upstream": "realtime"}))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 401);
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert!(
+        seen.is_none(),
+        "BFF must not call upstream on anonymous audit_log; mock saw: {seen:?}",
+    );
+}
+
+#[tokio::test]
+async fn audit_log_rejects_unknown_upstream_with_400() {
+    let (mock_addr, _) = spawn_mock_with_audit_log().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/audit_log/list"))
+        .header("x-realtime-user-id", "00000000-0000-0000-0000-000000000001")
+        .json(&json!({"upstream": "ghost"}))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 400);
+    let body: Value = resp.json().await.expect("json");
+    assert!(
+        body["message"].as_str().unwrap_or("").contains("ghost"),
+        "error message should name the offending upstream key, got: {body:?}",
+    );
+}
+
+#[tokio::test]
+async fn audit_log_rejects_invalid_resource_id_with_400() {
+    // Same R9 stance as by_resource — UUID parse fails at the BFF
+    // deserializer, never reaches the upstream.
+    let (mock_addr, mock_state) = spawn_mock_with_audit_log().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/audit_log/list"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "resource_type": "Channel",
+            "resource_id": "not-a-uuid"
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 400);
+    let seen = mock_state.last_user_header.lock().await.clone();
+    assert!(seen.is_none(), "BFF must not call upstream when resource_id parse fails");
+}
+
+#[tokio::test]
+async fn audit_log_surfaces_upstream_403_when_caller_is_not_owner() {
+    // Review R3 / QA-1 — the upstream's owner-gate collapses
+    // not-found + not-owner into a single 403. The BFF must
+    // surface that as `upstream_status=403` so the SPA can render
+    // "the upstream said 403". A regression that silently swallowed
+    // the 403 would let the SPA misreport "no entries" — confusing
+    // the operator into thinking the resource has no audit trail.
+    let mock_state = MockState::default();
+    let router = Router::new()
+        .route("/api/health", get(mock_health))
+        .route(
+            "/api/audit_log/list",
+            post(|axum::Json(_): axum::Json<Value>| async {
+                (
+                    axum::http::StatusCode::FORBIDDEN,
+                    axum::Json(json!({
+                        "status": {"Error": "Forbidden"},
+                        "message": "no such resource, or caller is not its owner",
+                        "data": null
+                    })),
+                )
+            }),
+        )
+        .with_state(mock_state);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mock_addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/audit_log/list"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "resource_type": "Channel",
+            "resource_id": "00000000-0000-0000-0000-000000000042"
+        }))
+        .send()
+        .await
+        .expect("send");
+    // BFF itself returns 200 — it succeeded at forwarding. The
+    // upstream's 403 lives inside upstream_status, with the
+    // verbatim envelope under upstream_body.
+    assert_eq!(resp.status().as_u16(), 200);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["data"]["upstream_status"], 403);
+    assert!(
+        body["data"]["upstream_body"]["message"]
+            .as_str()
+            .unwrap_or("")
+            .contains("no such resource"),
+        "the BFF must surface the upstream's 403 envelope verbatim, got: {body:?}",
+    );
+}
+
+#[tokio::test]
+async fn audit_log_surfaces_upstream_400_on_partial_scope() {
+    // Review R11 / QA-4 — the upstream rejects (resource_type
+    // without resource_id) and the inverse with a 400. The BFF
+    // forwards the call (it has no opinion on the upstream's
+    // validation logic); we pin that the 400 surfaces under
+    // upstream_status so the SPA renders the right error
+    // instead of treating it as "no results".
+    let mock_state = MockState::default();
+    let router = Router::new()
+        .route("/api/health", get(mock_health))
+        .route(
+            "/api/audit_log/list",
+            post(|axum::Json(_): axum::Json<Value>| async {
+                (
+                    axum::http::StatusCode::BAD_REQUEST,
+                    axum::Json(json!({
+                        "status": {"Error": "BadRequest"},
+                        "message": "resource_type and resource_id must be supplied together",
+                        "data": null
+                    })),
+                )
+            }),
+        )
+        .with_state(mock_state);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mock_addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("http://{bff_addr}/api/audit_log/list"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "resource_type": "Channel"
+            // resource_id deliberately omitted
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 200);
+    let body: Value = resp.json().await.expect("json");
+    assert_eq!(body["data"]["upstream_status"], 400);
+    assert!(
+        body["data"]["upstream_body"]["message"]
+            .as_str()
+            .unwrap_or("")
+            .contains("resource_type and resource_id"),
+        "the BFF must surface the upstream's 400 message verbatim, got: {body:?}",
+    );
+}
+
+#[tokio::test]
+async fn audit_log_rejects_oversize_body() {
+    let (mock_addr, _) = spawn_mock_with_audit_log().await;
+    let bff_addr = spawn_bff(format!("http://{mock_addr}")).await;
+
+    let client = reqwest::Client::new();
+    let huge_cursor = "x".repeat(64 * 1024);
+    let resp = client
+        .post(format!("http://{bff_addr}/api/audit_log/list"))
+        .header("x-realtime-user-id", "a11ce000-0000-0000-0000-000000000001")
+        .json(&json!({
+            "upstream": "realtime",
+            "cursor": huge_cursor
+        }))
+        .send()
+        .await
+        .expect("send");
+    assert_eq!(resp.status().as_u16(), 400);
+    let body: Value = resp.json().await.expect("json");
+    assert!(
+        body["message"].as_str().unwrap_or("").contains("body read"),
+        "expected body-read error, got: {body:?}",
+    );
+}
+
 /// review-3 R11 / QA-4 (c): the inbound body cap should fire on
 /// payloads above `MAX_BODY_BYTES` (16 KB today). A request
 /// shaped like a tiny JSON object but with megabytes of padding

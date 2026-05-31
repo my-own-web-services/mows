@@ -14,6 +14,7 @@ use crate::{
             AccessPolicy, AccessPolicyAction, AccessPolicyResourceType,
         },
         apps::MowsAppId,
+        audit_log::{AuditEvent, AuditLog},
         channels::ChannelId,
     },
     schema,
@@ -121,8 +122,35 @@ pub async fn create_policy(
         vec![MowsAppId(auth.context_app.id.0)],
         body.resource_type,
         body.resource_id,
-        body.actions,
+        body.actions.clone(),
         body.effect,
+    )
+    .await?;
+
+    // Audit the create. resource_type is the type the policy
+    // TARGETS (Channel here); resource_id is the channel id the
+    // policy pins, so a "what happened on channel X?" query
+    // surfaces the share alongside the channel's own create /
+    // update events.
+    AuditLog::insert(
+        &state.database,
+        AuditEvent::AccessPolicyCreated {
+            policy_id: policy.id.0,
+            // Use the wire-stable audit-string helpers, not Debug
+            // formatting — review R1 / TECH-1 pinpointed that
+            // `format!("{:?}", ..)` silently breaks every stored
+            // row when a derive changes.
+            subject_type: body.subject_type.as_audit_string().to_string(),
+            subject_id: body.subject_id,
+            actions: body
+                .actions
+                .iter()
+                .map(|a| a.as_audit_string().to_string())
+                .collect(),
+        },
+        Some(&owner.id),
+        body.resource_type,
+        body.resource_id,
     )
     .await?;
 

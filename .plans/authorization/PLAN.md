@@ -249,9 +249,16 @@ that calls each consumer's `/api/access_policies/*` surface.
      `AccessPolicy::check`. openapi.json regenerated;
      typescript client republished via yalc to filez/web +
      filez/components/react.
-- ❌ Per-resource share dialog (generic primitive that fans out
-     to the right consumer; the chat app's ShareDialog is
-     channel-only and lives in apis/cloud/realtime/apps/chat)
+- ✅ Per-resource share dialog (generic primitive that fans out
+     to the right consumer). Landed in
+     `components/react/lib/components/identity/shareDialog/` —
+     callback-driven, four subject kinds, action-implication
+     closure, Allow/Deny gate, submission-race-protected. The
+     channel-only chat ShareDialog was deleted and replaced with
+     the generic primitive in apis/cloud/realtime/apps/chat/.
+     19 vitest cases + DocPage with 4 modes (Default / AllowDeny /
+     PublicOnly / Rtl). Multi-review round 1 dispositions in
+     `.plans/authorization/phase7-share-dialog-review/issue.md`.
 - ✅ "What can I see?" diagnostic panel — landed via the explain
      endpoint + per-upstream tab in `c620fae5`; renders allow/deny
      + AuthReason variant + policy_id + via_user_group_id
@@ -278,7 +285,21 @@ that calls each consumer's `/api/access_policies/*` surface.
 - ❌ User-group directory (Phase 4 frontend ships building blocks;
      host-app routing/mounting is Phase 7)
 - ❌ App revocation panel
-- ❌ Audit log viewer
+- ✅ Audit log viewer. Realtime ships a new audit_log table
+     (migration 00000000000003) + AuditEvent enum (5 variants:
+     ChannelCreated/Updated/Deleted + AccessPolicyCreated/Deleted)
+     + writer wired at all 5 mutation handlers. Filez gains the
+     missing `GET /api/audit_log/list` endpoint backed by the
+     Phase-5 audit_log table. Both upstreams agree on the wire
+     shape (`{resource_type?, resource_id?, limit, cursor}` →
+     `{entries, next_cursor}`) so the authz-admin BFF forwards
+     verbatim. Owner-only resource scope (collapsed 403 with
+     not-found), self-scope when no filters supplied, keyset
+     pagination via opaque `<ts_iso>|<id>` cursor. SPA panel
+     joins explain + by_resource as the third per-upstream
+     panel; cursor-collision guard prevents infinite "Load more".
+     Multi-review round 1 dispositions in
+     `.plans/authorization/phase7-audit-log-review/issue.md`.
 
 ## Phase 8 — Capability tokens (deferred unless demanded)
 

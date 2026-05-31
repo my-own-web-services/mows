@@ -591,6 +591,15 @@ export interface ApiResponseListAppsResponseBody {
   status: ApiResponseStatus;
 }
 
+export interface ApiResponseListAuditLogResponseBody {
+  data?: {
+    entries: AuditLog[];
+    next_cursor?: string | null;
+  };
+  message: string;
+  status: ApiResponseStatus;
+}
+
 export interface ApiResponseListFileGroupsResponseBody {
   data?: {
     file_groups: FileGroup[];
@@ -807,6 +816,36 @@ export interface ApiResponseUpdateUserGroupResponseBody {
   message: string;
   status: ApiResponseStatus;
 }
+
+/**
+ * One row in the audit_log table. Persistence shape — see
+ * [`AuditEvent`] for the typed payload.
+ */
+export interface AuditLog {
+  actor_id?: null | FilezUserId;
+  event_type: string;
+  id: AuditLogId;
+  /**
+   * JSONB blob carrying the per-event_type fields (see
+   * `AuditEvent`). Typed as `Object` in OpenAPI rather than a
+   * per-variant schema because utoipa's default for a bare
+   * `serde_json::Value` is an empty schema, which the
+   * swagger-rs Rust client generator rejects with a `RefOr`
+   * parse error. The trade-off: TypeScript + Rust clients see
+   * `metadata: object` and lose IDE autocomplete on the
+   * per-event field names — consumers must unwrap defensively.
+   * Review R13 / SLOP-7.
+   */
+  metadata: object;
+  /** @format uuid */
+  resource_id?: string | null;
+  resource_type: AccessPolicyResourceType;
+  /** @format date-time */
+  ts: string;
+}
+
+/** @format uuid */
+export type AuditLogId = string;
 
 /**
  * Per-resource outcome — one of these per resource the caller asked
@@ -1654,6 +1693,25 @@ export type ListAppsRequestBody = object;
 
 export interface ListAppsResponseBody {
   apps: MowsApp[];
+}
+
+/**
+ * Wire-stable request body. Field names match the realtime sibling
+ * verbatim — the authz-admin BFF forwards bytes through with no
+ * translation, the SPA reads identical keys regardless of upstream.
+ */
+export interface ListAuditLogRequestBody {
+  cursor?: string | null;
+  /** @format int64 */
+  limit?: number | null;
+  /** @format uuid */
+  resource_id?: string | null;
+  resource_type?: null | AccessPolicyResourceType;
+}
+
+export interface ListAuditLogResponseBody {
+  entries: AuditLog[];
+  next_cursor?: string | null;
 }
 
 export interface ListFileGroupsRequestBody {
@@ -2772,6 +2830,25 @@ export class Api<
         ApiResponseEmptyApiResponse
       >({
         path: `/api/apps/list`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Paginated audit-log timeline. Resource-scoped when (resource_type, resource_id) are supplied (owner-only); self-scoped otherwise (caller's own actions). Sibling of realtime-server's endpoint; both emit the same wire shape so the authz-admin BFF can forward verbatim.
+     *
+     * @name ListAuditLog
+     * @request POST:/api/audit_log/list
+     */
+    listAuditLog: (data: ListAuditLogRequestBody, params: RequestParams = {}) =>
+      this.request<
+        ApiResponseListAuditLogResponseBody,
+        void | ApiResponseEmptyApiResponse
+      >({
+        path: `/api/audit_log/list`,
         method: "POST",
         body: data,
         type: ContentType.Json,

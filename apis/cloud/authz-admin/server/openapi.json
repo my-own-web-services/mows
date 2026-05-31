@@ -83,6 +83,43 @@
         }
       }
     },
+    "/api/audit_log/list": {
+      "post": {
+        "description": "Forward an audit-log query to a single upstream consumer and return its response verbatim. Frontend fans out by calling this once per upstream tab.",
+        "operationId": "forward_audit_log",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditLogRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AuditLogResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown upstream / oversize body / missing-field request"
+          },
+          "401": {
+            "description": "Missing identity header (Authorization or x-realtime-user-id or x-filez-user-id)"
+          },
+          "502": {
+            "description": "Upstream request failed"
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "description": "Process liveness probe. Returns 200 once axum is serving — does NOT verify upstream reachability (that's `/api/upstreams`).",
@@ -143,6 +180,45 @@
           }
         ],
         "description": "Matches realtime-server's wire shape: `Success` serialises to\nthe bare string `\"Success\"`; `Error(\"...\")` serialises to\n`{\"Error\": \"...\"}`. Keeping the shape identical means the\n`@my-own-web-services/react-components` envelope parser\ndoesn't need a per-service branch."
+      },
+      "ApiResponse_AuditLogResponse": {
+        "type": "object",
+        "description": "Standard envelope shared across MOWS services. authz-admin uses\nthe same shape as realtime / filez so frontend code that lives\nin `@my-own-web-services/react-components` can keep one parser.",
+        "required": [
+          "status",
+          "message"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "upstream",
+              "upstream_status",
+              "upstream_body"
+            ],
+            "properties": {
+              "upstream": {
+                "type": "string"
+              },
+              "upstream_body": {
+                "$ref": "#/components/schemas/Value",
+                "description": "Verbatim JSON the upstream returned. Shape:\n`{status, message, data: {entries: [...], next_cursor?}}`\nfor 200; the upstream's error envelope otherwise."
+              },
+              "upstream_status": {
+                "type": "integer",
+                "format": "int32",
+                "description": "HTTP status the upstream returned. Surfaced so the frontend\ncan distinguish 200 (page) / 403 (no such resource OR not\nyours) / 401 (no identity) without re-parsing the upstream\nenvelope.",
+                "minimum": 0
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
       },
       "ApiResponse_ByResourceResponse": {
         "type": "object",
@@ -276,6 +352,71 @@
           },
           "status": {
             "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
+      "AuditLogRequest": {
+        "type": "object",
+        "required": [
+          "upstream"
+        ],
+        "properties": {
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Opaque cursor from the prior page's `next_cursor`.\nForwarded verbatim; upstream rejects malformed values with\na clean 400."
+          },
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Page size. Forwarded verbatim — upstream clamps."
+          },
+          "resource_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Optional resource id. Typed as Uuid at the BFF so a malformed\ninput is a clean 400 from the BFF instead of a 500/parse\nerror from the upstream."
+          },
+          "resource_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional resource type — when present alongside\n`resource_id`, the response is scoped to events on that\nresource (owner-only). When absent, the upstream returns\nthe caller's own actions."
+          },
+          "upstream": {
+            "type": "string",
+            "description": "Which upstream to forward to. Must match a `key` from\n`/api/upstreams` (`\"realtime\"`, `\"filez\"`)."
+          }
+        }
+      },
+      "AuditLogResponse": {
+        "type": "object",
+        "required": [
+          "upstream",
+          "upstream_status",
+          "upstream_body"
+        ],
+        "properties": {
+          "upstream": {
+            "type": "string"
+          },
+          "upstream_body": {
+            "$ref": "#/components/schemas/Value",
+            "description": "Verbatim JSON the upstream returned. Shape:\n`{status, message, data: {entries: [...], next_cursor?}}`\nfor 200; the upstream's error envelope otherwise."
+          },
+          "upstream_status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "HTTP status the upstream returned. Surfaced so the frontend\ncan distinguish 200 (page) / 403 (no such resource OR not\nyours) / 401 (no identity) without re-parsing the upstream\nenvelope.",
+            "minimum": 0
           }
         }
       },

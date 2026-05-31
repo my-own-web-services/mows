@@ -52,6 +52,16 @@ pub struct AuditLog {
     pub resource_type: AccessPolicyResourceType,
     pub resource_id: Option<Uuid>,
     pub ts: chrono::NaiveDateTime,
+    /// JSONB blob carrying the per-event_type fields (see
+    /// `AuditEvent`). Typed as `Object` in OpenAPI rather than a
+    /// per-variant schema because utoipa's default for a bare
+    /// `serde_json::Value` is an empty schema, which the
+    /// swagger-rs Rust client generator rejects with a `RefOr`
+    /// parse error. The trade-off: TypeScript + Rust clients see
+    /// `metadata: object` and lose IDE autocomplete on the
+    /// per-event field names — consumers must unwrap defensively.
+    /// Review R13 / SLOP-7.
+    #[schema(value_type = Object)]
     pub metadata: serde_json::Value,
 }
 

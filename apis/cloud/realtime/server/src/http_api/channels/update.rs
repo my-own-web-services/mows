@@ -16,6 +16,7 @@ use crate::{
             check::check_resources_access_control, AccessPolicyAction,
             AccessPolicyResourceType,
         },
+        audit_log::{AuditEvent, AuditLog},
         channels::{Channel, ChannelId},
     },
     schema,
@@ -105,6 +106,24 @@ pub async fn update_channel(
         .into_iter()
         .next()
         .ok_or_else(|| RealtimeError::NotFound(format!("channel {channel_id}")))?;
+
+    // Audit the update with the post-edit name, so a timeline scan
+    // can read the channel's name evolution without joining back to
+    // the (mutated) channels row. Actor is the caller — already
+    // proven authenticated by the check_access call above.
+    if let Some(actor) = auth.requesting_user.as_ref() {
+        AuditLog::insert(
+            &state.database,
+            AuditEvent::ChannelUpdated {
+                name: channel.name.clone(),
+            },
+            Some(&actor.id),
+            AccessPolicyResourceType::Channel,
+            Some(channel.id.0),
+        )
+        .await?;
+    }
+
     Ok(Json(ApiResponse {
         status: ApiResponseStatus::Success,
         message: "channel updated".to_string(),

@@ -58,6 +58,40 @@ const _: () = {
     assert!(SubjectType::Public       as i16 == 3);
 };
 
+impl SubjectType {
+    /// Stable PascalCase string used to render `SubjectType` into
+    /// durable audit_log `metadata` payloads (and any other surface
+    /// that needs a wire-stable string form). Adding a variant
+    /// requires extending this match — the compiler enforces it,
+    /// and the audit_log review R1 / TECH-1 / SLOP-1 pinned the
+    /// canon: never use `format!("{:?}", subject_type)` because
+    /// Debug output isn't wire-stable across derive changes.
+    pub fn as_audit_string(&self) -> &'static str {
+        match self {
+            SubjectType::User => "User",
+            SubjectType::UserGroup => "UserGroup",
+            SubjectType::ServerMember => "ServerMember",
+            SubjectType::Public => "Public",
+        }
+    }
+}
+
+#[cfg(test)]
+mod subject_type_audit_string_guard {
+    //! Pin every variant's audit-string spelling. Renaming a
+    //! variant must change BOTH the Rust identifier AND the audit
+    //! string deliberately — the test rejects accidental drift.
+    use super::*;
+
+    #[test]
+    fn each_variant_has_a_stable_audit_string() {
+        assert_eq!(SubjectType::User.as_audit_string(), "User");
+        assert_eq!(SubjectType::UserGroup.as_audit_string(), "UserGroup");
+        assert_eq!(SubjectType::ServerMember.as_audit_string(), "ServerMember");
+        assert_eq!(SubjectType::Public.as_audit_string(), "Public");
+    }
+}
+
 /// Policy outcome — Deny always wins over Allow (POLICY_SEMANTICS.md §3).
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema,

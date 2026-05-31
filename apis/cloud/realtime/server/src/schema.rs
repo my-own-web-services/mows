@@ -115,6 +115,19 @@ diesel::table! {
 diesel::joinable!(channel_events -> channels (channel_id));
 diesel::joinable!(channel_events -> users (author_id));
 
+diesel::table! {
+    audit_log (id) {
+        id -> Uuid,
+        event_type -> Text,
+        actor_id -> Nullable<Uuid>,
+        resource_type -> SmallInt,
+        resource_id -> Nullable<Uuid>,
+        ts -> Timestamp,
+        metadata -> Jsonb,
+    }
+}
+diesel::joinable!(audit_log -> users (actor_id));
+
 diesel::allow_tables_to_appear_in_same_query!(
     idp_providers,
     users,
@@ -124,4 +137,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     user_user_group_members,
     channels,
     channel_events,
+    audit_log,
 );

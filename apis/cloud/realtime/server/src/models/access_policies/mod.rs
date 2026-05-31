@@ -83,6 +83,30 @@ impl AccessPolicyResourceType {
     }
 }
 
+impl AccessPolicyAction {
+    /// Stable PascalCase string for durable audit_log surfaces.
+    /// Compiler-enforced exhaustive match — adding a variant
+    /// requires extending this. Review R1 / TECH-1 / SLOP-1
+    /// canonicalised this over `format!("{:?}", action)`, which
+    /// isn't wire-stable across derive changes.
+    pub fn as_audit_string(&self) -> &'static str {
+        match self {
+            AccessPolicyAction::ChannelsCreate => "ChannelsCreate",
+            AccessPolicyAction::ChannelsGet => "ChannelsGet",
+            AccessPolicyAction::ChannelsUpdate => "ChannelsUpdate",
+            AccessPolicyAction::ChannelsDelete => "ChannelsDelete",
+            AccessPolicyAction::ChannelsList => "ChannelsList",
+            AccessPolicyAction::ChannelsRead => "ChannelsRead",
+            AccessPolicyAction::ChannelsPublish => "ChannelsPublish",
+            AccessPolicyAction::AccessPoliciesCreate => "AccessPoliciesCreate",
+            AccessPolicyAction::AccessPoliciesGet => "AccessPoliciesGet",
+            AccessPolicyAction::AccessPoliciesUpdate => "AccessPoliciesUpdate",
+            AccessPolicyAction::AccessPoliciesDelete => "AccessPoliciesDelete",
+            AccessPolicyAction::AccessPoliciesList => "AccessPoliciesList",
+        }
+    }
+}
+
 /// Actions a policy can authorise or forbid on a chat resource.
 /// Gaps in the discriminant sequence are deliberate — leaves
 /// space for sibling actions on the same surface (filez's gap
@@ -264,5 +288,33 @@ mod wire_stability_guard {
             assert_eq!(AccessPolicyResourceType::from_u32(rt as u32), Some(rt));
         }
         assert_eq!(AccessPolicyResourceType::from_u32(99), None);
+    }
+
+    #[test]
+    fn action_audit_strings_are_stable_per_variant() {
+        // Review R1 / TECH-1 — every action surfaced into the
+        // durable audit_log via `AuditEvent::AccessPolicy{Created,
+        // Deleted}.actions` MUST map to a wire-stable name. The
+        // exhaustive match in `as_audit_string` is compiler-
+        // enforced; this test pins the SPELLING so a careless
+        // refactor that flips "ChannelsRead" → "ChannelRead"
+        // trips before it ships.
+        let cases = [
+            (AccessPolicyAction::ChannelsCreate, "ChannelsCreate"),
+            (AccessPolicyAction::ChannelsGet, "ChannelsGet"),
+            (AccessPolicyAction::ChannelsUpdate, "ChannelsUpdate"),
+            (AccessPolicyAction::ChannelsDelete, "ChannelsDelete"),
+            (AccessPolicyAction::ChannelsList, "ChannelsList"),
+            (AccessPolicyAction::ChannelsRead, "ChannelsRead"),
+            (AccessPolicyAction::ChannelsPublish, "ChannelsPublish"),
+            (AccessPolicyAction::AccessPoliciesCreate, "AccessPoliciesCreate"),
+            (AccessPolicyAction::AccessPoliciesGet, "AccessPoliciesGet"),
+            (AccessPolicyAction::AccessPoliciesUpdate, "AccessPoliciesUpdate"),
+            (AccessPolicyAction::AccessPoliciesDelete, "AccessPoliciesDelete"),
+            (AccessPolicyAction::AccessPoliciesList, "AccessPoliciesList"),
+        ];
+        for (action, expected) in cases {
+            assert_eq!(action.as_audit_string(), expected);
+        }
     }
 }

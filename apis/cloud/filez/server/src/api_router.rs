@@ -124,6 +124,7 @@ pub fn build_api_router() -> OpenApiRouter<ServerState> {
         .routes(routes!(
             http_api::access_policies::by_resource::by_resource
         ))
+        .routes(routes!(http_api::audit_log::list::list_audit_log))
         .routes(routes!(
             http_api::access_policies::create::create_access_policy
         ))

@@ -38,6 +38,10 @@ pub mod access_policies {
     pub mod update;
 }
 
+pub mod audit_log {
+    pub mod list;
+}
+
 pub mod user_groups {
     pub mod create;
     pub mod delete;

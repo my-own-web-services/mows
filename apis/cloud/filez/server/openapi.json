@@ -445,6 +445,53 @@
         }
       }
     },
+    "/api/audit_log/list": {
+      "post": {
+        "description": "Paginated audit-log timeline. Resource-scoped when (resource_type, resource_id) are supplied (owner-only); self-scoped otherwise (caller's own actions). Sibling of realtime-server's endpoint; both emit the same wire shape so the authz-admin BFF can forward verbatim.",
+        "operationId": "list_audit_log",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListAuditLogRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Audit page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ListAuditLogResponseBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed cursor or partial resource filter"
+          },
+          "401": {
+            "description": "Anonymous request"
+          },
+          "403": {
+            "description": "Resource doesn't exist OR caller is not its owner — deliberately indistinguishable"
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EmptyApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dev/reset_database": {
       "post": {
         "description": "Resets the database to its initial state (for development purposes only)",
@@ -4512,6 +4559,41 @@
           }
         }
       },
+      "ApiResponse_ListAuditLogResponseBody": {
+        "type": "object",
+        "required": [
+          "message",
+          "status"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "entries"
+            ],
+            "properties": {
+              "entries": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AuditLog"
+                }
+              },
+              "next_cursor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatus"
+          }
+        }
+      },
       "ApiResponse_ListFileGroupsResponseBody": {
         "type": "object",
         "required": [
@@ -5161,6 +5243,57 @@
           "backend",
           "api"
         ]
+      },
+      "AuditLog": {
+        "type": "object",
+        "description": "One row in the audit_log table. Persistence shape — see\n[`AuditEvent`] for the typed payload.",
+        "required": [
+          "id",
+          "event_type",
+          "resource_type",
+          "ts",
+          "metadata"
+        ],
+        "properties": {
+          "actor_id": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FilezUserId"
+              }
+            ]
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/AuditLogId"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "JSONB blob carrying the per-event_type fields (see\n`AuditEvent`). Typed as `Object` in OpenAPI rather than a\nper-variant schema because utoipa's default for a bare\n`serde_json::Value` is an empty schema, which the\nswagger-rs Rust client generator rejects with a `RefOr`\nparse error. The trade-off: TypeScript + Rust clients see\n`metadata: object` and lose IDE autocomplete on the\nper-event field names — consumers must unwrap defensively.\nReview R13 / SLOP-7."
+          },
+          "resource_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "resource_type": {
+            "$ref": "#/components/schemas/AccessPolicyResourceType"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AuditLogId": {
+        "type": "string",
+        "format": "uuid"
       },
       "AuthEvaluation": {
         "type": "object",
@@ -7542,6 +7675,62 @@
             "items": {
               "$ref": "#/components/schemas/MowsApp"
             }
+          }
+        }
+      },
+      "ListAuditLogRequestBody": {
+        "type": "object",
+        "description": "Wire-stable request body. Field names match the realtime sibling\nverbatim — the authz-admin BFF forwards bytes through with no\ntranslation, the SPA reads identical keys regardless of upstream.",
+        "properties": {
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "resource_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "resource_type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AccessPolicyResourceType"
+              }
+            ]
+          }
+        }
+      },
+      "ListAuditLogResponseBody": {
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditLog"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },

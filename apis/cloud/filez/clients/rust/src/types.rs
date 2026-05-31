@@ -366,6 +366,14 @@ pub struct ApiResponseListAppsResponseBody {
     pub status: ApiResponseStatus,
 }
 
+// ApiResponse_ListAuditLogResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiResponseListAuditLogResponseBody {
+    pub data: ListAuditLogResponseBody,
+    pub message: String,
+    pub status: ApiResponseStatus,
+}
+
 // ApiResponse_ListFileGroupsResponseBody
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponseListFileGroupsResponseBody {
@@ -552,6 +560,32 @@ pub enum AppType {
     #[serde(rename = "api")]
     Api,
 }
+
+// AuditLog
+/// One row in the audit_log table. Persistence shape — see
+/// [`AuditEvent`] for the typed payload.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuditLog {
+    pub actor_id: Option<FilezUserId>,
+    pub event_type: String,
+    pub id: AuditLogId,
+    /// JSONB blob carrying the per-event_type fields (see
+    /// `AuditEvent`). Typed as `Object` in OpenAPI rather than a
+    /// per-variant schema because utoipa's default for a bare
+    /// `serde_json::Value` is an empty schema, which the
+    /// swagger-rs Rust client generator rejects with a `RefOr`
+    /// parse error. The trade-off: TypeScript + Rust clients see
+    /// `metadata: object` and lose IDE autocomplete on the
+    /// per-event field names — consumers must unwrap defensively.
+    /// Review R13 / SLOP-7.
+    pub metadata: Value,
+    pub resource_id: Option<Uuid>,
+    pub resource_type: AccessPolicyResourceType,
+    pub ts: NaiveDateTime,
+}
+
+// AuditLogId
+pub type AuditLogId = Uuid;
 
 // AuthEvaluation
 /// Per-resource outcome — one of these per resource the caller asked
@@ -1415,6 +1449,25 @@ pub struct ListAppsRequestBody {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListAppsResponseBody {
     pub apps: Vec<MowsApp>,
+}
+
+// ListAuditLogRequestBody
+/// Wire-stable request body. Field names match the realtime sibling
+/// verbatim — the authz-admin BFF forwards bytes through with no
+/// translation, the SPA reads identical keys regardless of upstream.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ListAuditLogRequestBody {
+    pub cursor: Option<String>,
+    pub limit: Option<i64>,
+    pub resource_id: Option<Uuid>,
+    pub resource_type: Option<AccessPolicyResourceType>,
+}
+
+// ListAuditLogResponseBody
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListAuditLogResponseBody {
+    pub entries: Vec<AuditLog>,
+    pub next_cursor: Option<String>,
 }
 
 // ListFileGroupsRequestBody
