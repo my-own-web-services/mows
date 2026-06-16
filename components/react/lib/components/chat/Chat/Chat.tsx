@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "../../ui/button";
 import Composer, { type ComposerHandle } from "./Composer";
 import DateDivider from "./DateDivider";
+import { MediaLightbox, type LightboxSource } from "./media";
 import MessageRow from "./MessageRow";
 import TypingIndicator from "./TypingIndicator";
 import {
@@ -118,11 +119,20 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
         emptyState,
         overscanCount = 6,
         inputPlaceholder,
+        strings: stringsProp,
+        renderMessageExtra,
+        enableAttachments,
+        enableVoice,
+        maxAttachmentBytes,
         className,
         style
     } = props;
 
-    const strings = DEFAULT_CHAT_STRINGS;
+    const strings = useMemo(
+        () => ({ ...DEFAULT_CHAT_STRINGS, ...stringsProp }),
+        [stringsProp]
+    );
+    const [lightbox, setLightbox] = useState<LightboxSource | null>(null);
 
     const renderRows = useMemo(
         () => buildRenderRows(messages, showDateDividers, groupConsecutiveMessages),
@@ -322,6 +332,8 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
                         onDelete={onDelete}
                         onRetry={onRetry}
                         onClick={onMessageClick}
+                        onOpenMedia={setLightbox}
+                        renderMessageExtra={renderMessageExtra}
                         readByLabel={strings.readByLabel}
                         onMeasured={(_idx, height) => setMeasured(key, height)}
                     />
@@ -340,6 +352,7 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
             onSend,
             onUnreact,
             readOnly,
+            renderMessageExtra,
             renderRows,
             rowKey,
             setMeasured,
@@ -447,8 +460,18 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
                     replyAuthor={replyTo ? users[replyTo.authorId] : undefined}
                     onCancelReply={() => setReplyTo(undefined)}
                     onSend={handleSend}
+                    enableAttachments={enableAttachments}
+                    enableVoice={enableVoice}
+                    maxAttachmentBytes={maxAttachmentBytes}
                 />
             )}
+
+            <MediaLightbox
+                source={lightbox}
+                onClose={() => setLightbox(null)}
+                closeLabel={strings.closePreview}
+                downloadLabel={strings.downloadOriginal}
+            />
         </div>
     );
 });

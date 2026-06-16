@@ -34,6 +34,17 @@ const SIDEBAR_WIDTH_MOBILE = `18rem`
 const SIDEBAR_WIDTH_ICON = `3rem`
 const SIDEBAR_KEYBOARD_SHORTCUT = `b`
 
+// `appearance` controls how menu items are framed:
+//  - `default`: the classic shadcn look — each group is padded (`p-2`) and the
+//    active item is a rounded inset "pill". This reads well with a generous
+//    `--radius`.
+//  - `flush`: the group loses its horizontal padding and menu buttons drop
+//    their corner radius, so the active item is a full-bleed selection bar that
+//    sits flush with the sidebar edges. This is the right choice for themes
+//    with a small `--radius`, where an inset pill would look like an awkward
+//    near-rectangle rather than an intentional pill.
+type SidebarAppearance = `default` | `flush`
+
 interface SidebarContextProps {
   state: `expanded` | `collapsed`
   open: boolean
@@ -43,6 +54,7 @@ interface SidebarContextProps {
   isMobile: boolean
   toggleSidebar: () => void
   resizable: boolean
+  appearance: SidebarAppearance
   widthPx: number
   setWidthPx: (px: number) => void
   minWidthPx: number
@@ -76,6 +88,7 @@ const SidebarProvider = React.forwardRef<
     open?: boolean
     onOpenChange?: (open: boolean) => void
     resizable?: boolean
+    appearance?: SidebarAppearance
     defaultWidthPx?: number
     minWidthPx?: number
     maxWidthPx?: number
@@ -87,6 +100,7 @@ const SidebarProvider = React.forwardRef<
       open: openProp,
       onOpenChange: setOpenProp,
       resizable = false,
+      appearance = `default`,
       defaultWidthPx = SIDEBAR_WIDTH_DEFAULT_PX,
       minWidthPx = SIDEBAR_WIDTH_MIN_PX,
       maxWidthPx = SIDEBAR_WIDTH_MAX_PX,
@@ -183,6 +197,7 @@ const SidebarProvider = React.forwardRef<
         setOpenMobile,
         toggleSidebar,
         resizable,
+        appearance,
         widthPx,
         setWidthPx,
         minWidthPx,
@@ -198,6 +213,7 @@ const SidebarProvider = React.forwardRef<
         setOpenMobile,
         toggleSidebar,
         resizable,
+        appearance,
         widthPx,
         setWidthPx,
         minWidthPx,
@@ -501,11 +517,18 @@ const SidebarHeader = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<`div`>
 >(({ className, ...props }, ref) => {
+  const { appearance } = useSidebar()
   return (
     <div
       ref={ref}
       data-sidebar={`header`}
-      className={cn(`flex flex-col gap-2 p-2`, className)}
+      className={cn(
+        `flex flex-col gap-2 p-2`,
+        // flush: drop horizontal padding so header content lines up with the
+        // full-bleed menu items (the inner content keeps its own padding).
+        appearance === `flush` && `px-0`,
+        className
+      )}
       {...props}
     />
   )
@@ -516,11 +539,20 @@ const SidebarFooter = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<`div`>
 >(({ className, ...props }, ref) => {
+  const { appearance } = useSidebar()
   return (
     <div
       ref={ref}
       data-sidebar={`footer`}
-      className={cn(`flex flex-col gap-2 p-2`, className)}
+      className={cn(
+        `flex flex-col gap-2 p-2`,
+        // flush: drop ALL padding so footer content (e.g. the PrimaryMenu /
+        // account row) is a full-bleed bar — flush left/right AND flush with
+        // the sidebar's bottom edge (no gap underneath). Separation from the
+        // content above still comes from the group's own bottom padding.
+        appearance === `flush` && `p-0`,
+        className
+      )}
       {...props}
     />
   )
@@ -564,11 +596,17 @@ const SidebarGroup = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<`div`>
 >(({ className, ...props }, ref) => {
+  const { appearance } = useSidebar()
   return (
     <div
       ref={ref}
       data-sidebar={`group`}
-      className={cn(`relative flex w-full min-w-0 flex-col p-2`, className)}
+      className={cn(
+        `relative flex w-full min-w-0 flex-col p-2`,
+        // flush: drop horizontal padding so menu items reach the sidebar edges.
+        appearance === `flush` && `px-0`,
+        className
+      )}
       {...props}
     />
   )
@@ -701,7 +739,7 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : `button`
-    const { isMobile, state } = useSidebar()
+    const { isMobile, state, appearance } = useSidebar()
 
     const button = (
       <Comp
@@ -709,7 +747,12 @@ const SidebarMenuButton = React.forwardRef<
         data-sidebar={`menu-button`}
         data-size={size}
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+        className={cn(
+          sidebarMenuButtonVariants({ variant, size }),
+          // flush: full-bleed selection bar instead of an inset rounded pill.
+          appearance === `flush` && `rounded-none`,
+          className
+        )}
         {...props}
       />
     )
@@ -861,6 +904,7 @@ const SidebarMenuSubButton = React.forwardRef<
   }
 >(({ asChild = false, size = `md`, isActive, className, ...props }, ref) => {
   const Comp = asChild ? Slot : `a`
+  const { appearance } = useSidebar()
 
   return (
     <Comp
@@ -873,6 +917,8 @@ const SidebarMenuSubButton = React.forwardRef<
         `data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground`,
         size === `sm` && `text-xs`,
         size === `md` && `text-sm`,
+        // flush: full-bleed selection bar instead of an inset rounded pill.
+        appearance === `flush` && `rounded-none`,
         `group-data-[collapsible=icon]:hidden`,
         className
       )}

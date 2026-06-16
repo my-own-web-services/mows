@@ -1,23 +1,28 @@
 import {
     AlertCircle,
     CornerDownRight,
+    Download,
+    FileText,
     Loader2,
     MoreHorizontal,
-    Paperclip,
     Pencil,
+    Play,
     Reply,
     SmilePlus,
     Trash2
 } from "lucide-react";
 import {
     forwardRef,
+    lazy,
+    Suspense,
     useCallback,
     useEffect,
     useRef,
     useState,
     type ChangeEvent,
     type KeyboardEvent,
-    type MouseEvent
+    type MouseEvent,
+    type ReactNode
 } from "react";
 import { cn } from "@/lib/utils";
 import Avatar from "../../identity/avatar/Avatar";
@@ -32,12 +37,19 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { Textarea } from "../../ui/textarea";
 import EmojiPicker from "../../input/emojiPicker/EmojiPicker";
+import { resolveAttachmentKind, type LightboxSource } from "./media";
 import {
     DEFAULT_AVAILABLE_REACTIONS,
+    type ChatAttachment,
     type ChatMessage,
     type ChatStrings,
     type ChatUser
 } from "./types";
+
+// Voice playback pulls a procedural-waveform player — lazy so the base Chat
+// bundle stays lean for text-only consumers; it only loads when a voice
+// attachment actually renders.
+const LazyAudioPlayer = lazy(() => import("../../files/audioPlayer/AudioPlayer"));
 
 interface MessageRowProps {
     readonly index: number;
@@ -59,6 +71,10 @@ interface MessageRowProps {
     readonly onDelete?: (messageId: string) => void | Promise<void>;
     readonly onRetry?: (messageId: string) => void | Promise<void>;
     readonly onClick?: (message: ChatMessage) => void;
+    /** Open an image/video attachment in the chat-level lightbox. */
+    readonly onOpenMedia?: (source: LightboxSource) => void;
+    /** Render extra content (e.g. a metadata-driven card) under the body. */
+    readonly renderMessageExtra?: (message: ChatMessage) => ReactNode;
     readonly readByLabel: string;
     readonly onMeasured: (index: number, height: number) => void;
 }
@@ -108,6 +124,8 @@ const MessageRow = forwardRef<HTMLDivElement, MessageRowProps>((props, forwarded
         onDelete,
         onRetry,
         onClick,
+        onOpenMedia,
+        renderMessageExtra,
         readByLabel,
         onMeasured
     } = props;
@@ -192,6 +210,124 @@ const MessageRow = forwardRef<HTMLDivElement, MessageRowProps>((props, forwarded
     const handleClick = (e: MouseEvent<HTMLDivElement>) => {
         if ((e.target as HTMLElement).closest(`[data-chat-action]`)) return;
         onClick?.(message);
+    };
+
+    // Rich attachment rendering by kind: images/videos render inline and open
+    // the chat-level lightbox on click (plain pointer cursor, no zoom cursor);
+    // voice renders a compact audio player + the (async) transcript; everything
+    // else is a downloadable file chip.
+    const renderAttachment = (att: ChatAttachment): ReactNode => {
+        const kind = resolveAttachmentKind(att);
+        if (kind === `image`) {
+            return (
+                <button
+                    key={att.id}
+                    type={`button`}
+                    data-chat-action={`attachment-image`}
+                    aria-label={strings.openPreview}
+                    onClick={() =>
+                        onOpenMedia?.({
+                            kind: `image`,
+                            src: att.url,
+                            downloadHref: att.url,
+                            name: att.name
+                        })
+                    }
+                    className={`focus-visible:ring-primary block w-fit max-w-full cursor-pointer overflow-hidden rounded-md border p-0 leading-none focus-visible:ring-2 focus-visible:outline-none`}
+                >
+                    <img
+                        src={att.thumbnailUrl ?? att.url}
+                        alt={att.name}
+                        loading={`lazy`}
+                        className={`max-h-60 max-w-[min(20rem,100%)] object-cover`}
+                    />
+                </button>
+            );
+        }
+        if (kind === `video`) {
+            return (
+                <button
+                    key={att.id}
+                    type={`button`}
+                    data-chat-action={`attachment-video`}
+                    aria-label={strings.openPreview}
+                    onClick={() =>
+                        onOpenMedia?.({
+                            kind: `video`,
+                            src: att.url,
+                            downloadHref: att.url,
+                            name: att.name
+                        })
+                    }
+                    className={`focus-visible:ring-primary relative block w-fit max-w-full cursor-pointer overflow-hidden rounded-md border p-0 focus-visible:ring-2 focus-visible:outline-none`}
+                >
+                    <video
+                        src={att.url}
+                        preload={`metadata`}
+                        poster={att.thumbnailUrl}
+                        className={`max-h-60 max-w-[min(20rem,100%)]`}
+                    />
+                    <span
+                        className={`pointer-events-none absolute inset-0 flex items-center justify-center`}
+                    >
+                        <span
+                            className={`grid size-11 place-items-center rounded-full bg-black/55 text-white`}
+                        >
+                            <Play className={`size-5`} aria-hidden />
+                        </span>
+                    </span>
+                </button>
+            );
+        }
+        if (kind === `voice`) {
+            const status = att.transcriptStatus;
+            return (
+                <div key={att.id} className={`flex max-w-sm flex-col gap-1`}>
+                    <Suspense
+                        fallback={
+                            <div className={`bg-muted/60 h-12 w-56 animate-pulse rounded-md`} />
+                        }
+                    >
+                        <LazyAudioPlayer
+                            src={att.url}
+                            variant={`bar`}
+                            preload={`metadata`}
+                            downloadName={att.name || undefined}
+                        />
+                    </Suspense>
+                    {status === `pending` && (
+                        <span className={`text-muted-foreground text-xs`}>
+                            {strings.transcribing}
+                        </span>
+                    )}
+                    {status === `done` && att.transcript && (
+                        <span data-testid={`chat-transcript`} className={`text-xs italic`}>
+                            „{att.transcript}“
+                        </span>
+                    )}
+                    {status === `failed` && (
+                        <span className={`text-muted-foreground text-xs`}>
+                            {strings.transcriptUnavailable}
+                        </span>
+                    )}
+                </div>
+            );
+        }
+        return (
+            <a
+                key={att.id}
+                href={att.url}
+                target={`_blank`}
+                rel={`noreferrer`}
+                download={att.name || undefined}
+                data-chat-action={`attachment`}
+                className={`border-border bg-muted/60 hover:bg-muted flex w-fit max-w-full items-center gap-2 rounded-md border px-2.5 py-2 text-xs`}
+            >
+                <FileText className={`h-4 w-4 shrink-0`} aria-hidden />
+                <span className={`min-w-0 truncate`}>{att.name}</span>
+                <Download className={`h-3.5 w-3.5 shrink-0 opacity-70`} aria-hidden />
+            </a>
+        );
     };
 
     return (
@@ -297,26 +433,15 @@ const MessageRow = forwardRef<HTMLDivElement, MessageRowProps>((props, forwarded
                 )}
 
                 {message.attachments && message.attachments.length > 0 && (
-                    <ul
+                    <div
                         aria-label={strings.attachmentsLabel}
-                        className={`mt-1 flex flex-wrap gap-2`}
+                        className={`mt-1 flex flex-col items-start gap-2`}
                     >
-                        {message.attachments.map((att) => (
-                            <li key={att.id}>
-                                <a
-                                    href={att.url}
-                                    target={`_blank`}
-                                    rel={`noreferrer`}
-                                    data-chat-action={`attachment`}
-                                    className={`border-border bg-muted/60 hover:bg-muted flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs`}
-                                >
-                                    <Paperclip className={`h-3 w-3`} aria-hidden />
-                                    <span className={`max-w-[200px] truncate`}>{att.name}</span>
-                                </a>
-                            </li>
-                        ))}
-                    </ul>
+                        {message.attachments.map(renderAttachment)}
+                    </div>
                 )}
+
+                {renderMessageExtra?.(message)}
 
                 {reactions.length > 0 && (
                     <ul className={`mt-1 flex flex-wrap gap-1`}>

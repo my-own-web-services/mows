@@ -59,6 +59,20 @@ export {
 
 export { default as DateTimeDisplay } from "./components/dateTime/dateTimeDisplay/DateTimeDisplay";
 export {
+    default as Duration,
+    type DurationProps,
+    type DurationPart,
+    type DurationUnit,
+    type DurationVariant
+} from "./components/dateTime/duration/Duration";
+export {
+    DURATION_UNITS,
+    DURATION_VARIANTS,
+    formatDuration,
+    formatDurationParts,
+    splitDuration
+} from "./components/dateTime/duration/format";
+export {
     default as DateTimePicker,
     type DateTimePickerProps
 } from "./components/dateTime/dateTimePicker/DateTimePicker";
@@ -89,6 +103,22 @@ export {
     type UseDateTimeRangePickerOptions,
     type UseDateTimeRangePickerReturn
 } from "./components/dateTime/dateTimeRangePicker/useDateTimeRangePicker";
+export {
+    default as Scheduler,
+    type SchedulerProps
+} from "./components/dateTime/scheduler/Scheduler";
+export {
+    useScheduler,
+    type UseSchedulerOptions,
+    type UseSchedulerReturn
+} from "./components/dateTime/scheduler/useScheduler";
+export type {
+    MoveChange,
+    ScheduleItem,
+    SchedulerView,
+    SlotInfo,
+    WeekStart
+} from "./components/dateTime/scheduler/types";
 export {
     Timeline,
     type TimelineEvent,
@@ -199,11 +229,12 @@ export {
 } from "./components/files/fileViewer/formats/videoViewer/VideoViewer";
 
 export { default as Avatar } from "./components/identity/avatar/Avatar";
+
 export {
     default as IconBadge,
     type IconBadgeProps,
-    type IconBadgeCorner
-} from "./components/identity/iconBadge/IconBadge";
+    type IconBadgePosition
+} from "./components/display/iconBadge/IconBadge";
 export {
     ShareDialog,
     SENTINEL_UUID,
@@ -371,12 +402,14 @@ export {
     DEFAULT_CHAT_STRINGS,
     DEFAULT_AVAILABLE_REACTIONS,
     type ChatAttachment,
+    type ChatAttachmentKind,
     type ChatLoadOlderResponse,
     type ChatMessage,
     type ChatProps,
     type ChatReaction,
     type ChatSendInput,
     type ChatStrings,
+    type ChatTranscriptStatus,
     type ChatUser
 } from "./components/chat/Chat/types";
 

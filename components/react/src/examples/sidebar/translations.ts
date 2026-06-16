@@ -13,6 +13,7 @@
 
 export interface SidebarTranslation {
   default: { title: string; description: string };
+  flush: { title: string; description: string };
   iconCollapsible: { title: string; description: string };
   collapsibleGroups: { title: string; description: string };
   resizable: { title: string; description: string };
@@ -30,6 +31,7 @@ export interface SidebarTranslation {
     examples: {
       title: string;
       default: { title: string; description: string };
+      flush: { title: string; description: string };
       iconCollapsible: { title: string; description: string };
       collapsibleGroups: { title: string; description: string };
       resizable: { title: string; description: string };
@@ -61,6 +63,10 @@ export const sidebarEn: SidebarTranslation = {
   default: {
     title: `Header / content / footer`,
     description: `Composed from <SidebarHeader>, <SidebarContent> (with <SidebarGroup> + <SidebarMenu>) and <SidebarFooter>. collapsible="icon" keeps the icon strip visible when collapsed.`,
+  },
+  flush: {
+    title: `Flush appearance`,
+    description: `appearance="flush" on <SidebarProvider> drops the group/header/footer horizontal padding and the menu-button radius, so the active item is a full-bleed selection bar flush with the sidebar edges. Pick this over the default inset "pill" for themes with a small --radius, where an inset pill would look misaligned rather than intentional.`,
   },
   iconCollapsible: {
     title: `Collapsible to icon strip`,
@@ -96,6 +102,10 @@ export const sidebarEn: SidebarTranslation = {
       default: {
         title: `Header / content / footer`,
         description: `A static sidebar with three menu entries.`,
+      },
+      flush: {
+        title: `Flush appearance`,
+        description: `appearance="flush" makes the active item a full-bleed selection bar — no inset, no corner radius — flush with the sidebar edges. Good fit for small-radius themes.`,
       },
       iconCollapsible: {
         title: `Collapsible to icon strip`,
@@ -144,6 +154,10 @@ export const sidebarDe: SidebarTranslation = {
     title: `Header / Inhalt / Footer`,
     description: `Zusammengesetzt aus <SidebarHeader>, <SidebarContent> (mit <SidebarGroup> + <SidebarMenu>) und <SidebarFooter>. collapsible="icon" hält den Icon-Streifen sichtbar.`,
   },
+  flush: {
+    title: `Bündige Darstellung`,
+    description: `appearance="flush" am <SidebarProvider> entfernt das horizontale Padding von Gruppe/Header/Footer und den Radius der Menü-Buttons – der aktive Eintrag wird zur randlosen Auswahlleiste, bündig mit den Sidebar-Kanten. Sinnvoll statt der eingerückten „Pille" bei Themes mit kleinem --radius, wo eine eingerückte Pille verrutscht statt gewollt wirkt.`,
+  },
   iconCollapsible: {
     title: `Auf Icon-Streifen einklappbar`,
     description: `<Sidebar collapsible="icon"> wechselt zwischen voller <SidebarProvider>-Breite und einem 3rem schmalen Icon-Streifen. Der Zustand liegt am <SidebarProvider>; <SidebarTrigger> klappt um, ⌘B / Strg+B global ebenfalls.`,
@@ -178,6 +192,10 @@ export const sidebarDe: SidebarTranslation = {
       default: {
         title: `Header / Inhalt / Footer`,
         description: `Eine statische Sidebar mit drei Menüeinträgen.`,
+      },
+      flush: {
+        title: `Bündige Darstellung`,
+        description: `appearance="flush" macht den aktiven Eintrag zur randlosen Auswahlleiste – ohne Einrückung, ohne Radius – bündig mit den Sidebar-Kanten. Passt zu Themes mit kleinem Radius.`,
       },
       iconCollapsible: {
         title: `Auf Icon-Streifen einklappbar`,

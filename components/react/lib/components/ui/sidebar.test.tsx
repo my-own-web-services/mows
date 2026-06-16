@@ -1,7 +1,17 @@
 import "@testing-library/jest-dom/vitest";
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Sidebar, SidebarProvider } from "./sidebar";
+import {
+    Sidebar,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarProvider
+} from "./sidebar";
 
 // Render the Sidebar inside a resizable provider. The fixed-position div
 // inside the primitive is the one we measure for width / class assertions.
@@ -177,5 +187,62 @@ describe(`Sidebar (resizable)`, () => {
         expect(lastWrapper.style.getPropertyValue(`--sidebar-width`)).toBe(
             `356px`
         );
+    });
+});
+
+describe(`Sidebar (appearance)`, () => {
+    const renderMenu = (
+        appearance?: Parameters<typeof SidebarProvider>[0][`appearance`]
+    ) =>
+        render(
+            <SidebarProvider appearance={appearance}>
+                <Sidebar>
+                    <SidebarHeader>Brand</SidebarHeader>
+                    <SidebarGroup data-testid={`grp`}>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton>Item</SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                    <SidebarFooter>Account</SidebarFooter>
+                </Sidebar>
+            </SidebarProvider>
+        );
+
+    const group = (): HTMLElement =>
+        document.querySelector(`[data-sidebar="group"]`) as HTMLElement;
+    const menuButton = (): HTMLElement =>
+        document.querySelector(`[data-sidebar="menu-button"]`) as HTMLElement;
+    const header = (): HTMLElement =>
+        document.querySelector(`[data-sidebar="header"]`) as HTMLElement;
+    const footer = (): HTMLElement =>
+        document.querySelector(`[data-sidebar="footer"]`) as HTMLElement;
+
+    it(`defaults to the inset "pill" look (group/header/footer padded, button rounded)`, () => {
+        renderMenu();
+        expect(group().className).toContain(`p-2`);
+        expect(group().className).not.toContain(`px-0`);
+        expect(header().className).not.toContain(`px-0`);
+        expect(footer().className).not.toContain(`p-0`);
+        expect(menuButton().className).toContain(`rounded-md`);
+        expect(menuButton().className).not.toContain(`rounded-none`);
+    });
+
+    it(`flush: items/header span full width; footer is fully flush (bottom too); button drops its radius`, () => {
+        renderMenu(`flush`);
+        // Full-bleed: group + header drop horizontal padding; the footer
+        // (account/PrimaryMenu) drops ALL padding so it sits flush with the
+        // sidebar's bottom edge (no gap underneath), not just left/right.
+        expect(group().className).toContain(`px-0`);
+        expect(header().className).toContain(`px-0`);
+        // Exact class tokens — `className.includes("p-2")` would false-match the
+        // "p-2" inside "gap-2", so split and compare whole classes.
+        const footerClasses = footer().className.split(/\s+/);
+        expect(footerClasses).toContain(`p-0`);
+        expect(footerClasses).not.toContain(`p-2`);
+        expect(menuButton().className).toContain(`rounded-none`);
     });
 });

@@ -1,5 +1,4 @@
 import CodeThemePicker from "@/components/code/codeThemePicker/CodeThemePicker";
-import CodeViewer from "@/components/code/codeViewer/CodeViewer";
 import LanguagePicker from "@/components/settings/languagePicker/LanguagePicker";
 import MapStylePicker from "@/components/settings/mapStylePicker/MapStylePicker";
 import ThemePicker from "@/components/settings/themePicker/ThemePicker";
@@ -24,6 +23,8 @@ import {
     resolveLocalisedText
 } from "@/lib/mowsContext/appSettings";
 import {
+    MOWS_TEMPERATURE_UNITS,
+    type MowsTemperatureUnit,
     type ToastPosition,
     TOAST_POSITIONS,
     useMows
@@ -32,10 +33,14 @@ import {
     type SettingsBlob,
     SettingsBlobValidationError
 } from "@/lib/mowsContext/SettingsManager";
+import { CoreActionIds } from "@/lib/mowsContext/coreActions";
 import { cn } from "@/lib/utils";
+import { Braces, SlidersHorizontal } from "lucide-react";
 import {
     type CSSProperties,
+    lazy,
     type ReactNode,
+    Suspense,
     useCallback,
     useEffect,
     useMemo,
@@ -44,6 +49,14 @@ import {
     useSyncExternalStore
 } from "react";
 
+// Lazy: CodeViewer pulls the Monaco editor (~7 MB). The settings JSON editor /
+// code preview is a rare, on-demand feature, so it must not sit in the base
+// bundle of every app that mounts a ModalHandler/SettingsPanel. Declared AFTER
+// the imports — `lazy` is bound by the react import above; placing this between
+// import statements tripped a temporal-dead-zone error in Vite dev (white
+// screen: "Cannot access 'lazy' before initialization").
+const CodeViewer = lazy(() => import("@/components/code/codeViewer/CodeViewer"));
+
 export interface SettingsPanelProps {
     readonly className?: string;
     readonly style?: CSSProperties;
@@ -51,12 +64,18 @@ export interface SettingsPanelProps {
 
 const fieldClass = `flex h-9 w-full items-center justify-between rounded-md border border-input bg-background py-1`;
 
+/** Upper bound across browsers for the duration of `scrollIntoView({
+ * behavior: "smooth" })`. Used to suppress the IntersectionObserver-driven
+ * "active section" updates while a programmatic scroll is animating. */
+const SMOOTH_SCROLL_DEBOUNCE_MS = 600;
+
 type CoreSectionId =
     | `appearance`
     | `code-editor`
     | `language`
     | `notifications`
-    | `map`;
+    | `map`
+    | `units`;
 
 type SectionId = CoreSectionId | `app-${string}`;
 
@@ -80,6 +99,8 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
         setCodeEditorSettings,
         toastSettings,
         setToastSettings,
+        currentTemperatureUnit,
+        setTemperatureUnit,
         settingsManager,
         appSettings
     } = mows;
@@ -105,6 +126,7 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
             { id: `appearance`, label: t.settings.sections.appearance },
             { id: `code-editor`, label: t.settings.sections.codeEditor },
             { id: `map`, label: t.settings.sections.map },
+            { id: `units`, label: t.settings.sections.units },
             { id: `notifications`, label: t.settings.sections.notifications },
             { id: `language`, label: t.settings.sections.language }
         ];
@@ -148,10 +170,18 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
             return;
         }
         try {
-            // SettingsManager.replaceBlob owns the version + shape
-            // contract; the panel only forwards the parsed value and
-            // surfaces the validation error to the user.
-            settingsManager.replaceBlob(parsed);
+            // Route through the action manager so the replacement becomes
+            // a single undoable step — Ctrl+Z reverts the entire paste
+            // instead of leaving the user to hand-edit back. The action
+            // handler calls SettingsManager.replaceBlob internally, which
+            // still owns the version + shape contract and throws on
+            // validation failure (caught below).
+            mows.actionManager.dispatchAction(
+                CoreActionIds.REPLACE_SETTINGS_BLOB,
+                undefined,
+                null,
+                { blob: parsed }
+            );
             setJsonError(null);
         } catch (err) {
             if (err instanceof SettingsBlobValidationError) {
@@ -180,7 +210,13 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
         if (!root) return;
         const target = root.querySelector<HTMLElement>(`[data-section-id="${id}"]`);
         if (!target) return;
-        programmaticScrollUntil.current = Date.now() + 600;
+        // Block IntersectionObserver-driven "active section" updates while
+        // the smooth scroll is in flight, otherwise the observer would
+        // fire for every section the scroll passes and clobber the click
+        // target. The duration must outlive `scrollIntoView({ behavior:
+        // "smooth" })` — Chrome ~300ms, Firefox ~600ms — so 600ms is the
+        // safe upper bound today.
+        programmaticScrollUntil.current = Date.now() + SMOOTH_SCROLL_DEBOUNCE_MS;
         setActiveSection(id);
         target.scrollIntoView({ behavior: `smooth`, block: `start` });
     }, []);
@@ -224,20 +260,30 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
     const [mode, setMode] = useState<`form` | `json`>(`form`);
     const toggleMode = () => setMode((m) => (m === `form` ? `json` : `form`));
     const toggleLabel = mode === `form` ? t.settings.jsonTab : t.settings.formTab;
+    // Icon mirrors the destination view: Braces for "switch to JSON",
+    // SlidersHorizontal for "switch back to the form-style panel".
+    const ToggleIcon = mode === `form` ? Braces : SlidersHorizontal;
 
     return (
         <div
             style={style}
             className={cn(`SettingsPanel relative flex h-full flex-col`, className)}
         >
+            {/* Inset the toggle by `right-4 top-3` so it clears the
+                scrollbar gutter on platforms with classic (non-overlay)
+                scrollbars — when this panel is embedded with its own
+                `overflow-y-auto`, a `right-0` button sits on top of the
+                scrollbar. 16 px clears every common gutter (Windows
+                17 px, Linux 15-17 px, macOS overlay 0 px). */}
             <Button
                 type={`button`}
                 variant={`outline`}
                 size={`sm`}
                 onClick={toggleMode}
                 aria-pressed={mode === `json`}
-                className={`absolute right-0 top-0 z-10`}
+                className={`absolute right-4 top-3 z-10 gap-1.5`}
             >
+                <ToggleIcon aria-hidden className={`h-3.5 w-3.5`} />
                 {toggleLabel}
             </Button>
 
@@ -301,11 +347,13 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                             <SettingRow label={t.settings.labels.codeTheme}>
                                 <CodeThemePicker className={fieldClass} />
                             </SettingRow>
-                            <CodeViewer
-                                language={`tsx`}
-                                code={`const greet = (name: string): string => \`Hello, \${name}!\`;\nconst nums = [1, 2, 3].map((n) => n * 2);`}
-                                className={`h-[140px]`}
-                            />
+                            <Suspense fallback={<div className={`h-[140px]`} />}>
+                                <CodeViewer
+                                    language={`tsx`}
+                                    code={`const greet = (name: string): string => \`Hello, \${name}!\`;\nconst nums = [1, 2, 3].map((n) => n * 2);`}
+                                    className={`h-[140px]`}
+                                />
+                            </Suspense>
                             <SettingRow
                                 label={t.settings.labels.showLineNumbers}
                                 htmlFor={`settings-show-line-numbers`}
@@ -371,6 +419,42 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
                             </h2>
                             <SettingRow label={t.settings.labels.mapStyle}>
                                 <MapStylePicker className={fieldClass} />
+                            </SettingRow>
+                        </section>
+
+                        <section
+                            data-section-id={`units`}
+                            className={`flex flex-col gap-4 scroll-mt-2`}
+                        >
+                            <h2
+                                className={`text-2xl font-semibold tracking-tight`}
+                            >
+                                {t.settings.sections.units}
+                            </h2>
+                            <SettingRow
+                                label={t.settings.labels.temperatureUnit}
+                                htmlFor={`settings-temperature-unit`}
+                            >
+                                <Select
+                                    value={currentTemperatureUnit}
+                                    onValueChange={(value) =>
+                                        setTemperatureUnit(value as MowsTemperatureUnit)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id={`settings-temperature-unit`}
+                                        className={fieldClass}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {MOWS_TEMPERATURE_UNITS.map((unit) => (
+                                            <SelectItem key={unit} value={unit}>
+                                                {t.settings.temperatureUnits[unit]}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </SettingRow>
                         </section>
 
@@ -457,15 +541,17 @@ const SettingsPanel = ({ className, style }: SettingsPanelProps) => {
             ) : (
                 <div className={`flex min-h-0 flex-1 flex-col gap-2 pt-2`}>
                     <div ref={(el) => { jsonTextareaRef.current = el; }}>
-                        <CodeViewer
-                            editable
-                            wrap
-                            showLineNumbers
-                            language={`json`}
-                            code={jsonDraft}
-                            onCodeChange={setJsonDraft}
-                            className={`h-[400px]`}
-                        />
+                        <Suspense fallback={<div className={`h-[400px]`} />}>
+                            <CodeViewer
+                                editable
+                                wrap
+                                showLineNumbers
+                                language={`json`}
+                                code={jsonDraft}
+                                onCodeChange={setJsonDraft}
+                                className={`h-[400px]`}
+                            />
+                        </Suspense>
                     </div>
                     {jsonError && (
                         <span className={`text-sm text-destructive`}>{jsonError}</span>

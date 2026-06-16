@@ -25,6 +25,7 @@ const ANCHOR = {
     composition: `composition`,
     examples: `examples`,
     default: `examples-default`,
+    flush: `examples-flush`,
     iconCollapsible: `examples-icon-collapsible`,
     collapsibleGroups: `examples-collapsible-groups`,
     resizable: `examples-resizable`,
@@ -104,6 +105,12 @@ const PROVIDER_PROPS: PropRow[] = [
         description: `Enable the drag handle on the trailing edge of the fixed wrapper. The resulting width is persisted to a cookie (sidebar_width).`
     },
     {
+        name: `appearance`,
+        type: `"default" | "flush"`,
+        default: `"default"`,
+        description: `"default" frames the active item as an inset rounded pill. "flush" drops the group/header/footer horizontal padding and the menu-button radius so items are a full-bleed selection bar flush with the sidebar edges — better for themes with a small --radius.`
+    },
+    {
         name: `defaultWidthPx`,
         type: `number`,
         default: `256`,
@@ -169,6 +176,7 @@ const buildIndexItems = (t: Strings): PageIndexItem[] => {
             label: doc.examples.title,
             children: [
                 { id: ANCHOR.default, label: doc.examples.default.title },
+                { id: ANCHOR.flush, label: doc.examples.flush.title },
                 {
                     id: ANCHOR.iconCollapsible,
                     label: doc.examples.iconCollapsible.title
@@ -310,6 +318,16 @@ export const SidebarDocPage = () => {
                     >
                         <ExampleCard
                             example={sidebarExampleById(`default`)}
+                            hideHeader
+                        />
+                    </DocSubsection>
+                    <DocSubsection
+                        id={ANCHOR.flush}
+                        title={doc.examples.flush.title}
+                        description={doc.examples.flush.description}
+                    >
+                        <ExampleCard
+                            example={sidebarExampleById(`flush`)}
                             hideHeader
                         />
                     </DocSubsection>
