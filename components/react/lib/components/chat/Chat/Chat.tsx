@@ -181,12 +181,21 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
             const idx = renderRows.findIndex((r) => rowKey(r) === key);
             if (idx >= 0 && listRef.current) {
                 listRef.current.resetAfterIndex(idx);
-                // While pinned to the bottom, re-anchor after a row's height
-                // settles (e.g. image/video metadata loaded late, growing the
-                // row) so the newest message stays visible instead of drifting
-                // off-screen when offsets shift below the viewport.
-                if (stickyBottomRef.current) {
-                    listRef.current.scrollToItem(renderRows.length - 1, `end`);
+                // Re-anchor after a row's height settles (e.g. image/video
+                // metadata loaded late, growing the row) so the newest message
+                // stays visible. Gate on the LIVE scroll position, not the
+                // sticky flag: once the user has scrolled up we must not yank
+                // them back down (which would also fight manual scrolling while
+                // rows are still being measured).
+                const outer = outerScrollRef.current;
+                if (
+                    outer &&
+                    outer.scrollHeight - outer.scrollTop - outer.clientHeight <
+                        NEAR_BOTTOM_TRIGGER_PX
+                ) {
+                    // Raw scrollTop (not scrollToItem, which uses estimated
+                    // sizes and lands short with variable-height media rows).
+                    outer.scrollTop = outer.scrollHeight;
                 }
             }
         },
@@ -195,7 +204,14 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
 
     const scrollToBottom = useCallback(() => {
         if (renderRows.length === 0) return;
-        listRef.current?.scrollToItem(renderRows.length - 1, `end`);
+        // Prefer the raw scroll position: scrollToItem computes an offset from
+        // ESTIMATED row sizes and lands short of the true bottom when rows have
+        // not been measured yet (images/videos). Setting scrollTop to the full
+        // height pins to the actual bottom; the re-anchor in setMeasured keeps
+        // it there as late media heights settle.
+        const outer = outerScrollRef.current;
+        if (outer) outer.scrollTop = outer.scrollHeight;
+        else listRef.current?.scrollToItem(renderRows.length - 1, `end`);
         stickyBottomRef.current = true;
         setStickyBottom(true);
         setPendingNewCount(0);
