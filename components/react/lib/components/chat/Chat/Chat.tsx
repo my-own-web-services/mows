@@ -20,7 +20,6 @@ import TypingIndicator from "./TypingIndicator";
 import {
     DEFAULT_AVAILABLE_REACTIONS,
     DEFAULT_CHAT_STRINGS,
-    type ChatLoadOlderResponse,
     type ChatMessage,
     type ChatProps,
     type ChatSendInput,
@@ -247,6 +246,26 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
         }
     }, [messages, scrollToBottom]);
 
+    // Load one older page if allowed and not already in flight. Triggered from
+    // BOTH the top-of-list render (onItemsRendered) and continuously while
+    // scrolling near the top (onScroll) so long back-paging keeps loading —
+    // onItemsRendered alone stops firing once the rendered range is stable. The
+    // `await` only blocks if the consumer returns a Promise; then the latch
+    // sequences pages so each load uses the freshly-prepended oldest cursor.
+    const maybeLoadOlder = useCallback(async () => {
+        if (!loadOlder) return;
+        if (hasMore === false) return;
+        if (loadingOlder || isLoadingOlderRef.current) return;
+        const outer = outerScrollRef.current;
+        if (outer && outer.scrollTop > NEAR_TOP_TRIGGER_PX) return;
+        isLoadingOlderRef.current = true;
+        try {
+            await loadOlder();
+        } finally {
+            isLoadingOlderRef.current = false;
+        }
+    }, [hasMore, loadOlder, loadingOlder]);
+
     const handleScroll = useCallback(() => {
         const outer = outerScrollRef.current;
         if (!outer) return;
@@ -257,29 +276,20 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
             setStickyBottom(atBottom);
             if (atBottom) setPendingNewCount(0);
         }
-    }, []);
+        // Keep loading older pages while the user scrolls up (not pinned to the
+        // bottom) near the top — reliable trigger even when onItemsRendered
+        // goes quiet on a stable range.
+        if (!stickyBottomRef.current && outer.scrollTop <= NEAR_TOP_TRIGGER_PX) {
+            void maybeLoadOlder();
+        }
+    }, [maybeLoadOlder]);
 
     const handleItemsRendered = useCallback(
-        async (info: ListOnItemsRenderedProps) => {
+        (info: ListOnItemsRenderedProps) => {
             if (info.visibleStartIndex > 3) return;
-            if (!loadOlder) return;
-            if (hasMore === false) return;
-            if (loadingOlder || isLoadingOlderRef.current) return;
-            const outer = outerScrollRef.current;
-            if (outer && outer.scrollTop > NEAR_TOP_TRIGGER_PX) return;
-            isLoadingOlderRef.current = true;
-            try {
-                const result = await loadOlder();
-                // Consumer-driven load: they receive the older messages
-                // and own prepending them to `messages`. The effect on
-                // `messages` change above adjusts scroll state; here we
-                // only release the latch.
-                void (result as ChatLoadOlderResponse | void);
-            } finally {
-                isLoadingOlderRef.current = false;
-            }
+            void maybeLoadOlder();
         },
-        [hasMore, loadOlder, loadingOlder]
+        [maybeLoadOlder]
     );
 
     const handleSend = useCallback(
