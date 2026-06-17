@@ -181,6 +181,13 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
             const idx = renderRows.findIndex((r) => rowKey(r) === key);
             if (idx >= 0 && listRef.current) {
                 listRef.current.resetAfterIndex(idx);
+                // While pinned to the bottom, re-anchor after a row's height
+                // settles (e.g. image/video metadata loaded late, growing the
+                // row) so the newest message stays visible instead of drifting
+                // off-screen when offsets shift below the viewport.
+                if (stickyBottomRef.current) {
+                    listRef.current.scrollToItem(renderRows.length - 1, `end`);
+                }
             }
         },
         [renderRows, rowKey]
