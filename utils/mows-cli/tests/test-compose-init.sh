@@ -31,7 +31,7 @@ if $MPM_BIN compose init 2>&1; then
        assert_dir_exists "$TEST_DIR/deployment/templates" && \
        assert_dir_exists "$TEST_DIR/deployment/templates/config" && \
        assert_dir_exists "$TEST_DIR/deployment/data" && \
-       assert_dir_exists "$TEST_DIR/deployment/results"; then
+       assert_dir_exists "$TEST_DIR/deployment/.results"; then
         pass_test "Creates deployment directory structure"
     else
         fail_test "Missing deployment directories"
