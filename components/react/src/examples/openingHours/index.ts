@@ -2,6 +2,8 @@ import closedModule from "./Closed";
 import closedSource from "./Closed.tsx?raw";
 import closingSoonModule from "./ClosingSoon";
 import closingSoonSource from "./ClosingSoon.tsx?raw";
+import collapsibleModule from "./Collapsible";
+import collapsibleSource from "./Collapsible.tsx?raw";
 import defaultModule from "./Default";
 import defaultSource from "./Default.tsx?raw";
 import rtlModule from "./Rtl";
@@ -12,6 +14,7 @@ import type { RegisteredExample } from "../harness/types";
 
 export const openingHoursExamples: ReadonlyArray<RegisteredExample> = [
     { id: `default`, source: defaultSource, ...defaultModule },
+    { id: `collapsible`, source: collapsibleSource, ...collapsibleModule },
     { id: `closingSoon`, source: closingSoonSource, ...closingSoonModule },
     { id: `closed`, source: closedSource, ...closedModule },
     { id: `weekOnly`, source: weekOnlySource, ...weekOnlyModule },

@@ -12,6 +12,16 @@ export const isMacPlatform = (): boolean => {
     return /Mac|iPhone|iPad|iPod/.test(platformProbe);
 };
 
+/** True when the event originates from a text-editable element, so global
+ * hotkeys should stand down and leave native editing (undo/redo/select) alone. */
+const isEditableTarget = (target: EventTarget | null): boolean => {
+    const el = target as HTMLElement | null;
+    if (!el || typeof el.tagName !== `string`) return false;
+    const tag = el.tagName.toLowerCase();
+    if (tag === `input` || tag === `textarea` || tag === `select`) return true;
+    return el.isContentEditable === true;
+};
+
 export interface HotkeyConfig {
     [actionId: string]: {
         keyCombinations?: string[];
@@ -31,7 +41,7 @@ export interface HotkeyConfigSlot {
 
 /** Discriminated union — exactly one of `configSlot` (preferred) or
  * `configStorageKey` (deprecated) must be provided. */
-export type HotkeyManagerConfig =
+export type HotkeyManagerConfig = (
     | {
           readonly configSlot: HotkeyConfigSlot;
           readonly configStorageKey?: never;
@@ -42,7 +52,13 @@ export type HotkeyManagerConfig =
           readonly configStorageKey: string;
           readonly configSlot?: never;
           readonly defaultHotkeys: HotkeyConfig;
-      };
+      }
+) & {
+    /** Attach the global `document` keydown listener (default true). Set false
+     * to embed MOWS without its app-wide hotkeys — e.g. a focused app that
+     * must not have `mod+z` / `mod+k` intercepted while a user types. */
+    readonly globalListener?: boolean;
+};
 
 export class HotkeyManager {
     private actionManager: ActionManager;
@@ -57,13 +73,25 @@ export class HotkeyManager {
         this.hotkeyConfig = this.loadHotkeyConfig();
         this.mergeWithDefaultHotkeys();
 
+        // Embedding apps can opt out of the global hotkey listener entirely.
+        if (config.globalListener === false) return;
+
         document.addEventListener(`keydown`, (event) => {
+            // Don't hijack keys while the user is typing in an editable element
+            // (text field / textarea / contenteditable). Otherwise app-wide
+            // hotkeys like `mod+z` would steal native undo from inputs. App
+            // chrome hotkeys still work everywhere else.
+            if (isEditableTarget(event.target)) return;
             const keyCombo = this.formatKeyCombo(event);
             const actionId = this.getActionByHotkey(keyCombo);
             if (actionId) {
                 log.debug(`Hotkey pressed: ${keyCombo}, triggering action: ${actionId}`);
                 event.preventDefault();
-                this.actionManager.dispatchAction(actionId);
+                // Pass the event through so ActionManager can read the live
+                // modifier mask, run modifier-variant predicates, and record
+                // accurate modifiers in the audit log. Without this every
+                // hotkey-dispatched action sees `NO_MODIFIERS`.
+                this.actionManager.dispatchAction(actionId, event);
             }
         });
     }

@@ -1,4 +1,4 @@
-import { FileText, Mic, Paperclip, Send, Square, X } from "lucide-react";
+import { FileText, Mic, Paperclip, Send, Smile, Square, X } from "lucide-react";
 import {
     forwardRef,
     useCallback,
@@ -12,6 +12,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "../../ui/button";
 import { Textarea } from "../../ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
+import EmojiPicker from "../../input/emojiPicker/EmojiPicker";
 import type {
     ChatAttachmentKind,
     ChatMessage,
@@ -33,6 +35,8 @@ interface ComposerProps {
     readonly enableAttachments?: boolean;
     /** Opt-in: microphone button to record a voice message. */
     readonly enableVoice?: boolean;
+    /** Opt-in: emoji button that opens the full EmojiPicker and inserts at the caret. */
+    readonly enableEmojiPicker?: boolean;
     /** Per-file size guard (bytes); staging refuses larger files. */
     readonly maxAttachmentBytes?: number;
 }
@@ -76,11 +80,13 @@ const Composer = forwardRef<ComposerHandle, ComposerProps>((props, ref) => {
         onSend,
         enableAttachments,
         enableVoice,
+        enableEmojiPicker,
         maxAttachmentBytes
     } = props;
     const [value, setValue] = useState(``);
     const [staged, setStaged] = useState<ReadonlyArray<StagedFile>>([]);
     const [recording, setRecording] = useState(false);
+    const [emojiOpen, setEmojiOpen] = useState(false);
     const [error, setError] = useState(``);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -209,6 +215,31 @@ const Composer = forwardRef<ComposerHandle, ComposerProps>((props, ref) => {
         setValue(next);
     };
 
+    // Insert a picked emoji at the caret (or replacing the selection), then
+    // restore focus + caret just after it so users can keep typing / picking.
+    const insertEmoji = useCallback(
+        (emoji: string) => {
+            setValue((current) => {
+                const ta = textareaRef.current;
+                const start = ta?.selectionStart ?? current.length;
+                const end = ta?.selectionEnd ?? current.length;
+                const next = current.slice(0, start) + emoji + current.slice(end);
+                if (maxBodyLength !== undefined && next.length > maxBodyLength) return current;
+                requestAnimationFrame(() => {
+                    const pos = start + emoji.length;
+                    ta?.focus();
+                    try {
+                        ta?.setSelectionRange(pos, pos);
+                    } catch {
+                        // setSelectionRange can throw on a detached node — ignore.
+                    }
+                });
+                return next;
+            });
+        },
+        [maxBodyLength]
+    );
+
     const nothingToSend = value.trim().length === 0 && staged.length === 0;
 
     return (
@@ -322,6 +353,33 @@ const Composer = forwardRef<ComposerHandle, ComposerProps>((props, ref) => {
                     >
                         {recording ? <Square /> : <Mic />}
                     </Button>
+                )}
+                {enableEmojiPicker && (
+                    <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                type={`button`}
+                                variant={`ghost`}
+                                size={`icon`}
+                                disabled={disabled || recording}
+                                aria-label={strings.insertEmoji}
+                                title={strings.insertEmoji}
+                                data-testid={`chat-composer-emoji`}
+                            >
+                                <Smile />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                            align={`start`}
+                            side={`top`}
+                            className={`w-auto border-none p-0 shadow-none`}
+                            data-testid={`chat-composer-emoji-popover`}
+                        >
+                            {/* Stays open across picks so several emoji can be
+                                inserted in one go; closes on Escape / outside. */}
+                            <EmojiPicker onSelect={insertEmoji} onClose={() => setEmojiOpen(false)} />
+                        </PopoverContent>
+                    </Popover>
                 )}
                 <Textarea
                     ref={textareaRef}

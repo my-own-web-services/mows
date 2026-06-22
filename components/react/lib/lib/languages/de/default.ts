@@ -73,7 +73,8 @@ const translation: BaseTranslation = {
             language: `Sprache`,
             codeEditor: `Code-Editor`,
             notifications: `Benachrichtigungen`,
-            map: `Karte`
+            map: `Karte`,
+            units: `Einheiten`
         },
         labels: {
             theme: `Design`,
@@ -84,7 +85,8 @@ const translation: BaseTranslation = {
             showLineNumbers: `Zeilennummern anzeigen`,
             bracketPairColorization: `Klammerpaare einfärben`,
             toastPosition: `Toast-Position`,
-            mapStyle: `Kartenstil`
+            mapStyle: `Kartenstil`,
+            temperatureUnit: `Temperatureinheit`
         },
         toastPositions: {
             topLeft: `Oben links`,
@@ -93,6 +95,11 @@ const translation: BaseTranslation = {
             bottomLeft: `Unten links`,
             bottomCenter: `Unten mittig`,
             bottomRight: `Unten rechts`
+        },
+        temperatureUnits: {
+            celsius: `Celsius (°C)`,
+            fahrenheit: `Fahrenheit (°F)`,
+            kelvin: `Kelvin (K)`
         },
         /** Fallback-Label im `<SettingsPanel>` für App-registrierte
          * Settings, deren Schema-Eintrag kein `group` deklariert hat. */
@@ -134,6 +141,18 @@ const translation: BaseTranslation = {
         ariaLabel: `Datum und Uhrzeit`,
         timezoneLabel: `Zeitzone`
     },
+    scheduler: {
+        ariaLabel: `Terminkalender`,
+        today: `Heute`,
+        previous: `Zurück`,
+        next: `Weiter`,
+        addEvent: `Termin hinzufügen`,
+        allDay: `Ganztägig`,
+        noEvents: `Keine Termine`,
+        moreEvents: `+{count} weitere`,
+        weekAbbrev: `KW`,
+        views: { month: `Monat`, week: `Woche`, day: `Tag`, agenda: `Agenda` }
+    },
     actions: {
         [CoreActionIds.OPEN_COMMAND_PALETTE]: `Befehlspalette öffnen`,
         [CoreActionIds.OPEN_KEYBOARD_SHORTCUTS]: `Tastenkombinationen öffnen`,
@@ -144,7 +163,29 @@ const translation: BaseTranslation = {
         [CoreActionIds.LOGOUT]: `Abmelden`,
         [CoreActionIds.OPEN_DEV_TOOLS]: `Entwicklerwerkzeuge öffnen`,
         [CoreActionIds.OPEN_CODE_THEME_SELECTOR]: `Code-Design-Auswahl öffnen`,
-        [CoreActionIds.OPEN_SETTINGS]: `Einstellungen öffnen`
+        [CoreActionIds.OPEN_SETTINGS]: `Einstellungen öffnen`,
+        [CoreActionIds.UNDO]: `Rückgängig`,
+        [CoreActionIds.REDO]: `Wiederholen`,
+        [CoreActionIds.OPEN_HISTORY]: `Aktionsverlauf öffnen`,
+        [CoreActionIds.SET_THEME]: `Theme auf {themeId} setzen`,
+        [CoreActionIds.REPLACE_SETTINGS_BLOB]: `Einstellungen ersetzen`
+    },
+    actionHistory: {
+        undoFailed: `Rückgängig fehlgeschlagen: {error}`,
+        undoNoHandler: `Aktion nicht verfügbar — kann nicht rückgängig gemacht werden`,
+        undoDropped: `Nach {n} Versuchen entfernt`,
+        auditPersistenceDisabled: `Speicherkontingent erreicht — Verlauf wird nicht gespeichert`
+    },
+    historyPanel: {
+        title: `Aktionsverlauf`,
+        emptyState: `Noch keine Aktionen`,
+        searchPlaceholder: `Suchen…`,
+        categoryFilter: `Nach Kategorie filtern`,
+        undoToHere: `Bis hierhin rückgängig`,
+        clearButton: `Verlauf löschen`,
+        clearConfirmation: `Gesamten Verlauf löschen? Nicht widerrufbar.`,
+        unknownAction: `Unbekannte Aktion`,
+        otherTab: `Aus anderem Tab`
     },
     commandPalette: {
         placeholder: `Befehl eingeben oder suchen...`,

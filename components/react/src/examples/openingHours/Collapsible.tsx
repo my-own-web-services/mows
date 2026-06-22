@@ -5,10 +5,10 @@ import type { ExampleModule } from "../harness/types";
 const RULE = `Mo-Fr 09:00-18:00; Sa 10:00-14:00`;
 
 const Example = () => {
-    useExampleState({ rules: RULE, collapsible: true });
+    useExampleState({ rules: RULE, defaultOpen: true });
     return (
         <div className={`w-full max-w-sm`}>
-            <OpeningHours rules={RULE} collapsible />
+            <OpeningHours rules={RULE} defaultOpen />
         </div>
     );
 };

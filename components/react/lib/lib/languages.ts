@@ -71,6 +71,7 @@ export interface BaseTranslation {
             codeEditor: string;
             notifications: string;
             map: string;
+            units: string;
         };
         labels: {
             theme: string;
@@ -82,6 +83,7 @@ export interface BaseTranslation {
             bracketPairColorization: string;
             toastPosition: string;
             mapStyle: string;
+            temperatureUnit: string;
         };
         toastPositions: {
             topLeft: string;
@@ -90,6 +92,11 @@ export interface BaseTranslation {
             bottomLeft: string;
             bottomCenter: string;
             bottomRight: string;
+        };
+        temperatureUnits: {
+            celsius: string;
+            fahrenheit: string;
+            kelvin: string;
         };
         /** Fallback group label for app-registered settings whose
          * schema entry didn't declare a `group`. Rendered as the
@@ -131,8 +138,41 @@ export interface BaseTranslation {
         ariaLabel: string;
         timezoneLabel: string;
     };
+    scheduler: {
+        ariaLabel: string;
+        today: string;
+        previous: string;
+        next: string;
+        addEvent: string;
+        allDay: string;
+        noEvents: string;
+        /** Month-cell overflow; `{count}` is replaced at render time. */
+        moreEvents: string;
+        /** Calendar-week abbreviation shown in agenda day headers (e.g. "KW"). */
+        weekAbbrev: string;
+        views: { month: string; week: string; day: string; agenda: string };
+    };
     actions: {
         [key: string]: string;
+    };
+    /** Runtime toasts emitted by ActionManager for undo / redo failures.
+     * Tokens: `{error}` (original error message), `{n}` (retry count). */
+    actionHistory: {
+        undoFailed: string;
+        undoNoHandler: string;
+        undoDropped: string;
+        auditPersistenceDisabled: string;
+    };
+    historyPanel: {
+        title: string;
+        emptyState: string;
+        searchPlaceholder: string;
+        categoryFilter: string;
+        undoToHere: string;
+        clearButton: string;
+        clearConfirmation: string;
+        unknownAction: string;
+        otherTab: string;
     };
     commandPalette: {
         placeholder: string;

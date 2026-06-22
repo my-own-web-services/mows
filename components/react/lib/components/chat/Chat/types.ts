@@ -85,11 +85,14 @@ export interface ChatProps {
     /** The id of the user currently viewing the chat. */
     readonly currentUserId: string;
     /**
-     * Called when the user scrolls near the top of the message list.
-     * Should resolve with older messages (which the consumer is
-     * responsible for prepending to `messages`).
+     * Called when the user scrolls near the top of the message list. The
+     * consumer is responsible for prepending the older messages to `messages`
+     * and updating `hasMore`. The component only awaits the returned promise to
+     * sequence successive page loads — it does not read the resolved value, so
+     * returning `Promise<void>` is fine; a `ChatLoadOlderResponse` is also
+     * accepted for consumers that prefer to surface the page result.
      */
-    readonly loadOlder?: () => Promise<ChatLoadOlderResponse> | void;
+    readonly loadOlder?: () => void | Promise<void | ChatLoadOlderResponse>;
     /** True when more messages exist above the loaded window. */
     readonly hasMore?: boolean;
     /** Drives the top-of-list loading spinner. */
@@ -143,6 +146,13 @@ export interface ChatProps {
     readonly enableAttachments?: boolean;
     /** Opt-in: let the composer record a voice message (MediaRecorder). */
     readonly enableVoice?: boolean;
+    /**
+     * Opt-in: show an emoji button in the composer that opens the full
+     * {@link EmojiPicker} (search + categories) and inserts the chosen emoji at
+     * the caret. The per-message reaction popover always offers the full picker
+     * regardless of this flag; this only adds it to the composer.
+     */
+    readonly enableEmojiPicker?: boolean;
     /** Per-attachment upload size limit in bytes (composer staging guard). */
     readonly maxAttachmentBytes?: number;
     readonly className?: string;
@@ -188,6 +198,7 @@ export interface ChatStrings {
     readonly removeAttachment: string;
     readonly attachmentTooLarge: string;
     readonly microphoneUnavailable: string;
+    readonly insertEmoji: string;
 }
 
 export const DEFAULT_CHAT_STRINGS: ChatStrings = {
@@ -227,7 +238,8 @@ export const DEFAULT_CHAT_STRINGS: ChatStrings = {
     recording: `Recording…`,
     removeAttachment: `Remove attachment`,
     attachmentTooLarge: `File is too large.`,
-    microphoneUnavailable: `Microphone unavailable.`
+    microphoneUnavailable: `Microphone unavailable.`,
+    insertEmoji: `Insert emoji`
 };
 
 export const DEFAULT_AVAILABLE_REACTIONS: ReadonlyArray<string> = [

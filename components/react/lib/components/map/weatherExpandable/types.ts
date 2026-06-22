@@ -196,6 +196,69 @@ export const resolveWeatherEmoji = (icon: string | null | undefined): string => 
 };
 
 /**
+ * Glyph rendering mode. `emoji` keeps the original colour-rich Unicode
+ * glyph (default); `icon` swaps it for a monochrome lucide icon that
+ * inherits the surrounding text colour — useful when the surrounding
+ * design system insists on a single stroke style.
+ */
+export type WeatherExpandableGlyphStyle = `emoji` | `icon`;
+
+/**
+ * Temperature display unit. The component always receives values in
+ * °C (matching the Bright Sky / DWD reference payload); this prop
+ * decides how those numbers are formatted at render time. Set globally
+ * via `MowsContext.currentTemperatureUnit` or per-instance via the
+ * `temperatureUnit` prop.
+ */
+export type WeatherExpandableTemperatureUnit = `celsius` | `fahrenheit` | `kelvin`;
+
+export const WEATHER_TEMPERATURE_UNITS: ReadonlyArray<WeatherExpandableTemperatureUnit> = [
+    `celsius`,
+    `fahrenheit`,
+    `kelvin`
+];
+
+/**
+ * Convert a Celsius value to the requested display unit. Returns
+ * `null` for non-finite / null input so the caller can fall back to
+ * the placeholder.
+ */
+export const convertCelsiusTo = (
+    celsius: number | null | undefined,
+    unit: WeatherExpandableTemperatureUnit
+): number | null => {
+    if (typeof celsius !== `number` || !Number.isFinite(celsius)) return null;
+    switch (unit) {
+        case `fahrenheit`:
+            return celsius * 9 / 5 + 32;
+        case `kelvin`:
+            return celsius + 273.15;
+        case `celsius`:
+        default:
+            return celsius;
+    }
+};
+
+/**
+ * Suffix shown after the formatted temperature for each unit. Kept as a
+ * helper so consumers who derive their own `strings` overrides don't
+ * have to duplicate the table.
+ */
+export const defaultTemperatureUnitSuffix = (
+    unit: WeatherExpandableTemperatureUnit
+): string => {
+    switch (unit) {
+        case `fahrenheit`:
+            return `°F`;
+        case `kelvin`:
+            return ` K`;
+        case `celsius`:
+        default:
+            return `°C`;
+    }
+};
+
+/**
  * Resolve a condition key to its translated label. Unknown / null
  * conditions fall through to the placeholder so the layout is stable.
  */

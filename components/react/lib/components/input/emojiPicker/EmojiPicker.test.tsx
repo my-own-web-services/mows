@@ -30,7 +30,13 @@ describe(`EmojiPicker dataset`, () => {
     it(`searchEmojis filters by name`, () => {
         const results = searchEmojis(`grinning`);
         expect(results.length).toBeGreaterThan(0);
-        expect(results.every((r) => r.name.includes(`grinning`))).toBe(true);
+        // Search spans name + keywords (the haystack), so a name-query can also
+        // surface emoji that merely carry the term as a tag.
+        expect(
+            results.every((r) => `${r.name} ${r.keywords.join(` `)}`.includes(`grinning`))
+        ).toBe(true);
+        // At least one true name hit (e.g. "grinning face") is present.
+        expect(results.some((r) => r.name.includes(`grinning`))).toBe(true);
     });
 
     it(`searchEmojis matches keywords across tokens (AND semantics)`, () => {

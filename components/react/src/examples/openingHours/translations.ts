@@ -8,6 +8,7 @@
 
 export interface OpeningHoursTranslation {
     default: { title: string; description: string };
+    collapsible: { title: string; description: string };
     closingSoon: { title: string; description: string };
     closed: { title: string; description: string };
     weekOnly: { title: string; description: string };
@@ -26,9 +27,18 @@ export interface OpeningHoursTranslation {
         examples: {
             title: string;
             default: { title: string; description: string };
+            collapsible: { title: string; description: string };
             closingSoon: { title: string; description: string };
             closed: { title: string; description: string };
             weekOnly: { title: string; description: string };
+        };
+        osmFormat: {
+            title: string;
+            body: string;
+            wikiLinkLabel: string;
+            examplesHeading: string;
+            examplesIntro: string;
+            samples: ReadonlyArray<{ rule: string; meaning: string }>;
         };
         definedBehaviour: {
             title: string;
@@ -47,6 +57,9 @@ export interface OpeningHoursTranslation {
                 preParsedSchedule: string;
                 crossMidnight: string;
                 stringsOverride: string;
+                collapsibleDefault: string;
+                defaultOpen: string;
+                localeFallback: string;
             };
         };
         rtl: { title: string; body: string };
@@ -57,7 +70,11 @@ export interface OpeningHoursTranslation {
 export const openingHoursEn: OpeningHoursTranslation = {
     default: {
         title: `Default`,
-        description: `Live status plus a seven-day strip parsed from an OSM \`opening_hours\` value. The current day is highlighted; the status updates once a minute.`
+        description: `Live status parsed from an OSM \`opening_hours\` value. The week table is collapsed behind a disclosure by default so the panel stays compact; click the row to reveal it.`
+    },
+    collapsible: {
+        title: `Open by default`,
+        description: `Pass \`defaultOpen\` to start with the week table visible. The header still toggles the disclosure — useful when the schedule is the primary fact on a page rather than a peripheral detail.`
     },
     closingSoon: {
         title: `Closing soon`,
@@ -86,17 +103,21 @@ export const openingHoursEn: OpeningHoursTranslation = {
         },
         usage: {
             title: `Usage`,
-            body: `Pass a raw OSM \`opening_hours\` string via \`rules\`. The component parses it with the canonical \`opening_hours.js\` library, derives the live status, and renders a seven-day schedule strip.`
+            body: `Pass a raw OSM \`opening_hours\` string via \`rules\`. The component parses it with the canonical \`opening_hours.js\` library, derives the live status, and renders a seven-day schedule strip behind a disclosure.`
         },
         composition: {
             title: `Composition`,
-            body: `The default \`variant="full"\` shows both the status pill and the week table. Use \`variant="status"\` or \`variant="week"\` to render just one half. Pre-parse via \`parseOsmOpeningHoursSchedule\` and pass through \`schedule\` to keep parsing off the render path.`
+            body: `The default \`variant="full"\` shows the status pill as the always-visible trigger and reveals the week table on toggle. Pass \`collapsible={false}\` to render both halves inline at all times, or \`variant="status"\` / \`variant="week"\` to render just one half. Pre-parse via \`parseOsmOpeningHoursSchedule\` and pass through \`schedule\` to keep parsing off the render path.`
         },
         examples: {
             title: `Examples`,
             default: {
                 title: `Default`,
-                description: `Status line plus week strip for a typical Mon–Fri / Saturday schedule.`
+                description: `Status pill with the week table tucked behind a disclosure — the most common shape for a place / business panel.`
+            },
+            collapsible: {
+                title: `Open by default`,
+                description: `\`defaultOpen\` starts the disclosure expanded so the week table is visible up-front while the header still toggles it shut.`
             },
             closingSoon: {
                 title: `Closing soon`,
@@ -110,6 +131,21 @@ export const openingHoursEn: OpeningHoursTranslation = {
                 title: `Week table only`,
                 description: `Schedule grid without the status pill, useful for grouped panels.`
             }
+        },
+        osmFormat: {
+            title: `OSM \`opening_hours\` format`,
+            body: `\`rules\` is a raw \`opening_hours\` string in the syntax defined by OpenStreetMap. It is parsed by the canonical \`opening_hours.js\` library, so anything that library accepts will work here — including weekday ranges, multiple intervals per day, public-holiday flags (\`PH\`), and \`24/7\`.`,
+            wikiLinkLabel: `OSM wiki: Key:opening_hours`,
+            examplesHeading: `Common shapes`,
+            examplesIntro: `A handful of common rules. Every value below is a valid \`rules\` prop.`,
+            samples: [
+                { rule: `24/7`, meaning: `Always open.` },
+                { rule: `Mo-Fr 09:00-18:00`, meaning: `Weekdays only, 9 to 6.` },
+                { rule: `Mo-Fr 09:00-18:00; Sa 10:00-14:00`, meaning: `Weekdays plus a shorter Saturday window.` },
+                { rule: `Mo-Sa 07:00-12:00,14:00-19:00`, meaning: `Split day — morning and afternoon shifts.` },
+                { rule: `Mo-Sa 07:00-20:00; PH,Su off`, meaning: `Closed on Sundays and public holidays.` },
+                { rule: `Mar-Oct 08:00-20:00`, meaning: `Seasonal — only between March and October.` }
+            ]
         },
         definedBehaviour: {
             title: `Defined behaviour`,
@@ -127,7 +163,10 @@ export const openingHoursEn: OpeningHoursTranslation = {
                 alwaysOpen: `Uses the "Open 24/7" headline when the rule is \`24/7\`.`,
                 preParsedSchedule: `Accepts a pre-parsed \`schedule\` and skips internal parsing.`,
                 crossMidnight: `Clamps cross-midnight intervals so they render as 22:00–24:00 on day N and 00:00–02:00 on day N+1.`,
-                stringsOverride: `Honours \`strings\` overrides for headline and detail, including \`{time}\` placeholders.`
+                stringsOverride: `Honours \`strings\` overrides for headline and detail, including \`{time}\` placeholders.`,
+                collapsibleDefault: `Hides the week table behind a disclosure by default and only mounts it once the trigger has been activated.`,
+                defaultOpen: `\`defaultOpen\` starts the disclosure expanded so the week table is visible on first render.`,
+                localeFallback: `Falls back to the bundled translation for the active locale (currently English + German) when no \`strings\` prop is supplied.`
             }
         },
         rtl: {
@@ -144,7 +183,11 @@ export const openingHoursEn: OpeningHoursTranslation = {
 export const openingHoursDe: OpeningHoursTranslation = {
     default: {
         title: `Standard`,
-        description: `Live-Status und Wochenübersicht, geparst aus einem OSM-\`opening_hours\`-Wert. Der aktuelle Tag ist hervorgehoben; der Status aktualisiert sich minütlich.`
+        description: `Live-Status aus einem OSM-\`opening_hours\`-Wert. Die Wochentabelle ist standardmäßig hinter einer Klappung verborgen, damit das Panel kompakt bleibt; per Klick auf den Header erscheint sie.`
+    },
+    collapsible: {
+        title: `Standardmäßig geöffnet`,
+        description: `\`defaultOpen\` startet mit sichtbarer Wochentabelle. Der Header schaltet die Klappung weiterhin um — sinnvoll, wenn der Fahrplan die zentrale Information einer Seite ist und nicht nur ein Randdetail.`
     },
     closingSoon: {
         title: `Schließt bald`,
@@ -173,17 +216,21 @@ export const openingHoursDe: OpeningHoursTranslation = {
         },
         usage: {
             title: `Verwendung`,
-            body: `Übergib einen rohen OSM-\`opening_hours\`-String über \`rules\`. Die Komponente parst ihn mit der kanonischen \`opening_hours.js\`-Bibliothek, leitet den Live-Status ab und rendert eine 7-Tage-Übersicht.`
+            body: `Übergib einen rohen OSM-\`opening_hours\`-String über \`rules\`. Die Komponente parst ihn mit der kanonischen \`opening_hours.js\`-Bibliothek, leitet den Live-Status ab und rendert eine 7-Tage-Übersicht hinter einer Klappung.`
         },
         composition: {
             title: `Komposition`,
-            body: `Die Voreinstellung \`variant="full"\` zeigt Status und Wochentabelle. \`variant="status"\` bzw. \`variant="week"\` rendert jeweils nur eine Hälfte. Mit \`parseOsmOpeningHoursSchedule\` kannst du vorab parsen und das Ergebnis über \`schedule\` übergeben, um Parsing aus dem Render-Pfad zu halten.`
+            body: `Die Voreinstellung \`variant="full"\` zeigt die Statuszeile als immer sichtbaren Trigger und blendet die Wochentabelle erst beim Aufklappen ein. Mit \`collapsible={false}\` rendern beide Hälften dauerhaft inline; \`variant="status"\` bzw. \`variant="week"\` zeigt nur eine Hälfte. Mit \`parseOsmOpeningHoursSchedule\` kannst du vorab parsen und das Ergebnis über \`schedule\` übergeben, um Parsing aus dem Render-Pfad zu halten.`
         },
         examples: {
             title: `Beispiele`,
             default: {
                 title: `Standard`,
-                description: `Statuszeile mit Wochenraster für einen typischen Mo–Fr / Samstag-Zeitplan.`
+                description: `Status-Pille mit Wochentabelle hinter einer Klappung — die übliche Form in Orts- / Geschäftspanels.`
+            },
+            collapsible: {
+                title: `Standardmäßig geöffnet`,
+                description: `\`defaultOpen\` startet die Klappung aufgeklappt, sodass die Wochentabelle sofort sichtbar ist; der Header schaltet weiterhin um.`
             },
             closingSoon: {
                 title: `Schließt bald`,
@@ -197,6 +244,21 @@ export const openingHoursDe: OpeningHoursTranslation = {
                 title: `Nur Wochentabelle`,
                 description: `Wochenraster ohne Status-Pille, für gruppierte Panels.`
             }
+        },
+        osmFormat: {
+            title: `OSM-\`opening_hours\`-Format`,
+            body: `\`rules\` ist ein roher \`opening_hours\`-String in der von OpenStreetMap definierten Syntax. Geparst wird mit der kanonischen \`opening_hours.js\`-Bibliothek, also funktioniert alles, was diese Bibliothek akzeptiert — inklusive Wochentagsbereichen, mehreren Intervallen pro Tag, Feiertagsflag (\`PH\`) und \`24/7\`.`,
+            wikiLinkLabel: `OSM-Wiki: Key:opening_hours`,
+            examplesHeading: `Häufige Formen`,
+            examplesIntro: `Einige typische Regeln. Jeder Wert unten ist ein gültiger \`rules\`-Prop.`,
+            samples: [
+                { rule: `24/7`, meaning: `Durchgehend geöffnet.` },
+                { rule: `Mo-Fr 09:00-18:00`, meaning: `Nur werktags, 9 bis 18 Uhr.` },
+                { rule: `Mo-Fr 09:00-18:00; Sa 10:00-14:00`, meaning: `Werktags plus kürzeres Samstagsfenster.` },
+                { rule: `Mo-Sa 07:00-12:00,14:00-19:00`, meaning: `Geteilter Tag — Vor- und Nachmittagsschicht.` },
+                { rule: `Mo-Sa 07:00-20:00; PH,Su off`, meaning: `Sonn- und feiertags geschlossen.` },
+                { rule: `Mar-Oct 08:00-20:00`, meaning: `Saisonal — nur zwischen März und Oktober.` }
+            ]
         },
         definedBehaviour: {
             title: `Festgelegtes Verhalten`,
@@ -214,7 +276,10 @@ export const openingHoursDe: OpeningHoursTranslation = {
                 alwaysOpen: `Verwendet die "Durchgehend geöffnet"-Überschrift für die Regel \`24/7\`.`,
                 preParsedSchedule: `Akzeptiert ein vorab geparstes \`schedule\` und überspringt das interne Parsen.`,
                 crossMidnight: `Klammert Intervalle über Mitternacht, sodass sie als 22:00–24:00 an Tag N und 00:00–02:00 an Tag N+1 erscheinen.`,
-                stringsOverride: `Berücksichtigt \`strings\`-Overrides für Überschrift und Detail inklusive \`{time}\`-Platzhaltern.`
+                stringsOverride: `Berücksichtigt \`strings\`-Overrides für Überschrift und Detail inklusive \`{time}\`-Platzhaltern.`,
+                collapsibleDefault: `Versteckt die Wochentabelle standardmäßig hinter einer Klappung und mountet sie erst, wenn der Trigger ausgelöst wurde.`,
+                defaultOpen: `\`defaultOpen\` startet die Klappung aufgeklappt, sodass die Wochentabelle beim ersten Rendern sichtbar ist.`,
+                localeFallback: `Fällt auf die mitgelieferte Übersetzung der aktiven Sprache zurück (aktuell Englisch + Deutsch), wenn kein \`strings\`-Prop übergeben wurde.`
             }
         },
         rtl: {

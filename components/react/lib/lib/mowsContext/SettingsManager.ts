@@ -48,6 +48,12 @@ export interface CoreSettings {
     readonly mapStyle?: string;
     readonly codeEditor?: Record<string, unknown>;
     readonly toast?: Record<string, unknown>;
+    /** Display unit for components that render temperatures (e.g.
+     * `<WeatherExpandable>`). Accepts `"celsius" | "fahrenheit" |
+     * "kelvin"`. Stored as a free string here so SettingsManager
+     * stays decoupled from the weather component's types — MowsContext
+     * narrows at the boundary. */
+    readonly temperatureUnit?: string;
 }
 
 export interface DeviceSettings {
@@ -56,6 +62,15 @@ export interface DeviceSettings {
     readonly hotkeyConfig?: unknown;
     /** Recent actions list owned by ActionManager. */
     readonly recentActions?: unknown;
+    /** Append-only audit log of dispatched actions. Owned by ActionManager.
+     * Persisted here (in `device.*`, not `core.*`) because it's
+     * device-local and intentionally not part of the future cross-device
+     * Settings-API sync slot. Shape: `AuditEntry[]` but kept as `unknown`
+     * to keep SettingsManager decoupled from ActionManager's types. */
+    readonly auditLog?: unknown;
+    /** User-tunable caps for the audit-log + undo-stack system. Shape:
+     * partial `ActionHistoryConfig`. */
+    readonly actionHistory?: unknown;
 }
 
 export type AppSettingsRecord = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
@@ -102,6 +117,10 @@ export class SettingsManager {
     private readonly onPersistError?: (error: unknown) => void;
     private blob: SettingsBlob;
     private readonly listeners = new Map<string, Set<Listener>>();
+    /** Bound handler for window `storage` events — kept as a field so
+     * `destroy()` can remove it. Stays undefined when there's no `window`
+     * (SSR / tests without jsdom window). */
+    private readonly storageEventHandler?: (event: StorageEvent) => void;
 
     constructor(opts: {
         storagePrefix: string;
@@ -137,7 +156,41 @@ export class SettingsManager {
         } else {
             this.blob = this.readBlob();
         }
+
+        // Cross-tab sync: when another tab writes the same key, the
+        // browser fires a `storage` event in *other* tabs (not the
+        // writing tab — so this never loops). Re-read the blob and
+        // notify subscribers. Suppress when there's no window (SSR).
+        if (typeof window !== `undefined`) {
+            this.storageEventHandler = (event: StorageEvent) => {
+                if (event.key !== this.storageKey) return;
+                // Re-read defensively rather than parsing newValue — the
+                // adapter may be a mock and the validator path is the
+                // canonical entry for new data.
+                const next = this.readBlob();
+                this.blob = next;
+                this.notifyAll();
+            };
+            try {
+                window.addEventListener(`storage`, this.storageEventHandler);
+            } catch (error) {
+                log.warn(`SettingsManager could not subscribe to cross-tab storage events`, error);
+            }
+        }
     }
+
+    /** Remove DOM listeners. Call from `componentWillUnmount` to avoid a
+     * leaked reference when MowsProvider unmounts. */
+    destroy = (): void => {
+        if (typeof window !== `undefined` && this.storageEventHandler) {
+            try {
+                window.removeEventListener(`storage`, this.storageEventHandler);
+            } catch {
+                // Best-effort cleanup; nothing actionable on failure.
+            }
+        }
+        this.listeners.clear();
+    };
 
     // ---- Public read/write surface --------------------------------
 
@@ -383,7 +436,12 @@ export const validateBlob = (input: unknown): BlobValidationResult => {
     if (input === null || typeof input !== `object`) {
         return { valid: false, reason: `expected an object, got ${typeof input}` };
     }
-    const candidate = input as { _v?: unknown; core?: unknown; app?: unknown };
+    const candidate = input as {
+        _v?: unknown;
+        core?: unknown;
+        device?: unknown;
+        app?: unknown;
+    };
     if (candidate._v !== SETTINGS_BLOB_VERSION) {
         return {
             valid: false,

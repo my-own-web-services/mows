@@ -383,6 +383,75 @@ describe(`WeatherExpandable`, () => {
         expect(screen.getByRole(`region`, { name: `Wetter (Test)` })).toBeInTheDocument();
     });
 
+    it(`renders a monochrome lucide icon when glyphStyle="icon"`, () => {
+        render(
+            <WeatherExpandable
+                data={{ temperature: 16, condition: `dry`, icon: `clear-day` }}
+                glyphStyle={`icon`}
+            />
+        );
+        const slot = screen.getByTestId(`weather-expandable-emoji`);
+        // The slot still announces which mode rendered it…
+        expect(slot.getAttribute(`data-glyph-style`)).toBe(`icon`);
+        // …and the inner glyph is now an svg, not a Unicode codepoint.
+        const svg = slot.querySelector(`svg`);
+        expect(svg).not.toBeNull();
+        expect(svg!.classList.contains(`lucide-sun`)).toBe(true);
+        // Sanity: the emoji codepoint must NOT be present in icon mode.
+        expect(slot.textContent ?? ``).not.toContain(`☀️`);
+    });
+
+    it(`keeps emoji rendering when glyphStyle is omitted (default)`, () => {
+        render(
+            <WeatherExpandable
+                data={{ temperature: 16, condition: `dry`, icon: `clear-day` }}
+            />
+        );
+        const slot = screen.getByTestId(`weather-expandable-emoji`);
+        expect(slot.getAttribute(`data-glyph-style`)).toBe(`emoji`);
+        expect(slot.textContent).toContain(`☀️`);
+        expect(slot.querySelector(`svg`)).toBeNull();
+    });
+
+    it(`renders Fahrenheit when temperatureUnit="fahrenheit"`, () => {
+        render(
+            <WeatherExpandable
+                data={{ temperature: 0, condition: `dry`, icon: `clear-day` }}
+                temperatureUnit={`fahrenheit`}
+            />
+        );
+        // 0 °C → 32 °F
+        expect(screen.getByTestId(`weather-expandable-temperature`).textContent).toBe(`32°F`);
+    });
+
+    it(`renders Kelvin when temperatureUnit="kelvin"`, () => {
+        render(
+            <WeatherExpandable
+                data={{ temperature: 0, condition: `dry`, icon: `clear-day` }}
+                temperatureUnit={`kelvin`}
+            />
+        );
+        // 0 °C → 273.15 K, rounded to 273 with " K" suffix.
+        expect(screen.getByTestId(`weather-expandable-temperature`).textContent).toBe(`273 K`);
+    });
+
+    it(`converts forecast min/max into the selected unit`, async () => {
+        const user = userEvent.setup();
+        render(
+            <WeatherExpandable
+                data={{ temperature: 0, condition: `dry`, icon: `clear-day` }}
+                forecast={[
+                    { date: `2026-04-10`, temp_min: 0, temp_max: 100, condition: `dry`, icon: `clear-day` }
+                ]}
+                temperatureUnit={`fahrenheit`}
+            />
+        );
+        await user.click(screen.getByRole(`button`));
+        const temps = screen.getByTestId(`weather-expandable-forecast-day-temps`);
+        // 0 °C → 32 °F, 100 °C → 212 °F. No trailing unit on forecast cells.
+        expect(temps.textContent).toBe(`32°/212°`);
+    });
+
     it(`resolveWeatherEmoji exposes the full vocabulary mapping (port parity)`, () => {
         expect(resolveWeatherEmoji(`clear-day`)).toBe(`☀️`);
         expect(resolveWeatherEmoji(`clear-night`)).toBe(`🌙`);

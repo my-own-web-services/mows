@@ -2,6 +2,7 @@ export interface WeatherExpandableTranslation {
     default: { title: string; description: string };
     collapsed: { title: string; description: string };
     headerOnly: { title: string; description: string };
+    icons: { title: string; description: string };
     localised: { title: string; description: string };
     doc: {
         installation: {
@@ -19,6 +20,7 @@ export interface WeatherExpandableTranslation {
             default: { title: string; description: string };
             collapsed: { title: string; description: string };
             headerOnly: { title: string; description: string };
+            icons: { title: string; description: string };
             localised: { title: string; description: string };
         };
         definedBehaviour: {
@@ -53,6 +55,11 @@ export interface WeatherExpandableTranslation {
                 extrasTooltipsTranslated: string;
                 regionAriaLabel: string;
                 emojiVocabulary: string;
+                lucideIconMode: string;
+                emojiDefault: string;
+                fahrenheitConversion: string;
+                kelvinConversion: string;
+                forecastUnitConversion: string;
             };
         };
         rtl: { title: string; body: string };
@@ -73,9 +80,13 @@ export const weatherExpandableEn: WeatherExpandableTranslation = {
         title: `Header only`,
         description: `No forecast and no extras — when there's nothing to reveal, opening the body shows an empty placeholder. Useful when only "right now" data is available.`
     },
+    icons: {
+        title: `Lucide icons`,
+        description: `\`glyphStyle="icon"\` swaps the colour emoji for monochrome \`lucide-react\` icons that inherit the surrounding text colour. Useful when the host design system enforces a single stroke style.`
+    },
     localised: {
-        title: `Localised (en-US)`,
-        description: `Every translatable string overridden via the strings prop. The locale prop drives the forecast weekday formatter so "Fr" becomes "Fri".`
+        title: `Localised (en-US, Fahrenheit)`,
+        description: `Every translatable string overridden via the strings prop. The locale prop drives the forecast weekday formatter so "Fr" becomes "Fri", and \`temperatureUnit="fahrenheit"\` converts the °C-shaped data into Fahrenheit at render time.`
     },
     doc: {
         installation: {
@@ -108,9 +119,13 @@ export const weatherExpandableEn: WeatherExpandableTranslation = {
                 title: `Header only`,
                 description: `No forecast, no extras — minimal data shape.`
             },
+            icons: {
+                title: `Lucide icons`,
+                description: `Monochrome \`lucide-react\` icons in place of the colour emoji.`
+            },
             localised: {
-                title: `Localised (en-US)`,
-                description: `English string overrides + en-US weekday format.`
+                title: `Localised (en-US, Fahrenheit)`,
+                description: `English string overrides + en-US weekday format + Fahrenheit display.`
             }
         },
         definedBehaviour: {
@@ -144,7 +159,12 @@ export const weatherExpandableEn: WeatherExpandableTranslation = {
                 enabledWithAttributionOnly: `Enables the disclosure when only attribution is set (still something to reveal).`,
                 extrasTooltipsTranslated: `Extras chips carry the translated tooltip labels.`,
                 regionAriaLabel: `Region carries the translated aria-label.`,
-                emojiVocabulary: `resolveWeatherEmoji exposes the full vocabulary mapping (port parity).`
+                emojiVocabulary: `resolveWeatherEmoji exposes the full vocabulary mapping (port parity).`,
+                lucideIconMode: `Renders a monochrome lucide icon when glyphStyle="icon".`,
+                emojiDefault: `Keeps emoji rendering when glyphStyle is omitted.`,
+                fahrenheitConversion: `Converts to Fahrenheit when temperatureUnit="fahrenheit".`,
+                kelvinConversion: `Converts to Kelvin when temperatureUnit="kelvin".`,
+                forecastUnitConversion: `Forecast min/max follow the selected temperatureUnit.`
             }
         },
         rtl: {
@@ -171,9 +191,13 @@ export const weatherExpandableDe: WeatherExpandableTranslation = {
         title: `Nur Header`,
         description: `Keine Vorhersage, keine Extras — wenn nichts aufzuklappen ist, zeigt der Body beim Öffnen einen leeren Platzhalter. Sinnvoll, wenn nur „jetzt"-Daten vorhanden sind.`
     },
+    icons: {
+        title: `Lucide-Icons`,
+        description: `\`glyphStyle="icon"\` ersetzt die Farb-Emojis durch monochrome \`lucide-react\`-Icons, die die umgebende Textfarbe übernehmen. Sinnvoll, wenn das Design-System nur eine einzige Stricharten-Linie zulässt.`
+    },
     localised: {
-        title: `Lokalisiert (en-US)`,
-        description: `Alle übersetzbaren Strings via strings-Prop ersetzt. Die locale-Prop steuert den Vorhersage-Wochentag-Formatter, sodass „Fr" zu „Fri" wird.`
+        title: `Lokalisiert (en-US, Fahrenheit)`,
+        description: `Alle übersetzbaren Strings via strings-Prop ersetzt. Die locale-Prop steuert den Vorhersage-Wochentag-Formatter, sodass „Fr" zu „Fri" wird, und \`temperatureUnit="fahrenheit"\` wandelt die °C-Daten beim Rendern in Fahrenheit um.`
     },
     doc: {
         installation: {
@@ -206,9 +230,13 @@ export const weatherExpandableDe: WeatherExpandableTranslation = {
                 title: `Nur Header`,
                 description: `Keine Vorhersage, keine Extras — minimaler Datensatz.`
             },
+            icons: {
+                title: `Lucide-Icons`,
+                description: `Monochrome \`lucide-react\`-Icons anstelle der Farb-Emojis.`
+            },
             localised: {
-                title: `Lokalisiert (en-US)`,
-                description: `Englische String-Overrides + en-US Wochentag-Format.`
+                title: `Lokalisiert (en-US, Fahrenheit)`,
+                description: `Englische String-Overrides + en-US Wochentag-Format + Fahrenheit-Anzeige.`
             }
         },
         definedBehaviour: {
@@ -242,7 +270,12 @@ export const weatherExpandableDe: WeatherExpandableTranslation = {
                 enabledWithAttributionOnly: `Aktiviert die Disclosure, wenn nur attribution gesetzt ist (es gibt noch etwas aufzuklappen).`,
                 extrasTooltipsTranslated: `Extras-Chips tragen die übersetzten Tooltip-Labels.`,
                 regionAriaLabel: `Region trägt das übersetzte aria-label.`,
-                emojiVocabulary: `resolveWeatherEmoji liefert die volle Vokabular-Map (Port-Parität).`
+                emojiVocabulary: `resolveWeatherEmoji liefert die volle Vokabular-Map (Port-Parität).`,
+                lucideIconMode: `Rendert ein monochromes Lucide-Icon, wenn glyphStyle="icon".`,
+                emojiDefault: `Behält die Emoji-Darstellung, wenn glyphStyle weggelassen wird.`,
+                fahrenheitConversion: `Wandelt die Temperatur in Fahrenheit um, wenn temperatureUnit="fahrenheit".`,
+                kelvinConversion: `Wandelt die Temperatur in Kelvin um, wenn temperatureUnit="kelvin".`,
+                forecastUnitConversion: `Min/Max in der Vorhersage folgen der gewählten temperatureUnit.`
             }
         },
         rtl: {

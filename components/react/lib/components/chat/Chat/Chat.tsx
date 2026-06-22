@@ -122,6 +122,7 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
         renderMessageExtra,
         enableAttachments,
         enableVoice,
+        enableEmojiPicker,
         maxAttachmentBytes,
         className,
         style
@@ -495,6 +496,7 @@ const Chat = forwardRef<ChatHandle, ChatProps>((props, ref) => {
                     onSend={handleSend}
                     enableAttachments={enableAttachments}
                     enableVoice={enableVoice}
+                    enableEmojiPicker={enableEmojiPicker}
                     maxAttachmentBytes={maxAttachmentBytes}
                 />
             )}

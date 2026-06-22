@@ -73,7 +73,8 @@ const translation: BaseTranslation = {
             language: `Language`,
             codeEditor: `Code editor`,
             notifications: `Notifications`,
-            map: `Map`
+            map: `Map`,
+            units: `Units`
         },
         labels: {
             theme: `Theme`,
@@ -84,7 +85,8 @@ const translation: BaseTranslation = {
             showLineNumbers: `Show line numbers`,
             bracketPairColorization: `Colorize bracket pairs`,
             toastPosition: `Toast position`,
-            mapStyle: `Map style`
+            mapStyle: `Map style`,
+            temperatureUnit: `Temperature unit`
         },
         toastPositions: {
             topLeft: `Top left`,
@@ -93,6 +95,11 @@ const translation: BaseTranslation = {
             bottomLeft: `Bottom left`,
             bottomCenter: `Bottom center`,
             bottomRight: `Bottom right`
+        },
+        temperatureUnits: {
+            celsius: `Celsius (°C)`,
+            fahrenheit: `Fahrenheit (°F)`,
+            kelvin: `Kelvin (K)`
         },
         /** Fallback label used in `<SettingsPanel>` for app-registered
          * settings whose schema entry omitted the `group` field. */
@@ -133,6 +140,18 @@ const translation: BaseTranslation = {
         ariaLabel: `Date and time`,
         timezoneLabel: `Timezone`
     },
+    scheduler: {
+        ariaLabel: `Event calendar`,
+        today: `Today`,
+        previous: `Previous`,
+        next: `Next`,
+        addEvent: `Add event`,
+        allDay: `All day`,
+        noEvents: `No events`,
+        moreEvents: `+{count} more`,
+        weekAbbrev: `Wk`,
+        views: { month: `Month`, week: `Week`, day: `Day`, agenda: `Agenda` }
+    },
     actions: {
         [CoreActionIds.OPEN_COMMAND_PALETTE]: `Open command palette`,
         [CoreActionIds.OPEN_KEYBOARD_SHORTCUTS]: `Open keyboard shortcuts`,
@@ -143,7 +162,29 @@ const translation: BaseTranslation = {
         [CoreActionIds.LOGOUT]: `Logout`,
         [CoreActionIds.OPEN_DEV_TOOLS]: `Open developer tools`,
         [CoreActionIds.OPEN_CODE_THEME_SELECTOR]: `Open code theme selector`,
-        [CoreActionIds.OPEN_SETTINGS]: `Open settings`
+        [CoreActionIds.OPEN_SETTINGS]: `Open settings`,
+        [CoreActionIds.UNDO]: `Undo`,
+        [CoreActionIds.REDO]: `Redo`,
+        [CoreActionIds.OPEN_HISTORY]: `Open action history`,
+        [CoreActionIds.SET_THEME]: `Set theme to {themeId}`,
+        [CoreActionIds.REPLACE_SETTINGS_BLOB]: `Replace settings`
+    },
+    actionHistory: {
+        undoFailed: `Could not undo: {error}`,
+        undoNoHandler: `Cannot undo: action not available`,
+        undoDropped: `Could not undo after {n} attempts; entry removed`,
+        auditPersistenceDisabled: `Action history will not persist for this session due to storage quota`
+    },
+    historyPanel: {
+        title: `Action history`,
+        emptyState: `No actions yet`,
+        searchPlaceholder: `Search…`,
+        categoryFilter: `Filter by category`,
+        undoToHere: `Undo to here`,
+        clearButton: `Clear history`,
+        clearConfirmation: `Clear all history? This cannot be undone.`,
+        unknownAction: `Unknown action`,
+        otherTab: `From another tab`
     },
     commandPalette: {
         placeholder: `Type a command or search...`,

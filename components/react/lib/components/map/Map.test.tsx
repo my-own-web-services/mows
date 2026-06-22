@@ -15,6 +15,12 @@ import {
     type MowsContextType
 } from "../../lib/mowsContext/MowsContext";
 
+interface StyleLayer {
+    id: string;
+    type: string;
+    layout?: { visibility?: string };
+}
+
 interface MapMock {
     constructorArgs: { transformRequest?: (url: string) => { url: string } } & Record<string, unknown>;
     listeners: Map<string, (event?: unknown) => void>;
@@ -26,6 +32,8 @@ interface MapMock {
     zoomCalls: { dir: `in` | `out` }[];
     easeToCalls: unknown[];
     flyToCalls: unknown[];
+    layers: StyleLayer[];
+    setLayoutPropertyCalls: { id: string; prop: string; value: unknown }[];
     on(name: string, fn: (event?: unknown) => void): MapMock;
     setStyle(style: unknown): void;
     setProjection(projection: unknown): void;
@@ -35,6 +43,8 @@ interface MapMock {
     getZoom(): number;
     getBearing(): number;
     getPitch(): number;
+    getStyle(): { layers: StyleLayer[] };
+    setLayoutProperty(id: string, prop: string, value: unknown): void;
     zoomIn(): void;
     zoomOut(): void;
     easeTo(args: { bearing?: number; pitch?: number }): void;
@@ -52,10 +62,22 @@ interface MarkerMock {
 // arrays declared with `const` would be in the TDZ when the factory
 // first runs. vi.hoisted() runs eagerly with the mock setup, sidestepping
 // the issue and giving the test body access to the same arrays.
-const { mapInstances, markerInstances } = vi.hoisted(() => {
+const { mapInstances, markerInstances, styleLayersTemplate } = vi.hoisted(() => {
     return {
         mapInstances: [] as MapMock[],
-        markerInstances: [] as MarkerMock[]
+        markerInstances: [] as MarkerMock[],
+        // The layer set every FakeMap is constructed with. Tests can swap
+        // it (e.g. to a style with no extrusions) before rendering.
+        styleLayersTemplate: {
+            current: [
+                { id: `background`, type: `background` },
+                {
+                    id: `building-3d`,
+                    type: `fill-extrusion`,
+                    layout: { visibility: `visible` }
+                }
+            ] as { id: string; type: string; layout?: { visibility?: string } }[]
+        }
     };
 });
 
@@ -71,6 +93,8 @@ vi.mock(`./mapboxModule`, () => {
         easeToCalls: unknown[];
         flyToCalls: unknown[];
         setProjectionCalls: unknown[];
+        layers: StyleLayer[];
+        setLayoutPropertyCalls: { id: string; prop: string; value: unknown }[];
         constructor(args: MapMock[`constructorArgs`]) {
             this.constructorArgs = args;
             this.listeners = new Map();
@@ -82,6 +106,13 @@ vi.mock(`./mapboxModule`, () => {
             this.zoomCalls = [];
             this.easeToCalls = [];
             this.flyToCalls = [];
+            // Deep-copy the template so per-test setLayoutProperty
+            // mutations never bleed across instances.
+            this.layers = styleLayersTemplate.current.map((l) => ({
+                ...l,
+                layout: l.layout ? { ...l.layout } : undefined
+            }));
+            this.setLayoutPropertyCalls = [];
             mapInstances.push(this as unknown as MapMock);
         }
         on(name: string, fn: (event?: unknown) => void) {
@@ -111,6 +142,16 @@ vi.mock(`./mapboxModule`, () => {
         }
         getPitch() {
             return this.pitch;
+        }
+        getStyle() {
+            return { layers: this.layers };
+        }
+        setLayoutProperty(id: string, prop: string, value: unknown) {
+            this.setLayoutPropertyCalls.push({ id, prop, value });
+            const layer = this.layers.find((l) => l.id === id);
+            if (layer && prop === `visibility`) {
+                layer.layout = { ...layer.layout, visibility: value as string };
+            }
         }
         zoomIn() {
             this.zoomCalls.push({ dir: `in` });
@@ -210,6 +251,14 @@ describe(`<Map>`, () => {
     afterEach(() => {
         mapInstances.length = 0;
         markerInstances.length = 0;
+        styleLayersTemplate.current = [
+            { id: `background`, type: `background` },
+            {
+                id: `building-3d`,
+                type: `fill-extrusion`,
+                layout: { visibility: `visible` }
+            }
+        ];
     });
 
     it(`shows a loading skeleton until the lazy chunk resolves`, () => {
@@ -333,6 +382,75 @@ describe(`<Map>`, () => {
         expect(mapInstances[0]!.easeToCalls).toEqual([{ bearing: 0, pitch: 0 }]);
     });
 
+    it(`clicking the 3D toggle hides, then re-shows, the fill-extrusion building layers`, async () => {
+        const user = userEvent.setup();
+        renderMap();
+        await waitForReady();
+        // The style ships buildings visible → button offers "2D" (hide)
+        // and reports the pressed (3D-on) state.
+        const hide = await screen.findByRole(`button`, { name: `Hide 3D buildings` });
+        expect(hide).toHaveAttribute(`aria-pressed`, `true`);
+        expect(hide).toHaveTextContent(`2D`);
+        await user.click(hide);
+        expect(mapInstances[0]!.setLayoutPropertyCalls).toContainEqual({
+            id: `building-3d`,
+            prop: `visibility`,
+            value: `none`
+        });
+
+        // Label flips to "3D" (show), pressed state clears.
+        const show = await screen.findByRole(`button`, { name: `Show 3D buildings` });
+        expect(show).toHaveAttribute(`aria-pressed`, `false`);
+        expect(show).toHaveTextContent(`3D`);
+        await user.click(show);
+        expect(mapInstances[0]!.setLayoutPropertyCalls).toContainEqual({
+            id: `building-3d`,
+            prop: `visibility`,
+            value: `visible`
+        });
+    });
+
+    it(`does not render the 3D toggle when the style has no extruded buildings`, async () => {
+        styleLayersTemplate.current = [{ id: `background`, type: `background` }];
+        renderMap();
+        await waitForReady();
+        expect(screen.queryByRole(`button`, { name: /3D buildings/ })).toBeNull();
+        // The rest of the control stack is unaffected.
+        expect(screen.getByRole(`button`, { name: `Zoom in` })).toBeInTheDocument();
+    });
+
+    it(`seeds the toggle from a style that ships its buildings hidden`, async () => {
+        styleLayersTemplate.current = [
+            {
+                id: `building-3d`,
+                type: `fill-extrusion`,
+                layout: { visibility: `none` }
+            }
+        ];
+        renderMap();
+        await waitForReady();
+        // Buildings start hidden → button offers "3D" (show), not pressed.
+        const show = await screen.findByRole(`button`, { name: `Show 3D buildings` });
+        expect(show).toHaveAttribute(`aria-pressed`, `false`);
+    });
+
+    it(`re-asserts the user's 3D-building choice across a style reload`, async () => {
+        const user = userEvent.setup();
+        renderMap();
+        await waitForReady();
+        await user.click(await screen.findByRole(`button`, { name: `Hide 3D buildings` }));
+        const inst = mapInstances[0]!;
+        inst.setLayoutPropertyCalls.length = 0;
+        // A settings-panel style switch fires another style.load; the
+        // toggle must push the user's "hidden" choice onto the new style.
+        act(() => inst.fire(`style.load`));
+        expect(inst.setLayoutPropertyCalls).toContainEqual({
+            id: `building-3d`,
+            prop: `visibility`,
+            value: `none`
+        });
+    });
+
     it(`hides the attribution text until the info button is clicked`, async () => {
         const user = userEvent.setup();
         renderMap();
@@ -382,6 +500,7 @@ describe(`<Map>`, () => {
             `Zoom in`,
             `Zoom out`,
             `Compass — reset bearing to north`,
+            `Hide 3D buildings`,
             `Show your location`,
             `Show map attribution`
         ];

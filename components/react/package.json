@@ -48,9 +48,10 @@
     ],
     "scripts": {
         "dev": "vite --port 5175",
+        "generate:emoji": "node lib/components/input/emojiPicker/generateEmojiData.mjs",
         "build": "pnpm run build:lib",
-        "build:lib": "NODE_OPTIONS='--max-old-space-size=8192' TARGET=lib vite build",
-        "build:site": "NODE_OPTIONS='--max-old-space-size=8192' TARGET=site vite build",
+        "build:lib": "pnpm run generate:emoji && NODE_OPTIONS='--max-old-space-size=8192' TARGET=lib vite build",
+        "build:site": "pnpm run generate:emoji && NODE_OPTIONS='--max-old-space-size=8192' TARGET=site vite build",
         "preview:site": "TARGET=site vite preview --port 5175 --strictPort",
         "lint": "eslint src lib",
         "lint:fix": "eslint src lib --fix",
@@ -134,7 +135,10 @@
         "overrides": {
             "dompurify": ">=3.4.5",
             "ws": ">=8.20.1",
-            "brace-expansion": ">=5.0.6"
+            "brace-expansion@<1.1.12": "^1.1.12",
+            "brace-expansion@>=2 <2.0.2": "^2.0.2",
+            "brace-expansion@>=3 <3.0.1": "^3.0.1",
+            "brace-expansion@>=4 <4.0.1": "^4.0.1"
         }
     },
     "devDependencies": {
@@ -153,6 +157,7 @@
         "@types/react-window-infinite-loader": "^1.0.6",
         "@types/three": "0.179.0",
         "@vitejs/plugin-react": "^5.0.0",
+        "emojibase-data": "17.0.0",
         "eslint": "^9.33.0",
         "eslint-plugin-prefer-arrow": "^1.2.3",
         "eslint-plugin-react": "^7.37.5",

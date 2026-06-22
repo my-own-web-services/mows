@@ -205,67 +205,67 @@ const buildBehaviourEntries = (
         statement: statements.cssVarApplies,
         testFile: TEST_FILE,
         testName: `uses Tailwind v4 var() syntax so width actually applies`,
-        testLine: 80
+        testLine: 90
     },
     {
         statement: statements.seedsDefaultWidth,
         testFile: TEST_FILE,
         testName: `seeds --sidebar-width from defaultWidthPx`,
-        testLine: 89
+        testLine: 99
     },
     {
         statement: statements.rendersHandleWhenResizable,
         testFile: TEST_FILE,
         testName: `renders the resize handle when resizable`,
-        testLine: 94
+        testLine: 104
     },
     {
         statement: statements.noHandleWhenNotResizable,
         testFile: TEST_FILE,
         testName: `does not render the resize handle when resizable is false`,
-        testLine: 99
+        testLine: 109
     },
     {
         statement: statements.dragPersists,
         testFile: TEST_FILE,
         testName: `updates width and persists to cookie on drag`,
-        testLine: 110
+        testLine: 120
     },
     {
         statement: statements.clampsToMax,
         testFile: TEST_FILE,
         testName: `clamps drag to maxWidthPx`,
-        testLine: 117
+        testLine: 127
     },
     {
         statement: statements.clampsToMin,
         testFile: TEST_FILE,
         testName: `clamps drag to minWidthPx`,
-        testLine: 124
+        testLine: 134
     },
     {
         statement: statements.doubleClickReset,
         testFile: TEST_FILE,
         testName: `double-clicking the handle resets to defaultWidthPx`,
-        testLine: 131
+        testLine: 141
     },
     {
         statement: statements.restoresFromCookie,
         testFile: TEST_FILE,
         testName: `restores the persisted width from cookie on mount`,
-        testLine: 146
+        testLine: 156
     },
     {
         statement: statements.reclampsPersisted,
         testFile: TEST_FILE,
         testName: `re-clamps a persisted width that falls outside new bounds`,
-        testLine: 152
+        testLine: 162
     },
     {
         statement: statements.dragsInwardOnRight,
         testFile: TEST_FILE,
         testName: `drags inward when the sidebar is on the right`,
-        testLine: 158
+        testLine: 168
     }
 ];
 

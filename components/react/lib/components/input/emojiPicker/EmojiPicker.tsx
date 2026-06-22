@@ -402,7 +402,13 @@ const EmojiPicker = forwardRef<EmojiPickerHandle, EmojiPickerProps>((props, ref)
             <div
                 ref={scrollRef}
                 onScroll={handleScroll}
-                className={`flex-1 overflow-y-auto p-2`}
+                // NB: kein Top-Padding auf dem Scrollport. Browser verankern
+                // `position: sticky; top: 0` an der Content-Box-Oberkante, also
+                // UNTER einem etwaigen padding-top – das hinterlässt sonst einen
+                // Spalt über der klebenden Kategorie-Überschrift, durch den die
+                // scrollenden Emojis blitzen. Der obere Abstand sitzt deshalb am
+                // Inhalt (pt-2), damit die Überschriften bündig oben kleben.
+                className={`flex-1 overflow-y-auto px-2 pb-2`}
                 data-testid={`emoji-picker-scroll`}
             >
                 {showSearchResults ? (
@@ -416,7 +422,7 @@ const EmojiPicker = forwardRef<EmojiPickerHandle, EmojiPickerProps>((props, ref)
                     ) : (
                         <div
                             data-testid={`emoji-picker-search-results`}
-                            className={`grid gap-1`}
+                            className={`grid gap-1 pt-2`}
                             style={gridStyle}
                             role={`grid`}
                         >
@@ -424,7 +430,7 @@ const EmojiPicker = forwardRef<EmojiPickerHandle, EmojiPickerProps>((props, ref)
                         </div>
                     )
                 ) : (
-                    <div className={`flex flex-col gap-3`}>
+                    <div className={`flex flex-col gap-3 pt-2`}>
                         {showRecents && (
                             <section
                                 data-category-section={`recent`}

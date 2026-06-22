@@ -10,6 +10,7 @@ import {
     DialogTitle
 } from "@/components/ui/dialog";
 import CodeThemePicker from "@/components/code/codeThemePicker/CodeThemePicker";
+import HistoryPanel from "@/components/appShell/historyPanel/HistoryPanel";
 import KeyboardShortcuts from "@/components/actions/keyboardShortcutEditor/KeyboardShortcutEditor";
 import LanguagePicker from "@/components/settings/languagePicker/LanguagePicker";
 import SettingsPanel from "@/components/settings/settingsPanel/SettingsPanel";
@@ -95,6 +96,19 @@ export default class ModalHandler extends PureComponent<ModalHandlerProps, Modal
                     <SettingsPanel
                         className={`min-h-0 flex-1 overflow-y-auto px-6 pb-6`}
                     />
+                </DialogContent>
+            )
+        },
+        [CoreModalTypes.history]: {
+            component: () => (
+                <DialogContent
+                    className={`sm:max-w-3xl max-h-[85vh] !p-0 gap-0 overflow-hidden`}
+                >
+                    <DialogHeader className={`px-6 pt-6`}>
+                        <DialogTitle>{this.context?.t.historyPanel.title}</DialogTitle>
+                        <DialogDescription aria-describedby={undefined} />
+                    </DialogHeader>
+                    <HistoryPanel className={`min-h-0 flex-1 overflow-y-auto`} />
                 </DialogContent>
             )
         }

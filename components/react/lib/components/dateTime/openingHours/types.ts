@@ -115,6 +115,64 @@ export const DEFAULT_OPENING_HOURS_STRINGS: OpeningHoursStrings = {
     scheduleLabel: `Opening hours`
 };
 
+const OPENING_HOURS_STRINGS_DE: OpeningHoursStrings = {
+    open: `Geöffnet`,
+    closed: `Geschlossen`,
+    closingSoon: `Schließt bald`,
+    alwaysOpen: `Durchgehend geöffnet`,
+    closesAt: `schließt um {time}`,
+    closesOnDay: `schließt {weekday} um {time}`,
+    closingInMinutes: `in {count} {unit} (um {time})`,
+    opensAt: `öffnet um {time}`,
+    opensTomorrow: `öffnet morgen um {time}`,
+    opensOnDay: `öffnet {weekday} um {time}`,
+    minute: `Minute`,
+    minutes: `Minuten`,
+    closedDay: `geschlossen`,
+    scheduleLabel: `Öffnungszeiten`
+};
+
+/**
+ * Built-in translations, keyed by BCP 47 locale. Lookups walk the
+ * locale tag from most specific to least — `de-DE` falls through to
+ * `de`, and anything unrecognised lands on the English defaults — so
+ * an exact match isn't required.
+ *
+ * Extend this map (or override via the `strings` prop) when a
+ * consumer needs a locale we don't ship.
+ */
+export const OPENING_HOURS_STRINGS_BY_LOCALE: Readonly<
+    Record<string, OpeningHoursStrings>
+> = {
+    "en": DEFAULT_OPENING_HOURS_STRINGS,
+    "en-US": DEFAULT_OPENING_HOURS_STRINGS,
+    "en-GB": DEFAULT_OPENING_HOURS_STRINGS,
+    de: OPENING_HOURS_STRINGS_DE,
+    "de-DE": OPENING_HOURS_STRINGS_DE,
+    "de-AT": OPENING_HOURS_STRINGS_DE,
+    "de-CH": OPENING_HOURS_STRINGS_DE
+};
+
+/**
+ * Resolve the built-in strings for a locale, walking the BCP 47 tag
+ * (`de-DE` → `de`) before falling back to English. Exposed for
+ * consumers that pre-render or need the same lookup outside the
+ * component.
+ */
+export const resolveOpeningHoursStrings = (
+    locale: string | undefined
+): OpeningHoursStrings => {
+    if (!locale) return DEFAULT_OPENING_HOURS_STRINGS;
+    if (OPENING_HOURS_STRINGS_BY_LOCALE[locale]) {
+        return OPENING_HOURS_STRINGS_BY_LOCALE[locale];
+    }
+    const base = locale.split(`-`)[0];
+    if (base !== locale && OPENING_HOURS_STRINGS_BY_LOCALE[base]) {
+        return OPENING_HOURS_STRINGS_BY_LOCALE[base];
+    }
+    return DEFAULT_OPENING_HOURS_STRINGS;
+};
+
 /**
  * Visual variants. `full` shows the status pill and the 7-day table,
  * `status` only the live status line, `week` only the table. Use

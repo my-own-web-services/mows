@@ -7,15 +7,21 @@ import {
     Thermometer,
     Wind
 } from "lucide-react";
-import { useMemo, type CSSProperties, type ReactNode } from "react";
+import { useContext, useMemo, type CSSProperties, type ReactNode } from "react";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
 import { ExpandableSection } from "../../navigation/expandableSection/ExpandableSection";
+import { resolveWeatherLucideIcon } from "./icons";
 import {
+    convertCelsiusTo,
+    defaultTemperatureUnitSuffix,
     DEFAULT_WEATHER_EXPANDABLE_STRINGS,
     resolveConditionLabel,
     resolveWeatherEmoji,
     type WeatherExpandableData,
     type WeatherExpandableForecastDay,
-    type WeatherExpandableStrings
+    type WeatherExpandableGlyphStyle,
+    type WeatherExpandableStrings,
+    type WeatherExpandableTemperatureUnit
 } from "./types";
 
 export interface WeatherExpandableProps {
@@ -54,6 +60,26 @@ export interface WeatherExpandableProps {
      * Defaults to `"de-DE"` to match the omniviv original.
      */
     readonly locale?: string;
+    /**
+     * Choose between the colour-rich Unicode emoji set (`emoji`,
+     * default) and a monochrome `lucide-react` icon set (`icon`). The
+     * mapping covers the same Bright Sky / WMO vocabulary in both
+     * modes — switch this prop and the header + forecast-strip glyphs
+     * follow the surrounding text colour. Useful when the host
+     * application enforces a single stroke style across the UI.
+     */
+    readonly glyphStyle?: WeatherExpandableGlyphStyle;
+    /**
+     * Display unit for every temperature this component renders. Input
+     * values are always Celsius (matching the Bright Sky / DWD
+     * payload); the prop controls how they are converted at render
+     * time. When omitted, the component reads
+     * `MowsContext.currentTemperatureUnit` so the global Settings
+     * panel can flip the unit across the whole app, and falls back to
+     * `celsius` outside a provider. `strings.temperatureUnit` still
+     * wins as an explicit override when supplied.
+     */
+    readonly temperatureUnit?: WeatherExpandableTemperatureUnit;
     readonly className?: string;
     readonly style?: CSSProperties;
 }
@@ -107,20 +133,69 @@ export const WeatherExpandable = ({
     onOpenChange,
     strings,
     locale = `de-DE`,
+    glyphStyle = `emoji`,
+    temperatureUnit,
     className,
     style
 }: WeatherExpandableProps) => {
+    const mowsContext = useContext(MowsContext);
+    const effectiveTemperatureUnit: WeatherExpandableTemperatureUnit =
+        temperatureUnit ?? mowsContext?.currentTemperatureUnit ?? `celsius`;
+
+    // Merge defaults → unit-aware suffix → caller overrides. Callers
+    // who pass `strings.temperatureUnit` keep full control; otherwise
+    // the suffix tracks `effectiveTemperatureUnit`.
     const t = useMemo(
-        () => ({ ...DEFAULT_WEATHER_EXPANDABLE_STRINGS, ...strings }),
-        [strings]
+        () => ({
+            ...DEFAULT_WEATHER_EXPANDABLE_STRINGS,
+            temperatureUnit: defaultTemperatureUnitSuffix(effectiveTemperatureUnit),
+            ...strings
+        }),
+        [strings, effectiveTemperatureUnit]
     );
 
-    const emoji = resolveWeatherEmoji(data?.icon);
+    const formatTemperature = (
+        celsius: number | null | undefined,
+        opts: { withUnit: boolean }
+    ): string => {
+        const converted = convertCelsiusTo(celsius, effectiveTemperatureUnit);
+        if (converted === null) return t.temperaturePlaceholder;
+        const rounded = Math.round(converted);
+        return opts.withUnit ? `${rounded}${t.temperatureUnit}` : `${rounded}°`;
+    };
+
+    // The header glyph uses ~text-lg sizing for emoji; pick a matching
+    // pixel size for the lucide variant so the layout doesn't shift.
+    const renderGlyph = (
+        icon: string | null | undefined,
+        slot: `header` | `forecast`
+    ): ReactNode => {
+        if (glyphStyle === `icon`) {
+            const Icon = resolveWeatherLucideIcon(icon);
+            return (
+                <Icon
+                    className={cn(
+                        slot === `header` ? `h-5 w-5` : `h-4 w-4`,
+                        `shrink-0`
+                    )}
+                    aria-hidden
+                />
+            );
+        }
+        return (
+            <span
+                className={cn(
+                    slot === `header` ? `text-lg` : `text-base`,
+                    `leading-none`
+                )}
+                aria-hidden
+            >
+                {resolveWeatherEmoji(icon)}
+            </span>
+        );
+    };
     const conditionText = resolveConditionLabel(data?.condition, t);
-    const temperatureText =
-        typeof data?.temperature === `number`
-            ? `${Math.round(data.temperature)}${t.temperatureUnit}`
-            : t.temperaturePlaceholder;
+    const temperatureText = formatTemperature(data?.temperature, { withUnit: true });
 
     const precipitation = preferred(data?.precipitation_60, data?.precipitation);
     const windSpeed = preferred(data?.wind_speed_60, data?.wind_speed);
@@ -142,11 +217,11 @@ export const WeatherExpandable = ({
         >
             <div className={`flex items-center gap-2`}>
                 <span
-                    className={`text-lg leading-none`}
-                    aria-hidden
+                    className={`inline-flex items-center justify-center`}
                     data-testid={`weather-expandable-emoji`}
+                    data-glyph-style={glyphStyle}
                 >
-                    {emoji}
+                    {renderGlyph(data?.icon, `header`)}
                 </span>
                 <div className={`flex items-center gap-1.5 text-sm`}>
                     <Thermometer
@@ -250,15 +325,8 @@ export const WeatherExpandable = ({
                 >
                     <div className={`flex gap-1 overflow-x-auto pb-0.5`}>
                         {forecast!.map((day) => {
-                            const dayEmoji = resolveWeatherEmoji(day.icon);
-                            const minText =
-                                typeof day.temp_min === `number`
-                                    ? `${Math.round(day.temp_min)}°`
-                                    : t.temperaturePlaceholder;
-                            const maxText =
-                                typeof day.temp_max === `number`
-                                    ? `${Math.round(day.temp_max)}°`
-                                    : t.temperaturePlaceholder;
+                            const minText = formatTemperature(day.temp_min, { withUnit: false });
+                            const maxText = formatTemperature(day.temp_max, { withUnit: false });
                             return (
                                 <div
                                     key={day.date}
@@ -272,10 +340,10 @@ export const WeatherExpandable = ({
                                         {formatDayShort(day.date, locale)}
                                     </span>
                                     <span
-                                        className={`text-base leading-none`}
-                                        aria-hidden
+                                        className={`inline-flex items-center justify-center`}
+                                        data-glyph-style={glyphStyle}
                                     >
-                                        {dayEmoji}
+                                        {renderGlyph(day.icon, `forecast`)}
                                     </span>
                                     <span
                                         className={`font-mono text-[10px] tabular-nums`}

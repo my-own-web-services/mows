@@ -66,7 +66,9 @@ const buildContext = ({ authConfigured, isAuthenticated = false }: BuildOpts): M
         setToastSettings: () => undefined,
         mapStyles: defaultMapStyles,
         currentMapStyle: defaultMapStyles[0],
-        setMapStyle: () => undefined
+        setMapStyle: () => undefined,
+        currentTemperatureUnit: `celsius`,
+        setTemperatureUnit: () => undefined
     };
 };
 

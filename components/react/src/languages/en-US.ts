@@ -24,6 +24,8 @@ import { consoleManagerEn } from "../examples/consoleManager/translations";
 import { contextMenuEn } from "../examples/contextMenu/translations";
 import { copyValueButtonEn } from "../examples/copyValueButton/translations";
 import { dateTimeDisplayEn } from "../examples/dateTimeDisplay/translations";
+import { durationEn } from "../examples/duration/translations";
+import { schedulerEn } from "../examples/scheduler/translations";
 import { dateTimePickerEn } from "../examples/dateTimePicker/translations";
 import { dateTimeRangePickerEn } from "../examples/dateTimeRangePicker/translations";
 import { dialogEn } from "../examples/dialog/translations";
@@ -131,6 +133,7 @@ const translation: Translation = {
                 code: `Code`,
                 console: `Console`,
                 dateTime: `Date & time`,
+                display: `Display`,
                 editor: `Editors`,
                 files: `Files`,
                 identity: `Identity`,
@@ -473,6 +476,8 @@ const translation: Translation = {
             timezoneSelector: timezoneSelectorEn,
             dateTimeRangePicker: dateTimeRangePickerEn,
             openingHours: openingHoursEn,
+            duration: durationEn,
+            scheduler: schedulerEn,
             loggingConfig: loggingConfigEn,
             inlineEdit: inlineEditEn,
             commandPalette: commandPaletteEn,

@@ -1,15 +1,23 @@
-import { User, WebStorageStateStore } from "oidc-client-ts";
-import React, { Component, createContext, type ReactNode } from "react";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
-import { type AuthContextProps, AuthProvider, withAuth } from "react-oidc-context";
+// Auth (oidc-client-ts / react-oidc-context) and drag-and-drop (react-dnd) are
+// only loaded on demand — see the `OidcAuthGate` / `DndGate` lazy chunks below.
+// Apps that use neither (e.g. a magic-link app via `authAdapter`, no DnD) never
+// pull these into their bundle. Only the *types* are imported statically (erased
+// at build, zero runtime cost).
+import type { User } from "oidc-client-ts";
+import React, { Component, createContext, lazy, Suspense, type ReactNode } from "react";
+import type { AuthContextProps } from "react-oidc-context";
 import { defaultCodeThemes, type MowsCodeTheme } from "../codeThemes";
 import { type Language, type Translation } from "../languages";
 import baseEnglishTranslation from "../languages/en-US/default";
 import { log } from "../logging";
 import { defaultMapStyles, type MowsMapStyle } from "../mapStyles";
 import { defaultThemes, loadThemeCSS, type MowsTheme } from "../themes";
-import { type Action, ActionManager } from "./ActionManager";
+import {
+    type Action,
+    type ActionManagerToastStrings,
+    ActionManager
+} from "./ActionManager";
+import { UndoStackManager } from "./UndoStackManager";
 import {
     type AnyAppSettings,
     type AppSettingsContextValue,
@@ -26,6 +34,54 @@ export interface MowsOidcConfig {
     readonly scope?: string;
     readonly redirectPath?: string;
     readonly postLogoutRedirectUri?: string;
+}
+
+/**
+ * Custom (non-OIDC) authentication for apps that bring their own auth flow
+ * (e.g. magic-link cookie sessions). Pass it as `authAdapter` to
+ * `<MowsProvider>` instead of `oidc`. The provider maps it onto the same
+ * `auth` surface that OIDC consumers (PrimaryMenu, core sign-in/out actions)
+ * already use — `authConfigured` becomes true and `auth.isAuthenticated`,
+ * `auth.signinRedirect` (→ `signIn`), `auth.signoutRedirect` (→ `signOut`) and
+ * `auth.user` (→ `mowsUser`) are served from the adapter. The OIDC path is
+ * untouched; `oidc` takes precedence if both are given.
+ *
+ * The adapter is a plain (ideally memoized) value held by the consuming app;
+ * re-render `<MowsProvider>` with a fresh adapter whenever auth state changes
+ * so dependent UI updates.
+ */
+export interface MowsAuthAdapter {
+    /** Whether a session is currently established. */
+    readonly isAuthenticated: boolean;
+    /** Start the app's sign-in flow (e.g. show the magic-link form). */
+    readonly signIn: () => void | Promise<void>;
+    /** End the session (e.g. clear the cookie and reload). */
+    readonly signOut: () => void | Promise<void>;
+    /**
+     * Optional identity surfaced as `mowsUser`. App-specific; the PrimaryMenu's
+     * own `user` prop drives the displayed name, so this may be omitted.
+     */
+    readonly user?: User | null;
+}
+
+/**
+ * Map a {@link MowsAuthAdapter} onto the `AuthContextProps` shape consumed
+ * internally. Only the four members read by MOWS components on the custom-auth
+ * path are populated (see PrimaryMenu + coreActions); the remaining members are
+ * OIDC-only and never invoked here.
+ */
+function adapterToAuthContext(adapter: MowsAuthAdapter): AuthContextProps {
+    return {
+        isLoading: false,
+        isAuthenticated: adapter.isAuthenticated,
+        user: adapter.user ?? null,
+        signinRedirect: async () => {
+            await adapter.signIn();
+        },
+        signoutRedirect: async () => {
+            await adapter.signOut();
+        }
+    } as unknown as AuthContextProps;
 }
 
 export interface MowsCodeEditorSettings {
@@ -67,6 +123,29 @@ export const defaultToastSettings: MowsToastSettings = {
     position: `bottom-right`
 };
 
+/**
+ * Globally configurable temperature display unit. Mirrors
+ * `WeatherExpandableTemperatureUnit` — declared here so MowsContext
+ * stays decoupled from `components/map/*` while still publishing a
+ * typed surface to consumers.
+ */
+export type MowsTemperatureUnit = `celsius` | `fahrenheit` | `kelvin`;
+
+export const MOWS_TEMPERATURE_UNITS: readonly MowsTemperatureUnit[] = [
+    `celsius`,
+    `fahrenheit`,
+    `kelvin`
+] as const;
+
+export const DEFAULT_TEMPERATURE_UNIT: MowsTemperatureUnit = `celsius`;
+
+const readTemperatureUnitFromBlob = (
+    raw: string | undefined
+): MowsTemperatureUnit =>
+    (MOWS_TEMPERATURE_UNITS as readonly string[]).includes(raw ?? ``)
+        ? (raw as MowsTemperatureUnit)
+        : DEFAULT_TEMPERATURE_UNIT;
+
 export interface MowsContextType {
     readonly auth: AuthContextProps;
     /** True if a `MowsOidcConfig` was passed to `MowsProvider`. UIs (e.g. the
@@ -97,6 +176,14 @@ export interface MowsContextType {
     readonly mapStyles: MowsMapStyle[];
     readonly currentMapStyle: MowsMapStyle;
     readonly setMapStyle: (style: MowsMapStyle) => void;
+    /** Globally selected temperature display unit. Read by components
+     * that render temperatures (e.g. `<WeatherExpandable>`); flip via
+     * `setTemperatureUnit` (also surfaced as a row in `SettingsPanel`).
+     * The string union mirrors `WeatherExpandableTemperatureUnit`; we
+     * declare it locally to keep MowsContext free of a downstream
+     * import. */
+    readonly currentTemperatureUnit: MowsTemperatureUnit;
+    readonly setTemperatureUnit: (unit: MowsTemperatureUnit) => void;
     /** Unified settings system (single localStorage blob). Exposed so
      * advanced consumers can read/replace the entire blob (JSON
      * export/import tab in SettingsPanel) and so app-settings hooks
@@ -110,7 +197,7 @@ export interface MowsContextType {
     readonly appSettings: AppSettingsContextValue;
 }
 
-interface MowsClientManagerProps {
+export interface MowsClientManagerProps {
     readonly children: ReactNode;
     readonly storagePrefix: string;
     readonly themes: MowsTheme[];
@@ -126,6 +213,7 @@ interface MowsClientManagerProps {
     readonly auth?: AuthContextProps;
     readonly authConfigured: boolean;
     readonly appSettings: AnyAppSettings | null;
+    readonly globalHotkeys: boolean;
 }
 
 interface MowsClientManagerState {
@@ -137,6 +225,7 @@ interface MowsClientManagerState {
     readonly codeEditorSettings: MowsCodeEditorSettings;
     readonly toastSettings: MowsToastSettings;
     readonly currentMapStyle: MowsMapStyle;
+    readonly currentTemperatureUnit: MowsTemperatureUnit;
     /** Held in state (not as an instance field) so a prop-driven
      * recompute schedules a normal render via setState instead of
      * `forceUpdate`. The reference identity changes only when
@@ -149,6 +238,28 @@ interface MowsClientManagerState {
  * round-trip) and is cleared on resume; mixing it into the blob would
  * tempt callers to surface it in the settings UI. */
 const POST_LOGIN_REDIRECT_PATH_SUFFIX = `_post_login_redirect_path`;
+
+/**
+ * Adapt the `Translation.actionHistory` block to the
+ * `ActionManagerToastStrings` shape ActionManager consumes. Kept here so
+ * ActionManager stays decoupled from the React `Translation` interface;
+ * the wiring direction is `Translation → ActionManager`, never the
+ * reverse.
+ */
+const buildActionManagerToastStrings = (
+    translation: Translation | undefined
+): ActionManagerToastStrings => ({
+    undoFailed:
+        translation?.actionHistory?.undoFailed ?? `Could not undo: {error}`,
+    undoNoHandler:
+        translation?.actionHistory?.undoNoHandler ?? `Cannot undo: action not available`,
+    undoDropped:
+        translation?.actionHistory?.undoDropped ??
+        `Could not undo after {n} attempts; entry removed`,
+    auditPersistenceDisabled:
+        translation?.actionHistory?.auditPersistenceDisabled ??
+        `Action history will not persist for this session due to storage quota`
+});
 
 const readCodeEditorFromBlob = (
     raw: Record<string, unknown> | undefined
@@ -221,9 +332,15 @@ export class MowsClientManagerBase extends Component<
     MowsClientManagerProps,
     MowsClientManagerState
 > {
-    private actionManager: ActionManager;
+    /** Exposed publicly so the built-in undo / redo / history actions in
+     * `coreActions.ts` can delegate to the manager without needing to
+     * receive it as a separate constructor arg. */
+    actionManager: ActionManager;
     private hotkeyManager: HotkeyManager;
-    private settingsManager: SettingsManager;
+    /** Exposed publicly for the same reason as `actionManager` — the
+     * REPLACE_SETTINGS_BLOB core action needs to read + write the blob. */
+    settingsManager: SettingsManager;
+    private undoStackManager: UndoStackManager;
     private postLoginRedirectKey: string;
     private unsubscribeSettings: (() => void) | null = null;
     /** Tracks the most-recently-requested language code so an older
@@ -270,13 +387,19 @@ export class MowsClientManagerBase extends Component<
             props.defaultMapStyleId
         );
 
+        this.undoStackManager = new UndoStackManager({ storagePrefix: props.storagePrefix });
         this.actionManager = new ActionManager({
             recentActionsSlot: this.settingsManager.deviceSlotAdapter(`recentActions`),
-            maxRecentActions: 5
+            maxRecentActions: 5,
+            auditLogSlot: this.settingsManager.deviceSlotAdapter(`auditLog`),
+            historyConfigSlot: this.settingsManager.deviceSlotAdapter(`actionHistory`),
+            undoStackManager: this.undoStackManager,
+            toastStrings: () => buildActionManagerToastStrings(this.state.currentTranslation)
         });
         this.hotkeyManager = new HotkeyManager(this.actionManager, {
             configSlot: this.settingsManager.deviceSlotAdapter(`hotkeyConfig`),
-            defaultHotkeys: { ...coreDefaultHotkeys, ...props.extraDefaultHotkeys }
+            defaultHotkeys: { ...coreDefaultHotkeys, ...props.extraDefaultHotkeys },
+            globalListener: props.globalHotkeys
         });
 
         this.state = {
@@ -292,6 +415,9 @@ export class MowsClientManagerBase extends Component<
             ),
             toastSettings: readToastFromBlob(this.settingsManager.getCore(`toast`)),
             currentMapStyle: initialMapStyle,
+            currentTemperatureUnit: readTemperatureUnitFromBlob(
+                this.settingsManager.getCore(`temperatureUnit`)
+            ),
             appSettingsContext: createAppSettingsContextValue(
                 this.settingsManager,
                 props.appSettings
@@ -336,6 +462,7 @@ export class MowsClientManagerBase extends Component<
     componentWillUnmount = () => {
         this.unsubscribeSettings?.();
         this.unsubscribeSettings = null;
+        this.settingsManager.destroy();
     };
 
     changeActiveModal = (modalType?: string) => {
@@ -387,7 +514,10 @@ export class MowsClientManagerBase extends Component<
             codeEditorSettings: readCodeEditorFromBlob(
                 this.settingsManager.getCore(`codeEditor`)
             ),
-            toastSettings: readToastFromBlob(this.settingsManager.getCore(`toast`))
+            toastSettings: readToastFromBlob(this.settingsManager.getCore(`toast`)),
+            currentTemperatureUnit: readTemperatureUnitFromBlob(
+                this.settingsManager.getCore(`temperatureUnit`)
+            )
         });
 
         // Always re-apply the theme class — the blob may have flipped
@@ -437,6 +567,15 @@ export class MowsClientManagerBase extends Component<
     setMapStyle = (style: MowsMapStyle) => {
         this.settingsManager.setCore(`mapStyle`, style.id);
         this.setState({ currentMapStyle: style });
+    };
+
+    setTemperatureUnit = (unit: MowsTemperatureUnit) => {
+        if (!(MOWS_TEMPERATURE_UNITS as readonly string[]).includes(unit)) {
+            log.warn(`Ignoring invalid temperature unit`, unit);
+            return;
+        }
+        this.settingsManager.setCore(`temperatureUnit`, unit);
+        this.setState({ currentTemperatureUnit: unit });
     };
 
     setCodeEditorSettings = (partial: Partial<MowsCodeEditorSettings>) => {
@@ -490,7 +629,8 @@ export class MowsClientManagerBase extends Component<
             currentCodeTheme,
             codeEditorSettings,
             toastSettings,
-            currentMapStyle
+            currentMapStyle,
+            currentTemperatureUnit
         } = this.state;
 
         const contextValue: MowsContextType = {
@@ -519,6 +659,8 @@ export class MowsClientManagerBase extends Component<
             mapStyles,
             currentMapStyle,
             setMapStyle: this.setMapStyle,
+            currentTemperatureUnit,
+            setTemperatureUnit: this.setTemperatureUnit,
             settingsManager: this.settingsManager,
             appSettings: this.state.appSettingsContext
         };
@@ -579,7 +721,12 @@ export const useMows = (): MowsContextType => {
     return context;
 };
 
-const MowsClientManager = withAuth(MowsClientManagerBase);
+// Lazy chunks: the OIDC auth wiring (react-oidc-context + oidc-client-ts) and
+// the drag-and-drop provider (react-dnd). They are only fetched when actually
+// rendered — `oidc` configured, resp. `dnd` not disabled — so non-OIDC / non-DnD
+// apps never download them.
+const OidcAuthGate = lazy(() => import(`./OidcAuthGate`));
+const DndGate = lazy(() => import(`./DndGate`));
 
 export const baseLanguages: Language[] = [
     {
@@ -605,6 +752,19 @@ interface MowsProviderProps {
      * components will hide login affordances. Useful for apps that sit behind
      * a separate auth proxy or use a bearer-token-only API. */
     readonly oidc?: MowsOidcConfig;
+    /** Custom (non-OIDC) authentication adapter — e.g. a magic-link cookie
+     * session. Mutually alternative to `oidc` (if both are set, `oidc` wins).
+     * Makes `authConfigured` true and feeds the same `auth` surface OIDC uses.
+     * See {@link MowsAuthAdapter}. */
+    readonly authAdapter?: MowsAuthAdapter;
+    /** Attach MOWS' app-wide hotkey listener (command palette, undo/redo).
+     * Default true. Set false when embedding MOWS in a focused app that must
+     * keep native `mod+z` etc. in its own inputs (e.g. a chat composer). */
+    readonly globalHotkeys?: boolean;
+    /** Wrap the tree in react-dnd's `DndProvider` (default true; lazily loaded).
+     * Set false for apps that use no MOWS drag-and-drop component — then
+     * `react-dnd` is never fetched. */
+    readonly dnd?: boolean;
     readonly themes?: MowsTheme[];
     readonly languages?: Language[];
     readonly initialTranslation?: Translation;
@@ -655,6 +815,7 @@ export class MowsProvider extends Component<MowsProviderProps> {
             children,
             storagePrefix,
             oidc,
+            authAdapter,
             themes = defaultThemes,
             languages = baseLanguages,
             initialTranslation = baseEnglishTranslation as Translation,
@@ -664,7 +825,9 @@ export class MowsProvider extends Component<MowsProviderProps> {
             mapStyles = defaultMapStyles,
             defaultMapStyleId = `openfreemap-liberty`,
             extraActions = [],
-            extraDefaultHotkeys = {}
+            extraDefaultHotkeys = {},
+            globalHotkeys = true,
+            dnd = true
         } = this.props;
 
         const managerCommonProps = {
@@ -679,43 +842,50 @@ export class MowsProvider extends Component<MowsProviderProps> {
             defaultMapStyleId,
             extraActions,
             extraDefaultHotkeys,
-            authConfigured: !!oidc,
-            appSettings: this.props.appSettings ?? null
+            // OIDC or a custom adapter both count as "auth configured".
+            authConfigured: !!oidc || !!authAdapter,
+            appSettings: this.props.appSettings ?? null,
+            globalHotkeys
         } as const;
 
-        if (!oidc) {
-            // No OIDC config — mount without `<AuthProvider>` and without the
-            // `withAuth` HOC (which would emit a console warning when no
-            // AuthContext is present). PrimaryMenu and friends consult
-            // `authConfigured` from the context to hide login affordances.
-            return (
-                <DndProvider backend={HTML5Backend}>
-                    <MowsClientManagerBase {...managerCommonProps}>
+        // 1) Auth layer. OIDC → lazy `OidcAuthGate` (pulls react-oidc-context +
+        //    oidc-client-ts only here). Custom adapter / none → the manager
+        //    directly, no auth deps.
+        let tree: ReactNode;
+        if (oidc) {
+            tree = (
+                <Suspense fallback={null}>
+                    <OidcAuthGate
+                        oidc={oidc}
+                        managerProps={managerCommonProps}
+                        onSigninCallback={this.onSigninCallback}
+                    >
                         {children}
-                    </MowsClientManagerBase>
-                </DndProvider>
+                    </OidcAuthGate>
+                </Suspense>
+            );
+        } else if (authAdapter) {
+            tree = (
+                <MowsClientManagerBase {...managerCommonProps} auth={adapterToAuthContext(authAdapter)}>
+                    {children}
+                </MowsClientManagerBase>
+            );
+        } else {
+            // No auth — PrimaryMenu and friends consult `authConfigured` to hide
+            // login affordances.
+            tree = (
+                <MowsClientManagerBase {...managerCommonProps}>{children}</MowsClientManagerBase>
             );
         }
 
-        const oidcConfig = {
-            userStore: new WebStorageStateStore({ store: window.localStorage }),
-            authority: oidc.issuerUrl,
-            client_id: oidc.clientId,
-            redirect_uri: window.location.origin + (oidc.redirectPath ?? `/auth/callback`),
-            response_type: `code`,
-            scope: oidc.scope ?? `openid profile email`,
-            post_logout_redirect_uri: oidc.postLogoutRedirectUri ?? window.location.origin,
-            response_mode: `query` as const,
-            automaticSilentRenew: true,
-            onSigninCallback: this.onSigninCallback
-        };
-
+        // 2) Optional drag-and-drop layer (lazy `DndGate`, react-dnd loaded only
+        //    here). Independent React context, so the relative order vs. the auth
+        //    layer doesn't matter.
+        if (!dnd) return tree;
         return (
-            <AuthProvider {...oidcConfig}>
-                <DndProvider backend={HTML5Backend}>
-                    <MowsClientManager {...managerCommonProps}>{children}</MowsClientManager>
-                </DndProvider>
-            </AuthProvider>
+            <Suspense fallback={null}>
+                <DndGate>{tree}</DndGate>
+            </Suspense>
         );
     };
 }

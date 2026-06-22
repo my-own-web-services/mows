@@ -116,18 +116,18 @@ const TEST_FILE = `lib/components/input/emojiPicker/EmojiPicker.test.tsx`;
 const buildBehaviourEntries = (
     statements: Strings[`doc`][`definedBehaviour`][`statements`]
 ): BehaviourEntry[] => [
-    { statement: statements.rendersShell, testFile: TEST_FILE, testName: `renders the picker shell with search + categories`, testLine: 73 },
-    { statement: statements.searchFilters, testFile: TEST_FILE, testName: `searching narrows the result set to a flat grid`, testLine: 117 },
-    { statement: statements.noResultsState, testFile: TEST_FILE, testName: `shows the no-results state for an unmatched query`, testLine: 127 },
-    { statement: statements.onSelectFires, testFile: TEST_FILE, testName: `fires onSelect with the picked emoji string`, testLine: 92 },
-    { statement: statements.appliesSkinTone, testFile: TEST_FILE, testName: `applies the active skin tone to skin-toneable emojis`, testLine: 106 },
-    { statement: statements.persistsRecents, testFile: TEST_FILE, testName: `persists picked emojis to localStorage under the storagePrefix`, testLine: 157 },
-    { statement: statements.dedupesRecents, testFile: TEST_FILE, testName: `dedupes the recents row by base character`, testLine: 177 },
-    { statement: statements.clearSearchButton, testFile: TEST_FILE, testName: `clicking the clear-search button empties the query`, testLine: 224 },
-    { statement: statements.escapeFlow, testFile: TEST_FILE, testName: `Escape clears the query before invoking onClose`, testLine: 143 },
-    { statement: statements.hidesSearch, testFile: TEST_FILE, testName: `hides the search bar when hideSearch is true`, testLine: 80 },
-    { statement: statements.hidesSkinTone, testFile: TEST_FILE, testName: `hides the skin-tone toggle when hideSkinTone is true`, testLine: 85 },
-    { statement: statements.configurableColumns, testFile: TEST_FILE, testName: `exposes a configurable column count via the grid style`, testLine: 218 }
+    { statement: statements.rendersShell, testFile: TEST_FILE, testName: `renders the picker shell with search + categories`, testLine: 79 },
+    { statement: statements.searchFilters, testFile: TEST_FILE, testName: `searching narrows the result set to a flat grid`, testLine: 123 },
+    { statement: statements.noResultsState, testFile: TEST_FILE, testName: `shows the no-results state for an unmatched query`, testLine: 133 },
+    { statement: statements.onSelectFires, testFile: TEST_FILE, testName: `fires onSelect with the picked emoji string`, testLine: 98 },
+    { statement: statements.appliesSkinTone, testFile: TEST_FILE, testName: `applies the active skin tone to skin-toneable emojis`, testLine: 112 },
+    { statement: statements.persistsRecents, testFile: TEST_FILE, testName: `persists picked emojis to localStorage under the storagePrefix`, testLine: 163 },
+    { statement: statements.dedupesRecents, testFile: TEST_FILE, testName: `dedupes the recents row by base character`, testLine: 183 },
+    { statement: statements.clearSearchButton, testFile: TEST_FILE, testName: `clicking the clear-search button empties the query`, testLine: 230 },
+    { statement: statements.escapeFlow, testFile: TEST_FILE, testName: `Escape clears the query before invoking onClose`, testLine: 149 },
+    { statement: statements.hidesSearch, testFile: TEST_FILE, testName: `hides the search bar when hideSearch is true`, testLine: 86 },
+    { statement: statements.hidesSkinTone, testFile: TEST_FILE, testName: `hides the skin-tone toggle when hideSkinTone is true`, testLine: 91 },
+    { statement: statements.configurableColumns, testFile: TEST_FILE, testName: `exposes a configurable column count via the grid style`, testLine: 224 }
 ];
 
 export const EmojiPickerDocPage = () => {

@@ -83,9 +83,9 @@ const TEST_FILE = `lib/components/settings/mapStylePicker/MapStylePicker.test.ts
 const buildBehaviourEntries = (
     statements: Strings[`doc`][`definedBehaviour`][`statements`]
 ): BehaviourEntry[] => [
-    { statement: statements.listsStyles, testFile: TEST_FILE, testName: `lists every map style in standalone mode`, testLine: 57 },
-    { statement: statements.firesSetMapStyle, testFile: TEST_FILE, testName: `fires setMapStyle on the surrounding context when a style is picked`, testLine: 68 },
-    { statement: statements.popoverShowsCurrent, testFile: TEST_FILE, testName: `renders the popover trigger with the current map style by default`, testLine: 80 }
+    { statement: statements.listsStyles, testFile: TEST_FILE, testName: `lists every map style in standalone mode`, testLine: 59 },
+    { statement: statements.firesSetMapStyle, testFile: TEST_FILE, testName: `fires setMapStyle on the surrounding context when a style is picked`, testLine: 70 },
+    { statement: statements.popoverShowsCurrent, testFile: TEST_FILE, testName: `renders the popover trigger with the current map style by default`, testLine: 82 }
 ];
 
 export const MapStylePickerDocPage = () => {

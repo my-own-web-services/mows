@@ -21,13 +21,16 @@ import { consoleManagerExamples } from "../consoleManager";
 import { contextMenuExamples } from "../contextMenu";
 import { copyValueButtonExamples } from "../copyValueButton";
 import { dateTimeDisplayExamples } from "../dateTimeDisplay";
+import { durationExamples } from "../duration";
 import { dateTimePickerExamples } from "../dateTimePicker";
 import { dateTimeRangePickerExamples } from "../dateTimeRangePicker";
 import { dialogExamples } from "../dialog";
 import { dropdownMenuExamples } from "../dropdownMenu";
 import { expandableCodeExamples } from "../expandableCode";
 import { expandableSectionExamples } from "../expandableSection";
+import { coordinateLinksExamples } from "../coordinateLinks";
 import { fileIconExamples } from "../fileIcon";
+import { iconBadgeExamples } from "../iconBadge";
 import { fileViewerExamples } from "../fileViewer";
 import { globalContextMenuExamples } from "../globalContextMenu";
 import { image360ViewerExamples } from "../image360Viewer";
@@ -169,7 +172,10 @@ const ALL_REGISTRIES: ReadonlyArray<{
     { name: `nodeEditor`, examples: nodeEditorExamples },
     { name: `staggeredCheckboxes`, examples: staggeredCheckboxesExamples },
     { name: `weatherExpandable`, examples: weatherExpandableExamples },
-    { name: `expandableSection`, examples: expandableSectionExamples }
+    { name: `expandableSection`, examples: expandableSectionExamples },
+    { name: `coordinateLinks`, examples: coordinateLinksExamples },
+    { name: `iconBadge`, examples: iconBadgeExamples },
+    { name: `duration`, examples: durationExamples }
 ];
 
 describe(`registry integrity — code shown == code that runs`, () => {

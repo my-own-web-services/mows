@@ -19,12 +19,16 @@ import {
 } from "../harness/docPage";
 import { weatherExpandableExampleById } from "./index";
 
+// Anchor map for in-page navigation. Each entry corresponds to a
+// <DocSection> below; the section IDs travel into the page-index
+// sidebar via `buildIndexItems`.
 const ANCHOR = {
     installation: `installation`,
     examples: `examples`,
     default: `examples-default`,
     collapsed: `examples-collapsed`,
     headerOnly: `examples-header-only`,
+    icons: `examples-icons`,
     localised: `examples-localised`,
     usage: `usage`,
     composition: `composition`,
@@ -97,6 +101,8 @@ const PROPS: PropRow[] = [
     { name: `onOpenChange`, type: `(open: boolean) => void`, default: `—`, description: `Fires whenever the disclosure toggles.` },
     { name: `strings`, type: `Partial<WeatherExpandableStrings>`, default: `DEFAULT_WEATHER_EXPANDABLE_STRINGS`, description: `Per-key override on top of the German defaults (which mirror the omniviv reference).` },
     { name: `locale`, type: `string`, default: `"de-DE"`, description: `BCP-47 locale used to format the forecast weekday labels.` },
+    { name: `glyphStyle`, type: `"emoji" | "icon"`, default: `"emoji"`, description: `Pick between colour Unicode emoji (default) and monochrome \`lucide-react\` icons for the header glyph and the per-day forecast glyph.` },
+    { name: `temperatureUnit`, type: `"celsius" | "fahrenheit" | "kelvin"`, default: `MowsContext.currentTemperatureUnit ?? "celsius"`, description: `Display unit for every temperature this component renders. Input values are always Celsius (matching the Bright Sky / DWD payload); the prop converts at render time. When omitted, the component reads the global setting from MowsContext.` },
     { name: `className`, type: `string`, default: `—`, description: `Extra class names on the outer wrapper.` },
     { name: `style`, type: `CSSProperties`, default: `—`, description: `Inline style on the outer wrapper.` }
 ];
@@ -146,6 +152,7 @@ const buildIndexItems = (t: Strings): PageIndexItem[] => {
                 { id: ANCHOR.default, label: doc.examples.default.title },
                 { id: ANCHOR.collapsed, label: doc.examples.collapsed.title },
                 { id: ANCHOR.headerOnly, label: doc.examples.headerOnly.title },
+                { id: ANCHOR.icons, label: doc.examples.icons.title },
                 { id: ANCHOR.localised, label: doc.examples.localised.title }
             ]
         },
@@ -188,7 +195,12 @@ const buildBehaviourEntries = (
     { statement: statements.enabledWithAttributionOnly, testFile: TEST_FILE, testName: `enables the disclosure when only attribution is set (still something to reveal)`, testLine: 338 },
     { statement: statements.extrasTooltipsTranslated, testFile: TEST_FILE, testName: `extras chips carry the translated tooltip labels`, testLine: 354 },
     { statement: statements.regionAriaLabel, testFile: TEST_FILE, testName: `region carries the translated aria-label`, testLine: 376 },
-    { statement: statements.emojiVocabulary, testFile: TEST_FILE, testName: `resolveWeatherEmoji exposes the full vocabulary mapping (port parity)`, testLine: 386 }
+    { statement: statements.lucideIconMode, testFile: TEST_FILE, testName: `renders a monochrome lucide icon when glyphStyle="icon"`, testLine: 386 },
+    { statement: statements.emojiDefault, testFile: TEST_FILE, testName: `keeps emoji rendering when glyphStyle is omitted (default)`, testLine: 404 },
+    { statement: statements.fahrenheitConversion, testFile: TEST_FILE, testName: `renders Fahrenheit when temperatureUnit="fahrenheit"`, testLine: 416 },
+    { statement: statements.kelvinConversion, testFile: TEST_FILE, testName: `renders Kelvin when temperatureUnit="kelvin"`, testLine: 427 },
+    { statement: statements.forecastUnitConversion, testFile: TEST_FILE, testName: `converts forecast min/max into the selected unit`, testLine: 438 },
+    { statement: statements.emojiVocabulary, testFile: TEST_FILE, testName: `resolveWeatherEmoji exposes the full vocabulary mapping (port parity)`, testLine: 455 }
 ];
 
 export const WeatherExpandableDocPage = () => {
@@ -256,6 +268,16 @@ export const WeatherExpandableDocPage = () => {
                     >
                         <ExampleCard
                             example={weatherExpandableExampleById(`headerOnly`)}
+                            hideHeader
+                        />
+                    </DocSubsection>
+                    <DocSubsection
+                        id={ANCHOR.icons}
+                        title={doc.examples.icons.title}
+                        description={doc.examples.icons.description}
+                    >
+                        <ExampleCard
+                            example={weatherExpandableExampleById(`icons`)}
                             hideHeader
                         />
                     </DocSubsection>

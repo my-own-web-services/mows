@@ -24,14 +24,16 @@ vi.mock(`@/components/code/codeViewer/CodeViewer`, () => ({
 import { defaultCodeThemes, type MowsCodeTheme } from "../../../lib/codeThemes";
 import enTranslation from "../../../lib/languages/en-US/default";
 import { defaultMapStyles, type MowsMapStyle } from "../../../lib/mapStyles";
-import { ActionManager } from "../../../lib/mowsContext/ActionManager";
+import { Action, ActionManager, ActionVisibility } from "../../../lib/mowsContext/ActionManager";
 import { createAppSettingsContextValue } from "../../../lib/mowsContext/appSettings";
+import { CoreActionIds } from "../../../lib/mowsContext/coreActions";
 import { HotkeyManager } from "../../../lib/mowsContext/HotkeyManager";
 import {
     defaultCodeEditorSettings,
     defaultToastSettings,
     MowsContext,
-    type MowsContextType
+    type MowsContextType,
+    type MowsTemperatureUnit
 } from "../../../lib/mowsContext/MowsContext";
 import { SettingsManager, type SettingsStorageAdapter } from "../../../lib/mowsContext/SettingsManager";
 import { defaultThemes, type MowsTheme } from "../../../lib/themes";
@@ -43,9 +45,11 @@ interface ContextStubs {
     setMapStyle?: (style: MowsMapStyle) => void;
     setLanguage?: (lang?: { code: string }) => void;
     setToastSettings?: (partial: Partial<{ position: string }>) => void;
+    setTemperatureUnit?: (unit: MowsTemperatureUnit) => void;
     currentThemeId?: string;
     currentCodeThemeId?: string;
     currentMapStyleId?: string;
+    currentTemperatureUnit?: MowsTemperatureUnit;
     toastPosition?: typeof defaultToastSettings.position;
 }
 
@@ -71,6 +75,56 @@ const buildContext = (stubs: ContextStubs = {}): MowsContextType => {
         recentActionsSlot: settingsManager.deviceSlotAdapter(`recentActions`),
         maxRecentActions: 5
     });
+    // The panel's JSON-paste save routes through this action so Ctrl+Z
+    // reverts the entire paste in one step. The test context registers a
+    // minimal handler that mirrors the production implementation (calling
+    // settingsManager.replaceBlob); the surrounding spies on
+    // `settingsManager.replaceBlob` continue to fire.
+    // Mirror the production REPLACE_SETTINGS_BLOB handler from coreActions.ts
+    // — same forward + invert wiring, same doNotTrackUsage flag — so this
+    // stub exercises the actual undo path instead of just calling
+    // replaceBlob directly. If production drifts, only one place to update.
+    actionManager.defineAction(
+        new Action({
+            id: CoreActionIds.REPLACE_SETTINGS_BLOB,
+            category: `Settings`,
+            doNotTrackUsage: true,
+            actionHandlers: new Map([
+                [
+                    `test`,
+                    {
+                        id: `test`,
+                        getState: () => ({ visibility: ActionVisibility.Shown }),
+                        executeAction: (_event, _scope, payload) => {
+                            const args = payload as { blob?: unknown } | undefined;
+                            if (!args?.blob || typeof args.blob !== `object`) return;
+                            const previousBlob = settingsManager.getBlob();
+                            settingsManager.replaceBlob(args.blob as Parameters<
+                                typeof settingsManager.replaceBlob
+                            >[0]);
+                            return {
+                                id: ``,
+                                actionId: CoreActionIds.REPLACE_SETTINGS_BLOB,
+                                forwardPayload: { blob: args.blob },
+                                inversePayload: { blob: previousBlob },
+                                timestamp: Date.now(),
+                                describe: {
+                                    labelKey: `actions.${CoreActionIds.REPLACE_SETTINGS_BLOB}`
+                                }
+                            };
+                        },
+                        invertAction: (inversePayload) => {
+                            const args = inversePayload as { blob?: unknown } | undefined;
+                            if (!args?.blob || typeof args.blob !== `object`) return;
+                            settingsManager.replaceBlob(args.blob as Parameters<
+                                typeof settingsManager.replaceBlob
+                            >[0]);
+                        }
+                    }
+                ]
+            ])
+        })
+    );
     const hotkeyManager = new HotkeyManager(actionManager, {
         configSlot: settingsManager.deviceSlotAdapter(`hotkeyConfig`),
         defaultHotkeys: {}
@@ -90,7 +144,7 @@ const buildContext = (stubs: ContextStubs = {}): MowsContextType => {
 
     return {
 
-        auth: {} as any,
+        auth: {} as unknown as MowsContextType[`auth`],
         authConfigured: false,
         mowsUser: null,
         storagePrefix: `test`,
@@ -129,6 +183,8 @@ const buildContext = (stubs: ContextStubs = {}): MowsContextType => {
         mapStyles: defaultMapStyles,
         currentMapStyle,
         setMapStyle: stubs.setMapStyle ?? (() => undefined),
+        currentTemperatureUnit: stubs.currentTemperatureUnit ?? `celsius`,
+        setTemperatureUnit: stubs.setTemperatureUnit ?? (() => undefined),
         settingsManager,
         appSettings
     };
@@ -223,8 +279,11 @@ describe(`SettingsPanel`, () => {
 
         // SettingsManager.replaceBlob throws SettingsBlobValidationError;
         // the panel catches it, shows the error, and leaves the stored
-        // blob untouched.
-        expect(ctx.settingsManager.getBlob()).toBe(blobBefore);
+        // blob untouched. Compare by value, not by identity — the action
+        // path may re-create the blob reference via unrelated side
+        // effects (e.g. recent-actions tracking) even though the user's
+        // intended write was rejected.
+        expect(ctx.settingsManager.getBlob()).toEqual(blobBefore);
         expect(screen.getByText(/Invalid JSON/i)).toBeInTheDocument();
     });
 

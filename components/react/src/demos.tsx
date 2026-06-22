@@ -60,6 +60,8 @@ import ChatDocPage from "./examples/chat/ChatDocPage";
 import EmojiPickerDocPage from "./examples/emojiPicker/EmojiPickerDocPage";
 import ConsoleManagerDocPage from "./examples/consoleManager/ConsoleManagerDocPage";
 import DateTimeDisplayDocPage from "./examples/dateTimeDisplay/DateTimeDisplayDocPage";
+import DurationDocPage from "./examples/duration/DurationDocPage";
+import SchedulerDocPage from "./examples/scheduler/SchedulerDocPage";
 import KeyComboRecorderDocPage from "./examples/keyComboRecorder/KeyComboRecorderDocPage";
 import NodeEditorDocPage from "./examples/nodeEditor/NodeEditorDocPage";
 import type { Translation } from "./languages";
@@ -72,6 +74,32 @@ import { registerDemoLinks } from "./componentLinkRegistry";
 // the frame chrome inside `<ExampleCard>`.
 
 export type DemoGroupKey = keyof Translation[`example`][`sidebar`][`groups`];
+
+/**
+ * Canonical render order for sidebar groups. Every key declared on the
+ * Translation `sidebar.groups` object MUST appear here — otherwise demos
+ * in that group are silently dropped from the sidebar AND from the
+ * search filter (App.tsx maps over this list). The integrity test in
+ * `src/examples/harness/groupOrderIntegrity.test.ts` enforces that.
+ */
+export const GROUP_ORDER: ReadonlyArray<DemoGroupKey> = [
+    `actions`,
+    `appShell`,
+    `chat`,
+    `code`,
+    `console`,
+    `dateTime`,
+    `display`,
+    `editor`,
+    `files`,
+    `identity`,
+    `input`,
+    `list`,
+    `map`,
+    `navigation`,
+    `settings`,
+    `uiPrimitives`
+];
 
 export interface DemoEntry {
     readonly id: string;
@@ -121,6 +149,8 @@ export const demos: DemoEntry[] = [
     { id: `timezoneSelector`, name: `TimezoneSelector`, groupKey: `dateTime`, render: () => <TimezoneSelectorDocPage /> },
     { id: `dateTimeRangePicker`, name: `DateTimeRangePicker`, groupKey: `dateTime`, render: () => <DateTimeRangePickerDocPage /> },
     { id: `openingHours`, name: `OpeningHours`, groupKey: `dateTime`, render: () => <OpeningHoursDocPage />, searchTags: [`opening`, `hours`, `osm`, `openstreetmap`, `schedule`, `place`, `business`, `open`, `closed`] },
+    { id: `duration`, name: `Duration`, groupKey: `dateTime`, render: () => <DurationDocPage />, searchTags: [`duration`, `elapsed`, `length`, `time`, `responsive`, `1h`, `10min`, `eta`, `runtime`, `interval`, `humanize`] },
+    { id: `scheduler`, name: `Scheduler`, groupKey: `dateTime`, render: () => <SchedulerDocPage />, searchTags: [`calendar`, `event`, `schedule`, `agenda`, `month`, `week`, `day`, `booking`, `planner`, `appointments`] },
     { id: `timeline`, name: `Timeline`, groupKey: `input`, render: () => <TimelineDocPage />, searchTags: [`scrubber`, `playhead`, `video`, `axis`, `zoom`, `time`] },
     { id: `nodeEditor`, name: `NodeEditor`, groupKey: `editor`, render: () => <NodeEditorDocPage />, searchTags: [`graph`, `flow`, `dag`, `node`, `pipeline`, `react-flow`, `xyflow`, `dataflow`, `visual`] },
     {
@@ -153,7 +183,7 @@ export const demos: DemoEntry[] = [
         searchTags: [`video`, `shaka`, `dash`, `hls`, `player`, `streaming`, `mp4`, `webm`]
     },
     { id: `avatar`, name: `Avatar`, groupKey: `identity`, render: () => <AvatarDocPage /> },
-    { id: `iconBadge`, name: `IconBadge`, groupKey: `identity`, render: () => <IconBadgeDocPage />, searchTags: [`icon`, `badge`, `overlay`, `sub-icon`, `corner`, `indicator`, `status`, `mask`, `cutout`] },
+    { id: `iconBadge`, name: `IconBadge`, groupKey: `display`, render: () => <IconBadgeDocPage />, searchTags: [`icon`, `badge`, `overlay`, `sub-icon`, `corner`, `edge`, `indicator`, `status`, `mask`, `cutout`, `transparent`] },
     { id: `searchInput`, name: `SearchInput`, groupKey: `input`, render: () => <SearchInputDocPage /> },
     { id: `buttonSelect`, name: `ButtonSelect`, groupKey: `input`, render: () => <ButtonSelectDocPage /> },
     { id: `colorCurves`, name: `ColorCurves`, groupKey: `input`, render: () => <ColorCurvesDocPage />, searchTags: [`curves`, `tonal`, `lightroom`, `photoshop`, `color`, `colour`, `histogram`, `photo`, `grading`] },

@@ -92,6 +92,19 @@ interface MapState {
     readonly userLocation: UserLocation | null;
     /** Whether the attribution panel is expanded (vs. collapsed to an `i` icon). */
     readonly attributionOpen: boolean;
+    /**
+     * Whether the active style contains any `fill-extrusion` (3D
+     * building) layers. The 2D/3D toggle button only renders when this
+     * is true — a flat style with no extruded buildings has nothing to
+     * switch.
+     */
+    readonly has3DBuildings: boolean;
+    /**
+     * Whether 3D buildings are currently shown. Drives the 2D/3D toggle
+     * button's label + pressed state directly — it is NOT derived from
+     * the camera pitch, so tilting the map by hand never flips it.
+     */
+    readonly buildings3D: boolean;
 }
 
 /**
@@ -120,13 +133,20 @@ export default class Map extends PureComponent<MapProps, MapState> {
     // / zoom controls act on an off-screen map.
     private initToken = 0;
 
+    // Seeded from the style's own extrusion-layer visibility on the
+    // first `style.load`; once true, the user's toggle choice is
+    // re-asserted across every subsequent style reload instead.
+    private buildings3DInitialised = false;
+
     state: MapState = {
         status: `loading`,
         bearing: 0,
         pitch: 0,
         tracking: false,
         userLocation: null,
-        attributionOpen: false
+        attributionOpen: false,
+        has3DBuildings: false,
+        buildings3D: true
     };
 
     componentDidMount = () => {
@@ -265,11 +285,14 @@ export default class Map extends PureComponent<MapProps, MapState> {
                 log.warn(`setProjection failed; falling back to mercator`, err);
             }
         };
-        this.map.on(`style.load`, applyProjection);
-
-        this.map.on(`load`, () => {
-            this.setState({ status: `ready` });
-            if (this.map) this.props.onLoad?.(this.map);
+        // One `style.load` handler: re-assert the projection AND detect
+        // 3D-building (fill-extrusion) layers + re-apply the user's 2D/3D
+        // choice. Runs on the initial style and on every later setStyle()
+        // (settings-panel style switch, consumer-driven reload), so both
+        // the projection and the toggle stay honest across reloads.
+        this.map.on(`style.load`, () => {
+            applyProjection();
+            this.syncBuildings3D();
         });
 
         // `rotate` + `pitch` fire continuously during the gesture; that
@@ -283,6 +306,17 @@ export default class Map extends PureComponent<MapProps, MapState> {
         };
         this.map.on(`rotate`, syncOrientation);
         this.map.on(`pitch`, syncOrientation);
+
+        this.map.on(`load`, () => {
+            this.setState({ status: `ready` });
+            // Seed the compass from the camera the moment the map is
+            // ready. With `hash`, maplibre restores bearing/pitch from
+            // the URL during construction, but no `rotate`/`pitch`
+            // gesture fires on load — without this the needle would
+            // stay stuck at north until the user first touches the map.
+            syncOrientation();
+            if (this.map) this.props.onLoad?.(this.map);
+        });
 
         this.map.on(`moveend`, () => {
             if (!this.map) return;
@@ -321,6 +355,56 @@ export default class Map extends PureComponent<MapProps, MapState> {
 
     private handleCompassReset = () => {
         this.map?.easeTo({ bearing: 0, pitch: 0 });
+    };
+
+    /** All `fill-extrusion` layer ids in the live style (the 3D buildings). */
+    private extrusionLayerIds = (): string[] => {
+        const layers = this.map?.getStyle()?.layers ?? [];
+        return layers
+            .filter((layer) => layer.type === `fill-extrusion`)
+            .map((layer) => layer.id);
+    };
+
+    private applyBuildings3D = (show: boolean) => {
+        if (!this.map) return;
+        for (const id of this.extrusionLayerIds()) {
+            this.map.setLayoutProperty(id, `visibility`, show ? `visible` : `none`);
+        }
+    };
+
+    // Called on every `style.load`. First run seeds `buildings3D` from
+    // the style's own extrusion visibility (so a style that ships
+    // buildings hidden is respected); later runs re-assert the user's
+    // pick across style reloads. Also tracks whether the style has any
+    // extruded buildings at all, which gates the toggle button.
+    private syncBuildings3D = () => {
+        if (!this.map) return;
+        const ids = this.extrusionLayerIds();
+        if (ids.length === 0) {
+            this.buildings3DInitialised = false;
+            if (this.state.has3DBuildings) this.setState({ has3DBuildings: false });
+            return;
+        }
+        if (!this.buildings3DInitialised) {
+            const layers = this.map.getStyle()?.layers ?? [];
+            const anyVisible = layers.some(
+                (layer) =>
+                    layer.type === `fill-extrusion` &&
+                    (layer.layout?.visibility ?? `visible`) !== `none`
+            );
+            this.buildings3DInitialised = true;
+            this.setState({ has3DBuildings: true, buildings3D: anyVisible });
+            return;
+        }
+        this.applyBuildings3D(this.state.buildings3D);
+        if (!this.state.has3DBuildings) this.setState({ has3DBuildings: true });
+    };
+
+    private handleToggleBuildings3D = () => {
+        if (!this.map) return;
+        const next = !this.state.buildings3D;
+        this.applyBuildings3D(next);
+        this.setState({ buildings3D: next });
     };
 
     private startTracking = () => {
@@ -419,7 +503,9 @@ export default class Map extends PureComponent<MapProps, MapState> {
             pitch,
             tracking,
             userLocation,
-            attributionOpen
+            attributionOpen,
+            has3DBuildings,
+            buildings3D
         } = this.state;
         const activeStyle = this.activeStyle();
 
@@ -476,6 +562,36 @@ export default class Map extends PureComponent<MapProps, MapState> {
                         >
                             <CompassRose bearing={bearing} pitch={pitch} />
                         </Button>
+                        {has3DBuildings && (
+                            <Button
+                                variant={`secondary`}
+                                size={`icon`}
+                                onClick={this.handleToggleBuildings3D}
+                                aria-pressed={buildings3D}
+                                // Toggles the extruded-building layers on
+                                // or off. The visible label is the mode
+                                // the click switches TO: showing buildings
+                                // offers "2D" (flatten), hiding them "3D".
+                                title={
+                                    buildings3D
+                                        ? `Hide 3D buildings`
+                                        : `Show 3D buildings`
+                                }
+                                aria-label={
+                                    buildings3D
+                                        ? `Hide 3D buildings`
+                                        : `Show 3D buildings`
+                                }
+                                className={`h-8 w-8 shadow-md hover:bg-accent hover:text-accent-foreground`}
+                            >
+                                <span
+                                    className={`text-xs font-semibold leading-none`}
+                                    aria-hidden
+                                >
+                                    {buildings3D ? `2D` : `3D`}
+                                </span>
+                            </Button>
+                        )}
                         <Button
                             variant={`secondary`}
                             size={`icon`}

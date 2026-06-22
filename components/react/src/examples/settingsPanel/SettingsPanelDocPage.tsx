@@ -129,67 +129,67 @@ const buildBehaviourEntries = (
         statement: statements.threeHeadings,
         testFile: TEST_FILE,
         testName: `renders the three section headings`,
-        testLine: 146
+        testLine: 202
     },
     {
         statement: statements.standalonePickersShowCurrent,
         testFile: TEST_FILE,
         testName: `uses the standalone-style theme/code-theme/language pickers and shows their current values`,
-        testLine: 153
+        testLine: 209
     },
     {
         statement: statements.jsonTabShowsSettings,
         testFile: TEST_FILE,
         testName: `switches to the JSON tab and shows the unified settings blob`,
-        testLine: 163
+        testLine: 219
     },
     {
         statement: statements.jsonSaveAppliesEdit,
         testFile: TEST_FILE,
         testName: `pastes a wholesale blob into the JSON tab and calls replaceBlob`,
-        testLine: 182
+        testLine: 238
     },
     {
         statement: statements.jsonRejectsBadVersion,
         testFile: TEST_FILE,
         testName: `rejects a JSON paste whose _v doesn't match the current version`,
-        testLine: 208
+        testLine: 264
     },
     {
         statement: statements.notificationsSection,
         testFile: TEST_FILE,
         testName: `renders the Notifications section with the toast position picker`,
-        testLine: 231
+        testLine: 290
     },
     {
         statement: statements.jsonIncludesToast,
         testFile: TEST_FILE,
         testName: `exposes the toast slot inside core in the JSON view`,
-        testLine: 238
+        testLine: 297
     },
     {
         statement: statements.toastPositionFromJson,
         testFile: TEST_FILE,
         testName: `a pasted blob with core.toast lands in the manager after save`,
-        testLine: 251
+        testLine: 310
     },
     {
         statement: statements.bracketPairToggle,
         testFile: TEST_FILE,
         testName: `exposes a bracket-pair colorization toggle that calls setCodeEditorSettings`,
-        testLine: 282
+        testLine: 341
     },
     {
         statement: statements.appSectionWhenRegistered,
         testFile: TEST_FILE,
         testName: `renders an app-settings section when a schema is registered`,
-        testLine: 377
+        testLine: 436
     },
     {
         statement: statements.jsonErrorOnInvalid,
         testFile: TEST_FILE,
         testName: `shows an error when JSON is invalid`,
-        testLine: 470
+        testLine: 529
     }
 ];
 

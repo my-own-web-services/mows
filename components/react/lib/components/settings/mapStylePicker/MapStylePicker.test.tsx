@@ -49,7 +49,9 @@ const buildContext = (setMapStyle = vi.fn()): MowsContextType => {
         setToastSettings: () => undefined,
         mapStyles: STYLES,
         currentMapStyle: STYLES[0],
-        setMapStyle
+        setMapStyle,
+        currentTemperatureUnit: `celsius`,
+        setTemperatureUnit: () => undefined
     } as unknown as MowsContextType;
 };
 

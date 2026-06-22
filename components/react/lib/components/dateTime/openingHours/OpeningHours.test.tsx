@@ -80,6 +80,7 @@ describe(`OpeningHours`, () => {
                 rules={MO_FR_RULE}
                 now={FIXED_NOW}
                 locale={LOCALE}
+                collapsible={false}
                 data-testid={`oh`}
             />
         );
@@ -112,7 +113,15 @@ describe(`OpeningHours`, () => {
     });
 
     it(`uses the alwaysOpen headline for 24/7 rules`, () => {
-        render(<OpeningHours rules={`24/7`} now={FIXED_NOW} locale={LOCALE} data-testid={`oh`} />);
+        render(
+            <OpeningHours
+                rules={`24/7`}
+                now={FIXED_NOW}
+                locale={LOCALE}
+                collapsible={false}
+                data-testid={`oh`}
+            />
+        );
         const root = screen.getByTestId(`oh`);
         expect(within(root).getByText(DEFAULT_OPENING_HOURS_STRINGS.alwaysOpen)).toBeInTheDocument();
     });
@@ -132,6 +141,7 @@ describe(`OpeningHours`, () => {
                 rules={`garbage`}
                 now={FIXED_NOW}
                 locale={LOCALE}
+                collapsible={false}
                 data-testid={`oh`}
             />
         );
@@ -158,11 +168,73 @@ describe(`OpeningHours`, () => {
                 now={FIXED_NOW}
                 locale={LOCALE}
                 strings={{ open: `Geöffnet`, closesAt: `schließt um {time}` }}
+                collapsible={false}
                 data-testid={`oh`}
             />
         );
         const root = screen.getByTestId(`oh`);
         expect(within(root).getByText(`Geöffnet`)).toBeInTheDocument();
         expect(within(root).getByText(/schließt um 18:00/)).toBeInTheDocument();
+    });
+
+    it(`hides the week table behind a disclosure by default and reveals it on toggle`, async () => {
+        const user = (await import(`@testing-library/user-event`)).default.setup();
+        render(
+            <OpeningHours
+                rules={MO_FR_RULE}
+                now={FIXED_NOW}
+                locale={LOCALE}
+                data-testid={`oh`}
+            />
+        );
+        // The status line is the trigger; the week table is not in the
+        // DOM until the disclosure opens.
+        expect(screen.queryByRole(`table`)).not.toBeInTheDocument();
+        const trigger = screen.getByRole(`button`, {
+            name: DEFAULT_OPENING_HOURS_STRINGS.scheduleLabel
+        });
+        expect(trigger).toHaveAttribute(`aria-expanded`, `false`);
+        await user.click(trigger);
+        expect(trigger).toHaveAttribute(`aria-expanded`, `true`);
+        const rows = screen.getByRole(`table`).querySelectorAll(`tbody tr`);
+        expect(rows).toHaveLength(7);
+    });
+
+    it(`starts open when defaultOpen is true`, () => {
+        render(
+            <OpeningHours
+                rules={MO_FR_RULE}
+                now={FIXED_NOW}
+                locale={LOCALE}
+                defaultOpen
+                data-testid={`oh`}
+            />
+        );
+        const trigger = screen.getByRole(`button`, {
+            name: DEFAULT_OPENING_HOURS_STRINGS.scheduleLabel
+        });
+        expect(trigger).toHaveAttribute(`aria-expanded`, `true`);
+        expect(screen.getByRole(`table`).querySelectorAll(`tbody tr`)).toHaveLength(7);
+    });
+
+    it(`picks bundled German strings when locale="de" without explicit strings prop`, () => {
+        // Wed 07:00 — closed until 09:00. With the German bundle the
+        // headline should be "Geschlossen" and the detail
+        // "öffnet um 09:00", without the caller passing any strings.
+        const beforeOpening = new Date(2026, 0, 14, 7, 0, 0);
+        render(
+            <OpeningHours
+                rules={MO_FR_RULE}
+                now={beforeOpening}
+                locale={`de`}
+                collapsible={false}
+                data-testid={`oh`}
+            />
+        );
+        const root = screen.getByTestId(`oh`);
+        expect(within(root).getByText(`Geschlossen`)).toBeInTheDocument();
+        expect(within(root).getByText(/öffnet um 09:00/)).toBeInTheDocument();
+        // The scheduleLabel for `<table aria-label>` should also be German.
+        expect(root.querySelector(`table`)?.getAttribute(`aria-label`)).toBe(`Öffnungszeiten`);
     });
 });

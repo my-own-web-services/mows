@@ -22,7 +22,7 @@ const FORECAST: WeatherExpandableForecastDay[] = [
 ];
 
 const Example = () => {
-    useExampleState({ locale: `en-US` });
+    useExampleState({ locale: `en-US`, temperatureUnit: `fahrenheit` });
     return (
         <WeatherExpandable
             data={{
@@ -40,6 +40,10 @@ const Example = () => {
             attribution={`Demo data`}
             defaultOpen
             locale={`en-US`}
+            // en-US users live with Fahrenheit. The component still
+            // receives °C-shaped data (Bright Sky / DWD never report
+            // anything else) — `temperatureUnit` flips display only.
+            temperatureUnit={`fahrenheit`}
             strings={{
                 title: `Weather`,
                 conditionDry: `Dry`,

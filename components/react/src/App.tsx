@@ -5,6 +5,7 @@ import {
     CalendarClock,
     Code,
     FileImage,
+    Layers,
     Keyboard,
     List,
     ListTree,
@@ -47,7 +48,7 @@ import {
 import { Toaster } from "../lib/components/ui/sonner";
 import { MowsContext } from "../lib/lib/mowsContext/MowsContext";
 import { cn } from "../lib/lib/utils";
-import { demos, type DemoEntry, type DemoGroupKey } from "./demos";
+import { demos, GROUP_ORDER, type DemoEntry, type DemoGroupKey } from "./demos";
 import { exampleTranslationRef } from "./exampleActions";
 import { guides, type GuideEntry } from "./guides";
 import {
@@ -115,6 +116,7 @@ const GROUP_ICONS: Record<DemoGroupKey, LucideIcon> = {
     code: Code,
     console: TerminalSquare,
     dateTime: CalendarClock,
+    display: Layers,
     editor: Workflow,
     files: FileImage,
     identity: User,
@@ -281,23 +283,7 @@ export default class App extends PureComponent<AppProps, AppState> {
             !isGuide
                 ? demos.find((demo) => demo.id === this.state.selected.id) ?? demos[0]
                 : demos[0]; // unused when isGuide; harmless placeholder
-        const groupOrder: DemoGroupKey[] = [
-            `actions`,
-            `appShell`,
-            `chat`,
-            `code`,
-            `console`,
-            `dateTime`,
-            `editor`,
-            `files`,
-            `identity`,
-            `input`,
-            `list`,
-            `map`,
-            `navigation`,
-            `settings`,
-            `uiPrimitives`
-        ];
+        const groupOrder = GROUP_ORDER;
         const search = this.state.search.trim().toLowerCase();
         const matches = (demo: DemoEntry): boolean => {
             if (!search) return true;

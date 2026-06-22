@@ -321,3 +321,163 @@ User-facing docs live in `src/guides/SettingsSystemGuide.tsx` (linked
 from the SettingsPanel DocPage). Never bypass `SettingsManager` to
 read/write a setting directly from `localStorage` — the version check,
 defaults, and subscriber notifications all live in the manager.
+
+# Action history + undo
+
+Every dispatch through `ActionManager.dispatchAction` becomes an audit-log
+entry. Actions that opt in by returning an `UndoableAction` from
+`executeAction` and declaring an `invertAction` on the same handler get
+Ctrl+Z / Ctrl+Shift+Z for free.
+
+## Storage layout
+
+| Slot | Backend | Key | Owner |
+|---|---|---|---|
+| Audit log | localStorage (via SettingsManager) | `${storagePrefix}_settings → device.auditLog` | SettingsManager |
+| History config | localStorage (via SettingsManager) | `${storagePrefix}_settings → device.actionHistory` | SettingsManager |
+| Undo stack | sessionStorage (via UndoStackManager) | `${storagePrefix}_undoStack` | UndoStackManager |
+| Redo stack | sessionStorage (via UndoStackManager) | `${storagePrefix}_redoStack` | UndoStackManager |
+
+- **Audit log is shared across tabs** of the same origin via the existing
+  localStorage `storage` event subscription in SettingsManager. Tabs see
+  each other's entries; the entry's `tabId` field disambiguates.
+- **Undo + redo stacks are per-tab** in sessionStorage and survive reload
+  within the same tab. Ctrl+Z in tab B never reverses an action
+  dispatched by tab A. Any new undoable dispatch clears the redo stack.
+
+## Quick start — declaring a reversible action
+
+```ts
+new Action({
+    id: "myapp.files.move",
+    category: "Files",
+    actionHandlers: new Map([[
+        "handler",
+        {
+            id: "handler",
+            getState: () => ({ visibility: ActionVisibility.Shown }),
+            executeAction: (_event, _scope, payload) => {
+                const { fileId, toFolderId } = payload as { fileId: string; toFolderId: string };
+                const previousFolderId = currentFolderOf(fileId);
+                moveFile(fileId, toFolderId);
+                return {
+                    id: "",                                  // ActionManager overrides
+                    actionId: "myapp.files.move",
+                    forwardPayload: { fileId, toFolderId },
+                    inversePayload: { fileId, toFolderId: previousFolderId },
+                    timestamp: Date.now(),
+                    describe: { labelKey: "actions.myapp.files.move", params: { fileId } }
+                };
+            },
+            invertAction: (inversePayload) => {
+                const { fileId, toFolderId } = inversePayload as { fileId: string; toFolderId: string };
+                moveFile(fileId, toFolderId);
+            }
+        }
+    ]])
+})
+```
+
+Dispatch via `actionManager.dispatchAction("myapp.files.move", event, scopeEl, { fileId, toFolderId })`.
+
+The worked example in the lib is `CoreActionIds.SET_THEME` (see
+`coreActions.ts`) — dispatch with `{ themeId: "dark" }` and Ctrl+Z restores
+the previous theme.
+
+## Handler contract
+
+| Field | Purpose |
+|---|---|
+| `executeAction` | Returns `void` (read-only action) or `UndoableAction` (reversible). |
+| `invertAction(inversePayload)` | Reverses. Sync or async. Async rejections flow through the standard retry path. |
+| `payloadByteBudget` | Per-handler byte budget (default 4096 via `ActionHistoryConfig.maxPayloadBytes`). 0 = opt out of payload persistence. |
+| `excludeFromAuditPayload` | Audit entry is recorded but `payload` field is undefined. Use for actions whose payload may contain credentials, tokens, file contents, or PII. |
+| `excludeFromUndoStack` | No undo entry created even if `executeAction` returns one. Use for sensitive irreversible actions ("Delete account"). |
+
+`UndoableAction.inversePayload` is pure data — it round-trips through
+sessionStorage between dispatch and undo. Closures don't survive a
+reload; payloads do.
+
+## Transactions
+
+Group multiple dispatches so undo pops them as one:
+
+```ts
+actionManager.beginTransaction("renameMany");
+for (const file of files) actionManager.dispatchAction("myapp.files.rename", ...);
+actionManager.endTransaction("renameMany");
+// One Ctrl+Z reverses all of them.
+```
+
+Transactions do not nest — a nested `beginTransaction` overwrites the
+active group; `endTransaction` only clears when the key matches.
+
+## Failure semantics
+
+| Case | Behaviour |
+|---|---|
+| `invertAction` throws or rejects | `log.error` with stack, toast via the configured toaster, increment `invertRetries`, leave entry on stack for retry. Drop after `maxInvertRetries` (default 3). |
+| Handler unregistered before undo | Toast "Cannot undo: action not available", drop the entry. |
+| User spams Ctrl+Z while invert in flight | `pendingInverts` map per actionId — subsequent calls return without firing. Observe via `actionManager.isInvertInFlight(actionId?)`. |
+| Payload exceeds budget | Audit entry recorded with `payloadDropped: "oversize"`, no undo entry pushed. Developer warning logged. |
+| `excludeFromAuditPayload` | Audit entry recorded with `payloadDropped: "opt-out"`, payload undefined. |
+| Storage quota exceeded | Drop oldest 50% in one eviction; if still failing, disable persistence for the session and toast. |
+| Forged sessionStorage entry with unknown actionId | Treated as "missing handler" — toast + drop. No HMAC. |
+
+## Multi-tenant
+
+All storage keys are namespaced by `storagePrefix`. Two apps on the same
+origin must use distinct prefixes; the library does not validate
+uniqueness. Same caveat as the settings system.
+
+## Built-in actions + hotkeys
+
+| Action | Default hotkey | Behaviour |
+|---|---|---|
+| `CoreActionIds.UNDO` (`mows.history.undo`) | `mod+z` | Pops the top of the undo stack and runs its handler's `invertAction`. |
+| `CoreActionIds.REDO` (`mows.history.redo`) | `mod+shift+z` | Pops the top of the redo stack and re-runs the forward handler with the captured `forwardPayload`. |
+| `CoreActionIds.OPEN_HISTORY` (`mows.history.open`) | none | Opens `<HistoryPanel>`. |
+
+Hotkeys go through the normal HotkeyManager flow — apps can override or
+unbind them via the user-facing keyboard-shortcut editor.
+
+## HistoryPanel
+
+`lib/components/appShell/historyPanel/HistoryPanel.tsx`. Modal-mounted
+panel listing every audit entry, with search, category filter, "undo to
+here" affordance, and a two-step "Clear history" button.
+
+- Entries from other tabs are rendered muted with no "undo to here"
+  button.
+- Entries whose `actionId` has no registered handler in this session
+  (e.g. plugin uninstalled after dispatch) are rendered dimmed with the
+  literal `actionId` displayed.
+- Translation key for the dynamic action label lives at
+  `t.actions[labelKey]`; `{name}`-style placeholders are interpolated by
+  `formatActionLabel`. All param values render via React's default
+  text-node escaping, so XSS via untrusted params is not possible from
+  this path.
+
+## Testing
+
+`ActionManager.test.ts` covers the audit log, undo / redo, transactions,
+single-flight lock, oversize-payload + opt-out branches, forged-entry
+rejection, async invert failure / retry / drop, and the
+HotkeyManager-event-passthrough that's load-bearing for audit-log
+modifier capture. `HistoryPanel.test.tsx` covers empty state, search +
+filter, "undo to here", other-tab muted rendering,
+unknown-action fallback, two-step clear, and XSS-safe label rendering.
+
+## Limitations (v1)
+
+- No schema versioning for `inversePayload` across reloads — handlers must
+  maintain backwards-compatibility on the inverse shape (or set
+  `excludeFromUndoStack`).
+- No grouping of adjacent same-actionId entries in the panel ("3× Move file").
+- No on-source sampling / batching for `onAuditEntry` — high-frequency
+  consumers should debounce in their callback.
+- `beginTransaction` / `endTransaction` are not async-aware. The active
+  group id is set synchronously and any dispatch between begin/end —
+  including ones that run inside an `await` — joins the group. Treat
+  transaction boundaries as synchronous regions.
+

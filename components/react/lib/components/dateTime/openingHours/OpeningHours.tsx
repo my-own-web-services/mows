@@ -1,5 +1,6 @@
 import { Clock } from "lucide-react";
 import {
+    useContext,
     useEffect,
     useMemo,
     useState,
@@ -7,11 +8,13 @@ import {
     type ReactNode
 } from "react";
 import { cn } from "@/lib/utils";
+import { MowsContext } from "@/lib/mowsContext/MowsContext";
+import ExpandableSection from "../../navigation/expandableSection/ExpandableSection";
 import {
     buildOpeningHoursStatus,
     buildOpeningHoursWeek,
-    DEFAULT_OPENING_HOURS_STRINGS,
     parseOsmOpeningHours,
+    resolveOpeningHoursStrings,
     type OpeningHoursSchedule,
     type OpeningHoursStatus,
     type OpeningHoursStrings,
@@ -43,9 +46,11 @@ export interface OpeningHoursProps {
     readonly now?: Date;
     /**
      * IETF BCP 47 locale used for weekday names and `HH:mm`
-     * formatting. Defaults to the browser locale (`Intl` default).
-     * Pass `mowsContext.currentLanguage?.code` to align with the
-     * app's language picker.
+     * formatting. When omitted, the component reads
+     * `MowsContext.currentLanguage.code` and falls back to the
+     * browser locale (`Intl` default) when no provider is present.
+     * The same locale also selects the bundled translation when
+     * `strings` is not passed.
      */
     readonly locale?: string;
     /** First column of the week table. Defaults to `monday`. */
@@ -56,7 +61,29 @@ export interface OpeningHoursProps {
      * status into surrounding prose without the clock icon.
      */
     readonly variant?: OpeningHoursVariant;
-    /** Translation overrides. Defaults to English. */
+    /**
+     * When `variant="full"`, hide the week table behind a disclosure and
+     * promote the status line to the always-visible trigger. The status
+     * is the only thing most readers actually want to see, so collapsing
+     * the table by default keeps surrounding panels from being shoved
+     * below the fold. Set to `false` to keep the table inline at all
+     * times. Has no effect on the `status`, `week`, and `inline`
+     * variants — those only render one half and have nothing to
+     * disclose. Defaults to `true`.
+     */
+    readonly collapsible?: boolean;
+    /**
+     * Initial open state of the disclosure when `collapsible` is on.
+     * Defaults to `false` (status visible, table hidden). Ignored when
+     * `collapsible` is `false` or `variant !== "full"`.
+     */
+    readonly defaultOpen?: boolean;
+    /**
+     * Translation overrides. Layered on top of the locale-resolved
+     * bundle (English / German built-in; other locales fall back to
+     * English). Override a single field or pass a full set — anything
+     * you provide wins.
+     */
     readonly strings?: Partial<OpeningHoursStrings>;
     /**
      * Optional override for the tone → className map. Provide when
@@ -193,6 +220,8 @@ export const OpeningHours = ({
     locale,
     weekStart = `monday`,
     variant = `full`,
+    collapsible = true,
+    defaultOpen = false,
     strings,
     toneClassName,
     trailing,
@@ -200,9 +229,20 @@ export const OpeningHours = ({
     style,
     "data-testid": dataTestId
 }: OpeningHoursProps) => {
+    // Optional `MowsContext` — present when the component is mounted
+    // inside `<MowsProvider>`, absent when the component is used
+    // standalone. Lets us derive a sensible `locale` + bundled
+    // translation without forcing every caller to thread the language
+    // through their own props.
+    const mowsContext = useContext(MowsContext);
+    const contextLocale = mowsContext?.currentLanguage?.code;
+    const effectiveLocale = locale ?? contextLocale;
     const mergedStrings = useMemo(
-        () => ({ ...DEFAULT_OPENING_HOURS_STRINGS, ...strings }),
-        [strings]
+        () => ({
+            ...resolveOpeningHoursStrings(effectiveLocale),
+            ...strings
+        }),
+        [effectiveLocale, strings]
     );
     const effectiveTone = toneClassName ?? DEFAULT_TONE_CLASS;
     const liveTick = useMinuteTicker(now === undefined && schedule === undefined);
@@ -223,23 +263,64 @@ export const OpeningHours = ({
     const status: OpeningHoursStatus | null = useMemo(() => {
         if (schedule) return schedule.status;
         return buildOpeningHoursStatus(parsed, referenceNow, {
-            locale,
+            locale: effectiveLocale,
             strings: mergedStrings
         });
-    }, [schedule, parsed, referenceNow, locale, mergedStrings]);
+    }, [schedule, parsed, referenceNow, effectiveLocale, mergedStrings]);
 
     const week: OpeningHoursWeek = useMemo(() => {
         if (schedule) return schedule.week;
         return buildOpeningHoursWeek(parsed, referenceNow, {
-            locale,
+            locale: effectiveLocale,
             weekStart
         });
-    }, [schedule, parsed, referenceNow, locale, weekStart]);
+    }, [schedule, parsed, referenceNow, effectiveLocale, weekStart]);
 
     if (!status && week.length === 0) return null;
 
     const showStatus = variant !== `week` && status !== null;
     const showWeek = variant === `full` || variant === `week`;
+    // Only the `full` variant has both halves to disclose — the others
+    // already render exactly one half. Disabling `collapsible` (or
+    // having no status / no week) keeps the inline layout for parity
+    // with pre-collapsible callers and so tests can still inspect the
+    // table without driving the disclosure.
+    const useDisclosure =
+        collapsible &&
+        variant === `full` &&
+        status !== null &&
+        week.length > 0;
+
+    if (useDisclosure) {
+        return (
+            <ExpandableSection
+                className={className}
+                style={style}
+                testId={dataTestId}
+                defaultOpen={defaultOpen}
+                expandLabel={mergedStrings.scheduleLabel}
+                collapseLabel={mergedStrings.scheduleLabel}
+                triggerClassName={`px-3 py-2`}
+                contentClassName={`px-3 py-2`}
+                header={
+                    <div data-variant={variant}>
+                        <StatusLine
+                            status={status}
+                            toneClass={effectiveTone}
+                            trailing={trailing}
+                            showIcon={true}
+                        />
+                    </div>
+                }
+            >
+                <WeekTable
+                    week={week}
+                    closedDayLabel={mergedStrings.closedDay}
+                    scheduleLabel={mergedStrings.scheduleLabel}
+                />
+            </ExpandableSection>
+        );
+    }
 
     return (
         <div

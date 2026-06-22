@@ -98,13 +98,13 @@ const TEST_FILE = `lib/components/map/Map.test.tsx`;
 const buildBehaviourEntries = (
     statements: Strings[`doc`][`definedBehaviour`][`statements`]
 ): BehaviourEntry[] => [
-    { statement: statements.lazyLoadsMapbox, testFile: TEST_FILE, testName: `shows a loading skeleton until the lazy chunk resolves`, testLine: 215 },
-    { statement: statements.usesContextStyle, testFile: TEST_FILE, testName: `instantiates a maplibre-gl Map with the context's current style by default`, testLine: 220 },
-    { statement: statements.propOverridesContext, testFile: TEST_FILE, testName: `uses the explicit mapStyle prop over the context value when provided`, testLine: 227 },
-    { statement: statements.appliesAccessToken, testFile: TEST_FILE, testName: `installs a transformRequest that appends the active style's accessToken`, testLine: 239 },
-    { statement: statements.reactsToContextChange, testFile: TEST_FILE, testName: `calls setStyle when the context's current map style changes`, testLine: 254 },
-    { statement: statements.firesOnLoad, testFile: TEST_FILE, testName: `fires onLoad once the underlying map emits "load"`, testLine: 272 },
-    { statement: statements.cleansUpOnUnmount, testFile: TEST_FILE, testName: `calls map.remove() on unmount`, testLine: 294 }
+    { statement: statements.lazyLoadsMapbox, testFile: TEST_FILE, testName: `shows a loading skeleton until the lazy chunk resolves`, testLine: 264 },
+    { statement: statements.usesContextStyle, testFile: TEST_FILE, testName: `instantiates a maplibre-gl Map with the context's current style by default`, testLine: 269 },
+    { statement: statements.propOverridesContext, testFile: TEST_FILE, testName: `uses the explicit mapStyle prop over the context value when provided`, testLine: 276 },
+    { statement: statements.appliesAccessToken, testFile: TEST_FILE, testName: `installs a transformRequest that appends the active style's accessToken`, testLine: 288 },
+    { statement: statements.reactsToContextChange, testFile: TEST_FILE, testName: `calls setStyle when the context's current map style changes`, testLine: 303 },
+    { statement: statements.firesOnLoad, testFile: TEST_FILE, testName: `fires onLoad once the underlying map emits "load"`, testLine: 321 },
+    { statement: statements.cleansUpOnUnmount, testFile: TEST_FILE, testName: `calls map.remove() on unmount`, testLine: 343 }
 ];
 
 export const MapDocPage = () => {

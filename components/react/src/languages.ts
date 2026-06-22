@@ -25,6 +25,8 @@ import type { ConsoleManagerTranslation } from "./examples/consoleManager/transl
 import type { ContextMenuTranslation } from "./examples/contextMenu/translations";
 import type { CopyValueButtonTranslation } from "./examples/copyValueButton/translations";
 import type { DateTimeDisplayTranslation } from "./examples/dateTimeDisplay/translations";
+import type { DurationTranslation } from "./examples/duration/translations";
+import type { SchedulerTranslation } from "./examples/scheduler/translations";
 import type { DateTimePickerTranslation } from "./examples/dateTimePicker/translations";
 import type { DateTimeRangePickerTranslation } from "./examples/dateTimeRangePicker/translations";
 import type { DialogTranslation } from "./examples/dialog/translations";
@@ -121,6 +123,7 @@ declare module "../lib/lib/languages" {
                     code: string;
                     console: string;
                     dateTime: string;
+                    display: string;
                     editor: string;
                     files: string;
                     identity: string;
@@ -346,6 +349,8 @@ declare module "../lib/lib/languages" {
                 timezoneSelector: TimezoneSelectorTranslation;
                 dateTimeRangePicker: DateTimeRangePickerTranslation;
                 openingHours: OpeningHoursTranslation;
+                duration: DurationTranslation;
+                scheduler: SchedulerTranslation;
                 timeline: TimelineTranslation;
                 nodeEditor: NodeEditorTranslation;
                 loggingConfig: LoggingConfigTranslation;

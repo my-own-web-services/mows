@@ -295,4 +295,71 @@ describe(`SettingsManager`, () => {
         const persisted = JSON.parse(storage.dump().get(`mows_settings`)!);
         expect(persisted.core.language).toBe(`de`);
     });
+
+    it(`storage events from other tabs refresh the blob and notify subscribers`, () => {
+        // Two managers backed by the SAME in-memory storage simulate two
+        // tabs of the same origin. Writing through manager A doesn't
+        // fire a storage event (the browser only fires in *other* tabs),
+        // so we synthesise one against `window` and check that manager B
+        // re-reads + notifies.
+        const managerA = new SettingsManager({ storagePrefix: `mows`, storage });
+        const managerB = new SettingsManager({ storagePrefix: `mows`, storage });
+        const subscriberB = vi.fn();
+        managerB.subscribe(`*`, subscriberB);
+
+        managerA.setCore(`theme`, `dark`);
+        // managerB hasn't seen the write yet — its in-memory blob is the
+        // pre-event snapshot.
+        expect(managerB.getCore(`theme`)).toBeUndefined();
+
+        // Simulate the storage event that the browser would fire in B's
+        // tab when A's tab persisted. jsdom doesn't propagate events
+        // between SettingsManager instances; we dispatch manually.
+        window.dispatchEvent(
+            new StorageEvent(`storage`, {
+                key: `mows_settings`,
+                newValue: storage.dump().get(`mows_settings`) ?? null
+            })
+        );
+
+        expect(managerB.getCore(`theme`)).toBe(`dark`);
+        expect(subscriberB).toHaveBeenCalled();
+
+        managerA.destroy();
+        managerB.destroy();
+    });
+
+    it(`destroy unsubscribes the storage event listener`, () => {
+        const manager = new SettingsManager({ storagePrefix: `mows`, storage });
+        const subscriber = vi.fn();
+        manager.subscribe(`*`, subscriber);
+        manager.destroy();
+
+        // After destroy, a storage event should be ignored.
+        storage.setItem(
+            `mows_settings`,
+            JSON.stringify({ _v: SETTINGS_BLOB_VERSION, core: { theme: `dark` }, device: {}, app: {} })
+        );
+        window.dispatchEvent(
+            new StorageEvent(`storage`, {
+                key: `mows_settings`,
+                newValue: storage.dump().get(`mows_settings`) ?? null
+            })
+        );
+        expect(subscriber).not.toHaveBeenCalled();
+    });
+
+    it(`ignores storage events for other keys`, () => {
+        const manager = new SettingsManager({ storagePrefix: `mows`, storage });
+        const subscriber = vi.fn();
+        manager.subscribe(`*`, subscriber);
+        window.dispatchEvent(
+            new StorageEvent(`storage`, {
+                key: `someone_else_settings`,
+                newValue: `{}`
+            })
+        );
+        expect(subscriber).not.toHaveBeenCalled();
+        manager.destroy();
+    });
 });

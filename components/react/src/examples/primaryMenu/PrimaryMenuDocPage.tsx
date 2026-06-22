@@ -144,49 +144,49 @@ const buildBehaviourEntries = (
         statement: statements.loginVisibleWhenAuthConfigured,
         testFile: TEST_FILE,
         testName: `renders the Login item when auth is configured and the user is not signed in`,
-        testLine: 77
+        testLine: 79
     },
     {
         statement: statements.loginHiddenWhenAuthNotConfigured,
         testFile: TEST_FILE,
         testName: `hides the Login item when auth is not configured`,
-        testLine: 84
+        testLine: 86
     },
     {
         statement: statements.providerWithoutOidcYieldsNoAuth,
         testFile: TEST_FILE,
         testName: `real MowsProvider mounted without an oidc prop yields authConfigured=false`,
-        testLine: 91
+        testLine: 93
     },
     {
         statement: statements.dropsLeadingSeparator,
         testFile: TEST_FILE,
         testName: `drops the leading separator when there is no auth section above it`,
-        testLine: 113
+        testLine: 115
     },
     {
         statement: statements.keepsSeparatorWithLogin,
         testFile: TEST_FILE,
         testName: `keeps the separator when the Login item is visible`,
-        testLine: 150
+        testLine: 152
     },
     {
         statement: statements.inlineRendersFullWidth,
         testFile: TEST_FILE,
         testName: `inline variant renders trigger full-width without fixed positioning and shows the user name when logged in`,
-        testLine: 173
+        testLine: 175
     },
     {
         statement: statements.inlineLoggedOutMenuIcon,
         testFile: TEST_FILE,
         testName: `inline variant renders the menu icon (no text label) + chevron when logged out`,
-        testLine: 186
+        testLine: 188
     },
     {
         statement: statements.staleSessionTreatedAsLoggedOut,
         testFile: TEST_FILE,
         testName: `treats an authenticated session as logged out when auth is not configured`,
-        testLine: 244
+        testLine: 246
     }
 ];
 
