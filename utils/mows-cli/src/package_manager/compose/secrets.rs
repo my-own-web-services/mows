@@ -485,7 +485,12 @@ pub fn secrets_regenerate(key: Option<&str>) -> Result<()> {
     use tracing::info;
 
     let base_dir = find_manifest_dir()?;
-    let secrets_path = base_dir.join("results/generated-secrets.env");
+    // Must match the directory `compose up` renders into (RESULTS_DIR_NAME,
+    // i.e. ".results"). A stale hardcoded "results/" here silently broke
+    // `secrets regenerate` after the output dir was renamed.
+    let secrets_path = base_dir
+        .join(super::RESULTS_DIR_NAME)
+        .join("generated-secrets.env");
 
     let cleared_count = clear_secret_values(&secrets_path, key)?;
 

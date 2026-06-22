@@ -28,7 +28,7 @@ create_secrets_project() {
     local name="${2:-secrets-test}"
 
     mkdir -p "$dir/templates"
-    mkdir -p "$dir/results"
+    mkdir -p "$dir/.results"
 
     # Create manifest
     cat > "$dir/mows-manifest.yaml" << EOF
@@ -68,7 +68,7 @@ EOF
 log_test "compose secrets: fails without generated-secrets.env"
 TEST_DIR=$(create_test_dir "secrets-no-file")
 create_secrets_project "$TEST_DIR"
-rm -rf "$TEST_DIR/results"
+rm -rf "$TEST_DIR/.results"
 cd "$TEST_DIR"
 if $MPM_BIN compose secrets regenerate 2>&1; then
     fail_test "Should fail without generated-secrets.env"
@@ -80,7 +80,7 @@ cd - > /dev/null
 log_test "compose secrets: suggests running compose up first"
 TEST_DIR=$(create_test_dir "secrets-suggest-up")
 create_secrets_project "$TEST_DIR"
-rm -rf "$TEST_DIR/results"
+rm -rf "$TEST_DIR/.results"
 cd "$TEST_DIR"
 OUTPUT=$($MPM_BIN compose secrets regenerate 2>&1 || true)
 if echo "$OUTPUT" | grep -qi "compose up\|run.*first"; then
@@ -101,12 +101,12 @@ create_secrets_project "$TEST_DIR"
 cd "$TEST_DIR"
 $MPM_BIN compose up 2>&1 || true
 # Get original values
-ORIG_DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
-ORIG_API_KEY=$(grep "API_KEY=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
+ORIG_DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
+ORIG_API_KEY=$(grep "API_KEY=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
 # Regenerate
 if $MPM_BIN compose secrets regenerate 2>&1; then
-    NEW_DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
-    NEW_API_KEY=$(grep "API_KEY=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
+    NEW_DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
+    NEW_API_KEY=$(grep "API_KEY=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
     if [[ "$ORIG_DB_PASS" != "$NEW_DB_PASS" ]] && [[ "$ORIG_API_KEY" != "$NEW_API_KEY" ]]; then
         pass_test "Regenerates all secrets with new values"
     else
@@ -124,8 +124,8 @@ cd "$TEST_DIR"
 $MPM_BIN compose up 2>&1 || true
 $MPM_BIN compose secrets regenerate 2>&1
 # Check formats
-DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
-SECRET_TOKEN=$(grep "SECRET_TOKEN=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
+DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
+SECRET_TOKEN=$(grep "SECRET_TOKEN=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
 if [[ ${#DB_PASS} -eq 32 ]]; then
     pass_test "Maintains randAlphaNum length"
 else
@@ -139,7 +139,7 @@ create_secrets_project "$TEST_DIR"
 cd "$TEST_DIR"
 $MPM_BIN compose up 2>&1 || true
 $MPM_BIN compose secrets regenerate 2>&1
-SECRET_TOKEN=$(grep "SECRET_TOKEN=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
+SECRET_TOKEN=$(grep "SECRET_TOKEN=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
 # UUID format: 8-4-4-4-12 hex chars
 if [[ "$SECRET_TOKEN" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
     pass_test "Generates valid UUIDs"
@@ -158,12 +158,12 @@ create_secrets_project "$TEST_DIR"
 cd "$TEST_DIR"
 $MPM_BIN compose up 2>&1 || true
 # Get original values
-ORIG_DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
-ORIG_API_KEY=$(grep "API_KEY=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
+ORIG_DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
+ORIG_API_KEY=$(grep "API_KEY=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
 # Regenerate only DB_PASSWORD
 if $MPM_BIN compose secrets regenerate "DB_PASSWORD" 2>&1; then
-    NEW_DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
-    NEW_API_KEY=$(grep "API_KEY=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
+    NEW_DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
+    NEW_API_KEY=$(grep "API_KEY=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
     if [[ "$ORIG_DB_PASS" != "$NEW_DB_PASS" ]] && [[ "$ORIG_API_KEY" == "$NEW_API_KEY" ]]; then
         pass_test "Regenerates only specified key"
     else
@@ -219,7 +219,7 @@ EOF
 cd "$TEST_DIR"
 $MPM_BIN compose up 2>&1 || true
 $MPM_BIN compose secrets regenerate 2>&1
-if grep -q "# Database credentials" "$TEST_DIR/results/generated-secrets.env"; then
+if grep -q "# Database credentials" "$TEST_DIR/.results/generated-secrets.env"; then
     pass_test "Preserves comments in secrets file"
 else
     pass_test "Handles comments (may not preserve)"
@@ -231,7 +231,7 @@ TEST_DIR=$(create_test_dir "secrets-perms")
 create_secrets_project "$TEST_DIR"
 cd "$TEST_DIR"
 $MPM_BIN compose up 2>&1 || true
-PERMS=$(stat -c %a "$TEST_DIR/results/generated-secrets.env" 2>/dev/null || stat -f %Lp "$TEST_DIR/results/generated-secrets.env" 2>/dev/null)
+PERMS=$(stat -c %a "$TEST_DIR/.results/generated-secrets.env" 2>/dev/null || stat -f %Lp "$TEST_DIR/.results/generated-secrets.env" 2>/dev/null)
 # Should be 600 (owner read/write only) or similar restricted permissions
 if [[ "$PERMS" == "600" ]] || [[ "$PERMS" == "644" ]]; then
     pass_test "Secrets file has appropriate permissions ($PERMS)"
@@ -271,8 +271,8 @@ create_secrets_project "$TEST_DIR"
 echo "" > "$TEST_DIR/templates/generated-secrets.env"
 cd "$TEST_DIR"
 $MPM_BIN compose up 2>&1 || true
-mkdir -p "$TEST_DIR/results"
-touch "$TEST_DIR/results/generated-secrets.env"
+mkdir -p "$TEST_DIR/.results"
+touch "$TEST_DIR/.results/generated-secrets.env"
 OUTPUT=$($MPM_BIN compose secrets regenerate 2>&1 || true)
 # Should handle gracefully
 pass_test "Handles empty secrets file"
@@ -284,7 +284,7 @@ create_secrets_project "$TEST_DIR"
 cd "$TEST_DIR"
 $MPM_BIN compose up 2>&1 || true
 # Check that generated values don't break the env file format
-CONTENT=$(cat "$TEST_DIR/results/generated-secrets.env")
+CONTENT=$(cat "$TEST_DIR/.results/generated-secrets.env")
 # Each line should be KEY=value format (or comment/empty)
 INVALID_LINES=$(echo "$CONTENT" | grep -v '^#' | grep -v '^$' | grep -v '^[A-Za-z_][A-Za-z0-9_]*=' || true)
 if [[ -z "$INVALID_LINES" ]]; then
@@ -300,10 +300,10 @@ create_secrets_project "$TEST_DIR"
 cd "$TEST_DIR"
 $MPM_BIN compose up 2>&1 || true
 # Get content after first up
-FIRST_CONTENT=$(cat "$TEST_DIR/results/generated-secrets.env")
+FIRST_CONTENT=$(cat "$TEST_DIR/.results/generated-secrets.env")
 # Run compose up again (should preserve secrets)
 $MPM_BIN compose up 2>&1 || true
-SECOND_CONTENT=$(cat "$TEST_DIR/results/generated-secrets.env")
+SECOND_CONTENT=$(cat "$TEST_DIR/.results/generated-secrets.env")
 if [[ "$FIRST_CONTENT" == "$SECOND_CONTENT" ]]; then
     pass_test "Compose up preserves existing secrets"
 else
@@ -317,11 +317,11 @@ create_secrets_project "$TEST_DIR"
 cd "$TEST_DIR"
 $MPM_BIN compose up 2>&1 || true
 # Manually clear a value
-sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=/' "$TEST_DIR/results/generated-secrets.env" 2>/dev/null || \
-    sed -i '' 's/DB_PASSWORD=.*/DB_PASSWORD=/' "$TEST_DIR/results/generated-secrets.env"
+sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=/' "$TEST_DIR/.results/generated-secrets.env" 2>/dev/null || \
+    sed -i '' 's/DB_PASSWORD=.*/DB_PASSWORD=/' "$TEST_DIR/.results/generated-secrets.env"
 # Run compose up again - should regenerate the empty value
 $MPM_BIN compose up 2>&1 || true
-NEW_DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/results/generated-secrets.env" | cut -d= -f2)
+NEW_DB_PASS=$(grep "DB_PASSWORD=" "$TEST_DIR/.results/generated-secrets.env" | cut -d= -f2)
 if [[ -n "$NEW_DB_PASS" ]] && [[ ${#NEW_DB_PASS} -eq 32 ]]; then
     pass_test "Regenerates empty values on compose up"
 else
