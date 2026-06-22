@@ -68,6 +68,14 @@ pub struct ComposeUpOptions<'a> {
     pub detach: bool,
     /// Whether to remove orphans (--remove-orphans)
     pub remove_orphans: bool,
+    /// Whether to force-recreate containers (--force-recreate)
+    pub force_recreate: bool,
+    /// Whether to leave dependencies untouched (--no-deps)
+    pub no_deps: bool,
+    /// Pull policy (`--pull <policy>`, e.g. "always"); `None` omits the flag.
+    pub pull: Option<&'a str>,
+    /// Limit the command to these services (positional args); empty = all services.
+    pub services: Vec<&'a str>,
 }
 
 /// Options for running docker compose build.
@@ -85,6 +93,59 @@ pub struct ComposeBuildOptions<'a> {
     pub working_dir: &'a std::path::Path,
     /// Whether to skip the build cache (--no-cache)
     pub no_cache: bool,
+    /// Whether to always attempt to pull newer base images (--pull)
+    pub pull: bool,
+}
+
+/// Build the argument list that follows `docker compose ... up` for the given
+/// options, in the exact order it is passed to Docker.
+///
+/// Positional service filters must come after every flag, so they are appended
+/// last. Extracted as a pure function so the flag logic can be unit-tested
+/// without spawning a Docker process.
+fn compose_up_post_args(options: &ComposeUpOptions) -> Vec<String> {
+    let mut args: Vec<String> = Vec::new();
+    if options.build {
+        args.push("--build".to_string());
+    }
+    if options.force_recreate {
+        args.push("--force-recreate".to_string());
+    }
+    if options.no_deps {
+        args.push("--no-deps".to_string());
+    }
+    if let Some(pull) = options.pull {
+        args.push("--pull".to_string());
+        args.push(pull.to_string());
+    }
+    if options.detach {
+        args.push("-d".to_string());
+    }
+    if options.remove_orphans {
+        args.push("--remove-orphans".to_string());
+    }
+    // End-of-options separator so a service named like a flag (e.g. `--build`,
+    // `-d`) is parsed as a SERVICE filter, not an option.
+    if !options.services.is_empty() {
+        args.push("--".to_string());
+        for service in &options.services {
+            args.push((*service).to_string());
+        }
+    }
+    args
+}
+
+/// Build the argument list that follows `docker compose ... build` for the
+/// given options. Extracted as a pure function for unit testing.
+fn compose_build_post_args(options: &ComposeBuildOptions) -> Vec<String> {
+    let mut args: Vec<String> = Vec::new();
+    if options.no_cache {
+        args.push("--no-cache".to_string());
+    }
+    if options.pull {
+        args.push("--pull".to_string());
+    }
+    args
 }
 
 /// Options for running docker compose passthrough.
@@ -134,6 +195,13 @@ pub trait DockerClient: Send + Sync {
 
     /// List containers with optional filters, returning JSON array.
     fn list_containers(&self, filters: &[(&str, &str)]) -> Result<String>;
+
+    /// Resolve an image reference (tag or id) to its full image ID (`sha256:...`).
+    ///
+    /// Returns `Ok(None)` if the image does not exist locally. This is the
+    /// ground-truth identity used to decide whether a freshly built image
+    /// differs from the one a running container uses.
+    fn image_id(&self, image_ref: &str) -> Result<Option<String>>;
 }
 
 /// Docker client using bollard for native API calls and CLI for compose.
@@ -256,15 +324,8 @@ Error: {}"#,
         }
 
         cmd.arg("up");
-
-        if options.build {
-            cmd.arg("--build");
-        }
-        if options.detach {
-            cmd.arg("-d");
-        }
-        if options.remove_orphans {
-            cmd.arg("--remove-orphans");
+        for arg in compose_up_post_args(options) {
+            cmd.arg(arg);
         }
 
         cmd.current_dir(options.working_dir);
@@ -301,9 +362,8 @@ Error: {}"#,
         }
 
         cmd.arg("build");
-
-        if options.no_cache {
-            cmd.arg("--no-cache");
+        for arg in compose_build_post_args(options) {
+            cmd.arg(arg);
         }
 
         cmd.current_dir(options.working_dir);
@@ -404,6 +464,53 @@ Error: {}"#,
                 .map_err(|e| MowsError::Docker(format!("Failed to serialize container list: {}", e)))
         })
     }
+
+    fn image_id(&self, image_ref: &str) -> Result<Option<String>> {
+        debug!("Resolving image id for: {}", image_ref);
+        // Use the CLI rather than the bollard inspect_image API: `docker image
+        // inspect --format '{{.Id}}'` returns the full `sha256:` digest in the
+        // exact same form as a container's `.ImageID` field, so the two can be
+        // compared byte-for-byte without normalization.
+        // `--` so an image ref that looks like a flag (e.g. `--format`) is treated
+        // as the positional image argument, not an option.
+        let output = Command::new("docker")
+            .args(["image", "inspect", "--format", "{{.Id}}", "--", image_ref])
+            .output()
+            .map_err(|e| {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    MowsError::Docker(
+                        "Docker is not installed or not in PATH. Please install Docker first."
+                            .to_string(),
+                    )
+                } else {
+                    MowsError::command("docker image inspect", e.to_string())
+                }
+            })?;
+
+        if !output.status.success() {
+            // Distinguish "image absent locally" (the expected Ok(None) case) from
+            // real failures (daemon down, permission denied, invalid reference).
+            // Collapsing all of these to Ok(None) would let the verify gate pass
+            // silently on a genuine error.
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let lower = stderr.to_ascii_lowercase();
+            if lower.contains("no such image") || lower.contains("no such object") {
+                return Ok(None);
+            }
+            return Err(MowsError::Docker(format!(
+                "docker image inspect '{}' failed: {}",
+                image_ref,
+                stderr.trim()
+            )));
+        }
+
+        let id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if id.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(id))
+        }
+    }
 }
 
 /// Environment variable to enable mock Docker client.
@@ -418,6 +525,18 @@ Error: {}"#,
 /// mows package-manager compose up  # Uses mock Docker client
 /// ```
 pub const ENV_MOCK_DOCKER: &str = "MPM_MOCK_DOCKER";
+
+/// Test-only knob (effective only with `MPM_MOCK_DOCKER=1`): when set to "1", the
+/// mock simulates a build service whose running container is on an OLD image —
+/// `image_id` reports a fresh build id while `list_containers` reports a running
+/// container with a different (stale) `ImageID`. This drives the image-id
+/// verify/repair path end-to-end (force-recreate + the post-recreate hard-fail,
+/// since the mock is stateless and stays stale) so the wiring is covered in E2E.
+pub const ENV_MOCK_STALE: &str = "MPM_MOCK_STALE";
+
+fn mock_stale_enabled() -> bool {
+    std::env::var(ENV_MOCK_STALE).map(|v| v == "1").unwrap_or(false)
+}
 
 /// Create a default Docker client.
 ///
@@ -479,7 +598,20 @@ impl DockerClient for MockDockerClient {
     }
 
     fn compose_up(&self, options: &ComposeUpOptions) -> Result<()> {
-        debug!("Mock: compose_up project={} build={}", options.project, options.build);
+        debug!(
+            "Mock: compose_up project={} build={} force_recreate={}",
+            options.project, options.build, options.force_recreate
+        );
+        // Print to stdout so E2E tests can observe a forced recreate (the repair
+        // step) without a real Docker daemon.
+        if options.force_recreate {
+            use std::io::Write;
+            println!(
+                "mock: compose_up project={} force_recreate=true services={:?}",
+                options.project, options.services
+            );
+            let _ = std::io::stdout().flush();
+        }
         Ok(())
     }
 
@@ -504,8 +636,26 @@ impl DockerClient for MockDockerClient {
 
     fn list_containers(&self, filters: &[(&str, &str)]) -> Result<String> {
         debug!("Mock: list_containers filters={:?}", filters);
+        if mock_stale_enabled() {
+            // One running, non-one-off container on a STALE image id, so the
+            // image-id verify flags the service and exercises the repair path.
+            return Ok(r#"[{"State":"running","Image":"mock:tag","ImageID":"sha256:stale-running-container"}]"#.to_string());
+        }
         // Return empty list - no conflicting containers
         Ok("[]".to_string())
+    }
+
+    fn image_id(&self, image_ref: &str) -> Result<Option<String>> {
+        debug!("Mock: image_id {}", image_ref);
+        if mock_stale_enabled() {
+            // Fresh build id, deliberately different from the stale running
+            // container above, so every build service is detected as stale.
+            return Ok(Some("sha256:fresh-built-image".to_string()));
+        }
+        // Deterministic fake digest. The image-id verify only compares this
+        // against running containers, and the mock reports no containers
+        // (`list_containers` => []), so the value is never actually matched.
+        Ok(Some(format!("sha256:mock-{}", image_ref)))
     }
 }
 
@@ -584,6 +734,9 @@ pub struct ConfigurableMockClient {
     pub compose_passthrough: MockResponse,
     pub inspect_container: MockResponse,
     pub list_containers: MockResponse,
+    /// Response for `image_id`: `success_value` => `Some(id)`, `error_msg` =>
+    /// `Err`, neither (the default) => `Ok(None)` (image not found).
+    pub image_id: MockResponse,
 }
 
 #[cfg(test)]
@@ -618,6 +771,14 @@ impl DockerClient for ConfigurableMockClient {
 
     fn list_containers(&self, _filters: &[(&str, &str)]) -> Result<String> {
         self.list_containers.to_result("[]")
+    }
+
+    fn image_id(&self, _image_ref: &str) -> Result<Option<String>> {
+        match (&self.image_id.success_value, &self.image_id.error_msg) {
+            (Some(value), _) => Ok(Some(value.clone())),
+            (None, Some(message)) => Err(MowsError::Docker(message.clone())),
+            (None, None) => Ok(None),
+        }
     }
 }
 
@@ -784,6 +945,7 @@ mod tests {
             compose_passthrough: MockResponse::err("Cannot connect to the Docker daemon"),
             inspect_container: MockResponse::err("Cannot connect to the Docker daemon"),
             list_containers: MockResponse::err("Cannot connect to the Docker daemon"),
+            image_id: MockResponse::err("Cannot connect to the Docker daemon"),
         };
 
         assert!(mock.check_daemon().is_err());
@@ -791,6 +953,7 @@ mod tests {
         assert!(mock.compose_logs("test", None).is_err());
         assert!(mock.inspect_container("test").is_err());
         assert!(mock.list_containers(&[]).is_err());
+        assert!(mock.image_id("test:latest").is_err());
     }
 
     #[test]
@@ -809,6 +972,10 @@ mod tests {
             build: false,
             detach: true,
             remove_orphans: false,
+            force_recreate: false,
+            no_deps: false,
+            pull: None,
+            services: vec![],
         };
 
         let result = mock.compose_up(&options);
@@ -884,5 +1051,113 @@ mod tests {
         let result = mock.inspect_container("test");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "not valid json");
+    }
+
+    // =========================================================================
+    // Argument assembly tests for the rebuild/recreate flags
+    // =========================================================================
+
+    fn up_options(working: &std::path::Path) -> ComposeUpOptions<'_> {
+        ComposeUpOptions {
+            project: "proj",
+            compose_file: std::path::Path::new("/tmp/docker-compose.yaml"),
+            project_dir: std::path::Path::new("/tmp/.results"),
+            env_files: vec![],
+            working_dir: working,
+            build: false,
+            detach: true,
+            remove_orphans: true,
+            force_recreate: false,
+            no_deps: false,
+            pull: None,
+            services: vec![],
+        }
+    }
+
+    #[test]
+    fn test_compose_up_post_args_default_deploy() {
+        let opts = up_options(std::path::Path::new("/tmp"));
+        // Routine deploy: detached + remove-orphans, no recreate, no build.
+        assert_eq!(compose_up_post_args(&opts), vec!["-d", "--remove-orphans"]);
+    }
+
+    #[test]
+    fn test_compose_up_post_args_repair_invocation() {
+        let mut opts = up_options(std::path::Path::new("/tmp"));
+        opts.force_recreate = true;
+        opts.no_deps = true;
+        opts.services = vec!["web", "api"];
+        let args = compose_up_post_args(&opts);
+        // Flags precede the `--` end-of-options separator and the positional services.
+        assert_eq!(
+            args,
+            vec!["--force-recreate", "--no-deps", "-d", "--remove-orphans", "--", "web", "api"]
+        );
+        // Services come last, right after the `--` separator.
+        assert_eq!(&args[args.len() - 3..], &["--".to_string(), "web".to_string(), "api".to_string()]);
+        assert!(!args.contains(&"--build".to_string()), "repair must not pass --build");
+    }
+
+    #[test]
+    fn test_compose_up_post_args_pull_policy() {
+        let mut opts = up_options(std::path::Path::new("/tmp"));
+        opts.pull = Some("always");
+        let args = compose_up_post_args(&opts);
+        let pos = args.iter().position(|a| a == "--pull").expect("--pull present");
+        assert_eq!(args[pos + 1], "always", "--pull takes a policy value");
+    }
+
+    #[test]
+    fn test_compose_build_post_args_cached_vs_no_cache_and_pull() {
+        let base = ComposeBuildOptions {
+            project: "proj",
+            compose_file: std::path::Path::new("/tmp/docker-compose.yaml"),
+            project_dir: std::path::Path::new("/tmp/.results"),
+            env_files: vec![],
+            working_dir: std::path::Path::new("/tmp"),
+            no_cache: false,
+            pull: false,
+        };
+        // Routine build keeps the cache: no flags appended.
+        assert!(compose_build_post_args(&base).is_empty());
+
+        let no_cache = ComposeBuildOptions { no_cache: true, ..base_clone(&base) };
+        assert_eq!(compose_build_post_args(&no_cache), vec!["--no-cache"]);
+
+        let pull = ComposeBuildOptions { pull: true, ..base_clone(&base) };
+        assert_eq!(compose_build_post_args(&pull), vec!["--pull"]);
+    }
+
+    fn base_clone<'a>(b: &ComposeBuildOptions<'a>) -> ComposeBuildOptions<'a> {
+        ComposeBuildOptions {
+            project: b.project,
+            compose_file: b.compose_file,
+            project_dir: b.project_dir,
+            env_files: b.env_files.clone(),
+            working_dir: b.working_dir,
+            no_cache: b.no_cache,
+            pull: b.pull,
+        }
+    }
+
+    #[test]
+    fn test_configurable_mock_image_id_mapping() {
+        // Default (neither value set) => image not found.
+        let none = ConfigurableMockClient::default();
+        assert_eq!(none.image_id("x:latest").unwrap(), None);
+
+        // success_value => Some(id)
+        let some = ConfigurableMockClient {
+            image_id: MockResponse::ok("sha256:abc"),
+            ..Default::default()
+        };
+        assert_eq!(some.image_id("x:latest").unwrap(), Some("sha256:abc".to_string()));
+
+        // error_msg => Err
+        let err = ConfigurableMockClient {
+            image_id: MockResponse::err("daemon down"),
+            ..Default::default()
+        };
+        assert!(err.image_id("x:latest").is_err());
     }
 }

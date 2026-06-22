@@ -11,7 +11,7 @@ use tracing::{debug, warn};
 
 use crate::error::{MowsError, Result};
 use super::docker::DockerClient;
-use super::up::{find_compose_file, run_deploy_cycle};
+use super::up::{find_compose_file, run_deploy_cycle, BuildPolicy};
 
 /// Find the git repository root for a given directory.
 ///
@@ -303,41 +303,6 @@ fn format_local_time() -> String {
     format!("{:02}:{:02}:{:02}", hour, min, sec)
 }
 
-/// Check whether any of the changed paths fall within a build context directory.
-///
-/// When a change occurs inside a build context directory, Docker's build cache
-/// must be skipped (`docker compose build --no-cache`) so the image rebuild
-/// picks up the new files.
-///
-/// If a changed path no longer exists (e.g., editor atomic-rename), we fall
-/// back to absolute-path comparison against the build context directory instead
-/// of requiring canonicalization.
-fn is_build_context_change(changed_paths: &[PathBuf], base_dir: &Path) -> bool {
-    let build_contexts = extract_build_contexts(base_dir);
-    if build_contexts.is_empty() {
-        return false;
-    }
-
-    for changed in changed_paths {
-        // Try canonical comparison first; fall back to the raw absolute path
-        // when the file no longer exists (e.g., editor wrote a .tmp then renamed).
-        let changed_absolute = if changed.is_absolute() {
-            changed.canonicalize().unwrap_or_else(|_| changed.clone())
-        } else {
-            // Relative paths should not normally reach here, but handle them
-            base_dir.join(changed).canonicalize().unwrap_or_else(|_| base_dir.join(changed))
-        };
-
-        for context in &build_contexts {
-            if changed_absolute.starts_with(context) {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
 /// Run the watch loop: monitor source files and re-deploy on changes.
 ///
 /// After the initial deploy (already done by the caller), this function:
@@ -352,6 +317,7 @@ pub(super) fn run_watch_loop(
     base_dir: &Path,
     client: &dyn DockerClient,
     debounce_ms: u64,
+    policy: BuildPolicy,
 ) -> Result<()> {
     let debounce = Duration::from_millis(debounce_ms);
 
@@ -400,7 +366,10 @@ pub(super) fn run_watch_loop(
                     );
                     continue;
                 }
-                last_mtimes = current_mtimes;
+                // Note: the authoritative baseline is re-snapshotted after the
+                // deploy below (the deploy itself writes into .results/), so we
+                // intentionally do not update `last_mtimes` from the pre-deploy
+                // snapshot here.
 
                 println!(
                     "\n{} Changes detected in {} file(s):",
@@ -412,20 +381,16 @@ pub(super) fn run_watch_loop(
                     println!("  {}", display);
                 }
 
-                let changed_vec: Vec<PathBuf> = changed.into_iter().collect();
-                let build_context_changed = is_build_context_change(&changed_vec, base_dir);
-                if build_context_changed {
-                    println!(
-                        "{} Build context changed, rebuilding without cache",
-                        "watch:".cyan().bold()
-                    );
-                }
-
                 // Drop watcher during deploy to avoid self-triggered events
                 drop(debouncer);
 
+                // Re-deploy with the same build policy as the initial deploy.
+                // The cache is kept by default; whether a container is recreated
+                // is decided downstream by the image-ID comparison (so a change
+                // inside a build context rebuilds and recreates without
+                // discarding the layer cache).
                 println!("{} Re-deploying...", "watch:".cyan().bold());
-                match run_deploy_cycle(base_dir, client, build_context_changed) {
+                match run_deploy_cycle(base_dir, client, &policy) {
                     Ok(()) => {
                         debug!("Watch: re-deploy completed successfully");
                     }
@@ -794,101 +759,6 @@ spec:
     }
 
     // =========================================================================
-    // is_build_context_change tests
-    // =========================================================================
-
-    #[test]
-    fn test_is_build_context_change_detects_source_change() {
-        let dir = tempdir().unwrap();
-        let results_dir = dir.path().join(super::super::RESULTS_DIR_NAME);
-        fs::create_dir_all(&results_dir).unwrap();
-
-        let context_dir = dir.path().join("app");
-        fs::create_dir_all(context_dir.join("src")).unwrap();
-        fs::write(context_dir.join("src/main.rs"), "fn main() {}").unwrap();
-
-        fs::write(
-            results_dir.join("docker-compose.yaml"),
-            format!("services:\n  web:\n    build: {}\n", context_dir.display()),
-        )
-        .unwrap();
-
-        let changed = vec![context_dir.join("src/main.rs")];
-        assert!(
-            is_build_context_change(&changed, dir.path()),
-            "Should detect change inside build context"
-        );
-    }
-
-    #[test]
-    fn test_is_build_context_change_ignores_non_context_change() {
-        let dir = tempdir().unwrap();
-        let results_dir = dir.path().join(super::super::RESULTS_DIR_NAME);
-        fs::create_dir_all(&results_dir).unwrap();
-
-        let context_dir = dir.path().join("app");
-        fs::create_dir_all(&context_dir).unwrap();
-
-        fs::write(
-            results_dir.join("docker-compose.yaml"),
-            format!("services:\n  web:\n    build: {}\n", context_dir.display()),
-        )
-        .unwrap();
-
-        let values = dir.path().join("values.yaml");
-        fs::write(&values, "key: val").unwrap();
-        let changed = vec![values];
-        assert!(
-            !is_build_context_change(&changed, dir.path()),
-            "Should not detect change outside build context"
-        );
-    }
-
-    #[test]
-    fn test_is_build_context_change_no_build_contexts() {
-        let dir = tempdir().unwrap();
-        let results_dir = dir.path().join(super::super::RESULTS_DIR_NAME);
-        fs::create_dir_all(&results_dir).unwrap();
-
-        fs::write(
-            results_dir.join("docker-compose.yaml"),
-            "services:\n  web:\n    image: nginx:latest\n",
-        )
-        .unwrap();
-
-        let changed = vec![dir.path().join("values.yaml")];
-        assert!(
-            !is_build_context_change(&changed, dir.path()),
-            "Should return false when no build contexts exist"
-        );
-    }
-
-    #[test]
-    fn test_is_build_context_change_mixed_changes() {
-        let dir = tempdir().unwrap();
-        let results_dir = dir.path().join(super::super::RESULTS_DIR_NAME);
-        fs::create_dir_all(&results_dir).unwrap();
-
-        let context_dir = dir.path().join("app");
-        fs::create_dir_all(context_dir.join("src")).unwrap();
-        fs::write(context_dir.join("src/lib.rs"), "// lib").unwrap();
-
-        fs::write(
-            results_dir.join("docker-compose.yaml"),
-            format!("services:\n  web:\n    build: {}\n", context_dir.display()),
-        )
-        .unwrap();
-
-        let values = dir.path().join("values.yaml");
-        fs::write(&values, "key: val").unwrap();
-        let changed = vec![values, context_dir.join("src/lib.rs")];
-        assert!(
-            is_build_context_change(&changed, dir.path()),
-            "Should detect when at least one change is inside build context"
-        );
-    }
-
-    // =========================================================================
     // snapshot_mtimes / mtimes_changed tests
     // =========================================================================
 
@@ -978,51 +848,5 @@ spec:
         fs::remove_file(sub.join("b.txt")).unwrap();
         let snap2 = snapshot_mtimes(&paths);
         assert!(mtimes_changed(&snap1, &snap2));
-    }
-
-    #[test]
-    fn test_is_build_context_change_empty_changed_paths() {
-        let dir = tempdir().unwrap();
-        let results_dir = dir.path().join(super::super::RESULTS_DIR_NAME);
-        fs::create_dir_all(&results_dir).unwrap();
-
-        let context_dir = dir.path().join("app");
-        fs::create_dir_all(&context_dir).unwrap();
-
-        fs::write(
-            results_dir.join("docker-compose.yaml"),
-            format!("services:\n  web:\n    build: {}\n", context_dir.display()),
-        )
-        .unwrap();
-
-        let changed: Vec<PathBuf> = vec![];
-        assert!(
-            !is_build_context_change(&changed, dir.path()),
-            "Should return false for empty changed paths"
-        );
-    }
-
-    #[test]
-    fn test_is_build_context_change_deleted_file() {
-        let dir = tempdir().unwrap();
-        let results_dir = dir.path().join(super::super::RESULTS_DIR_NAME);
-        fs::create_dir_all(&results_dir).unwrap();
-
-        let context_dir = dir.path().join("app");
-        fs::create_dir_all(context_dir.join("src")).unwrap();
-
-        fs::write(
-            results_dir.join("docker-compose.yaml"),
-            format!("services:\n  web:\n    build: {}\n", context_dir.display()),
-        )
-        .unwrap();
-
-        // Path that no longer exists (simulates editor atomic-rename)
-        let deleted = context_dir.join("src/temp_file.rs");
-        let changed = vec![deleted];
-        assert!(
-            is_build_context_change(&changed, dir.path()),
-            "Should detect change even for deleted/renamed files inside build context"
-        );
     }
 }

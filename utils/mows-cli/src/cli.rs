@@ -164,6 +164,22 @@ pub enum ComposeCommands {
         /// Debounce interval in milliseconds for file change detection
         #[arg(long, default_value = "500")]
         debounce_ms: u64,
+
+        /// Force a full rebuild ignoring the Docker layer cache (--no-cache).
+        ///
+        /// Routine deploys keep the cache and rebuild only changed layers; use
+        /// this when a remote input fetched by a RUN step changed without the
+        /// Dockerfile changing (e.g. `git clone`, `curl`, `apt-get`).
+        #[arg(long, visible_alias = "rebuild")]
+        no_cache: bool,
+
+        /// Pull newer images (--pull).
+        ///
+        /// Applies `docker compose build --pull` (refresh base images of build
+        /// services) and `docker compose up --pull always` (refresh images of
+        /// image-only services). Routine deploys do not pull.
+        #[arg(long)]
+        pull: bool,
     },
     /// Initialize a new mows compose project
     ///

@@ -76,13 +76,13 @@ cd "$TEST_DIR/deployment"
 # Run compose up but expect it to fail on docker (we just want to test rendering)
 OUTPUT=$($MPM_BIN compose up 2>&1 || true)
 # Check if rendering happened
-if [[ -f "$TEST_DIR/deployment/results/docker-compose.yaml" ]]; then
-    if grep -q "HOSTNAME=test.example.com" "$TEST_DIR/deployment/results/docker-compose.yaml" && \
-       grep -q "DB_HOST=db.local" "$TEST_DIR/deployment/results/docker-compose.yaml"; then
+if [[ -f "$TEST_DIR/deployment/.results/docker-compose.yaml" ]]; then
+    if grep -q "HOSTNAME=test.example.com" "$TEST_DIR/deployment/.results/docker-compose.yaml" && \
+       grep -q "DB_HOST=db.local" "$TEST_DIR/deployment/.results/docker-compose.yaml"; then
         pass_test "Renders docker-compose template with values"
     else
         fail_test "Template values not substituted correctly"
-        cat "$TEST_DIR/deployment/results/docker-compose.yaml"
+        cat "$TEST_DIR/deployment/.results/docker-compose.yaml"
     fi
 else
     # If results dir doesn't exist, check if docker error occurred after rendering
@@ -97,7 +97,7 @@ cd - > /dev/null
 log_test "compose up: renders multiple templates"
 TEST_DIR=$(create_test_dir "up-multi-template")
 create_test_project "$TEST_DIR"
-# Add additional template in config directory (mpm renders templates/config/** to results/config/**)
+# Add additional template in config directory (mpm renders templates/config/** to .results/config/**)
 mkdir -p "$TEST_DIR/deployment/templates/config"
 cat > "$TEST_DIR/deployment/templates/config/app.yaml" << 'EOF'
 app:
@@ -106,8 +106,8 @@ app:
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if [[ -f "$TEST_DIR/deployment/results/config/app.yaml" ]]; then
-    if grep -q "name: test.example.com" "$TEST_DIR/deployment/results/config/app.yaml"; then
+if [[ -f "$TEST_DIR/deployment/.results/config/app.yaml" ]]; then
+    if grep -q "name: test.example.com" "$TEST_DIR/deployment/.results/config/app.yaml"; then
         pass_test "Renders multiple templates"
     else
         fail_test "Additional template not rendered correctly"
@@ -126,8 +126,8 @@ hostname: {{ .hostname }}
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if [[ -f "$TEST_DIR/deployment/results/config/app/settings.yaml" ]]; then
-    if grep -q "hostname: test.example.com" "$TEST_DIR/deployment/results/config/app/settings.yaml"; then
+if [[ -f "$TEST_DIR/deployment/.results/config/app/settings.yaml" ]]; then
+    if grep -q "hostname: test.example.com" "$TEST_DIR/deployment/.results/config/app/settings.yaml"; then
         pass_test "Renders templates in subdirectories"
     else
         fail_test "Subdirectory template not rendered correctly"
@@ -140,10 +140,10 @@ cd - > /dev/null
 log_test "compose up: creates results directory"
 TEST_DIR=$(create_test_dir "up-creates-results")
 create_test_project "$TEST_DIR"
-rm -rf "$TEST_DIR/deployment/results"
+rm -rf "$TEST_DIR/deployment/.results"
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if assert_dir_exists "$TEST_DIR/deployment/results"; then
+if assert_dir_exists "$TEST_DIR/deployment/.results"; then
     pass_test "Creates results directory"
 else
     fail_test "Results directory not created"
@@ -163,8 +163,8 @@ API_KEY={{ uuidv4 }}
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if [[ -f "$TEST_DIR/deployment/results/generated-secrets.env" ]]; then
-    DB_PASSWORD=$(grep "DB_PASSWORD=" "$TEST_DIR/deployment/results/generated-secrets.env" | cut -d= -f2)
+if [[ -f "$TEST_DIR/deployment/.results/generated-secrets.env" ]]; then
+    DB_PASSWORD=$(grep "DB_PASSWORD=" "$TEST_DIR/deployment/.results/generated-secrets.env" | cut -d= -f2)
     if [[ ${#DB_PASSWORD} -eq 32 ]]; then
         pass_test "Generates secrets with correct length"
     else
@@ -181,13 +181,13 @@ create_test_project "$TEST_DIR"
 cat > "$TEST_DIR/deployment/templates/generated-secrets.env" << 'EOF'
 SECRET_KEY={{ randAlphaNum 16 }}
 EOF
-mkdir -p "$TEST_DIR/deployment/results"
-cat > "$TEST_DIR/deployment/results/generated-secrets.env" << 'EOF'
+mkdir -p "$TEST_DIR/deployment/.results"
+cat > "$TEST_DIR/deployment/.results/generated-secrets.env" << 'EOF'
 SECRET_KEY=existing-secret-value
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if grep -q "SECRET_KEY=existing-secret-value" "$TEST_DIR/deployment/results/generated-secrets.env"; then
+if grep -q "SECRET_KEY=existing-secret-value" "$TEST_DIR/deployment/.results/generated-secrets.env"; then
     pass_test "Preserves existing generated secrets"
 else
     fail_test "Existing secret was overwritten"
@@ -200,13 +200,13 @@ create_test_project "$TEST_DIR"
 cat > "$TEST_DIR/deployment/templates/generated-secrets.env" << 'EOF'
 NEW_SECRET={{ randAlphaNum 16 }}
 EOF
-mkdir -p "$TEST_DIR/deployment/results"
-cat > "$TEST_DIR/deployment/results/generated-secrets.env" << 'EOF'
+mkdir -p "$TEST_DIR/deployment/.results"
+cat > "$TEST_DIR/deployment/.results/generated-secrets.env" << 'EOF'
 NEW_SECRET=
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-NEW_SECRET=$(grep "NEW_SECRET=" "$TEST_DIR/deployment/results/generated-secrets.env" | cut -d= -f2)
+NEW_SECRET=$(grep "NEW_SECRET=" "$TEST_DIR/deployment/.results/generated-secrets.env" | cut -d= -f2)
 if [[ ${#NEW_SECRET} -eq 16 ]]; then
     pass_test "Regenerates empty secrets"
 else
@@ -223,8 +223,8 @@ EXTERNAL_TOKEN=external-token-value
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if [[ -f "$TEST_DIR/deployment/results/provided-secrets.env" ]]; then
-    if grep -q "USER_API_KEY=user-provided-key" "$TEST_DIR/deployment/results/provided-secrets.env"; then
+if [[ -f "$TEST_DIR/deployment/.results/provided-secrets.env" ]]; then
+    if grep -q "USER_API_KEY=user-provided-key" "$TEST_DIR/deployment/.results/provided-secrets.env"; then
         pass_test "Copies provided secrets to results"
     else
         fail_test "Provided secrets not copied correctly"
@@ -244,7 +244,7 @@ create_test_project "$TEST_DIR"
 cd "$TEST_DIR/deployment"
 OUTPUT=$($MPM_BIN compose up 2>&1 || true)
 # Should proceed past manifest detection (may fail at docker)
-if echo "$OUTPUT" | grep -qi "docker\|compose" || [[ -d "$TEST_DIR/deployment/results" ]]; then
+if echo "$OUTPUT" | grep -qi "docker\|compose" || [[ -d "$TEST_DIR/deployment/.results" ]]; then
     pass_test "Finds manifest in current directory"
 else
     fail_test "Failed to find manifest"
@@ -258,7 +258,7 @@ create_test_project "$TEST_DIR"
 mkdir -p "$TEST_DIR/subdir/deep"
 cd "$TEST_DIR/subdir/deep"
 OUTPUT=$($MPM_BIN compose up 2>&1 || true)
-if [[ -d "$TEST_DIR/deployment/results" ]] || echo "$OUTPUT" | grep -qi "docker"; then
+if [[ -d "$TEST_DIR/deployment/.results" ]] || echo "$OUTPUT" | grep -qi "docker"; then
     pass_test "Finds manifest from git subdirectory"
 else
     fail_test "Failed to find manifest from subdirectory"
@@ -349,8 +349,8 @@ services:
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if [[ -f "$TEST_DIR/deployment/results/docker-compose.yaml" ]]; then
-    if grep -q "TEST.EXAMPLE.COM" "$TEST_DIR/deployment/results/docker-compose.yaml"; then
+if [[ -f "$TEST_DIR/deployment/.results/docker-compose.yaml" ]]; then
+    if grep -q "TEST.EXAMPLE.COM" "$TEST_DIR/deployment/.results/docker-compose.yaml"; then
         pass_test "Template functions work (upper)"
     else
         fail_test "Template function upper not working"
@@ -377,8 +377,8 @@ services:
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if [[ -f "$TEST_DIR/deployment/results/docker-compose.yaml" ]]; then
-    if grep -q "DEBUG=true" "$TEST_DIR/deployment/results/docker-compose.yaml"; then
+if [[ -f "$TEST_DIR/deployment/.results/docker-compose.yaml" ]]; then
+    if grep -q "DEBUG=true" "$TEST_DIR/deployment/.results/docker-compose.yaml"; then
         pass_test "Conditionals work"
     else
         fail_test "Conditional not evaluated correctly"
@@ -408,10 +408,10 @@ services:
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if [[ -f "$TEST_DIR/deployment/results/docker-compose.yaml" ]]; then
-    if grep -q "8080:80" "$TEST_DIR/deployment/results/docker-compose.yaml" && \
-       grep -q "8081:80" "$TEST_DIR/deployment/results/docker-compose.yaml" && \
-       grep -q "8082:80" "$TEST_DIR/deployment/results/docker-compose.yaml"; then
+if [[ -f "$TEST_DIR/deployment/.results/docker-compose.yaml" ]]; then
+    if grep -q "8080:80" "$TEST_DIR/deployment/.results/docker-compose.yaml" && \
+       grep -q "8081:80" "$TEST_DIR/deployment/.results/docker-compose.yaml" && \
+       grep -q "8082:80" "$TEST_DIR/deployment/.results/docker-compose.yaml"; then
         pass_test "Loops work"
     else
         fail_test "Loop not expanded correctly"
@@ -451,7 +451,7 @@ services:
 EOF
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
-if [[ -f "$TEST_DIR/deployment/results/docker-compose.yaml" ]]; then
+if [[ -f "$TEST_DIR/deployment/.results/docker-compose.yaml" ]]; then
     pass_test "Handles special characters in values"
 else
     fail_test "Failed with special characters"
@@ -461,15 +461,48 @@ cd - > /dev/null
 log_test "compose up: cleans up old results before rendering"
 TEST_DIR=$(create_test_dir "up-cleanup")
 create_test_project "$TEST_DIR"
-mkdir -p "$TEST_DIR/deployment/results"
-echo "old content" > "$TEST_DIR/deployment/results/old-file.txt"
+mkdir -p "$TEST_DIR/deployment/.results"
+echo "old content" > "$TEST_DIR/deployment/.results/old-file.txt"
 cd "$TEST_DIR/deployment"
 $MPM_BIN compose up 2>&1 || true
 # Old file should be removed or results should be fresh
-if [[ -f "$TEST_DIR/deployment/results/docker-compose.yaml" ]]; then
+if [[ -f "$TEST_DIR/deployment/.results/docker-compose.yaml" ]]; then
     pass_test "Renders fresh results"
 else
     fail_test "Results not rendered after cleanup"
+fi
+cd - > /dev/null
+
+# Image-id verify/repair wiring: a build service whose running container is on a
+# stale image must trigger a force-recreate and, if it stays stale, hard-fail the
+# deploy. Driven by MPM_MOCK_STALE=1 (mock reports fresh build id vs stale running
+# container). This exercises the verify-then-repair chain end-to-end (it runs
+# after the readiness wait inside run_deploy_cycle).
+log_test "compose up: stale build image triggers force-recreate and hard-fails if unfixed"
+TEST_DIR=$(create_test_dir "up-stale-verify")
+mkdir -p "$TEST_DIR/deployment/templates/app"
+cat > "$TEST_DIR/deployment/mows-manifest.yaml" << 'EOF'
+manifestVersion: "0.1"
+metadata:
+  name: stale-verify
+spec:
+  compose: {}
+EOF
+cat > "$TEST_DIR/deployment/templates/docker-compose.yaml" << 'EOF'
+services:
+  web:
+    build: ./app
+    image: stale-verify-web:latest
+EOF
+cd "$TEST_DIR/deployment"
+STALE_OUTPUT=$(MPM_MOCK_STALE=1 $MPM_BIN compose up 2>&1 || true)
+if echo "$STALE_OUTPUT" | grep -q "force_recreate=true" \
+    && echo "$STALE_OUTPUT" | grep -q "still not running"; then
+    pass_test "Detects stale image, force-recreates, and hard-fails when still stale"
+else
+    fail_test "Expected force-recreate + hard-fail for a permanently-stale build service"
+    log_error "Output:"
+    echo "$STALE_OUTPUT" || true
 fi
 cd - > /dev/null
 
